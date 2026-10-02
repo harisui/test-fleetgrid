@@ -26,6 +26,10 @@ export default defineConfig({
       use: { ...devices["iPhone 13"], browserName: "chromium", defaultBrowserType: "chromium" },
     },
     { name: "mobile-pixel-7", use: { ...devices["Pixel 7"] } },
+    // Optional: the real Safari engine. Run with E2E_WEBKIT=1 (needs `playwright install webkit`).
+    ...(process.env.E2E_WEBKIT
+      ? [{ name: "mobile-safari-webkit", use: { ...devices["iPhone 13"] } }]
+      : []),
   ],
   webServer: {
     command: isCI ? "pnpm build && pnpm start" : "pnpm dev",

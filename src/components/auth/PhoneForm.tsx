@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { FormField } from "@/components/shared/FormField";
 import { LoadingButton } from "@/components/shared/LoadingButton";
@@ -19,7 +19,9 @@ interface PhoneFormProps {
 
 export function PhoneForm({ role }: PhoneFormProps) {
   const router = useRouter();
-  const [phone, setPhone] = useState("");
+  // Uncontrolled on purpose: digits typed before the page finishes loading its scripts
+  // (slow phones, Safari) must not be wiped when React takes over.
+  const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
 
@@ -27,7 +29,7 @@ export function PhoneForm({ role }: PhoneFormProps) {
     event.preventDefault();
     if (pending) return;
 
-    const parsed = phoneSchema.safeParse(phone);
+    const parsed = phoneSchema.safeParse(inputRef.current?.value ?? "");
     if (!parsed.success) {
       setError(parsed.error.issues[0].message);
       return;
@@ -64,9 +66,10 @@ export function PhoneForm({ role }: PhoneFormProps) {
           autoComplete="tel-national"
           placeholder="(555) 555-0100"
           className="h-12 text-lg"
-          value={phone}
+          ref={inputRef}
+          defaultValue=""
           onChange={(event) => {
-            setPhone(formatUsPhoneInput(event.target.value));
+            event.target.value = formatUsPhoneInput(event.target.value);
             if (error) setError(undefined);
           }}
           autoFocus

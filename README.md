@@ -1,36 +1,190 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FleetGrid
 
-## Getting Started
+A confidential B2B directory that connects local freight carriers with certified transport operators (CDL drivers, yard spotters, mechanics).
 
-First, run the development server:
+**Status:** Milestone 1 (foundation and driver side). The full brief and progress log live in [Artifacts/Requirements.md](Artifacts/Requirements.md).
+
+## Prerequisites
+
+| Tool           | Version         | Notes                                                           |
+| -------------- | --------------- | --------------------------------------------------------------- |
+| Node.js        | 22 LTS or newer |                                                                 |
+| pnpm           | 10 or newer     | `npm install -g pnpm`                                           |
+| Docker Desktop | running         | needed by the local Supabase stack                              |
+| Supabase CLI   | bundled         | installed as a dev dependency, run it with `pnpm exec supabase` |
+
+## Local setup
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+pnpm exec playwright install chromium   # browsers for e2e tests
+
+pnpm exec supabase start                # starts Postgres, Auth, Storage (first run downloads images)
+cp .env.example .env.local              # then fill in the keys, see below
+pnpm dev                                # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`supabase start` applies every migration in `supabase/migrations/` and loads `supabase/seed.sql`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Local services:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Service                       | URL                                                       |
+| ----------------------------- | --------------------------------------------------------- |
+| App                           | http://localhost:3000                                     |
+| Supabase API                  | http://127.0.0.1:54321                                    |
+| Supabase Studio (database UI) | http://127.0.0.1:54333                                    |
+| Postgres                      | `postgresql://postgres:postgres@127.0.0.1:54322/postgres` |
 
-## Learn More
+Local development always uses the local Supabase stack, never the hosted project.
 
-To learn more about Next.js, take a look at the following resources:
+## Environment variables
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Copy `.env.example` to `.env.local`. The app validates these at startup (`src/lib/env.ts`) and refuses to start with a clear message if a required one is missing.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| Variable                                         | Needed in   | Where to get it locally                                |
+| ------------------------------------------------ | ----------- | ------------------------------------------------------ |
+| `NEXT_PUBLIC_APP_URL`                            | Milestone 1 | `http://localhost:3000`                                |
+| `NEXT_PUBLIC_SUPABASE_URL`                       | Milestone 1 | `http://127.0.0.1:54321`                               |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY`                  | Milestone 1 | `ANON_KEY` from `pnpm exec supabase status -o env`     |
+| `SUPABASE_SERVICE_ROLE_KEY`                      | Milestone 1 | `SERVICE_ROLE_KEY` from the same command. Server only. |
+| `TWILIO_*`                                       | Milestone 3 | not needed yet                                         |
+| `STRIPE_*`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Milestone 2 | not needed yet                                         |
 
-## Deploy on Vercel
+Never commit `.env.local`. The service role key, Stripe secret and Twilio credentials must never be imported into client components.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Logging in locally (test codes)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Real SMS is never sent locally or in tests. These numbers always accept the code **123456**:
+
+| Number                 | Use                          |
+| ---------------------- | ---------------------------- |
+| (555) 555-0100         | test driver (sign up fresh)  |
+| (555) 555-0101         | test carrier (sign up fresh) |
+| (555) 555-0102         | seeded **admin**             |
+| (555) 555-0103 to 0109 | reserved for automated tests |
+
+Any other number fails instead of sending a message. The seed also creates 25 sample drivers (`+15555551001` to `+15555551025`) for search and admin screens. They cannot log in.
+
+## Scripts
+
+| Command                             | What it does                                                   |
+| ----------------------------------- | -------------------------------------------------------------- |
+| `pnpm dev`                          | start the app in development                                   |
+| `pnpm build` / `pnpm start`         | production build and server                                    |
+| `pnpm lint`                         | ESLint                                                         |
+| `pnpm typecheck`                    | generate route types and run TypeScript                        |
+| `pnpm format` / `pnpm format:check` | Prettier                                                       |
+| `pnpm db:reset`                     | rebuild the local database from migrations and seed            |
+| `pnpm db:types`                     | regenerate `src/types/database.types.ts` after a schema change |
+
+### Tests
+
+| Command                 | Layer                                                          | Needs                          |
+| ----------------------- | -------------------------------------------------------------- | ------------------------------ |
+| `pnpm test`             | unit tests (services with fakes, schemas, helpers, components) | nothing                        |
+| `pnpm test:watch`       | unit tests in watch mode                                       | nothing                        |
+| `pnpm test:coverage`    | unit tests with coverage thresholds                            | nothing                        |
+| `pnpm test:db`          | pgTAP: schema, constraints, triggers, RLS policies             | Supabase running               |
+| `pnpm test:integration` | repositories, RLS and storage through real clients             | Supabase running, `.env.local` |
+| `pnpm test:e2e`         | Playwright on desktop Chrome, iPhone 13 and Pixel 7 viewports  | Supabase running, `.env.local` |
+| `pnpm test:all`         | everything above plus lint and typecheck                       | Supabase running, `.env.local` |
+
+Extra e2e options:
+
+```bash
+pnpm exec playwright test --project=mobile-iphone-13     # one device
+pnpm exec playwright test tests/e2e/auth.spec.ts          # one file
+pnpm exec playwright install webkit                       # once
+E2E_WEBKIT=1 pnpm exec playwright test --project=mobile-safari-webkit   # real Safari engine
+```
+
+Coverage thresholds (enforced in `vitest.config.ts`): services 95% lines and 90% branches, `src/lib` 95% lines, overall 85% lines. A task is done only when `pnpm test:all` is green.
+
+## Architecture
+
+```
+UI (pages, components)
+   calls
+Server Actions (src/server/actions)      validate with zod, call one service method, return a Result
+   calls
+Services (src/server/services)           business rules, no SQL, no HTTP
+   calls
+Repositories (src/server/repositories)   the only place with Supabase queries
+Providers (src/server/providers)         Stripe and Twilio behind interfaces (Milestones 2 and 3)
+```
+
+- Services depend on repository interfaces. `src/server/container.ts` wires them per request.
+- Services throw `AppError` with a typed code. Actions turn that into a `Result`, so raw database errors never reach the UI.
+- Every table has Row Level Security. Page access is checked in `src/proxy.ts` (route rules in `src/lib/auth/routes.ts`) and again in server code (`src/lib/auth/guards.ts`).
+- Document uploads go from the browser straight to private storage with a one-time token. The server validates before issuing the token and again against the stored file.
+
+Next.js 16 renamed `middleware.ts` to `proxy.ts`. The route guard is `src/proxy.ts`.
+
+## Database changes
+
+All schema changes go through migrations. Never edit the schema by hand.
+
+```bash
+# 1. add supabase/migrations/NNNN_description.sql
+pnpm db:reset        # apply from scratch
+pnpm db:types        # regenerate TypeScript types
+pnpm test:db         # add pgTAP tests for the change, including RLS
+```
+
+Never edit a migration that has already been applied to a shared environment. Add a new one.
+
+## Switching themes
+
+All colors live in `src/styles/themes.css`. Components use only Tailwind classes that map to those variables (`bg-primary`, `text-muted-foreground`, and so on). A test fails if a hex color, `rgb(` or a Tailwind palette class such as `bg-blue-500` appears in `src/components` or `src/app`.
+
+Three themes are defined and exactly one is active:
+
+1. **Midnight Freight** (active)
+2. Steel Signal
+3. Route Teal
+
+To switch: in `src/styles/themes.css`, wrap the active `:root { ... }` and `.dark { ... }` blocks in a comment, and remove the comment markers around the theme you want. `pnpm test` checks that every theme defines the same variables, so switching cannot break the UI.
+
+Dark mode is separate from the theme: the toggle in the header saves the choice in the `fleetgrid-theme` cookie and defaults to the system setting.
+
+## Creating an admin user
+
+Nobody can sign up as admin. Locally, the seed creates one: log in with (555) 555-0102 and code 123456.
+
+To make an existing user an admin (local or production), run this SQL as the database owner, for example in Supabase Studio's SQL editor:
+
+```sql
+update public.profiles
+   set role = 'admin', status = 'approved'
+ where phone = '+15555550100';   -- the user's phone in E.164
+```
+
+The user must have logged in once and chosen a role first, so that a profile row exists. Users cannot change their own role or status: a database trigger blocks it.
+
+## Deploying to Vercel
+
+1. Create a hosted Supabase project.
+2. In Supabase: enable phone sign-in and configure Twilio as the SMS provider (Authentication, Providers, Phone).
+3. Apply the migrations to the hosted database:
+   ```bash
+   pnpm exec supabase link --project-ref <project-ref>
+   pnpm exec supabase db push
+   ```
+   Do not run the seed against production. It contains fake data only.
+4. Import the repository in Vercel (framework preset: Next.js, package manager: pnpm).
+5. Set the environment variables in Vercel for Production and Preview: `NEXT_PUBLIC_APP_URL` (the deployed URL), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+6. In Supabase, set the Site URL to the deployed URL (Authentication, URL Configuration).
+7. Deploy, then check `https://<your-domain>/api/health` returns `{"ok":true}`.
+
+## Project layout
+
+```
+supabase/migrations   SQL migrations (schema, helpers, RLS, storage)
+supabase/tests        pgTAP database tests
+src/app               pages, layouts and route handlers
+src/components        ui (shadcn), layout, auth, driver, shared
+src/server            actions, services, repositories, errors, container
+src/lib               env, constants, phone, image, validation, auth, supabase clients
+src/styles/themes.css the only place colors are defined
+tests                 unit, integration, e2e, fakes, setup
+```

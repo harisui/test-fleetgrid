@@ -101,6 +101,9 @@ export async function login(page: Page, phone: string, loginPath = "/login") {
   await requestCode(page, phone, loginPath);
   await page.getByLabel("6-digit code").fill(OTP);
   await expect(page).not.toHaveURL(/\/verify/);
+  // The app may redirect once more (for example profile to onboarding). Let it settle so a
+  // following page.goto() does not interrupt a navigation that is still in flight.
+  await page.waitForLoadState("networkidle");
 }
 
 /** Validation and error messages inside the page. Excludes the Next.js route announcer. */

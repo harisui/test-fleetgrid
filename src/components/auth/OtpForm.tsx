@@ -28,7 +28,8 @@ export function OtpForm({
   cooldownSeconds = OTP_RESEND_COOLDOWN_SECONDS,
 }: OtpFormProps) {
   const router = useRouter();
-  const [code, setCode] = useState("");
+  // Uncontrolled on purpose, so a code typed or autofilled before the scripts load is kept.
+  const inputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
   const [resending, setResending] = useState(false);
@@ -68,10 +69,10 @@ export function OtpForm({
     [phone, role, router],
   );
 
-  function handleChange(raw: string) {
+  function handleChange(input: HTMLInputElement) {
     // Works for typing, pasting "123 456" and SMS autofill.
-    const next = digitsOnly(raw).slice(0, OTP_LENGTH);
-    setCode(next);
+    const next = digitsOnly(input.value).slice(0, OTP_LENGTH);
+    input.value = next;
     if (error) setError(undefined);
     // Submit as soon as the code is complete, once per distinct code.
     if (next.length === OTP_LENGTH && next !== submittedCode.current && !pending) {
@@ -81,7 +82,7 @@ export function OtpForm({
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!pending) void verify(code);
+    if (!pending) void verify(digitsOnly(inputRef.current?.value ?? "").slice(0, OTP_LENGTH));
   }
 
   async function handleResend() {
@@ -94,7 +95,7 @@ export function OtpForm({
       setError(result.error.message);
       return;
     }
-    setCode("");
+    if (inputRef.current) inputRef.current.value = "";
     setError(undefined);
     submittedCode.current = null;
     setSecondsLeft(cooldownSeconds);
@@ -121,8 +122,9 @@ export function OtpForm({
           maxLength={OTP_LENGTH + 4}
           placeholder="123456"
           className="h-14 text-center font-mono text-2xl tracking-[0.4em]"
-          value={code}
-          onChange={(event) => handleChange(event.target.value)}
+          ref={inputRef}
+          defaultValue=""
+          onChange={(event) => handleChange(event.target)}
           disabled={pending}
           autoFocus
         />
