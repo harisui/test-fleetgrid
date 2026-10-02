@@ -1,0 +1,248 @@
+/* =========================================================
+   FLEETGRID THEMES
+   Only ONE theme block should be active at a time.
+   To switch: comment out the active block, uncomment another.
+   Components must only use these variables, never raw colors.
+   ========================================================= */
+
+/* ---------------------------------------------------------
+   THEME 1: MIDNIGHT FREIGHT (ACTIVE)
+   Deep navy with highway amber. Trustworthy, logistics-grade.
+   --------------------------------------------------------- */
+:root {
+  --radius: 0.625rem;
+
+  --background: #ffffff;
+  --foreground: #0b1726;
+
+  --card: #ffffff;
+  --card-foreground: #0b1726;
+  --popover: #ffffff;
+  --popover-foreground: #0b1726;
+
+  --primary: #0f2a4a;
+  --primary-foreground: #ffffff;
+
+  --secondary: #eef2f7;
+  --secondary-foreground: #0f2a4a;
+
+  --muted: #f4f6f9;
+  --muted-foreground: #5b6b80;
+
+  --accent: #f59e0b;
+  --accent-foreground: #1a1204;
+
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  --success: #16a34a;
+  --success-foreground: #ffffff;
+  --warning: #d97706;
+  --warning-foreground: #ffffff;
+
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #f59e0b;
+
+  --sidebar: #0f2a4a;
+  --sidebar-foreground: #e6edf5;
+}
+
+.dark {
+  --background: #08121f;
+  --foreground: #e6edf5;
+
+  --card: #0d1b2d;
+  --card-foreground: #e6edf5;
+  --popover: #0d1b2d;
+  --popover-foreground: #e6edf5;
+
+  --primary: #f59e0b;
+  --primary-foreground: #1a1204;
+
+  --secondary: #16283f;
+  --secondary-foreground: #e6edf5;
+
+  --muted: #13243a;
+  --muted-foreground: #94a3b8;
+
+  --accent: #fbbf24;
+  --accent-foreground: #1a1204;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --success: #22c55e;
+  --success-foreground: #04120a;
+  --warning: #f59e0b;
+  --warning-foreground: #1a1204;
+
+  --border: #1f3350;
+  --input: #1f3350;
+  --ring: #fbbf24;
+
+  --sidebar: #050d17;
+  --sidebar-foreground: #e6edf5;
+}
+
+/* ---------------------------------------------------------
+   THEME 2: STEEL SIGNAL
+   Graphite steel with signal orange. Industrial, high contrast.
+   ---------------------------------------------------------
+:root {
+  --radius: 0.5rem;
+
+  --background: #ffffff;
+  --foreground: #111827;
+
+  --card: #ffffff;
+  --card-foreground: #111827;
+  --popover: #ffffff;
+  --popover-foreground: #111827;
+
+  --primary: #1f2937;
+  --primary-foreground: #ffffff;
+
+  --secondary: #f3f4f6;
+  --secondary-foreground: #1f2937;
+
+  --muted: #f5f5f4;
+  --muted-foreground: #6b7280;
+
+  --accent: #ea580c;
+  --accent-foreground: #ffffff;
+
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  --success: #16a34a;
+  --success-foreground: #ffffff;
+  --warning: #ca8a04;
+  --warning-foreground: #ffffff;
+
+  --border: #e5e7eb;
+  --input: #e5e7eb;
+  --ring: #ea580c;
+
+  --sidebar: #1f2937;
+  --sidebar-foreground: #f3f4f6;
+}
+
+.dark {
+  --background: #0c0f14;
+  --foreground: #f3f4f6;
+
+  --card: #151a21;
+  --card-foreground: #f3f4f6;
+  --popover: #151a21;
+  --popover-foreground: #f3f4f6;
+
+  --primary: #f97316;
+  --primary-foreground: #1a0a02;
+
+  --secondary: #1f2630;
+  --secondary-foreground: #f3f4f6;
+
+  --muted: #1a2029;
+  --muted-foreground: #9ca3af;
+
+  --accent: #fb923c;
+  --accent-foreground: #1a0a02;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --success: #22c55e;
+  --success-foreground: #04120a;
+  --warning: #eab308;
+  --warning-foreground: #1a1402;
+
+  --border: #2a313c;
+  --input: #2a313c;
+  --ring: #fb923c;
+
+  --sidebar: #090c10;
+  --sidebar-foreground: #f3f4f6;
+}
+--------------------------------------------------------- */
+
+/* ---------------------------------------------------------
+   THEME 3: ROUTE TEAL
+   Deep teal with lime go-signal. Modern, calm, fresh.
+   ---------------------------------------------------------
+:root {
+  --radius: 0.75rem;
+
+  --background: #ffffff;
+  --foreground: #0a1f1d;
+
+  --card: #ffffff;
+  --card-foreground: #0a1f1d;
+  --popover: #ffffff;
+  --popover-foreground: #0a1f1d;
+
+  --primary: #0f766e;
+  --primary-foreground: #ffffff;
+
+  --secondary: #ecf7f5;
+  --secondary-foreground: #0f4f4a;
+
+  --muted: #f3f8f7;
+  --muted-foreground: #5a706d;
+
+  --accent: #84cc16;
+  --accent-foreground: #142002;
+
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  --success: #16a34a;
+  --success-foreground: #ffffff;
+  --warning: #d97706;
+  --warning-foreground: #ffffff;
+
+  --border: #dbe7e5;
+  --input: #dbe7e5;
+  --ring: #0f766e;
+
+  --sidebar: #0f4f4a;
+  --sidebar-foreground: #e8f5f3;
+}
+
+.dark {
+  --background: #061413;
+  --foreground: #e3f2f0;
+
+  --card: #0b1f1d;
+  --card-foreground: #e3f2f0;
+  --popover: #0b1f1d;
+  --popover-foreground: #e3f2f0;
+
+  --primary: #2dd4bf;
+  --primary-foreground: #042420;
+
+  --secondary: #12302d;
+  --secondary-foreground: #e3f2f0;
+
+  --muted: #102926;
+  --muted-foreground: #8fb3ae;
+
+  --accent: #a3e635;
+  --accent-foreground: #142002;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+
+  --success: #22c55e;
+  --success-foreground: #04120a;
+  --warning: #f59e0b;
+  --warning-foreground: #1a1204;
+
+  --border: #1d3d39;
+  --input: #1d3d39;
+  --ring: #2dd4bf;
+
+  --sidebar: #031110;
+  --sidebar-foreground: #e3f2f0;
+}
+--------------------------------------------------------- */
