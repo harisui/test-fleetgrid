@@ -167,6 +167,14 @@ describe("driverBasicsSchema (step 1)", () => {
     expect(errorsOf(driverBasicsSchema, validBasics(overrides))).toEqual(expected);
   });
 
+  it("a blank radius falls back to the default, like an untouched field", () => {
+    for (const blank of ["", null]) {
+      expect(
+        driverBasicsSchema.parse(validBasics({ serviceRadiusMiles: blank })).serviceRadiusMiles,
+      ).toBe(50);
+    }
+  });
+
   it("reports every invalid field of an empty form", () => {
     expect(Object.keys(errorsOf(driverBasicsSchema, {})).sort()).toEqual([
       "fullName",
@@ -239,6 +247,8 @@ describe("driverLicensesSchema (step 2)", () => {
     [{ yearsExperience: 2.5 }, { yearsExperience: "Enter a whole number" }],
     [{ yearsExperience: undefined }, { yearsExperience: "Enter your years of experience" }],
     [{ yearsExperience: "many" }, { yearsExperience: "Enter your years of experience" }],
+    [{ yearsExperience: "" }, { yearsExperience: "Enter your years of experience" }],
+    [{ yearsExperience: null }, { yearsExperience: "Enter your years of experience" }],
     [{ certifications: [""] }, { "certifications.0": "Certifications cannot be empty" }],
     [
       { certifications: ["x".repeat(61)] },

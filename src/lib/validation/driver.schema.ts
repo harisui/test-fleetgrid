@@ -21,8 +21,27 @@ const optionalText = (max: number, message: string) =>
     .nullish()
     .transform((value) => (value ? value : null));
 
-const wholeNumber = (requiredMessage: string) =>
-  z.coerce.number({ error: requiredMessage }).int("Enter a whole number");
+/**
+ * A whole number from a form field. Accepts numbers and numeric strings.
+ * An empty field is "missing", never zero.
+ */
+const wholeNumber = (options: {
+  required: string;
+  min: [number, string];
+  max: [number, string];
+  fallback?: number;
+}) =>
+  z.preprocess(
+    (value) => {
+      const blank = value === "" || value === null || value === undefined;
+      return blank ? options.fallback : value;
+    },
+    z.coerce
+      .number({ error: options.required })
+      .int("Enter a whole number")
+      .min(...options.min)
+      .max(...options.max),
+  );
 
 const unique = <T>(values: T[]) => [...new Set(values)];
 
@@ -45,10 +64,12 @@ export const driverBasicsSchema = z.object({
     .string({ error: "Enter your ZIP code" })
     .trim()
     .regex(/^\d{5}$/, "Enter a 5-digit ZIP code"),
-  serviceRadiusMiles: wholeNumber("Enter your service radius")
-    .min(SERVICE_RADIUS_MIN_MILES, `Radius must be at least ${SERVICE_RADIUS_MIN_MILES} miles`)
-    .max(SERVICE_RADIUS_MAX_MILES, `Radius must be ${SERVICE_RADIUS_MAX_MILES} miles or less`)
-    .default(SERVICE_RADIUS_DEFAULT_MILES),
+  serviceRadiusMiles: wholeNumber({
+    required: "Enter your service radius",
+    min: [SERVICE_RADIUS_MIN_MILES, `Radius must be at least ${SERVICE_RADIUS_MIN_MILES} miles`],
+    max: [SERVICE_RADIUS_MAX_MILES, `Radius must be ${SERVICE_RADIUS_MAX_MILES} miles or less`],
+    fallback: SERVICE_RADIUS_DEFAULT_MILES,
+  }),
 });
 
 // ---------------------------------------------------------------------------
@@ -77,9 +98,11 @@ export const driverLicensesSchema = z
       .transform(unique),
     cdlClass: z.enum(CDL_CLASSES, { error: "Select your CDL class" }),
     endorsements: z.array(z.enum(ENDORSEMENTS)).default([]).transform(unique),
-    yearsExperience: wholeNumber("Enter your years of experience")
-      .min(0, "Experience cannot be negative")
-      .max(YEARS_EXPERIENCE_MAX, `Experience must be ${YEARS_EXPERIENCE_MAX} years or less`),
+    yearsExperience: wholeNumber({
+      required: "Enter your years of experience",
+      min: [0, "Experience cannot be negative"],
+      max: [YEARS_EXPERIENCE_MAX, `Experience must be ${YEARS_EXPERIENCE_MAX} years or less`],
+    }),
     certifications: certificationsSchema,
   })
   // Endorsements only apply to a CDL. Without one they are dropped, not rejected.
