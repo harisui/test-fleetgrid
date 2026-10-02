@@ -1,0 +1,140 @@
+import { BaseRepository } from "@/server/repositories/BaseRepository";
+import type { Database } from "@/types/database.types";
+import type { AvailabilityType, CdlClass, Driver, Endorsement, OperatorType } from "@/types/domain";
+
+type DriverRow = Database["public"]["Tables"]["drivers"]["Row"];
+type DriverUpdate = Database["public"]["Tables"]["drivers"]["Update"];
+
+/** Fields needed to create the card at onboarding step 1. */
+export interface CreateDriverInput {
+  fullName: string;
+  city: string | null;
+  state: string;
+  zip: string;
+  serviceRadiusMiles: number;
+  onboardingStep: number;
+}
+
+/** Any subset of editable card fields. Owner and opt-out state are not editable here. */
+export interface DriverPatch {
+  fullName?: string;
+  city?: string | null;
+  state?: string;
+  zip?: string;
+  serviceRadiusMiles?: number;
+  operatorTypes?: OperatorType[];
+  cdlClass?: CdlClass;
+  endorsements?: Endorsement[];
+  yearsExperience?: number;
+  certifications?: string[];
+  availability?: AvailabilityType[];
+  bio?: string | null;
+  smsOptIn?: boolean;
+  smsOptInAt?: string;
+  smsOptInText?: string;
+  onboardingStep?: number;
+  cardCompleted?: boolean;
+}
+
+export interface IDriverRepository {
+  findByProfileId(profileId: string): Promise<Driver | null>;
+  create(profileId: string, input: CreateDriverInput): Promise<Driver>;
+  update(profileId: string, patch: DriverPatch): Promise<Driver>;
+}
+
+export function mapDriver(row: DriverRow): Driver {
+  return {
+    id: row.id,
+    profileId: row.profile_id,
+    fullName: row.full_name,
+    operatorTypes: row.operator_types,
+    cdlClass: row.cdl_class,
+    endorsements: row.endorsements,
+    yearsExperience: row.years_experience,
+    city: row.city,
+    state: row.state,
+    zip: row.zip,
+    serviceRadiusMiles: row.service_radius_miles,
+    availability: row.availability,
+    certifications: row.certifications,
+    bio: row.bio,
+    smsOptIn: row.sms_opt_in,
+    smsOptInAt: row.sms_opt_in_at,
+    smsOptInText: row.sms_opt_in_text,
+    smsOptedOut: row.sms_opted_out,
+    smsOptedOutAt: row.sms_opted_out_at,
+    onboardingStep: row.onboarding_step,
+    cardCompleted: row.card_completed,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+/** Maps only the keys present in the patch, so untouched columns keep their values. */
+export function toDriverUpdate(patch: DriverPatch): DriverUpdate {
+  const columns: { [K in keyof DriverPatch]-?: keyof DriverUpdate } = {
+    fullName: "full_name",
+    city: "city",
+    state: "state",
+    zip: "zip",
+    serviceRadiusMiles: "service_radius_miles",
+    operatorTypes: "operator_types",
+    cdlClass: "cdl_class",
+    endorsements: "endorsements",
+    yearsExperience: "years_experience",
+    certifications: "certifications",
+    availability: "availability",
+    bio: "bio",
+    smsOptIn: "sms_opt_in",
+    smsOptInAt: "sms_opt_in_at",
+    smsOptInText: "sms_opt_in_text",
+    onboardingStep: "onboarding_step",
+    cardCompleted: "card_completed",
+  };
+
+  const update: Record<string, unknown> = {};
+  for (const [key, column] of Object.entries(columns)) {
+    const value = patch[key as keyof DriverPatch];
+    if (value !== undefined) update[column] = value;
+  }
+  return update as DriverUpdate;
+}
+
+export class DriverRepository extends BaseRepository implements IDriverRepository {
+  async findByProfileId(profileId: string): Promise<Driver | null> {
+    const result = await this.supabase
+      .from("drivers")
+      .select("*")
+      .eq("profile_id", profileId)
+      .maybeSingle();
+    const row = this.unwrapMaybe(result);
+    return row ? mapDriver(row) : null;
+  }
+
+  async create(profileId: string, input: CreateDriverInput): Promise<Driver> {
+    const result = await this.supabase
+      .from("drivers")
+      .insert({
+        profile_id: profileId,
+        full_name: input.fullName,
+        city: input.city,
+        state: input.state,
+        zip: input.zip,
+        service_radius_miles: input.serviceRadiusMiles,
+        onboarding_step: input.onboardingStep,
+      })
+      .select("*")
+      .single();
+    return mapDriver(this.unwrap(result));
+  }
+
+  async update(profileId: string, patch: DriverPatch): Promise<Driver> {
+    const result = await this.supabase
+      .from("drivers")
+      .update(toDriverUpdate(patch))
+      .eq("profile_id", profileId)
+      .select("*")
+      .single();
+    return mapDriver(this.unwrap(result));
+  }
+}

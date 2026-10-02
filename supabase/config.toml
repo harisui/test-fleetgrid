@@ -93,7 +93,7 @@ enabled = true
 [studio]
 enabled = true
 # Port to use for Supabase Studio.
-port = 54323
+port = 54333
 # External URL of the API server that frontend connects to.
 api_url = "http://127.0.0.1"
 # OpenAI API Key to use for Supabase AI in the Supabase Studio.
@@ -193,19 +193,20 @@ password_requirements = ""
 # rp_id = "localhost"
 # rp_origins = ["http://127.0.0.1:3000"]
 
+# Local limits are raised so automated tests can sign in repeatedly. Production uses the hosted project settings.
 [auth.rate_limit]
 # Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
 email_sent = 2
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
-sms_sent = 30
+sms_sent = 10000
 # Number of anonymous sign-ins that can be made per hour per IP address. Requires enable_anonymous_sign_ins = true.
 anonymous_users = 30
 # Number of sessions that can be refreshed in a 5 minute interval per IP address.
-token_refresh = 150
+token_refresh = 10000
 # Number of sign up and sign-in requests that can be made in a 5 minute interval per IP address (excludes anonymous users).
-sign_in_sign_ups = 30
+sign_in_sign_ups = 10000
 # Number of OTP / Magic link verifications that can be made in a 5 minute interval per IP address.
-token_verifications = 30
+token_verifications = 10000
 # Number of Web3 logins that can be made in a 5 minute interval per IP address.
 web3 = 30
 
@@ -261,7 +262,7 @@ enable_confirmations = true
 # Template for sending OTP to users
 template = "Your FleetGrid code is {{ .Code }}"
 # Controls the minimum amount of time that must pass before sending another sms otp.
-max_frequency = "5s"
+max_frequency = "1s"
 
 # Real SMS is never sent locally or in tests. These numbers always accept the code below.
 [auth.sms.test_otp]
@@ -318,7 +319,7 @@ enroll_enabled = false
 verify_enabled = false
 otp_length = 6
 template = "Your code is {{ .Code }}"
-max_frequency = "5s"
+max_frequency = "1s"
 
 # Configure MFA via WebAuthn
 # [auth.mfa.web_authn]

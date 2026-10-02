@@ -48,6 +48,26 @@ interface CreateUserOptions {
 
 const createdUserIds: string[] = [];
 
+/** Registers a user created outside this module (for example by a real OTP sign-in) for cleanup. */
+export function trackUserForCleanup(id: string): void {
+  createdUserIds.push(id);
+}
+
+/** A fresh client with no session and an in-memory session store, like a new browser. */
+export function freshClient(): TypedClient {
+  return createClient<Database>(url(), anonKey(), noSession);
+}
+
+/** Removes any auth user that owns this phone, so OTP tests start clean. */
+export async function deleteUserByPhone(phone: string): Promise<void> {
+  const admin = serviceClient();
+  const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  const bare = phone.replace(/^\+/, "");
+  for (const user of data?.users ?? []) {
+    if (user.phone === bare) await admin.auth.admin.deleteUser(user.id);
+  }
+}
+
 export async function createTestUser(options: CreateUserOptions = {}): Promise<TestUser> {
   const admin = serviceClient();
   const phone = buildPhone();

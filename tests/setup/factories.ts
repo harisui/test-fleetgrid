@@ -1,6 +1,8 @@
+import { SMS_CONSENT_TEXT } from "@/lib/constants";
+import type { Driver, DriverDocument, Profile } from "@/types/domain";
+
 /**
  * Test data builders. Each builder returns a valid object and accepts overrides.
- * Domain builders (profile, driver, document) are added with the domain types in T1.6.
  */
 
 /** Phone numbers with fixed OTP "123456" in supabase/config.toml. Never real numbers. */
@@ -44,3 +46,127 @@ export function buildPhone(): string {
 export function build<T extends object>(defaults: T, overrides: Partial<T> = {}): T {
   return { ...defaults, ...overrides };
 }
+
+// ---------------------------------------------------------------------------
+// Domain builders
+// ---------------------------------------------------------------------------
+
+const TIMESTAMP = "2026-10-01T12:00:00.000Z";
+
+export const USER_ID = "11111111-1111-4111-8111-111111111111";
+export const OTHER_USER_ID = "22222222-2222-4222-8222-222222222222";
+export const DRIVER_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+export const OTHER_DRIVER_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+export function buildProfile(overrides: Partial<Profile> = {}): Profile {
+  return build<Profile>(
+    {
+      id: USER_ID,
+      role: "driver",
+      phone: TEST_PHONES.driver,
+      status: "pending",
+      createdAt: TIMESTAMP,
+      updatedAt: TIMESTAMP,
+    },
+    overrides,
+  );
+}
+
+/** A completed qualification card. Override fields to build partial cards. */
+export function buildDriver(overrides: Partial<Driver> = {}): Driver {
+  return build<Driver>(
+    {
+      id: DRIVER_ID,
+      profileId: USER_ID,
+      fullName: "Pat Driver",
+      operatorTypes: ["cdl_driver"],
+      cdlClass: "A",
+      endorsements: ["H", "T"],
+      yearsExperience: 8,
+      city: "Dallas",
+      state: "TX",
+      zip: "75201",
+      serviceRadiusMiles: 50,
+      availability: ["full_time"],
+      certifications: ["TWIC"],
+      bio: "Reliable and on time.",
+      smsOptIn: true,
+      smsOptInAt: TIMESTAMP,
+      smsOptInText: SMS_CONSENT_TEXT,
+      smsOptedOut: false,
+      smsOptedOutAt: null,
+      onboardingStep: 6,
+      cardCompleted: true,
+      createdAt: TIMESTAMP,
+      updatedAt: TIMESTAMP,
+    },
+    overrides,
+  );
+}
+
+/** The card as it looks right after step 1 is saved. */
+export function buildPartialDriver(overrides: Partial<Driver> = {}): Driver {
+  return buildDriver({
+    operatorTypes: [],
+    cdlClass: "none",
+    endorsements: [],
+    yearsExperience: null,
+    availability: [],
+    certifications: [],
+    bio: null,
+    smsOptIn: false,
+    smsOptInAt: null,
+    smsOptInText: null,
+    onboardingStep: 2,
+    cardCompleted: false,
+    ...overrides,
+  });
+}
+
+export function buildDocument(overrides: Partial<DriverDocument> = {}): DriverDocument {
+  return build<DriverDocument>(
+    {
+      id: "d0000000-0000-4000-8000-000000000001",
+      driverId: DRIVER_ID,
+      type: "cdl_front",
+      storagePath: `${DRIVER_ID}/c0000000-0000-4000-8000-000000000001.jpg`,
+      fileName: "cdl-front.jpg",
+      mimeType: "image/jpeg",
+      sizeBytes: 250_000,
+      createdAt: TIMESTAMP,
+    },
+    overrides,
+  );
+}
+
+/** Valid raw form input for each onboarding step. */
+export const validBasics = (overrides: Record<string, unknown> = {}) => ({
+  fullName: "Pat Driver",
+  city: "Dallas",
+  state: "TX",
+  zip: "75201",
+  serviceRadiusMiles: 50,
+  ...overrides,
+});
+
+export const validLicenses = (overrides: Record<string, unknown> = {}) => ({
+  operatorTypes: ["cdl_driver"],
+  cdlClass: "A",
+  endorsements: ["H", "T"],
+  yearsExperience: 8,
+  certifications: ["TWIC"],
+  ...overrides,
+});
+
+export const validAvailability = (overrides: Record<string, unknown> = {}) => ({
+  availability: ["full_time", "weekends"],
+  bio: "Reliable and on time.",
+  ...overrides,
+});
+
+export const validCard = (overrides: Record<string, unknown> = {}) => ({
+  ...validBasics(),
+  ...validLicenses(),
+  ...validAvailability(),
+  ...overrides,
+});
