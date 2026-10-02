@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it } from "vitest";
 import { AppError } from "@/server/errors/AppError";
-import { AuthService, homePathFor } from "@/server/services/AuthService";
+import { AuthService } from "@/server/services/AuthService";
 import { FakeAuthRepository } from "../../fakes/FakeAuthRepository";
 import { FakeProfileRepository } from "../../fakes/FakeProfileRepository";
 import { buildProfile, TEST_PHONES } from "../../setup/factories";
@@ -74,7 +74,7 @@ describe("AuthService", () => {
     });
 
     it.each([
-      ["driver", "/driver"],
+      ["driver", "/driver/profile"],
       ["carrier", "/carrier"],
       ["admin", "/admin"],
     ] as const)("routes an existing %s to %s", async (role, path) => {
@@ -156,15 +156,6 @@ describe("AuthService", () => {
       await service.verifyOtp({ phone: TEST_PHONES.driver, code: "123456" });
       await service.signOut();
       await expect(service.getCurrentUser()).resolves.toBeNull();
-    });
-  });
-
-  describe("homePathFor", () => {
-    it("maps roles to their home and no profile to the role picker", () => {
-      expect(homePathFor(null)).toBe("/choose-role");
-      expect(homePathFor({ role: "driver" })).toBe("/driver");
-      expect(homePathFor({ role: "carrier" })).toBe("/carrier");
-      expect(homePathFor({ role: "admin" })).toBe("/admin");
     });
   });
 });

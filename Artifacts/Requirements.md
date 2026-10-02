@@ -996,7 +996,7 @@ export const DEFAULT_TIMEZONE = 'America/Chicago';
 Update after every task. Format: `YYYY-MM-DD | Task | What was done | Tests added`.
 
 **Current milestone:** 1
-**Current task:** T1.7
+**Current task:** T1.8
 
 | Date | Task | Summary | Tests |
 | --- | --- | --- | --- |
@@ -1006,6 +1006,7 @@ Update after every task. Format: `YYYY-MM-DD | Task | What was done | Tests adde
 | 2026-10-02 | T1.4 | Migrations 0001 (enums), 0002 (profiles, drivers, driver_documents, tos_acceptances, shared `updated_at` trigger, indexes), 0003 (`auth_role`, `is_admin`, `current_driver_id`, triggers that block users from changing their own role, status, phone, card owner or SMS opt-out state). `pnpm db:types` generates `database.types.ts`. Seed: 1 admin and 25 drivers across 8 states. `supabase db reset` runs clean. | `supabase/tests/001_schema.test.sql` (211 pgTAP assertions: enums, every column and type, indexes, triggers, every check constraint, partial save, completion rules, role and status protection, cascades) |
 | 2026-10-02 | T1.5 | Migration 0004: RLS on all four tables, policies for every cell of the section 8 table, anon has no table privileges, terms acceptances are append-only. Migration 0005: private `driver-documents` bucket (10 MB, jpg/png/webp/pdf) with own-folder policies for upload, read and delete, admin read and delete. | pgTAP `002_rls_profiles` (45), `003_rls_drivers` (34), `004_storage` (23); integration with real signed-in clients for two drivers, carrier, admin and anon: `rls/profiles.test.ts`, `rls/drivers.test.ts`, `rls/storage.test.ts` (40 tests through PostgREST and the Storage API) |
 | 2026-10-02 | T1.6 | `AppError` with typed codes, `Result` helpers (`ok`, `fail`, `toResult`, `runAction`, `parseInput`). `BaseRepository` maps database errors to `AppError` so raw messages never leave the data layer. Repositories with interfaces: Profile, Driver, Document (rows and storage), Auth. Services: `AuthService`, `ProfileService`, `DriverService` (step saving, resume, completion rules, consent), `DocumentService` (two-step token upload, preview, delete). `container.ts`, server Supabase client, `constants.ts`, `phone.ts`, zod schemas for phone, driver steps and documents. Fakes for all four repositories and domain factories. | Unit: `AuthService` (27), `ProfileService` (20), `DriverService` (61), `DocumentService` (39), `schemas.test.ts` (every field valid and invalid), `phone.test.ts`, `app-error.test.ts`. 499 unit tests, 100% line coverage. Integration against local Supabase for every repository method: `ProfileRepository`, `DriverRepository`, `DocumentRepository`, `AuthRepository` (39 tests) |
+| 2026-10-02 | T1.7 | `/login` (US phone input that formats as typed, E.164 normalization), `/verify` (6-digit input with `autocomplete="one-time-code"`, paste support, auto-submit, error states, 60 second resend cooldown), `/choose-role` (Driver or Carrier, preselected from the link), carrier and admin placeholder pages, logout. `src/proxy.ts` refreshes the session and enforces the route rules in `src/lib/auth/routes.ts`; `guards.ts` (`requireUser`, `requireSession`, `requireRole`) repeats the check in server code. Blocked users are signed out. `not-found.tsx` and `error.tsx`. | Unit: `routes.test.ts` (every route and role combination, 120+ cases), `guards.test.ts`, `components/auth.test.tsx` (PhoneForm, OtpForm, RoleChooser, LogoutButton). 708 unit tests. E2E `auth.spec.ts` on desktop, iPhone 13 and Pixel 7 (16 tests x 3): sign-up with test OTP, wrong code, pasted code, role preselect, role routing for driver, carrier and admin, wrong roles blocked, no-profile hold, blocked user, logout, expired session, reload |
 
 **Decisions made while building (flag if you disagree):**
 - App lives at the workspace root (`FleatGrid/`), not in a nested `fleetgrid/` folder.
@@ -1031,3 +1032,6 @@ Update after every task. Format: `YYYY-MM-DD | Task | What was done | Tests adde
 - Added `AuthRepository` (wraps Supabase phone OTP) so `AuthService` depends on an interface and has a fake.
 - The phone, driver and document zod schemas and `phone.ts` were built in T1.6 because the services need them. T1.7 to T1.9 add the screens on top.
 - Local auth rate limits are raised in `config.toml` and the resend interval is 1 second locally. Supabase Studio runs on port 54333 because 54323 could not be bound on this machine.
+- A user picks Driver or Carrier once. Changing role later needs an admin, so the role screen says so.
+- Signed-in users who open `/login` or `/verify` are sent to their own area.
+- `/admin` has a placeholder page in Milestone 1 so the seeded admin has somewhere to land.

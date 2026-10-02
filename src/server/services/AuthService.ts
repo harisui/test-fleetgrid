@@ -1,22 +1,9 @@
+import { homePathFor } from "@/lib/auth/routes";
 import { requestOtpSchema, verifyOtpSchema } from "@/lib/validation/phone.schema";
 import { AppError, parseInput } from "@/server/errors/AppError";
 import type { IAuthRepository } from "@/server/repositories/AuthRepository";
 import type { IProfileRepository } from "@/server/repositories/ProfileRepository";
-import type { Profile, SessionUser, UserRole } from "@/types/domain";
-
-export const ROLE_HOME: Record<UserRole, string> = {
-  driver: "/driver",
-  carrier: "/carrier",
-  admin: "/admin",
-};
-
-export const CHOOSE_ROLE_PATH = "/choose-role";
-export const LOGIN_PATH = "/login";
-
-/** Where a signed-in user belongs: role picker without a profile, role home otherwise. */
-export function homePathFor(profile: Pick<Profile, "role"> | null): string {
-  return profile ? ROLE_HOME[profile.role] : CHOOSE_ROLE_PATH;
-}
+import type { Profile, SessionUser } from "@/types/domain";
 
 export interface VerifyOtpResult {
   user: SessionUser;

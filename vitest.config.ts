@@ -26,6 +26,7 @@ export default defineConfig({
         "src/server/container.ts",
         "src/server/actions/**",
         "src/instrumentation.ts",
+        "src/proxy.ts",
         "src/app/**/layout.tsx",
         "src/app/**/page.tsx",
         "src/app/**/error.tsx",
