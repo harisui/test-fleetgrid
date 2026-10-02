@@ -29,9 +29,14 @@ export function nextSequence(): number {
   return sequence;
 }
 
+// Suffixes 2000 to 9999: clear of the test OTP numbers (01xx) and the seeded drivers (10xx).
+const PHONE_RANGE_START = 2000;
+const PHONE_RANGE_SIZE = 8000;
+const phoneOffset = Math.floor(Math.random() * PHONE_RANGE_SIZE);
+
 /** A unique fake E.164 number in the reserved +1555555xxxx range. */
 export function buildPhone(): string {
-  const suffix = (1000 + (nextSequence() % 9000)).toString().padStart(4, "0");
+  const suffix = PHONE_RANGE_START + ((phoneOffset + nextSequence()) % PHONE_RANGE_SIZE);
   return `+1555555${suffix}`;
 }
 

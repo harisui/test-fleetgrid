@@ -996,7 +996,7 @@ export const DEFAULT_TIMEZONE = 'America/Chicago';
 Update after every task. Format: `YYYY-MM-DD | Task | What was done | Tests added`.
 
 **Current milestone:** 1
-**Current task:** T1.5
+**Current task:** T1.6
 
 | Date | Task | Summary | Tests |
 | --- | --- | --- | --- |
@@ -1004,6 +1004,7 @@ Update after every task. Format: `YYYY-MM-DD | Task | What was done | Tests adde
 | 2026-10-02 | T1.2 | Vitest unit config with coverage thresholds (section 9.2), integration config against local Supabase, Playwright with desktop Chrome, iPhone 13 and Pixel 7 projects, test factories, GitHub Actions CI. `supabase init` and `config.toml` (phone auth, test OTP numbers) moved here from T1.4 so `pnpm test:all` can run. `pnpm test:all` is green locally. CI is written but has not run yet because the repo has no GitHub remote. | `tests/unit/lib/smoke.test.ts` (2), `tests/unit/lib/factories.test.ts` (4), `tests/integration/smoke.test.ts` (3), `supabase/tests/000_smoke.test.sql` (1), `tests/e2e/smoke.spec.ts` (2 x 3 devices) |
 | 2026-10-02 | T1.3 | Tailwind v4 + shadcn/ui (Radix base). `themes.css` copied verbatim from section 6, `globals.css` maps the variables and defines no colors. Base components: button, input, label, form, select, checkbox, card, badge, progress, dialog, sonner, skeleton. Layout: AppShell, Header, ThemeToggle, MobileNav, Footer. Shared: LoadingButton, FormField, EmptyState, StatusBadge. Dark mode saved in the `fleetgrid-theme` cookie, defaults to system, applied by an inline script before first paint. | `themes.css.test.ts` (active theme variables, commented themes parity, globals mapping), `no-hardcoded-colors.test.ts` (every file in `src/components` and `src/app`), `theme.test.ts`, `components/shared.test.tsx`, `components/layout.test.tsx`, `e2e/theme.spec.ts` (system default, toggle persists across reload). 177 unit tests, 100% line coverage. |
 | 2026-10-02 | T1.4 | Migrations 0001 (enums), 0002 (profiles, drivers, driver_documents, tos_acceptances, shared `updated_at` trigger, indexes), 0003 (`auth_role`, `is_admin`, `current_driver_id`, triggers that block users from changing their own role, status, phone, card owner or SMS opt-out state). `pnpm db:types` generates `database.types.ts`. Seed: 1 admin and 25 drivers across 8 states. `supabase db reset` runs clean. | `supabase/tests/001_schema.test.sql` (211 pgTAP assertions: enums, every column and type, indexes, triggers, every check constraint, partial save, completion rules, role and status protection, cascades) |
+| 2026-10-02 | T1.5 | Migration 0004: RLS on all four tables, policies for every cell of the section 8 table, anon has no table privileges, terms acceptances are append-only. Migration 0005: private `driver-documents` bucket (10 MB, jpg/png/webp/pdf) with own-folder policies for upload, read and delete, admin read and delete. | pgTAP `002_rls_profiles` (45), `003_rls_drivers` (34), `004_storage` (23); integration with real signed-in clients for two drivers, carrier, admin and anon: `rls/profiles.test.ts`, `rls/drivers.test.ts`, `rls/storage.test.ts` (40 tests through PostgREST and the Storage API) |
 
 **Decisions made while building (flag if you disagree):**
 - App lives at the workspace root (`FleatGrid/`), not in a nested `fleetgrid/` folder.
@@ -1022,3 +1023,6 @@ Update after every task. Format: `YYYY-MM-DD | Task | What was done | Tests adde
 - Extra test OTP numbers `15555550103` to `15555550109` were added for automated tests that need several users.
 - Partial onboarding saves: `operator_types` and `availability` default to empty arrays and `years_experience` is nullable. The `drivers_card_complete` check only lets `card_completed` be true when all three are filled and SMS consent is recorded.
 - Extra database rules beyond the brief: phone must be E.164, state must be two capital letters, endorsements require a CDL class, documents must use an allowed mime type, a terms version can be accepted once per profile, and drivers cannot undo their own SMS opt-out (that state comes from STOP and START texts).
+- Profile creation is stricter than the brief: the profile phone must equal the phone verified in the session, and new profiles must be `pending`.
+- Integration tests create users through the admin API with a password, so they do not consume SMS rate limits. The real OTP flow is covered by e2e tests.
+- Supabase blocks direct SQL deletes on `storage.objects`, so storage delete rules are proven through the Storage API in integration tests instead of pgTAP.
