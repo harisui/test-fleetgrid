@@ -1,20 +1,23 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { AccountStatusCard } from "@/components/driver/AccountStatusCard";
+import { ProfileEditor } from "@/components/driver/ProfileEditor";
 import { requireRole } from "@/lib/auth/guards";
 import { getContainer } from "@/server/container";
 
 export const metadata: Metadata = { title: "My profile" };
 
 export default async function DriverProfilePage() {
-  const { user } = await requireRole("driver");
+  const { user, profile } = await requireRole("driver");
   const { driverService } = await getContainer();
   const state = await driverService.getOnboardingState(user.id);
-  if (!state.completed) redirect("/driver/onboarding");
+  if (!state.completed || !state.driver) redirect("/driver/onboarding");
 
   return (
-    <div>
+    <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold tracking-tight">My profile</h1>
-      <p className="text-muted-foreground mt-2">Your qualification card will appear here.</p>
+      <AccountStatusCard profile={profile} driver={state.driver} />
+      <ProfileEditor driver={state.driver} />
     </div>
   );
 }
