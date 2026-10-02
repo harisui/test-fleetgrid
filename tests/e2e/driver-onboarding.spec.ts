@@ -10,7 +10,8 @@ async function startAsNewDriver(page: Page) {
   await expect(page).toHaveURL(/\/driver\/onboarding$/);
 }
 
-const stepHeading = (page: Page, name: string) => page.getByRole("heading", { level: 2, name });
+const stepHeading = (page: Page, name: string) =>
+  page.getByRole("heading", { level: 2, name, exact: true });
 const next = (page: Page) => page.getByRole("button", { name: "Next", exact: true });
 
 async function fillBasics(page: Page) {

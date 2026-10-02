@@ -155,9 +155,12 @@ select pg_temp.sign_out();
 -- ---------------------------------------------------------------------------
 select pg_temp.sign_in('33333333-3333-4333-8333-333333333333', '15555559003');
 select is(
-  (select count(*) from storage.objects where bucket_id = 'driver-documents'),
+  (select count(*) from storage.objects
+    where bucket_id = 'driver-documents'
+      and (storage.foldername(name))[1] in (
+        'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')),
   7::bigint,
-  'an admin sees every file'
+  'an admin sees every file of both drivers'
 );
 select pg_temp.sign_out();
 
