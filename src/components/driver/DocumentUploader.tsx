@@ -277,8 +277,10 @@ export function DocumentUploader({ initialDocuments }: DocumentUploaderProps) {
             </Button>
             <LoadingButton
               type="button"
-              variant="destructive"
+              variant="outline"
               size="touch"
+              // Tinted background with normal text keeps contrast AA in every theme.
+              className="border-destructive bg-destructive/15 hover:bg-destructive/25 dark:border-destructive dark:bg-destructive/25 dark:hover:bg-destructive/35"
               loading={busyId !== undefined}
               loadingText="Deleting..."
               onClick={handleDelete}

@@ -18,6 +18,10 @@ export const IMAGE_MAX_DIMENSION = 2000;
 export const IMAGE_TARGET_MAX_MB = 1;
 export const DEFAULT_TIMEZONE = "America/Chicago";
 
+export const SMS_PROGRAM_NAME = "FleetGrid Shift Alerts";
+/** Replace once the client supplies the support email and phone (open question in the brief). */
+export const SUPPORT_CONTACT_PLACEHOLDER = "support contact to be provided by FleetGrid.";
+
 export const DOCUMENTS_BUCKET = "driver-documents";
 export const SIGNED_URL_TTL_SECONDS = 60;
 
