@@ -996,11 +996,13 @@ export const DEFAULT_TIMEZONE = 'America/Chicago';
 Update after every task. Format: `YYYY-MM-DD | Task | What was done | Tests added`.
 
 **Current milestone:** 1
-**Current task:** T1.2
+**Current task:** T1.4
 
 | Date | Task | Summary | Tests |
 | --- | --- | --- | --- |
 | 2026-10-01 | T1.1 | Next.js 16.3 scaffold (App Router, TS strict, pnpm, `@/*` alias), ESLint + Prettier, section 3 folder structure, `src/lib/env.ts` zod validation run at server start via `src/instrumentation.ts`, `/api/health`, `.env.example`. | `tests/unit/lib/env.test.ts` (20: valid, missing, empty, malformed, caching, browser guard), `tests/unit/lib/health.route.test.ts` (1) |
+| 2026-10-02 | T1.2 | Vitest unit config with coverage thresholds (section 9.2), integration config against local Supabase, Playwright with desktop Chrome, iPhone 13 and Pixel 7 projects, test factories, GitHub Actions CI. `supabase init` and `config.toml` (phone auth, test OTP numbers) moved here from T1.4 so `pnpm test:all` can run. `pnpm test:all` is green locally. CI is written but has not run yet because the repo has no GitHub remote. | `tests/unit/lib/smoke.test.ts` (2), `tests/unit/lib/factories.test.ts` (4), `tests/integration/smoke.test.ts` (3), `supabase/tests/000_smoke.test.sql` (1), `tests/e2e/smoke.spec.ts` (2 x 3 devices) |
+| 2026-10-02 | T1.3 | Tailwind v4 + shadcn/ui (Radix base). `themes.css` copied verbatim from section 6, `globals.css` maps the variables and defines no colors. Base components: button, input, label, form, select, checkbox, card, badge, progress, dialog, sonner, skeleton. Layout: AppShell, Header, ThemeToggle, MobileNav, Footer. Shared: LoadingButton, FormField, EmptyState, StatusBadge. Dark mode saved in the `fleetgrid-theme` cookie, defaults to system, applied by an inline script before first paint. | `themes.css.test.ts` (active theme variables, commented themes parity, globals mapping), `no-hardcoded-colors.test.ts` (every file in `src/components` and `src/app`), `theme.test.ts`, `components/shared.test.tsx`, `components/layout.test.tsx`, `e2e/theme.spec.ts` (system default, toggle persists across reload). 177 unit tests, 100% line coverage. |
 
 **Decisions made while building (flag if you disagree):**
 - App lives at the workspace root (`FleatGrid/`), not in a nested `fleetgrid/` folder.
@@ -1013,3 +1015,7 @@ Update after every task. Format: `YYYY-MM-DD | Task | What was done | Tests adde
 - Support email and phone for HELP replies and `/sms-terms`
 - Logo
 - Production domain: fleetgridus.com (pending purchase)
+- T1.2 and T1.4 overlap: `supabase init` and `config.toml` were done in T1.2, because `pnpm test:all` needs the database test runner.
+- shadcn/ui: dropped its generated color tokens so `themes.css` stays the only color source. Removed `next-themes` (it stores the choice in localStorage; the brief requires a cookie). Added `touch` and `icon-touch` button sizes (44px) for driver screens. The current shadcn registry no longer ships `form`, so `src/components/ui/form.tsx` is the classic react-hook-form version added by hand.
+- Playwright's iPhone 13 project uses the iPhone viewport and user agent on Chromium. Real iOS Safari is covered by the T1.12 device check.
+- Extra test OTP numbers `15555550103` to `15555550109` were added for automated tests that need several users.
