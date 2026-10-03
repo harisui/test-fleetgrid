@@ -40,6 +40,9 @@
   --target-min: 48px;
   --target-primary: 56px;
   --card-min-h: 64px;
+  --content-max: 560px;
+  --lane-dash: 8px;
+  --lane-gap: 6px;
 
   --text-body: 1.125rem;
   --lh-body: 1.75rem;

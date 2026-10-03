@@ -71,10 +71,11 @@
   --shadow-1: var(--shadow-1);
   --shadow-2: var(--shadow-2);
 
-  /* Sizes: h-target, h-target-lg, min-h-card-min */
+  /* Sizes: h-target, h-target-lg, min-h-card-min, max-w-content */
   --spacing-target: var(--target-min);
   --spacing-target-lg: var(--target-primary);
   --spacing-card-min: var(--card-min-h);
+  --container-content: var(--content-max);
 
   /* Type: text-body, text-body-lg, text-label, text-helper, text-button, text-eyebrow, text-h1, text-h2, text-code, text-small */
   --text-body: var(--text-body);
@@ -123,6 +124,15 @@
   --ease-standard: var(--ease-standard);
   --default-transition-duration: var(--dur-state);
   --default-transition-timing-function: var(--ease-standard);
+}
+
+/* The dashed center line of the lane progress bar. */
+@utility lane-line {
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--lane-line) 0 var(--lane-dash),
+    transparent var(--lane-dash) calc(var(--lane-dash) + var(--lane-gap))
+  );
 }
 
 @layer base {
