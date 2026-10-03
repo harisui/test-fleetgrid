@@ -21,6 +21,7 @@ export function LaneProgress({ stepId }: LaneProgressProps) {
       <div className="relative pt-4">
         <div
           role="progressbar"
+          aria-label="Progress"
           aria-valuemin={1}
           aria-valuemax={MILES.length}
           aria-valuenow={progress.mile.mile}

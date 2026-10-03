@@ -1,11 +1,14 @@
 import { Check } from "lucide-react";
+import Link from "next/link";
 import { LoadingButton } from "@/components/shared/LoadingButton";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface ActionBarProps {
   /** The form the Next button submits. Lets the bar live outside the form element. */
-  formId: string;
+  formId?: string;
+  /** A link instead of a submit button, for the done screen. */
+  nextHref?: string;
   nextLabel?: string;
   pending?: boolean;
   nextDisabled?: boolean;
@@ -20,6 +23,7 @@ interface ActionBarProps {
  */
 export function ActionBar({
   formId,
+  nextHref,
   nextLabel = "Next",
   pending = false,
   nextDisabled = false,
@@ -50,15 +54,21 @@ export function ActionBar({
               Back
             </Button>
           )}
-          <LoadingButton
-            type="submit"
-            form={formId}
-            loading={pending}
-            loadingText="Saving..."
-            disabled={nextDisabled}
-          >
-            {nextLabel}
-          </LoadingButton>
+          {nextHref ? (
+            <Button asChild>
+              <Link href={nextHref}>{nextLabel}</Link>
+            </Button>
+          ) : (
+            <LoadingButton
+              type="submit"
+              form={formId}
+              loading={pending}
+              loadingText="Saving..."
+              disabled={nextDisabled}
+            >
+              {nextLabel}
+            </LoadingButton>
+          )}
         </div>
       </div>
     </div>

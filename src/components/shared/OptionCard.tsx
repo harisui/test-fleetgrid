@@ -71,9 +71,12 @@ export function OptionCard({
       <span className="min-w-0 flex-1">
         <span className="block text-body leading-body font-semibold">{label}</span>
         {description && (
-          <span className="block text-helper leading-helper text-muted-foreground">
-            {description}
-          </span>
+          <>
+            {" "}
+            <span className="block text-helper leading-helper text-muted-foreground">
+              {description}
+            </span>
+          </>
         )}
       </span>
       {selected && <CheckBadge />}

@@ -1,4 +1,5 @@
 import { createServerClient } from "@/lib/supabase/server";
+import { FileZipProvider } from "@/server/providers/ZipProvider";
 import { AuthRepository } from "@/server/repositories/AuthRepository";
 import type { TypedSupabaseClient } from "@/server/repositories/BaseRepository";
 import { DocumentRepository } from "@/server/repositories/DocumentRepository";
@@ -8,6 +9,10 @@ import { AuthService } from "@/server/services/AuthService";
 import { DocumentService } from "@/server/services/DocumentService";
 import { DriverService } from "@/server/services/DriverService";
 import { ProfileService } from "@/server/services/ProfileService";
+import { ZipLookupService } from "@/server/services/ZipLookupService";
+
+/** Loaded once per server process; the dataset does not change between requests. */
+const zipProvider = new FileZipProvider();
 
 /** Wires repositories into services for one Supabase client. */
 export function buildContainer(supabase: TypedSupabaseClient) {
@@ -21,6 +26,7 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     profileService: new ProfileService(profiles),
     driverService: new DriverService(drivers, profiles),
     documentService: new DocumentService(documents, drivers, profiles),
+    zipLookupService: new ZipLookupService(zipProvider),
   };
 }
 

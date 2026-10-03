@@ -21,6 +21,17 @@ export async function saveOnboardingScreenAction(
   });
 }
 
+/** City and state for a ZIP the driver typed, or null when it is not a known US ZIP. */
+export async function lookupZipAction(
+  zip: unknown,
+): Promise<Result<{ zip: string; city: string; state: string } | null>> {
+  return runAction(async () => {
+    await requireRole("driver");
+    const { zipLookupService } = await getContainer();
+    return zipLookupService.lookup(zip);
+  });
+}
+
 /** Edits the whole card from the profile page. */
 export async function updateCardAction(input: unknown): Promise<Result<Driver>> {
   return runAction(async () => {

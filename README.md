@@ -176,6 +176,16 @@ The user must have logged in once and chosen a role first, so that a profile row
 6. In Supabase, set the Site URL to the deployed URL (Authentication, URL Configuration).
 7. Deploy, then check `https://<your-domain>/api/health` returns `{"ok":true}`.
 
+## Data
+
+- `src/data/us-zips.tsv`: US ZIP codes with their city and state, used to fill in the location
+  during driver onboarding. Built from the [GeoNames](https://www.geonames.org/) postal code
+  export (`US.zip`), licensed under
+  [Creative Commons Attribution 4.0](https://creativecommons.org/licenses/by/4.0/).
+  One row per ZIP (the first place GeoNames lists), only the 50 states and DC, tab separated,
+  sorted. The lookup runs on the server only. The data goes stale slowly, so the driver can
+  always edit the city and state it suggests.
+
 ## Project layout
 
 ```
