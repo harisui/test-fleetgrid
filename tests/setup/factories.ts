@@ -95,7 +95,7 @@ export function buildDriver(overrides: Partial<Driver> = {}): Driver {
       smsOptInText: SMS_CONSENT_TEXT,
       smsOptedOut: false,
       smsOptedOutAt: null,
-      onboardingStep: 6,
+      onboardingStep: 13,
       cardCompleted: true,
       createdAt: TIMESTAMP,
       updatedAt: TIMESTAMP,
@@ -104,13 +104,16 @@ export function buildDriver(overrides: Partial<Driver> = {}): Driver {
   );
 }
 
-/** The card as it looks right after step 1 is saved. */
+/** The card as it looks right after the name screen is saved. */
 export function buildPartialDriver(overrides: Partial<Driver> = {}): Driver {
   return buildDriver({
     operatorTypes: [],
     cdlClass: "none",
     endorsements: [],
     yearsExperience: null,
+    city: null,
+    state: null,
+    zip: null,
     availability: [],
     certifications: [],
     bio: null,
@@ -122,6 +125,22 @@ export function buildPartialDriver(overrides: Partial<Driver> = {}): Driver {
     ...overrides,
   });
 }
+
+/** Valid raw input for each onboarding screen, in flow order. */
+export const SCREEN_INPUTS = {
+  name: { fullName: "Pat Driver" },
+  zip: { zip: "75201", city: "Dallas", state: "TX" },
+  distance: { serviceRadiusMiles: 50 },
+  workType: { operatorTypes: ["cdl_driver"] },
+  experience: { yearsExperience: 8 },
+  availability: { availability: ["full_time", "weekends"] },
+  cdlClass: { cdlClass: "A" },
+  endorsements: { endorsements: ["H", "T"] },
+  certifications: { certifications: ["TWIC"] },
+  documents: {},
+  bio: { bio: "Reliable and on time." },
+  consent: { consent: true },
+} as const;
 
 export function buildDocument(overrides: Partial<DriverDocument> = {}): DriverDocument {
   return build<DriverDocument>(

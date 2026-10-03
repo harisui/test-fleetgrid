@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it } from "vitest";
 import { SMS_CONSENT_TEXT } from "@/lib/constants";
+import { SAVABLE_STEP_IDS, stepNumber, type SavableStepId } from "@/lib/onboarding/steps";
+import { CDL_CONFLICT_MESSAGE } from "@/lib/validation/onboarding.schema";
 import { AppError } from "@/server/errors/AppError";
 import { DriverService, missingCardFields } from "@/server/services/DriverService";
 import { FakeDriverRepository } from "../../fakes/FakeDriverRepository";
@@ -10,11 +12,9 @@ import {
   buildPartialDriver,
   buildProfile,
   OTHER_USER_ID,
+  SCREEN_INPUTS,
   USER_ID,
-  validAvailability,
-  validBasics,
   validCard,
-  validLicenses,
 } from "../../setup/factories";
 
 async function expectAppError(promise: Promise<unknown>): Promise<AppError> {
@@ -39,14 +39,15 @@ describe("DriverService", () => {
     service = new DriverService(drivers, profiles, () => NOW);
   });
 
-  /** Runs steps 1 to `upTo` with valid input. */
-  async function completeSteps(upTo: number) {
-    if (upTo >= 1) await service.saveStep(USER_ID, 1, validBasics());
-    if (upTo >= 2) await service.saveStep(USER_ID, 2, validLicenses());
-    if (upTo >= 3) await service.saveStep(USER_ID, 3, validAvailability());
-    if (upTo >= 4) await service.saveStep(USER_ID, 4, undefined);
-    if (upTo >= 5) await service.saveStep(USER_ID, 5, { consent: true });
+  /** Saves every screen up to and including `upTo` with valid input. */
+  async function completeThrough(upTo: SavableStepId) {
+    for (const stepId of SAVABLE_STEP_IDS) {
+      await service.saveScreen(USER_ID, stepId, SCREEN_INPUTS[stepId]);
+      if (stepId === upTo) return;
+    }
   }
+
+  const card = () => drivers.rows.get(USER_ID)!;
 
   describe("authorization", () => {
     it.each([
@@ -57,7 +58,7 @@ describe("DriverService", () => {
       for (const call of [
         service.getCard(USER_ID),
         service.getOnboardingState(USER_ID),
-        service.saveStep(USER_ID, 1, validBasics()),
+        service.saveScreen(USER_ID, "name", SCREEN_INPUTS.name),
         service.updateCard(USER_ID, validCard()),
       ]) {
         expect((await expectAppError(call)).code).toBe("FORBIDDEN");
@@ -66,13 +67,15 @@ describe("DriverService", () => {
     });
 
     it("rejects a user without a profile", async () => {
-      const error = await expectAppError(service.saveStep(OTHER_USER_ID, 1, validBasics()));
+      const error = await expectAppError(
+        service.saveScreen(OTHER_USER_ID, "name", SCREEN_INPUTS.name),
+      );
       expect(error.code).toBe("FORBIDDEN");
     });
 
     it("rejects a blocked driver", async () => {
       profiles.rows.set(USER_ID, buildProfile({ status: "blocked" }));
-      const error = await expectAppError(service.saveStep(USER_ID, 1, validBasics()));
+      const error = await expectAppError(service.saveScreen(USER_ID, "name", SCREEN_INPUTS.name));
       expect(error.code).toBe("FORBIDDEN");
       expect(error.message).toMatch(/blocked/);
     });
@@ -82,7 +85,7 @@ describe("DriverService", () => {
       const other = buildDriver({ profileId: OTHER_USER_ID, fullName: "Other Driver" });
       drivers.rows.set(OTHER_USER_ID, other);
 
-      await completeSteps(5);
+      await completeThrough("consent");
       await service.updateCard(USER_ID, validCard({ fullName: "Changed Name" }));
 
       expect(drivers.rows.get(OTHER_USER_ID)).toEqual(other);
@@ -90,46 +93,45 @@ describe("DriverService", () => {
     });
   });
 
-  describe("getCard / getOnboardingState", () => {
-    it("a new driver has no card and starts at step 1", async () => {
+  describe("getOnboardingState", () => {
+    it("a new driver has no card and starts on the name screen", async () => {
       await expect(service.getCard(USER_ID)).resolves.toBeNull();
       await expect(service.getOnboardingState(USER_ID)).resolves.toEqual({
-        step: 1,
+        stepId: "name",
         completed: false,
         driver: null,
       });
     });
 
-    it.each([1, 2, 3, 4])(
-      "after saving step %i the driver resumes at the next step",
-      async (step) => {
-        await completeSteps(step);
+    it.each(SAVABLE_STEP_IDS.slice(0, -1).map((id, index) => [id, SAVABLE_STEP_IDS[index + 1]]))(
+      "after saving %s the driver resumes on %s",
+      async (saved, next) => {
+        await completeThrough(saved);
         const state = await service.getOnboardingState(USER_ID);
-        expect(state.step).toBe(step + 1);
+        expect(state.stepId).toBe(next);
         expect(state.completed).toBe(false);
         expect(state.driver).not.toBeNull();
       },
     );
 
     it("after consent the card is complete and the driver sees the done screen", async () => {
-      await completeSteps(5);
+      await completeThrough("consent");
       const state = await service.getOnboardingState(USER_ID);
-      expect(state.step).toBe(6);
+      expect(state.stepId).toBe("done");
       expect(state.completed).toBe(true);
     });
   });
 
-  describe("saveStep 1: basics", () => {
-    it("creates a partial card and moves to step 2", async () => {
-      const driver = await service.saveStep(USER_ID, 1, validBasics({ fullName: "  Pat Driver " }));
+  describe("name screen", () => {
+    it("creates a card with only the name and moves to the ZIP screen", async () => {
+      const driver = await service.saveScreen(USER_ID, "name", { fullName: "  Pat Driver " });
       expect(driver).toMatchObject({
         profileId: USER_ID,
         fullName: "Pat Driver",
-        city: "Dallas",
-        state: "TX",
-        zip: "75201",
-        serviceRadiusMiles: 50,
-        onboardingStep: 2,
+        city: null,
+        state: null,
+        zip: null,
+        onboardingStep: stepNumber("zip"),
         cardCompleted: false,
         operatorTypes: [],
         availability: [],
@@ -138,30 +140,24 @@ describe("DriverService", () => {
       });
     });
 
-    it("rejects invalid input with field errors and saves nothing", async () => {
-      const error = await expectAppError(
-        service.saveStep(USER_ID, 1, validBasics({ zip: "123", state: "ZZ" })),
-      );
+    it("rejects an invalid name and saves nothing", async () => {
+      const error = await expectAppError(service.saveScreen(USER_ID, "name", { fullName: "P" }));
       expect(error.code).toBe("VALIDATION");
-      expect(error.fieldErrors).toEqual({
-        state: "Select your state",
-        zip: "Enter a 5-digit ZIP code",
-      });
+      expect(error.fieldErrors).toEqual({ fullName: "Enter your name" });
       expect(drivers.rows.size).toBe(0);
     });
 
     it.each([undefined, null, {}, "text"])("rejects empty input %j", async (input) => {
-      const error = await expectAppError(service.saveStep(USER_ID, 1, input));
+      const error = await expectAppError(service.saveScreen(USER_ID, "name", input));
       expect(error.code).toBe("VALIDATION");
     });
 
-    it("saving step 1 again updates the card without losing later steps or progress", async () => {
-      await completeSteps(3);
-      const driver = await service.saveStep(USER_ID, 1, validBasics({ city: "Fort Worth" }));
-      expect(driver.city).toBe("Fort Worth");
-      expect(driver.onboardingStep).toBe(4);
+    it("saving the name again keeps later answers and progress", async () => {
+      await completeThrough("availability");
+      const driver = await service.saveScreen(USER_ID, "name", { fullName: "Patricia Driver" });
+      expect(driver.fullName).toBe("Patricia Driver");
+      expect(driver.onboardingStep).toBe(stepNumber("cdlClass"));
       expect(driver.operatorTypes).toEqual(["cdl_driver"]);
-      expect(driver.availability).toEqual(["full_time", "weekends"]);
     });
 
     it("a double submit that loses the insert race still saves", async () => {
@@ -170,205 +166,287 @@ describe("DriverService", () => {
       let calls = 0;
       drivers.findByProfileId = async (profileId) => {
         calls += 1;
-        // The first submit created the card between our lookup and our insert.
-        if (calls === 2)
-          drivers.rows.set(USER_ID, buildPartialDriver({ fullName: "First Submit" }));
+        if (calls === 2) drivers.rows.set(USER_ID, buildPartialDriver({ fullName: "First" }));
         return originalFind(profileId);
       };
 
-      const driver = await service.saveStep(USER_ID, 1, validBasics({ fullName: "Second Submit" }));
+      const driver = await service.saveScreen(USER_ID, "name", { fullName: "Second Submit" });
       expect(driver.fullName).toBe("Second Submit");
       expect(drivers.rows.size).toBe(1);
     });
 
     it("rethrows a create conflict when no card can be found afterwards", async () => {
       drivers.failNextCreateWith = AppError.conflict();
-      const error = await expectAppError(service.saveStep(USER_ID, 1, validBasics()));
+      const error = await expectAppError(service.saveScreen(USER_ID, "name", SCREEN_INPUTS.name));
       expect(error.code).toBe("CONFLICT");
     });
 
     it("rethrows unexpected repository errors", async () => {
       drivers.failNextCreateWith = AppError.internal(new Error("db down"));
-      const error = await expectAppError(service.saveStep(USER_ID, 1, validBasics()));
+      const error = await expectAppError(service.saveScreen(USER_ID, "name", SCREEN_INPUTS.name));
       expect(error.code).toBe("INTERNAL");
     });
   });
 
-  describe("step order", () => {
-    it.each([2, 3, 4, 5])("step %i cannot be saved before step 1", async (step) => {
-      const error = await expectAppError(service.saveStep(USER_ID, step, {}));
+  describe("screen order", () => {
+    it.each(SAVABLE_STEP_IDS.slice(1))("%s cannot be saved before the name", async (stepId) => {
+      const error = await expectAppError(
+        service.saveScreen(USER_ID, stepId, SCREEN_INPUTS[stepId]),
+      );
       expect(error.code).toBe("VALIDATION");
       expect(error.message).toBe("Start with the first step");
     });
 
-    it.each([
-      [1, 3],
-      [1, 4],
-      [1, 5],
-      [2, 4],
-      [2, 5],
-      [3, 5],
-    ])("after step %i, step %i cannot be skipped to", async (done, attempted) => {
-      await completeSteps(done);
-      const error = await expectAppError(
-        service.saveStep(USER_ID, attempted, { consent: true, ...validAvailability() }),
-      );
-      expect(error.code).toBe("VALIDATION");
-      expect(error.message).toBe("Finish the earlier steps first");
-      expect(drivers.rows.get(USER_ID)?.onboardingStep).toBe(done + 1);
+    it("a screen cannot be skipped to", async () => {
+      await completeThrough("zip");
+      for (const stepId of ["workType", "cdlClass", "consent"] as const) {
+        const error = await expectAppError(
+          service.saveScreen(USER_ID, stepId, SCREEN_INPUTS[stepId]),
+        );
+        expect(error.message).toBe("Finish the earlier steps first");
+      }
+      expect(card().onboardingStep).toBe(stepNumber("distance"));
     });
 
-    it.each([0, 6, 7, -1, 2.5, Number.NaN])("rejects unknown step %s", async (step) => {
-      const error = await expectAppError(service.saveStep(USER_ID, step, validBasics()));
+    it.each(["done", "basics", 1, "", null, undefined])("rejects unknown step %j", async (step) => {
+      const error = await expectAppError(service.saveScreen(USER_ID, step, SCREEN_INPUTS.name));
       expect(error.code).toBe("VALIDATION");
       expect(error.message).toBe("Unknown onboarding step");
     });
   });
 
-  describe("saveStep 2: role and licenses", () => {
-    beforeEach(() => completeSteps(1));
+  describe("about screens", () => {
+    beforeEach(() => completeThrough("name"));
 
-    it("saves licenses and moves to step 3", async () => {
-      const driver = await service.saveStep(USER_ID, 2, validLicenses());
-      expect(driver).toMatchObject({
-        operatorTypes: ["cdl_driver"],
-        cdlClass: "A",
-        endorsements: ["H", "T"],
-        yearsExperience: 8,
-        certifications: ["TWIC"],
-        onboardingStep: 3,
+    it("saves the ZIP, city and state and moves on", async () => {
+      const driver = await service.saveScreen(USER_ID, "zip", {
+        zip: "75201-1234",
+        city: " Dallas ",
+        state: "tx",
+      });
+      expect(driver).toMatchObject({ zip: "75201", city: "Dallas", state: "TX" });
+      expect(driver.onboardingStep).toBe(stepNumber("distance"));
+    });
+
+    it("rejects a bad ZIP with a plain message", async () => {
+      const error = await expectAppError(
+        service.saveScreen(USER_ID, "zip", { zip: "6060", state: "IL" }),
+      );
+      expect(error.fieldErrors).toEqual({ zip: "Enter a 5-digit ZIP code, like 60601" });
+      expect(card().zip).toBeNull();
+    });
+
+    it("saves the travel distance", async () => {
+      await service.saveScreen(USER_ID, "zip", SCREEN_INPUTS.zip);
+      const driver = await service.saveScreen(USER_ID, "distance", { serviceRadiusMiles: "250" });
+      expect(driver.serviceRadiusMiles).toBe(250);
+      expect(driver.onboardingStep).toBe(stepNumber("workType"));
+    });
+  });
+
+  describe("work screens", () => {
+    beforeEach(() => completeThrough("distance"));
+
+    it("saves work types without duplicates", async () => {
+      const driver = await service.saveScreen(USER_ID, "workType", {
+        operatorTypes: ["mechanic", "cdl_driver", "mechanic"],
+      });
+      expect(driver.operatorTypes).toEqual(["mechanic", "cdl_driver"]);
+      expect(driver.onboardingStep).toBe(stepNumber("experience"));
+    });
+
+    it("requires at least one work type", async () => {
+      const error = await expectAppError(
+        service.saveScreen(USER_ID, "workType", { operatorTypes: [] }),
+      );
+      expect(error.fieldErrors).toEqual({ operatorTypes: "Pick at least one kind of work" });
+    });
+
+    it("saves experience, including zero", async () => {
+      await service.saveScreen(USER_ID, "workType", SCREEN_INPUTS.workType);
+      const driver = await service.saveScreen(USER_ID, "experience", { yearsExperience: 0 });
+      expect(driver.yearsExperience).toBe(0);
+    });
+
+    it("rejects a blank experience", async () => {
+      await service.saveScreen(USER_ID, "workType", SCREEN_INPUTS.workType);
+      const error = await expectAppError(
+        service.saveScreen(USER_ID, "experience", { yearsExperience: "" }),
+      );
+      expect(error.fieldErrors).toEqual({
+        yearsExperience: "Pick how many years you have done this work",
       });
     });
 
-    it("clears endorsements when the driver has no CDL", async () => {
-      await service.saveStep(USER_ID, 2, validLicenses());
-      const driver = await service.saveStep(
-        USER_ID,
-        2,
-        validLicenses({ operatorTypes: ["mechanic"], cdlClass: "none", endorsements: ["H"] }),
+    it("saves availability", async () => {
+      await service.saveScreen(USER_ID, "workType", SCREEN_INPUTS.workType);
+      await service.saveScreen(USER_ID, "experience", SCREEN_INPUTS.experience);
+      const driver = await service.saveScreen(USER_ID, "availability", {
+        availability: ["on_call", "on_call"],
+      });
+      expect(driver.availability).toEqual(["on_call"]);
+      expect(driver.onboardingStep).toBe(stepNumber("cdlClass"));
+    });
+  });
+
+  describe("license screens", () => {
+    beforeEach(() => completeThrough("availability"));
+
+    it("saves a CDL class and moves to endorsements", async () => {
+      const driver = await service.saveScreen(USER_ID, "cdlClass", { cdlClass: "B" });
+      expect(driver.cdlClass).toBe("B");
+      expect(driver.onboardingStep).toBe(stepNumber("endorsements"));
+    });
+
+    it("a CDL driver cannot pick No CDL", async () => {
+      const error = await expectAppError(
+        service.saveScreen(USER_ID, "cdlClass", { cdlClass: "none" }),
       );
-      expect(driver.cdlClass).toBe("none");
+      expect(error.code).toBe("VALIDATION");
+      expect(error.fieldErrors).toEqual({ cdlClass: CDL_CONFLICT_MESSAGE });
+      expect(card().cdlClass).toBe("none");
+      expect(card().onboardingStep).toBe(stepNumber("cdlClass"));
+    });
+
+    it("No CDL skips the endorsements screen and clears endorsements", async () => {
+      await service.saveScreen(USER_ID, "workType", { operatorTypes: ["yard_spotter"] });
+      await service.saveScreen(USER_ID, "cdlClass", { cdlClass: "A" });
+      await service.saveScreen(USER_ID, "endorsements", { endorsements: ["H"] });
+      const driver = await service.saveScreen(USER_ID, "cdlClass", { cdlClass: "none" });
+      expect(driver.endorsements).toEqual([]);
+      expect(driver.onboardingStep).toBe(stepNumber("certifications"));
+      await expect(service.getOnboardingState(USER_ID)).resolves.toMatchObject({
+        stepId: "certifications",
+      });
+    });
+
+    it("X always brings H and N, in display order", async () => {
+      await service.saveScreen(USER_ID, "cdlClass", { cdlClass: "A" });
+      const driver = await service.saveScreen(USER_ID, "endorsements", {
+        endorsements: ["T", "X"],
+      });
+      expect(driver.endorsements).toEqual(["X", "H", "N", "T"]);
+      expect(driver.onboardingStep).toBe(stepNumber("certifications"));
+    });
+
+    it("endorsements saved for a driver without a CDL are dropped", async () => {
+      await service.saveScreen(USER_ID, "workType", { operatorTypes: ["mechanic"] });
+      await service.saveScreen(USER_ID, "cdlClass", { cdlClass: "none" });
+      const driver = await service.saveScreen(USER_ID, "endorsements", { endorsements: ["H"] });
       expect(driver.endorsements).toEqual([]);
     });
 
-    it("rejects invalid input and keeps the previous data", async () => {
-      const error = await expectAppError(
-        service.saveStep(USER_ID, 2, validLicenses({ operatorTypes: [], yearsExperience: 99 })),
-      );
-      expect(error.fieldErrors).toEqual({
-        operatorTypes: "Select at least one role",
-        yearsExperience: "Experience must be 60 years or less",
+    it("saves certifications without case-insensitive duplicates", async () => {
+      await service.saveScreen(USER_ID, "cdlClass", SCREEN_INPUTS.cdlClass);
+      await service.saveScreen(USER_ID, "endorsements", SCREEN_INPUTS.endorsements);
+      const driver = await service.saveScreen(USER_ID, "certifications", {
+        certifications: ["TWIC", "twic", " Forklift "],
       });
-      expect(drivers.rows.get(USER_ID)?.onboardingStep).toBe(2);
-      expect(drivers.rows.get(USER_ID)?.operatorTypes).toEqual([]);
+      expect(driver.certifications).toEqual(["TWIC", "Forklift"]);
+      expect(driver.onboardingStep).toBe(stepNumber("documents"));
     });
   });
 
-  describe("saveStep 3: availability", () => {
-    beforeEach(() => completeSteps(2));
+  describe("papers and finish screens", () => {
+    beforeEach(() => completeThrough("certifications"));
 
-    it("saves availability and bio and moves to step 4", async () => {
-      const driver = await service.saveStep(USER_ID, 3, validAvailability());
-      expect(driver).toMatchObject({
-        availability: ["full_time", "weekends"],
-        bio: "Reliable and on time.",
-        onboardingStep: 4,
-      });
+    it("papers can be skipped with no input", async () => {
+      const driver = await service.saveScreen(USER_ID, "documents", undefined);
+      expect(driver.onboardingStep).toBe(stepNumber("bio"));
+      expect(driver.cardCompleted).toBe(false);
     });
 
-    it("accepts an empty bio as null", async () => {
-      const driver = await service.saveStep(USER_ID, 3, validAvailability({ bio: "" }));
-      expect(driver.bio).toBeNull();
+    it("saves the bio, and blank as null", async () => {
+      await service.saveScreen(USER_ID, "documents", {});
+      expect((await service.saveScreen(USER_ID, "bio", { bio: "  Hi  " })).bio).toBe("Hi");
+      expect((await service.saveScreen(USER_ID, "bio", { bio: "" })).bio).toBeNull();
     });
 
     it("rejects a bio over 500 characters", async () => {
+      await service.saveScreen(USER_ID, "documents", {});
       const error = await expectAppError(
-        service.saveStep(USER_ID, 3, validAvailability({ bio: "x".repeat(501) })),
+        service.saveScreen(USER_ID, "bio", { bio: "x".repeat(501) }),
       );
-      expect(error.fieldErrors).toEqual({ bio: "Bio must be 500 characters or fewer" });
+      expect(error.fieldErrors).toEqual({ bio: "Keep it to 500 characters or fewer" });
     });
   });
 
-  describe("saveStep 4: documents (optional)", () => {
-    it("can be skipped with no input and moves to step 5", async () => {
-      await completeSteps(3);
-      const driver = await service.saveStep(USER_ID, 4, undefined);
-      expect(driver.onboardingStep).toBe(5);
-      expect(driver.cardCompleted).toBe(false);
-    });
-  });
-
-  describe("saveStep 5: SMS consent", () => {
-    beforeEach(() => completeSteps(4));
+  describe("consent screen", () => {
+    beforeEach(() => completeThrough("bio"));
 
     it("stores the exact consent text with a timestamp and completes the card", async () => {
-      const driver = await service.saveStep(USER_ID, 5, { consent: true });
+      const driver = await service.saveScreen(USER_ID, "consent", { consent: true });
       expect(driver.smsOptIn).toBe(true);
       expect(driver.smsOptInText).toBe(SMS_CONSENT_TEXT);
-      expect(driver.smsOptInText).toBe(
-        "I agree to receive text messages from FleetGrid about available shifts at this number. Message frequency varies. Message and data rates may apply. Reply STOP to opt out, HELP for help.",
-      );
       expect(driver.smsOptInAt).toBe("2026-10-05T15:30:00.000Z");
       expect(driver.cardCompleted).toBe(true);
-      expect(driver.onboardingStep).toBe(6);
+      expect(driver.onboardingStep).toBe(13);
     });
 
     it.each([{ consent: false }, {}, { consent: "true" }, undefined])(
       "cannot finish without consent (%j)",
       async (input) => {
-        const error = await expectAppError(service.saveStep(USER_ID, 5, input));
+        const error = await expectAppError(service.saveScreen(USER_ID, "consent", input));
         expect(error.code).toBe("VALIDATION");
-        expect(error.fieldErrors).toEqual({
-          consent: "You must agree to receive text messages to continue",
-        });
-        const saved = drivers.rows.get(USER_ID);
-        expect(saved?.cardCompleted).toBe(false);
-        expect(saved?.smsOptIn).toBe(false);
-        expect(saved?.onboardingStep).toBe(5);
+        expect(error.fieldErrors).toEqual({ consent: "Tap the box to agree before you finish" });
+        expect(card().cardCompleted).toBe(false);
+        expect(card().smsOptIn).toBe(false);
       },
     );
 
     it("submitting consent twice keeps the original timestamp and text", async () => {
-      const first = await service.saveStep(USER_ID, 5, { consent: true });
+      const first = await service.saveScreen(USER_ID, "consent", { consent: true });
       const later = new DriverService(drivers, profiles, () => new Date("2027-01-01T00:00:00Z"));
-      const second = await later.saveStep(USER_ID, 5, { consent: true });
+      const second = await later.saveScreen(USER_ID, "consent", { consent: true });
       expect(second.smsOptInAt).toBe(first.smsOptInAt);
-      expect(second.smsOptInText).toBe(SMS_CONSENT_TEXT);
       expect(second.cardCompleted).toBe(true);
     });
 
     it("refuses to complete a card that is missing required fields", async () => {
-      // Data went missing after the step was passed (for example an admin edit).
       drivers.rows.set(
         USER_ID,
-        buildPartialDriver({ onboardingStep: 5, operatorTypes: [], availability: [] }),
+        buildPartialDriver({ onboardingStep: stepNumber("consent"), state: "TX", zip: "75201" }),
       );
-      const error = await expectAppError(service.saveStep(USER_ID, 5, { consent: true }));
+      const error = await expectAppError(service.saveScreen(USER_ID, "consent", { consent: true }));
       expect(error.code).toBe("VALIDATION");
       expect(error.fieldErrors).toEqual({
         operatorTypes: "Required",
         yearsExperience: "Required",
         availability: "Required",
       });
-      expect(drivers.rows.get(USER_ID)?.cardCompleted).toBe(false);
-      expect(drivers.rows.get(USER_ID)?.smsOptIn).toBe(false);
+      expect(card().cardCompleted).toBe(false);
+    });
+
+    it("refuses to complete a CDL driver without a CDL class", async () => {
+      drivers.rows.set(
+        USER_ID,
+        buildDriver({
+          onboardingStep: stepNumber("consent"),
+          cardCompleted: false,
+          smsOptIn: false,
+          cdlClass: "none",
+          endorsements: [],
+        }),
+      );
+      const error = await expectAppError(service.saveScreen(USER_ID, "consent", { consent: true }));
+      expect(error.fieldErrors).toEqual({ cdlClass: "Required" });
     });
   });
 
   describe("going back", () => {
-    it("re-saving an earlier step after completion keeps the card complete", async () => {
-      await completeSteps(5);
-      const driver = await service.saveStep(USER_ID, 2, validLicenses({ yearsExperience: 12 }));
+    it("re-saving an earlier screen after completion keeps the card complete", async () => {
+      await completeThrough("consent");
+      const driver = await service.saveScreen(USER_ID, "experience", { yearsExperience: 12 });
       expect(driver.yearsExperience).toBe(12);
-      expect(driver.onboardingStep).toBe(6);
+      expect(driver.onboardingStep).toBe(13);
       expect(driver.cardCompleted).toBe(true);
       expect(driver.smsOptIn).toBe(true);
     });
 
-    it("re-saving step 4 never moves progress backwards", async () => {
-      await completeSteps(5);
-      const driver = await service.saveStep(USER_ID, 4, undefined);
-      expect(driver.onboardingStep).toBe(6);
+    it("re-saving papers never moves progress backwards", async () => {
+      await completeThrough("consent");
+      const driver = await service.saveScreen(USER_ID, "documents", undefined);
+      expect(driver.onboardingStep).toBe(13);
     });
   });
 
@@ -379,7 +457,7 @@ describe("DriverService", () => {
     });
 
     it("updates every editable field and leaves consent and progress alone", async () => {
-      await completeSteps(5);
+      await completeThrough("consent");
       const driver = await service.updateCard(
         USER_ID,
         validCard({
@@ -409,14 +487,13 @@ describe("DriverService", () => {
         availability: ["on_call"],
         bio: null,
         smsOptIn: true,
-        smsOptInAt: "2026-10-05T15:30:00.000Z",
         cardCompleted: true,
-        onboardingStep: 6,
+        onboardingStep: 13,
       });
     });
 
     it("rejects invalid input and changes nothing", async () => {
-      await completeSteps(5);
+      await completeThrough("consent");
       const before = drivers.rows.get(USER_ID);
       const error = await expectAppError(
         service.updateCard(USER_ID, validCard({ availability: [], zip: "x" })),
@@ -426,15 +503,23 @@ describe("DriverService", () => {
       expect(drivers.rows.get(USER_ID)).toEqual(before);
     });
 
+    it("rejects a CDL driver without a CDL", async () => {
+      await completeThrough("consent");
+      const error = await expectAppError(
+        service.updateCard(USER_ID, validCard({ cdlClass: "none", endorsements: [] })),
+      );
+      expect(error.fieldErrors).toEqual({ cdlClass: "CDL driver work needs a CDL" });
+    });
+
     it("ignores attempts to set protected fields", async () => {
-      await completeSteps(3);
+      await completeThrough("availability");
       const driver = await service.updateCard(
         USER_ID,
         validCard({
           cardCompleted: true,
           smsOptIn: true,
           smsOptedOut: true,
-          onboardingStep: 6,
+          onboardingStep: 13,
           profileId: OTHER_USER_ID,
           status: "approved",
         }),
@@ -442,7 +527,7 @@ describe("DriverService", () => {
       expect(driver.cardCompleted).toBe(false);
       expect(driver.smsOptIn).toBe(false);
       expect(driver.smsOptedOut).toBe(false);
-      expect(driver.onboardingStep).toBe(4);
+      expect(driver.onboardingStep).toBe(stepNumber("cdlClass"));
       expect(driver.profileId).toBe(USER_ID);
     });
   });
@@ -452,24 +537,31 @@ describe("DriverService", () => {
       expect(missingCardFields(buildDriver())).toEqual([]);
     });
 
-    it("lists each missing field with the step that collects it", () => {
+    it("lists each missing field with the screen that collects it", () => {
       expect(missingCardFields(buildPartialDriver())).toEqual([
-        { field: "operatorTypes", step: 2 },
-        { field: "yearsExperience", step: 2 },
-        { field: "availability", step: 3 },
+        { field: "zip", stepId: "zip" },
+        { field: "operatorTypes", stepId: "workType" },
+        { field: "yearsExperience", stepId: "experience" },
+        { field: "availability", stepId: "availability" },
       ]);
     });
 
     it("treats zero years of experience as provided", () => {
       expect(missingCardFields(buildDriver({ yearsExperience: 0 }))).toEqual([]);
     });
+
+    it("flags a CDL driver without a class", () => {
+      expect(missingCardFields(buildDriver({ cdlClass: "none", endorsements: [] }))).toEqual([
+        { field: "cdlClass", stepId: "cdlClass" },
+      ]);
+    });
   });
 
   it("uses the real clock by default", async () => {
     const realClock = new DriverService(drivers, profiles);
-    await completeSteps(4);
+    await completeThrough("bio");
     const before = Date.now();
-    const driver = await realClock.saveStep(USER_ID, 5, { consent: true });
+    const driver = await realClock.saveScreen(USER_ID, "consent", { consent: true });
     expect(new Date(driver.smsOptInAt!).getTime()).toBeGreaterThanOrEqual(before);
   });
 });

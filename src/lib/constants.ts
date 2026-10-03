@@ -42,16 +42,6 @@ export const FULL_NAME_MAX_LENGTH = 100;
 export const CERTIFICATION_MAX_LENGTH = 60;
 export const CERTIFICATIONS_MAX_COUNT = 20;
 
-/** Onboarding steps, in order. The number is stored in drivers.onboarding_step. */
-export const ONBOARDING_STEPS = {
-  basics: 1,
-  licenses: 2,
-  availability: 3,
-  documents: 4,
-  consent: 5,
-  done: 6,
-} as const;
-
 export const US_STATES = [
   ["AL", "Alabama"],
   ["AK", "Alaska"],

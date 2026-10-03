@@ -7,7 +7,7 @@ import type { Result } from "@/server/errors/AppError";
 import { buildDriver, buildProfile } from "../../setup/factories";
 
 const actions = vi.hoisted(() => ({
-  saveOnboardingStepAction: vi.fn(),
+  saveOnboardingScreenAction: vi.fn(),
   updateCardAction: vi.fn(),
 }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));

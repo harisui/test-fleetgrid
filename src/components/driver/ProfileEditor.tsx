@@ -19,8 +19,8 @@ export function ProfileEditor({ driver }: ProfileEditorProps) {
     defaultValues: {
       fullName: driver.fullName,
       city: driver.city ?? "",
-      state: driver.state,
-      zip: driver.zip,
+      state: driver.state ?? "",
+      zip: driver.zip ?? "",
       serviceRadiusMiles: driver.serviceRadiusMiles,
       operatorTypes: driver.operatorTypes,
       cdlClass: driver.cdlClass,

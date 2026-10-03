@@ -126,7 +126,7 @@ begin
       true, now() - make_interval(days => i),
       'I agree to receive text messages from FleetGrid about available shifts at this number. Message frequency varies. Message and data rates may apply. Reply STOP to opt out, HELP for help.',
       v_opted_out, case when v_opted_out then now() - interval '1 day' end,
-      6, true
+      13, true
     );
   end loop;
 end;

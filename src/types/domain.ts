@@ -111,8 +111,9 @@ export interface Driver {
   endorsements: Endorsement[];
   yearsExperience: number | null;
   city: string | null;
-  state: string;
-  zip: string;
+  /** Null until the ZIP screen is saved. */
+  state: string | null;
+  zip: string | null;
   serviceRadiusMiles: number;
   availability: AvailabilityType[];
   certifications: string[];

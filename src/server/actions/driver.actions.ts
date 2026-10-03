@@ -7,15 +7,15 @@ import { runAction, type Result } from "@/server/errors/AppError";
 import type { PreparedUpload } from "@/server/services/DocumentService";
 import type { Driver, DriverDocument } from "@/types/domain";
 
-/** Saves one onboarding step for the signed-in driver. Returns the updated card. */
-export async function saveOnboardingStepAction(
-  step: number,
+/** Saves one onboarding screen for the signed-in driver. Returns the updated card. */
+export async function saveOnboardingScreenAction(
+  stepId: unknown,
   input: unknown,
 ): Promise<Result<Driver>> {
   return runAction(async () => {
     const { user } = await requireRole("driver");
     const { driverService } = await getContainer();
-    const driver = await driverService.saveStep(user.id, step, input);
+    const driver = await driverService.saveScreen(user.id, stepId, input);
     revalidatePath("/driver", "layout");
     return driver;
   });

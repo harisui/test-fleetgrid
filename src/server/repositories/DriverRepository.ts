@@ -5,22 +5,22 @@ import type { AvailabilityType, CdlClass, Driver, Endorsement, OperatorType } fr
 type DriverRow = Database["public"]["Tables"]["drivers"]["Row"];
 type DriverUpdate = Database["public"]["Tables"]["drivers"]["Update"];
 
-/** Fields needed to create the card at onboarding step 1. */
+/** Fields needed to create the card on the first onboarding screen (the name). */
 export interface CreateDriverInput {
   fullName: string;
-  city: string | null;
-  state: string;
-  zip: string;
-  serviceRadiusMiles: number;
   onboardingStep: number;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  serviceRadiusMiles?: number;
 }
 
 /** Any subset of editable card fields. Owner and opt-out state are not editable here. */
 export interface DriverPatch {
   fullName?: string;
   city?: string | null;
-  state?: string;
-  zip?: string;
+  state?: string | null;
+  zip?: string | null;
   serviceRadiusMiles?: number;
   operatorTypes?: OperatorType[];
   cdlClass?: CdlClass;
@@ -117,11 +117,13 @@ export class DriverRepository extends BaseRepository implements IDriverRepositor
       .insert({
         profile_id: profileId,
         full_name: input.fullName,
-        city: input.city,
-        state: input.state,
-        zip: input.zip,
-        service_radius_miles: input.serviceRadiusMiles,
         onboarding_step: input.onboardingStep,
+        ...(input.city !== undefined && { city: input.city }),
+        ...(input.state !== undefined && { state: input.state }),
+        ...(input.zip !== undefined && { zip: input.zip }),
+        ...(input.serviceRadiusMiles !== undefined && {
+          service_radius_miles: input.serviceRadiusMiles,
+        }),
       })
       .select("*")
       .single();

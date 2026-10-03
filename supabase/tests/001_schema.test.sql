@@ -67,9 +67,9 @@ select col_type_is('drivers', 'years_experience', 'integer');
 select col_type_is('drivers', 'city', 'text');
 select col_is_null('drivers', 'city');
 select col_type_is('drivers', 'state', 'character(2)');
-select col_not_null('drivers', 'state');
+select col_is_null('drivers', 'state', 'state is null until the ZIP screen is saved');
 select col_type_is('drivers', 'zip', 'text');
-select col_not_null('drivers', 'zip');
+select col_is_null('drivers', 'zip', 'zip is null until the ZIP screen is saved');
 select col_type_is('drivers', 'service_radius_miles', 'integer');
 select col_not_null('drivers', 'service_radius_miles');
 select col_default_is('drivers', 'service_radius_miles', '50');
@@ -208,23 +208,24 @@ select throws_ok(
 -- ---------------------------------------------------------------------------
 -- drivers constraints
 -- ---------------------------------------------------------------------------
--- Partial save at onboarding step 1: only basics are known.
+-- Partial save on the first onboarding screen: only the name is known.
 select lives_ok(
-  $$insert into public.drivers (id, profile_id, full_name, city, state, zip)
-    values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', '11111111-1111-4111-8111-111111111111', 'Pat Driver', 'Dallas', 'TX', '75201')$$,
-  'a partial card can be saved at step 1'
+  $$insert into public.drivers (id, profile_id, full_name)
+    values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', '11111111-1111-4111-8111-111111111111', 'Pat Driver')$$,
+  'a card can be created with only a name'
 );
 select results_eq(
   $$select operator_types::text, cdl_class::text, endorsements::text, service_radius_miles,
-           availability::text, certifications::text, sms_opt_in, sms_opted_out, onboarding_step, card_completed
+           availability::text, certifications::text, sms_opt_in, sms_opted_out, onboarding_step, card_completed,
+           state is null, zip is null
       from public.drivers where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'$$,
-  $$values ('{}', 'none', '{}', 50, '{}', '{}', false, false, 1, false)$$,
+  $$values ('{}', 'none', '{}', 50, '{}', '{}', false, false, 1, false, true, true)$$,
   'partial card gets the documented defaults'
 );
 
 select throws_ok(
-  $$insert into public.drivers (profile_id, full_name, state, zip)
-    values ('11111111-1111-4111-8111-111111111111', 'Again', 'TX', '75201')$$,
+  $$insert into public.drivers (profile_id, full_name)
+    values ('11111111-1111-4111-8111-111111111111', 'Again')$$,
   '23505', null, 'one card per profile'
 );
 
@@ -250,7 +251,9 @@ select lives_ok(pg_temp.update_driver($$service_radius_miles = 500$$), 'radius 5
 select throws_ok(pg_temp.update_driver($$bio = repeat('x', 501)$$), '23514', null, 'bio over 500 chars rejected');
 select lives_ok(pg_temp.update_driver($$bio = repeat('x', 500)$$), 'bio of 500 chars accepted');
 select throws_ok(pg_temp.update_driver($$onboarding_step = 0$$), '23514', null, 'onboarding step 0 rejected');
-select throws_ok(pg_temp.update_driver($$onboarding_step = 7$$), '23514', null, 'onboarding step 7 rejected');
+select throws_ok(pg_temp.update_driver($$onboarding_step = 14$$), '23514', null, 'onboarding step 14 rejected');
+select lives_ok(pg_temp.update_driver($$onboarding_step = 13$$), 'onboarding step 13 (done) accepted');
+select lives_ok(pg_temp.update_driver($$onboarding_step = 1$$), 'onboarding step 1 accepted');
 select throws_ok(pg_temp.update_driver($$operator_types = '{pilot}'$$), '22P02', null, 'unknown operator type rejected');
 select throws_ok(
   pg_temp.update_driver($$cdl_class = 'none', endorsements = '{H}'$$),
@@ -293,9 +296,24 @@ select throws_ok(
     sms_opt_in = true, sms_opt_in_at = now(), sms_opt_in_text = 'I agree'$$),
   '23514', null, 'card cannot be completed without years of experience'
 );
+select throws_ok(
+  pg_temp.update_driver($$card_completed = true, operator_types = '{cdl_driver}', availability = '{full_time}', years_experience = 5,
+    sms_opt_in = true, sms_opt_in_at = now(), sms_opt_in_text = 'I agree'$$),
+  '23514', null, 'card cannot be completed without a state and ZIP'
+);
+select throws_ok(
+  pg_temp.update_driver($$card_completed = true, state = 'TX', zip = '75201', cdl_class = 'none', operator_types = '{cdl_driver}',
+    availability = '{full_time}', years_experience = 5, sms_opt_in = true, sms_opt_in_at = now(), sms_opt_in_text = 'I agree'$$),
+  '23514', null, 'a CDL driver cannot complete the card without a CDL class'
+);
 select lives_ok(
-  pg_temp.update_driver($$card_completed = true, onboarding_step = 6, operator_types = '{cdl_driver}', availability = '{full_time}',
-    years_experience = 5, sms_opt_in = true, sms_opt_in_at = now(), sms_opt_in_text = 'I agree'$$),
+  pg_temp.update_driver($$card_completed = true, onboarding_step = 13, state = 'TX', zip = '75201', cdl_class = 'none',
+    endorsements = '{}', operator_types = '{yard_spotter}', availability = '{full_time}', years_experience = 5,
+    sms_opt_in = true, sms_opt_in_at = now(), sms_opt_in_text = 'I agree'$$),
+  'a yard spotter without a CDL can complete the card'
+);
+select lives_ok(
+  pg_temp.update_driver($$cdl_class = 'A', operator_types = '{cdl_driver}'$$),
   'a full card can be completed'
 );
 select throws_ok(
