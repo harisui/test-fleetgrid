@@ -46,6 +46,10 @@ export const serverEnvSchema = clientEnvSchema.extend({
   STRIPE_SECRET_KEY: optionalString,
   STRIPE_WEBHOOK_SECRET: optionalString,
   STRIPE_PRICE_ID_MONTHLY: optionalString,
+  // Local development only: prefill the login with a test number and code (src/lib/auth/prefill.ts).
+  PREFILL_TEST_LOGIN: optionalString,
+  TEST_PHONE_DRIVER: optionalString,
+  TEST_OTP: optionalString,
 });
 
 export type ClientEnv = z.infer<typeof clientEnvSchema>;

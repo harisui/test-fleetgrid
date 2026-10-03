@@ -2,22 +2,16 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import {
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-  type ComponentProps,
-  type FormEvent,
-} from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
+import { CodeInput } from "@/components/auth/CodeInput";
 import { FormField } from "@/components/shared/FormField";
 import { LoadingButton } from "@/components/shared/LoadingButton";
 import { Button } from "@/components/ui/button";
 import { CHOOSE_ROLE_PATH, LOGIN_PATH } from "@/lib/auth/routes";
 import { OTP_LENGTH, OTP_RESEND_COOLDOWN_SECONDS } from "@/lib/constants";
+import { formatCountdown } from "@/lib/countdown";
 import { digitsOnly, formatE164ForDisplay } from "@/lib/phone";
-import { cn } from "@/lib/utils";
 import { requestOtpAction, verifyOtpAction } from "@/server/actions/auth.actions";
 import type { SignupRole } from "@/types/domain";
 
@@ -27,56 +21,22 @@ interface OtpFormProps {
   role?: SignupRole;
   /** Seconds before the first resend is allowed. */
   cooldownSeconds?: number;
+  /** Code the field starts with. Local development only (see lib/auth/prefill.ts). */
+  defaultCode?: string;
 }
 
-/** "1:00", "0:45" */
-export function formatCountdown(seconds: number): string {
-  const minutes = Math.floor(seconds / 60);
-  return `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
-}
-
-/**
- * One real input, drawn as six large boxes. The input stays in the accessibility tree and
- * keeps SMS autofill and paste working; the boxes only show what was typed.
- */
-function CodeInput({
-  digits,
-  focused,
-  className,
-  ...props
-}: ComponentProps<"input"> & { digits: string; focused: boolean }) {
-  return (
-    <div className="relative">
-      <div aria-hidden="true" className="grid grid-cols-6 gap-2" data-slot="code-boxes">
-        {Array.from({ length: OTP_LENGTH }, (_, index) => (
-          <div
-            key={index}
-            className={cn(
-              "flex h-target-lg items-center justify-center rounded-field border-2 bg-card font-mono text-code leading-code font-medium tabular-nums",
-              focused && index === Math.min(digits.length, OTP_LENGTH - 1)
-                ? "border-ring"
-                : "border-input",
-              props["aria-invalid"] && "border-destructive",
-            )}
-          >
-            {digits[index] ?? ""}
-          </div>
-        ))}
-      </div>
-      <input {...props} className={cn("absolute inset-0 h-full w-full opacity-0", className)} />
-    </div>
-  );
-}
+export { formatCountdown };
 
 export function OtpForm({
   phone,
   role,
   cooldownSeconds = OTP_RESEND_COOLDOWN_SECONDS,
+  defaultCode = "",
 }: OtpFormProps) {
   const router = useRouter();
   // Uncontrolled on purpose, so a code typed or autofilled before the scripts load is kept.
   const inputRef = useRef<HTMLInputElement>(null);
-  const [digits, setDigits] = useState("");
+  const [digits, setDigits] = useState(digitsOnly(defaultCode).slice(0, OTP_LENGTH));
   const [focused, setFocused] = useState(false);
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
@@ -176,7 +136,7 @@ export function OtpForm({
           pattern="\d*"
           maxLength={OTP_LENGTH + 4}
           ref={inputRef}
-          defaultValue=""
+          defaultValue={digitsOnly(defaultCode).slice(0, OTP_LENGTH)}
           onChange={(event) => handleChange(event.target)}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}

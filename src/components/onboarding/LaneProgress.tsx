@@ -30,13 +30,14 @@ export function LaneProgress({ stepId }: LaneProgressProps) {
         >
           <div
             aria-hidden="true"
-            className="lane-line absolute inset-x-1 top-1/2 h-px -translate-y-1/2"
-          />
-          <div
-            aria-hidden="true"
             data-slot="lane-fill"
             className="absolute inset-y-0 left-0 rounded-badge bg-progress-fill transition-[width] duration-(--dur-move) ease-standard"
             style={{ width: position }}
+          />
+          {/* The dashed lane line runs over the fill, like paint on the road. */}
+          <div
+            aria-hidden="true"
+            className="lane-line absolute inset-x-1 top-1/2 h-px -translate-y-1/2"
           />
         </div>
         <Truck
@@ -66,11 +67,7 @@ export function LaneProgress({ stepId }: LaneProgressProps) {
                     : "text-muted-foreground",
               )}
             >
-              {done ? (
-                <Check aria-hidden="true" className="size-4 text-success" />
-              ) : (
-                <span aria-hidden="true">{mile.mile}</span>
-              )}
+              {done && <Check aria-hidden="true" className="size-4 text-success" />}
               <span className="sr-only">
                 {done ? `Stage ${mile.mile}, done:` : `Stage ${mile.mile}:`}
               </span>

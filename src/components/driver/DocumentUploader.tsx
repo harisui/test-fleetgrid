@@ -16,7 +16,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
+import { SelectInput } from "@/components/shared/SelectInput";
 import { ALLOWED_UPLOAD_MIME } from "@/lib/constants";
 import { formatFileSize, prepareFileForUpload } from "@/lib/image";
 import { uploadWithToken } from "@/lib/supabase/upload";
@@ -140,18 +140,15 @@ export function DocumentUploader({ initialDocuments }: DocumentUploaderProps) {
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 rounded-card border border-border bg-card p-4">
         <FormField label="Document type">
-          <NativeSelect
+          <SelectInput
             value={type}
-            onChange={(event) => setType(event.target.value as DocumentType)}
+            onValueChange={(value) => setType(value as DocumentType)}
+            options={DOCUMENT_TYPES.map((value) => ({
+              value,
+              label: DOCUMENT_TYPE_LABELS[value],
+            }))}
             disabled={uploading}
-            className="w-full"
-          >
-            {DOCUMENT_TYPES.map((value) => (
-              <NativeSelectOption key={value} value={value}>
-                {DOCUMENT_TYPE_LABELS[value]}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
+          />
         </FormField>
 
         <input

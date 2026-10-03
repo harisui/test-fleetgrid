@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
+import { DeleteAccountCard } from "@/components/account/DeleteAccountCard";
 import { AccountStatusCard } from "@/components/driver/AccountStatusCard";
 import { ProfileEditor } from "@/components/driver/ProfileEditor";
 import { requireRole } from "@/lib/auth/guards";
@@ -18,6 +19,7 @@ export default async function DriverProfilePage() {
       <h1 className="text-2xl font-semibold tracking-tight">My profile</h1>
       <AccountStatusCard profile={profile} driver={state.driver} />
       <ProfileEditor driver={state.driver} />
+      <DeleteAccountCard phone={user.phone} />
     </div>
   );
 }

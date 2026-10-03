@@ -90,11 +90,15 @@ describe("themes.css shared tokens", () => {
     });
   });
 
-  it("motion has no spring: a standard ease-out curve and durations of 200ms or less", () => {
+  it("motion has no spring: a standard ease-out curve, presses and state changes in 200ms or less", () => {
     expect(parsed.shared.root["--ease-standard"]).toBe("cubic-bezier(0.2, 0, 0, 1)");
-    for (const token of ["--dur-press", "--dur-state", "--dur-move"]) {
+    for (const token of ["--dur-press", "--dur-state"]) {
       expect(Number.parseInt(parsed.shared.root[token], 10)).toBeLessThanOrEqual(200);
     }
+    // The truck drives to the next stop at a visible pace, still well under a second.
+    const move = Number.parseInt(parsed.shared.root["--dur-move"], 10);
+    expect(move).toBeGreaterThanOrEqual(400);
+    expect(move).toBeLessThanOrEqual(800);
   });
 });
 

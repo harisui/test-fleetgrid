@@ -36,6 +36,7 @@ const ALLOWED = new Set([
   "vitest.config.ts",
   "vitest.integration.config.ts",
   "playwright.config.ts",
+  "playwright.design-review.config.ts",
   // docs
   "README.md",
 ]);

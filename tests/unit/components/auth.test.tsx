@@ -42,6 +42,11 @@ describe("PhoneForm", () => {
     expect(input()).toHaveValue("(555) 555-0100");
   });
 
+  it("starts with the prefilled number, formatted, when one is given", () => {
+    render(<PhoneForm defaultPhone="+15555550100" />);
+    expect(input()).toHaveValue("(555) 555-0100");
+  });
+
   it("is a telephone input with autofill hints", () => {
     render(<PhoneForm />);
     expect(input()).toHaveAttribute("type", "tel");
@@ -160,6 +165,14 @@ describe("OtpForm", () => {
     render(<OtpForm phone={PHONE} />);
     expect(screen.getByText("(555) 555-0100")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Change it" })).toHaveAttribute("href", "/login");
+  });
+
+  it("starts with a prefilled code in the boxes and the input, without submitting", () => {
+    render(<OtpForm phone={PHONE} defaultCode="123456" />);
+    expect(input()).toHaveValue("123456");
+    const boxes = document.querySelectorAll("[data-slot=code-boxes] > div");
+    expect([...boxes].map((box) => box.textContent)).toEqual(["1", "2", "3", "4", "5", "6"]);
+    expect(actions.verifyOtpAction).not.toHaveBeenCalled();
   });
 
   it("supports SMS autofill and a numeric keypad", () => {

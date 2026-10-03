@@ -1,6 +1,6 @@
 "use client";
 
-import { Camera, CircleAlert, CircleCheck, FileText, ImagePlus } from "lucide-react";
+import { CircleAlert, CircleCheck, FileText } from "lucide-react";
 import { useRef } from "react";
 import { LoadingButton } from "@/components/shared/LoadingButton";
 import { Button } from "@/components/ui/button";
@@ -155,19 +155,24 @@ export function UploadTile({
           </LoadingButton>
         </div>
       ) : state.kind === "uploading" ? null : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <Button type="button" size="md" onClick={() => pick(cameraInput.current)} disabled={busy}>
-            <Camera aria-hidden="true" />
+        <div className="grid grid-cols-2 gap-3">
+          <Button
+            type="button"
+            size="md"
+            className="px-2"
+            onClick={() => pick(cameraInput.current)}
+            disabled={busy}
+          >
             {state.kind === "error" ? "Try again" : "Take a photo"}
           </Button>
           <Button
             type="button"
             variant="secondary"
             size="md"
+            className="px-2"
             onClick={() => pick(fileInput.current)}
             disabled={busy}
           >
-            <ImagePlus aria-hidden="true" />
             Choose from phone
           </Button>
         </div>

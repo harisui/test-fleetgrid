@@ -8,16 +8,20 @@ import type { Database } from "../../src/types/database.types";
 const envFile = resolve(process.cwd(), ".env.local");
 if (existsSync(envFile) && !process.env.SUPABASE_SERVICE_ROLE_KEY) loadEnvFile(envFile);
 
-/** Phone numbers with the fixed code 123456 (supabase/config.toml). Real SMS is never sent. */
+/**
+ * Test numbers with a fixed code, from `[auth.sms.test_otp]` in supabase/config.toml. Real SMS
+ * is never sent to them. TEST_PHONE_* and TEST_OTP in .env.local can point at other entries of
+ * that table; the defaults are the ones checked in.
+ */
 export const PHONES = {
-  driver: "+15555550100",
-  carrier: "+15555550101",
-  admin: "+15555550102",
-  /** Extra numbers reserved for e2e tests that need a second driver. */
+  driver: process.env.TEST_PHONE_DRIVER ?? "+15555550100",
+  carrier: process.env.TEST_PHONE_CARRIER ?? "+15555550101",
+  admin: process.env.TEST_PHONE_ADMIN ?? "+15555550102",
+  /** Extra number reserved for e2e tests that need a second driver. */
   secondDriver: "+15555550108",
-} as const;
+};
 
-export const OTP = "123456";
+export const OTP = process.env.TEST_OTP ?? "123456";
 export const WRONG_OTP = "000000";
 
 type Role = Database["public"]["Enums"]["user_role"];
@@ -79,6 +83,12 @@ export async function seedUser(
 /** "+15555550100" -> "5555550100", what a person types. */
 export const national = (phone: string) => phone.replace(/^\+1/, "");
 
+/** "+15555550100" -> "(555) 555-0100", what the app shows. */
+export const displayPhone = (phone: string) => {
+  const digits = national(phone);
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
+};
+
 /** Supabase allows one code request per number per second locally. */
 const lastRequestAt = new Map<string, number>();
 async function respectResendInterval(phone: string) {
@@ -96,10 +106,21 @@ export async function requestCode(page: Page, phone: string, loginPath = "/login
   await expect(page).toHaveURL(/\/verify\?/);
 }
 
+/**
+ * Types a code into the verify screen. The field is cleared first: with PREFILL_TEST_LOGIN
+ * it may already hold this very code, and filling the same value again changes nothing, so
+ * the form would never submit.
+ */
+export async function enterCode(page: Page, code: string) {
+  const field = page.getByLabel("6-digit code");
+  await field.fill("");
+  await field.fill(code);
+}
+
 /** Full login through the UI. Ends wherever the app routes the user. */
 export async function login(page: Page, phone: string, loginPath = "/login") {
   await requestCode(page, phone, loginPath);
-  await page.getByLabel("6-digit code").fill(OTP);
+  await enterCode(page, OTP);
   await expect(page).not.toHaveURL(/\/verify/);
   // The app may redirect once more (for example profile to onboarding). Let it settle so a
   // following page.goto() does not interrupt a navigation that is still in flight.
@@ -124,4 +145,109 @@ export async function signUp(page: Page, phone: string, role: "driver" | "carrie
   await chooseRole(page, role);
   await page.getByRole("button", { name: "Continue" }).click();
   await expect(page).not.toHaveURL(/\/choose-role/);
+}
+
+/** Answers for every screen, used to seed a driver part-way through onboarding. */
+export const CARD_ANSWERS = {
+  full_name: "Pat Driver",
+  city: "Dallas",
+  state: "TX",
+  zip: "75201",
+  service_radius_miles: 50,
+  operator_types: ["cdl_driver"] as const,
+  years_experience: 8,
+  availability: ["full_time"] as const,
+  cdl_class: "A" as const,
+  endorsements: ["H", "T"] as const,
+  certifications: ["TWIC"],
+  bio: "Reliable and on time.",
+};
+
+/**
+ * Creates a driver who has answered every screen before `stepNumber` (1 to 13 from
+ * src/lib/onboarding/steps.ts) and is about to see that screen. Step 13 is a completed card.
+ */
+export async function seedDriverAtStep(
+  phone: string,
+  stepNumber: number,
+  overrides: Record<string, unknown> = {},
+): Promise<{ userId: string; driverId: string | null }> {
+  const userId = await seedUser(phone, "driver");
+  if (stepNumber <= 1) return { userId, driverId: null };
+
+  const row = { profile_id: userId, ...driverRowAtStep(stepNumber), ...overrides };
+  const { data, error } = await adminClient().from("drivers").insert(row).select("id").single();
+  if (error) throw new Error(`seedDriverAtStep failed: ${error.message}`);
+  return { userId, driverId: data.id };
+}
+
+/** Moves an existing driver (seeded at step 2 or later) to another screen without a new login. */
+export async function moveDriverToStep(
+  phone: string,
+  stepNumber: number,
+  overrides: Record<string, unknown> = {},
+): Promise<void> {
+  const userId = await findUserId(phone);
+  if (!userId) throw new Error(`moveDriverToStep: no user for ${phone}`);
+  const { error } = await adminClient()
+    .from("drivers")
+    .update({ ...driverRowAtStep(stepNumber), ...overrides })
+    .eq("profile_id", userId);
+  if (error) throw new Error(`moveDriverToStep failed: ${error.message}`);
+}
+
+/** The card columns of a driver who is about to see screen `stepNumber`. Unanswered ones are null. */
+function driverRowAtStep(stepNumber: number) {
+  const answered = (screen: number) => stepNumber > screen;
+  const complete = stepNumber >= 13;
+  const or = <T>(condition: boolean, value: T) => (condition ? value : null);
+  return {
+    full_name: CARD_ANSWERS.full_name,
+    city: or(answered(2), CARD_ANSWERS.city),
+    state: or(answered(2), CARD_ANSWERS.state),
+    zip: or(answered(2), CARD_ANSWERS.zip),
+    ...(answered(3) && { service_radius_miles: CARD_ANSWERS.service_radius_miles }),
+    operator_types: answered(4) ? [...CARD_ANSWERS.operator_types] : [],
+    years_experience: or(answered(5), CARD_ANSWERS.years_experience),
+    availability: answered(6) ? [...CARD_ANSWERS.availability] : [],
+    cdl_class: answered(7) ? CARD_ANSWERS.cdl_class : ("none" as const),
+    endorsements: answered(8) ? [...CARD_ANSWERS.endorsements] : [],
+    certifications: answered(9) ? CARD_ANSWERS.certifications : [],
+    bio: or(answered(11), CARD_ANSWERS.bio),
+    sms_opt_in: complete,
+    sms_opt_in_at: or(complete, new Date().toISOString()),
+    sms_opt_in_text: or(complete, CONSENT_TEXT),
+    card_completed: complete,
+    onboarding_step: Math.min(stepNumber, 13),
+  };
+}
+
+export const CONSENT_TEXT =
+  "I agree to receive text messages from FleetGrid about available shifts at this number. Message frequency varies. Message and data rates may apply. Reply STOP to opt out, HELP for help.";
+
+/** The main heading of the current screen. */
+export const screenHeading = (page: Page) => page.getByRole("heading", { level: 1 });
+export const nextButton = (page: Page, label = "Next") =>
+  page.getByRole("button", { name: label, exact: true });
+
+/** The phone layout: one question per screen. Wider viewports group a mile on one page. */
+export const PHONE_VIEWPORT = { width: 390, height: 844 } as const;
+export const DESKTOP_MIN_WIDTH = 768;
+
+/** True when the onboarding groups a mile's questions on one page (viewport 768px and up). */
+export const isGrouped = (page: Page) => (page.viewportSize()?.width ?? 0) >= DESKTOP_MIN_WIDTH;
+
+/**
+ * Asserts that a question is on screen, whichever layout is active: the sign title on phones,
+ * a question heading or group label inside the mile on wider screens.
+ */
+export async function expectScreen(page: Page, question: string) {
+  await expect(page.getByText(question, { exact: true }).first()).toBeVisible();
+}
+
+/** Signs in and opens the onboarding, even for a driver whose card is complete. */
+export async function openOnboarding(page: Page, phone: string) {
+  await login(page, phone);
+  if (!/\/driver\/onboarding$/.test(page.url())) await page.goto("/driver/onboarding");
+  await expect(page).toHaveURL(/\/driver\/onboarding$/);
 }

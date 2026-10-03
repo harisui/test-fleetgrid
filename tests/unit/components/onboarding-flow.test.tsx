@@ -120,7 +120,7 @@ describe("name and ZIP", () => {
     await userEvent.type(screen.getByLabelText("ZIP code"), "60601");
 
     await waitFor(() => expect(screen.getByLabelText("City")).toHaveValue("Chicago"));
-    expect(screen.getByLabelText("State")).toHaveValue("IL");
+    expect(screen.getByRole("combobox", { name: "State" })).toHaveTextContent("Illinois");
     expect(screen.getByText(/City and state filled in from your ZIP/)).toBeInTheDocument();
     expect(actions.lookupZipAction).toHaveBeenCalledWith("60601");
 
@@ -472,6 +472,50 @@ describe("desktop grouping", () => {
     await waitFor(() => expect(heading()).toHaveTextContent("License"));
   });
 
+  it("shows the endorsements question as soon as a CDL class is picked, and hides it for No CDL", async () => {
+    stubDesktop(true);
+    actions.saveOnboardingScreenAction.mockImplementation(async () =>
+      ok(buildPartialDriver({ onboardingStep: 10, cdlClass: "A", endorsements: ["H"] })),
+    );
+    renderFlow("cdlClass", buildPartialDriver({ onboardingStep: 7, operatorTypes: ["mechanic"] }));
+    expect(heading()).toHaveTextContent("License");
+    expect(screen.queryByText("Any extra letters on your CDL?")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("radio", { name: /Class A/ }));
+    expect(screen.getByText("Any extra letters on your CDL?")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("checkbox", { name: /^H\b/ }));
+
+    await userEvent.click(screen.getByRole("radio", { name: /No CDL/ }));
+    expect(screen.queryByText("Any extra letters on your CDL?")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("radio", { name: /Class A/ }));
+    expect(screen.getByRole("checkbox", { name: /^H\b/ })).toHaveAttribute("aria-checked", "true");
+    await userEvent.click(next());
+
+    await waitFor(() => expect(actions.saveOnboardingScreenAction).toHaveBeenCalledTimes(3));
+    expect(actions.saveOnboardingScreenAction.mock.calls.map((call) => call[0])).toEqual([
+      "cdlClass",
+      "endorsements",
+      "certifications",
+    ]);
+    expect(actions.saveOnboardingScreenAction.mock.calls[1][1]).toEqual({ endorsements: ["H"] });
+  });
+
+  it("saves no endorsements for No CDL on a wide screen", async () => {
+    stubDesktop(true);
+    actions.saveOnboardingScreenAction.mockImplementation(async () =>
+      ok(buildPartialDriver({ onboardingStep: 10, cdlClass: "none" })),
+    );
+    renderFlow("cdlClass", buildPartialDriver({ onboardingStep: 7, operatorTypes: ["mechanic"] }));
+    await userEvent.click(screen.getByRole("radio", { name: /No CDL/ }));
+    await userEvent.click(next());
+    await waitFor(() => expect(actions.saveOnboardingScreenAction).toHaveBeenCalledTimes(2));
+    expect(actions.saveOnboardingScreenAction.mock.calls.map((call) => call[0])).toEqual([
+      "cdlClass",
+      "certifications",
+    ]);
+  });
+
   it("stops at the first screen with an error", async () => {
     stubDesktop(true);
     renderFlow("workType", buildPartialDriver({ onboardingStep: 4 }));
@@ -480,6 +524,27 @@ describe("desktop grouping", () => {
     expect(await screen.findByText("Pick at least one kind of work")).toBeInTheDocument();
     expect(screen.getByText("Pick at least one option")).toBeInTheDocument();
     expect(actions.saveOnboardingScreenAction).not.toHaveBeenCalled();
+  });
+});
+
+describe("the road", () => {
+  it("stays mounted from one step to the next, so the fill and truck can animate", async () => {
+    actions.saveOnboardingScreenAction.mockResolvedValue(
+      ok(buildPartialDriver({ onboardingStep: 2, fullName: "Pat Driver" })),
+    );
+    const { container } = renderFlow("name", null);
+    const fill = container.querySelector("[data-slot=lane-fill]") as HTMLElement;
+    const truck = container.querySelector("[data-slot=lane-truck]") as HTMLElement;
+    expect(fill.style.width).toBe("0%");
+
+    await userEvent.type(screen.getByLabelText("Full name"), "Pat Driver");
+    await userEvent.click(next());
+    await waitFor(() => expect(heading()).toHaveTextContent("What is your ZIP code?"));
+
+    expect(container.querySelector("[data-slot=lane-fill]")).toBe(fill);
+    expect(container.querySelector("[data-slot=lane-truck]")).toBe(truck);
+    expect(fill.style.width).toBe("8%");
+    expect(truck.style.left).toBe("8%");
   });
 });
 

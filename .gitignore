@@ -45,6 +45,7 @@ next-env.d.ts
 /playwright-report
 /test-results
 /blob-report
+/design-review
 
 # supabase
 supabase/.temp

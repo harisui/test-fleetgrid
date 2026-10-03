@@ -52,15 +52,20 @@ export function SummaryCard({ driver, onEdit }: SummaryCardProps) {
           <dt className="w-28 shrink-0 text-helper leading-helper text-muted-foreground">
             {row.label}
           </dt>
-          <dd className="min-w-0 flex-1 text-label leading-label font-semibold">{row.value}</dd>
-          <button
-            type="button"
-            onClick={() => onEdit(row.stepId)}
-            aria-label={`Edit ${row.label.toLowerCase()}`}
-            className="flex min-h-target items-center rounded-badge px-2 text-label font-semibold underline underline-offset-4 hover:bg-muted"
-          >
-            Edit
-          </button>
+          {/* The button sits inside the dd: a dl allows nothing else beside dt and dd. */}
+          <dd className="flex min-w-0 flex-1 items-center gap-3">
+            <span className="min-w-0 flex-1 text-label leading-label font-semibold">
+              {row.value}
+            </span>
+            <button
+              type="button"
+              onClick={() => onEdit(row.stepId)}
+              aria-label={`Edit ${row.label.toLowerCase()}`}
+              className="flex min-h-target shrink-0 items-center rounded-badge px-2 text-label font-semibold underline underline-offset-4 hover:bg-muted"
+            >
+              Edit
+            </button>
+          </dd>
         </div>
       ))}
     </dl>

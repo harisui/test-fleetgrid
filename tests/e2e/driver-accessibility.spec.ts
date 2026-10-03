@@ -1,13 +1,27 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test, type Page } from "@playwright/test";
-import { adminClient, login, PHONES, requestCode, resetUser, seedUser } from "./helpers";
-
-const CONSENT_TEXT =
-  "I agree to receive text messages from FleetGrid about available shifts at this number. Message frequency varies. Message and data rates may apply. Reply STOP to opt out, HELP for help.";
+import { expect, test, type Locator, type Page } from "@playwright/test";
+import { STEPS } from "../../src/lib/onboarding/steps";
+import {
+  adminClient,
+  CONSENT_TEXT,
+  enterCode,
+  expectScreen,
+  formAlert,
+  login,
+  nextButton,
+  openOnboarding,
+  OTP,
+  PHONES,
+  requestCode,
+  resetUser,
+  screenHeading,
+  seedDriverAtStep,
+  seedUser,
+} from "./helpers";
 
 async function expectNoAccessibilityViolations(page: Page, label: string) {
   const results = await new AxeBuilder({ page })
-    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "best-practice"])
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa", "best-practice"])
     .exclude("nextjs-portal")
     .analyze();
   const summary = results.violations.map((violation) => ({
@@ -18,99 +32,102 @@ async function expectNoAccessibilityViolations(page: Page, label: string) {
   expect(summary, label).toEqual([]);
 }
 
-const next = (page: Page) => page.getByRole("button", { name: "Next", exact: true });
+/** Presses Tab until the control has focus, so the test does not count every stop in between. */
+async function tabTo(page: Page, target: Locator, maxStops = 12) {
+  for (let stop = 0; stop < maxStops; stop += 1) {
+    await page.keyboard.press("Tab");
+    if (await target.evaluate((el) => el === document.activeElement)) return;
+  }
+  await expect(target).toBeFocused();
+}
 
 for (const colorScheme of ["light", "dark"] as const) {
-  test.describe(`signed-in screens are accessible (${colorScheme})`, () => {
-    test.use({ colorScheme });
+  test.describe(`screens are accessible (${colorScheme})`, () => {
+    test.beforeEach(async ({ page }) => {
+      // Light is the app default; dark is the stored choice.
+      await page
+        .context()
+        .addCookies([
+          { name: "fleetgrid-theme", value: colorScheme, url: "http://localhost:3000" },
+        ]);
+      // Colors are checked at rest, not halfway through a 120ms press transition.
+      await page.emulateMedia({ reducedMotion: "reduce" });
+    });
 
     test.afterAll(async () => {
       await resetUser(PHONES.driver);
     });
 
-    test("verify and role screens", async ({ page }) => {
+    test("login, code and role screens, including an error", async ({ page }) => {
       await resetUser(PHONES.driver);
+      await page.goto("/login");
+      await expectNoAccessibilityViolations(page, "login");
+      // An empty number is the error state, whatever PREFILL_TEST_LOGIN put there.
+      await page.getByLabel("Mobile number").fill("");
+      await page.getByRole("button", { name: "Text me a code" }).click();
+      await expect(formAlert(page)).toBeVisible();
+      await expectNoAccessibilityViolations(page, "login with error");
+
       await requestCode(page, PHONES.driver);
       await expectNoAccessibilityViolations(page, "verify");
 
-      await page.getByLabel("6-digit code").fill("123456");
+      await enterCode(page, OTP);
       await expect(page).toHaveURL(/\/choose-role/);
       await expectNoAccessibilityViolations(page, "choose-role");
+      await page.getByRole("radio", { name: /I drive or work trucks/ }).click();
+      await expectNoAccessibilityViolations(page, "choose-role selected");
     });
 
-    test("every onboarding step, including validation errors", async ({ page }) => {
-      await seedUser(PHONES.driver, "driver");
-      await login(page, PHONES.driver);
-      await expect(page).toHaveURL(/\/driver\/onboarding$/);
-      await expectNoAccessibilityViolations(page, "step 1");
+    for (const step of STEPS) {
+      const stepNumber = STEPS.indexOf(step) + 1;
+      test(`onboarding screen ${stepNumber}: ${step.id}`, async ({ page }) => {
+        await seedDriverAtStep(PHONES.driver, stepNumber);
+        await openOnboarding(page, PHONES.driver);
+        await expectScreen(page, step.question);
+        await expectNoAccessibilityViolations(page, step.id);
+      });
+    }
 
-      await next(page).click();
-      await expect(page.getByText("Enter your full name")).toBeVisible();
-      await expectNoAccessibilityViolations(page, "step 1 with errors");
+    test("onboarding error, warning and selected states", async ({ page }) => {
+      await seedDriverAtStep(PHONES.driver, 1);
+      await openOnboarding(page, PHONES.driver);
+      await nextButton(page).click();
+      await expect(page.getByText("Enter your name")).toBeVisible();
+      await expectNoAccessibilityViolations(page, "name with error");
 
-      await page.getByLabel("Full name").fill("Pat Driver");
-      await page.getByLabel("State").selectOption("TX");
-      await page.getByLabel("ZIP code").fill("75201");
-      await next(page).click();
+      await seedDriverAtStep(PHONES.driver, 7);
+      await openOnboarding(page, PHONES.driver);
+      await page.getByRole("radio", { name: /No CDL/ }).click();
+      await expect(formAlert(page)).toBeVisible();
+      await expectNoAccessibilityViolations(page, "CDL conflict");
+      await page.getByRole("radio", { name: /Class A/ }).click();
+      await expectNoAccessibilityViolations(page, "CDL class selected");
 
-      await page.getByText("CDL driver", { exact: true }).click();
-      await page.getByText("Class A", { exact: true }).click();
-      await page.getByLabel("Years of experience").fill("9");
-      await page.getByRole("textbox", { name: "Certifications" }).fill("TWIC");
-      await page.getByRole("button", { name: "Add", exact: true }).click();
-      await expectNoAccessibilityViolations(page, "step 2");
-      await next(page).click();
+      await seedDriverAtStep(PHONES.driver, 8);
+      await openOnboarding(page, PHONES.driver);
+      await page.getByRole("checkbox", { name: /^X\b/ }).click();
+      await expectNoAccessibilityViolations(page, "endorsements with X");
 
-      await page.getByText("Full time", { exact: true }).click();
-      await expectNoAccessibilityViolations(page, "step 3");
-      await next(page).click();
-
-      await expect(page.getByText("No documents yet")).toBeVisible();
-      await expectNoAccessibilityViolations(page, "step 4");
-      await page.getByRole("button", { name: "Continue" }).click();
-
-      await page.getByRole("button", { name: "Finish" }).click();
-      await expect(page.getByText("You must agree to receive text messages")).toBeVisible();
-      await expectNoAccessibilityViolations(page, "step 5 with error");
-
-      await page.getByRole("checkbox", { name: CONSENT_TEXT }).check();
-      await page.getByRole("button", { name: "Finish" }).click();
-      await expect(page.getByText(/Your profile is under review/)).toBeVisible();
-      await expectNoAccessibilityViolations(page, "done");
+      await seedDriverAtStep(PHONES.driver, 12);
+      await openOnboarding(page, PHONES.driver);
+      await nextButton(page, "Agree and finish").click();
+      await expect(formAlert(page)).toBeVisible();
+      await expectNoAccessibilityViolations(page, "consent with error");
+      await page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) }).click();
+      await expectNoAccessibilityViolations(page, "consent checked");
     });
 
     test("profile and documents", async ({ page }) => {
-      const userId = await seedUser(PHONES.driver, "driver");
-      const { data, error } = await adminClient()
-        .from("drivers")
-        .insert({
-          profile_id: userId,
-          full_name: "Pat Driver",
-          state: "TX",
-          zip: "75201",
-          operator_types: ["cdl_driver"],
-          cdl_class: "A",
-          endorsements: ["H"],
-          years_experience: 8,
-          certifications: ["TWIC"],
-          availability: ["full_time"],
-          sms_opt_in: true,
-          sms_opt_in_at: new Date().toISOString(),
-          sms_opt_in_text: CONSENT_TEXT,
-          sms_opted_out: true,
-          sms_opted_out_at: new Date().toISOString(),
-          onboarding_step: 6,
-          card_completed: true,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
+      const { driverId } = await seedDriverAtStep(PHONES.driver, 13, {
+        sms_opted_out: true,
+        sms_opted_out_at: new Date().toISOString(),
+      });
       await adminClient()
         .from("driver_documents")
         .insert({
-          driver_id: data.id,
+          driver_id: driverId!,
           type: "cdl_front",
-          storage_path: `${data.id}/00000000-0000-4000-8000-000000000001.jpg`,
+          storage_path: `${driverId}/00000000-0000-4000-8000-000000000001.jpg`,
           file_name: "cdl.jpg",
           mime_type: "image/jpeg",
           size_bytes: 1000,
@@ -129,6 +146,45 @@ for (const colorScheme of ["light", "dark"] as const) {
       // Let the open animation finish: mid-fade colors are not what people read.
       await page.waitForTimeout(400);
       await expectNoAccessibilityViolations(page, "delete dialog");
+    });
+
+    test("keyboard only: a mile can be answered with Tab, Space and Enter", async ({ page }) => {
+      test.skip(test.info().project.name !== "desktop-chrome", "keyboard run once, on a desktop");
+      await seedUser(PHONES.driver, "driver");
+      await login(page, PHONES.driver);
+      await expect(screenHeading(page)).toHaveText("About");
+
+      // Skip link and Help come first; in dev React Strict Mode has already moved focus to
+      // the sign title, so the number of stops before the field is not fixed.
+      await tabTo(page, page.getByLabel("Full name"), 3);
+      await page.keyboard.type("Pat Driver");
+
+      await page.keyboard.press("Tab");
+      await expect(page.getByLabel("ZIP code", { exact: true })).toBeFocused();
+      await page.keyboard.type("75201");
+      await expect(page.getByLabel("City")).toHaveValue("Dallas");
+
+      await tabTo(page, page.getByRole("button", { name: "10 miles" }));
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Space");
+      await expect(page.getByRole("button", { name: "25 miles" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
+
+      await tabTo(page, nextButton(page));
+      await page.keyboard.press("Enter");
+      await expect(screenHeading(page)).toHaveText("Work");
+      await expect(screenHeading(page)).toBeFocused();
+
+      await page.keyboard.press("Tab");
+      await expect(page.getByRole("checkbox", { name: /CDL driver/ })).toBeFocused();
+      await page.keyboard.press("Space");
+      await expect(page.getByRole("checkbox", { name: /CDL driver/ })).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+      await expect(page.locator(":focus-visible")).toHaveAttribute("role", "checkbox");
     });
   });
 }

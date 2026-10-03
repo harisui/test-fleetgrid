@@ -50,7 +50,8 @@ test.describe("driver documents", () => {
     const driverId = await startWithCard(page);
     await expect(page.getByText("No documents yet")).toBeVisible();
 
-    await page.getByLabel("Document type").selectOption("cdl_front");
+    await page.getByRole("combobox", { name: "Document type" }).click();
+    await page.getByRole("option", { name: "CDL (front)" }).click();
     await fileChooser(page).setInputFiles({ name: "cdl.png", mimeType: "image/png", buffer: PNG });
 
     const item = documentList(page).getByRole("listitem");
@@ -80,7 +81,8 @@ test.describe("driver documents", () => {
 
   test("uploads a PDF as it is", async ({ page }) => {
     const driverId = await startWithCard(page);
-    await page.getByLabel("Document type").selectOption("medical_card");
+    await page.getByRole("combobox", { name: "Document type" }).click();
+    await page.getByRole("option", { name: "Medical card" }).click();
     await fileChooser(page).setInputFiles({
       name: "medical.pdf",
       mimeType: "application/pdf",
@@ -148,7 +150,7 @@ test.describe("driver documents", () => {
     expect(await storedFiles(driverId)).toHaveLength(0);
   });
 
-  test("documents survive a reload and can be added during onboarding", async ({ page }) => {
+  test("documents survive a reload and can be added from the Papers screen", async ({ page }) => {
     const driverId = await startWithCard(page);
     await fileChooser(page).setInputFiles({ name: "cdl.png", mimeType: "image/png", buffer: PNG });
     await expect(documentList(page).getByRole("listitem")).toHaveCount(1);
@@ -156,30 +158,41 @@ test.describe("driver documents", () => {
     await page.reload();
     await expect(documentList(page).getByRole("listitem")).toHaveCount(1);
 
-    // Onboarding step 4 shows the same uploader.
+    // Screen 10 (Papers) shows the same file in its tile and takes new ones.
     await adminClient()
       .from("drivers")
       .update({
+        service_radius_miles: 50,
         operator_types: ["mechanic"],
         years_experience: 3,
         availability: ["on_call"],
-        onboarding_step: 4,
+        cdl_class: "none",
+        certifications: [],
+        onboarding_step: 10,
       })
       .eq("id", driverId);
     await page.goto("/driver/onboarding");
     await expect(
-      page.getByRole("heading", { level: 2, name: "Documents", exact: true }),
+      page.getByRole("heading", { level: 1, name: "Do you want to add your papers now?" }),
     ).toBeVisible();
-    await expect(documentList(page).getByRole("listitem")).toHaveCount(1);
+    const front = page.locator("[data-slot=upload-tile]").filter({ hasText: "Front of your CDL" });
+    await expect(front).toHaveAttribute("data-state", "done");
+    await expect(front).toContainText("cdl.png");
 
-    await page.getByLabel("Document type").selectOption("certification");
-    await fileChooser(page).setInputFiles({
-      name: "twic.pdf",
-      mimeType: "application/pdf",
-      buffer: PDF,
-    });
-    await expect(documentList(page).getByRole("listitem")).toHaveCount(2);
+    await page
+      .getByLabel("Choose a file for medical card")
+      .setInputFiles({ name: "medical.pdf", mimeType: "application/pdf", buffer: PDF });
+    const medical = page.locator("[data-slot=upload-tile]").filter({ hasText: "Medical card" });
+    await expect(medical).toHaveAttribute("data-state", "done");
+    await expect(medical).toContainText("medical.pdf");
+    await expect(page.getByRole("button", { name: "Next", exact: true })).toBeVisible();
     expect(await documentRows(driverId)).toHaveLength(2);
+
+    // Remove takes the file away again.
+    await medical.getByRole("button", { name: "Remove" }).click();
+    await expect(medical).toHaveAttribute("data-state", "empty");
+    expect(await documentRows(driverId)).toHaveLength(1);
+    expect(await storedFiles(driverId)).toHaveLength(1);
   });
 
   test("another driver cannot see or fetch the file", async ({ page, browser }) => {

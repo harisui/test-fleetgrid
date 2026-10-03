@@ -3,6 +3,7 @@ import { AuthShell } from "@/components/auth/AuthShell";
 import { PhoneForm } from "@/components/auth/PhoneForm";
 import { SignHeader } from "@/components/onboarding/SignHeader";
 import { InlineNote } from "@/components/shared/InlineNote";
+import { testLoginPrefill } from "@/lib/auth/prefill";
 import { SIGNUP_ROLES } from "@/types/domain";
 
 export const metadata: Metadata = { title: "Log in" };
@@ -23,7 +24,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           Your account has been blocked. Contact support for help.
         </InlineNote>
       )}
-      <PhoneForm role={role} />
+      <PhoneForm role={role} defaultPhone={testLoginPrefill().phone} />
     </AuthShell>
   );
 }

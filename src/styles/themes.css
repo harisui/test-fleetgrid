@@ -71,7 +71,7 @@
 
   --dur-press: 120ms;
   --dur-state: 160ms;
-  --dur-move: 200ms;
+  --dur-move: 600ms;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 }
 

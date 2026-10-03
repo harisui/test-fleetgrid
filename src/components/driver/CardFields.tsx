@@ -9,9 +9,9 @@ import {
 } from "react-hook-form";
 import { ChoiceGroup } from "@/components/shared/ChoiceGroup";
 import { FormField } from "@/components/shared/FormField";
+import { SelectInput } from "@/components/shared/SelectInput";
 import { TagInput } from "@/components/shared/TagInput";
 import { Input } from "@/components/ui/input";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   BIO_MAX_LENGTH,
@@ -19,7 +19,7 @@ import {
   CERTIFICATIONS_MAX_COUNT,
   SERVICE_RADIUS_MAX_MILES,
   SERVICE_RADIUS_MIN_MILES,
-  US_STATES,
+  US_STATE_OPTIONS,
   YEARS_EXPERIENCE_MAX,
 } from "@/lib/constants";
 import {
@@ -57,6 +57,7 @@ const AVAILABILITY_OPTIONS = options(AVAILABILITY_TYPES, AVAILABILITY_LABELS);
 const field = <T extends FieldValues>(name: string) => name as Path<T>;
 
 export function BasicsFields<T extends FieldValues>({
+  control,
   register,
   errorOf,
   disabled,
@@ -72,21 +73,23 @@ export function BasicsFields<T extends FieldValues>({
       </FormField>
 
       <div className="grid grid-cols-2 gap-4">
-        <FormField label="State" error={errorOf("state")} required>
-          <NativeSelect
-            {...register(field<T>("state"))}
-            autoComplete="address-level1"
-            className="w-full"
-            disabled={disabled}
-          >
-            <NativeSelectOption value="">Select</NativeSelectOption>
-            {US_STATES.map(([code, name]) => (
-              <NativeSelectOption key={code} value={code}>
-                {name}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </FormField>
+        <Controller
+          control={control}
+          name={field<T>("state")}
+          render={({ field: input }) => (
+            <FormField label="State" error={errorOf("state")} errorIcon={false} required>
+              <SelectInput
+                name={input.name}
+                value={input.value ?? ""}
+                onValueChange={input.onChange}
+                onBlur={input.onBlur}
+                options={US_STATE_OPTIONS}
+                autoComplete="address-level1"
+                disabled={disabled}
+              />
+            </FormField>
+          )}
+        />
 
         <FormField label="ZIP code" error={errorOf("zip")} required>
           <Input

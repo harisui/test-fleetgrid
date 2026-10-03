@@ -16,6 +16,8 @@ import type { SignupRole } from "@/types/domain";
 interface PhoneFormProps {
   /** Carried through to the role picker so the choice is preselected. */
   role?: SignupRole;
+  /** E.164 number the field starts with. Local development only (see lib/auth/prefill.ts). */
+  defaultPhone?: string;
 }
 
 /** A phone field with the fixed US country code in front. US numbers only. */
@@ -33,7 +35,7 @@ function PhoneInput({ className, ...props }: ComponentProps<typeof Input>) {
   );
 }
 
-export function PhoneForm({ role }: PhoneFormProps) {
+export function PhoneForm({ role, defaultPhone }: PhoneFormProps) {
   const router = useRouter();
   // Uncontrolled on purpose: digits typed before the page finishes loading its scripts
   // (slow phones, Safari) must not be wiped when React takes over.
@@ -82,7 +84,7 @@ export function PhoneForm({ role }: PhoneFormProps) {
           autoComplete="tel-national"
           placeholder="(555) 555-0100"
           ref={inputRef}
-          defaultValue=""
+          defaultValue={defaultPhone ? formatUsPhoneInput(defaultPhone.replace(/^\+1/, "")) : ""}
           onChange={(event) => {
             event.target.value = formatUsPhoneInput(event.target.value);
             if (error) setError(undefined);

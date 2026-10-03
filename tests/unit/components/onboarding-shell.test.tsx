@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ActionBar } from "@/components/onboarding/ActionBar";
 import { LaneProgress } from "@/components/onboarding/LaneProgress";
-import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
+import { OnboardingContent, OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { SignHeader } from "@/components/onboarding/SignHeader";
 import { MILES, progressFor, STEPS } from "@/lib/onboarding/steps";
 
@@ -29,13 +29,17 @@ describe("LaneProgress", () => {
       expect(truck).toHaveAttribute("aria-hidden", "true");
 
       const stages = within(screen.getByRole("list", { name: "Stages" })).getAllByRole("listitem");
-      expect(
-        stages.map((item) => item.textContent?.replace(/Stage \d, done:|Stage \d:/g, "").trim()),
-      ).toEqual(
+      // The visible text is only the label; the stage number is read by screen readers.
+      expect(stages.map((item) => item.textContent?.trim())).toEqual(
         MILES.map((mile) =>
-          expected.completedMiles.includes(mile.mile) ? mile.label : `${mile.mile}${mile.label}`,
+          expected.completedMiles.includes(mile.mile)
+            ? `Stage ${mile.mile}, done:${mile.label}`
+            : `Stage ${mile.mile}:${mile.label}`,
         ),
       );
+      for (const item of stages) {
+        expect(item.querySelector(".sr-only")).toHaveTextContent(/^Stage \d/);
+      }
       const current = stages.find((item) => item.getAttribute("aria-current") === "step");
       expect(current).toHaveAttribute("data-mile", String(expected.mile.mile));
       expect(current).toHaveClass("underline", "font-semibold");
@@ -66,12 +70,16 @@ describe("LaneProgress", () => {
     render(<LaneProgress stepId="name" />);
     const stages = within(screen.getByRole("list", { name: "Stages" })).getAllByRole("listitem");
     expect(stages.map((item) => item.textContent?.replace(/Stage \d:/, "").trim())).toEqual([
-      "1About",
-      "2Work",
-      "3License",
-      "4Papers",
-      "5Finish",
+      "About",
+      "Work",
+      "License",
+      "Papers",
+      "Finish",
     ]);
+    // No visible numbers: the prototype shows the labels alone.
+    for (const item of stages) {
+      expect(item.querySelector("[aria-hidden]")).toBeNull();
+    }
   });
 });
 
@@ -170,8 +178,11 @@ describe("ActionBar", () => {
 describe("OnboardingShell", () => {
   it("shows only the wordmark, Help and the progress, with no app navigation", () => {
     render(
-      <OnboardingShell stepId="experience" actionBar={<ActionBar formId="f" />}>
-        <p>Question</p>
+      <OnboardingShell stepId="experience">
+        <OnboardingContent>
+          <p>Question</p>
+        </OnboardingContent>
+        <ActionBar formId="f" />
       </OnboardingShell>,
     );
     expect(screen.getByText("FLEETGRID")).toHaveClass("font-heading");
@@ -217,9 +228,26 @@ describe("OnboardingShell", () => {
   it("keeps the content column at the token width", () => {
     render(
       <OnboardingShell stepId="name">
-        <p>Question</p>
+        <OnboardingContent>
+          <p>Question</p>
+        </OnboardingContent>
       </OnboardingShell>,
     );
-    expect(screen.getByRole("main")).toHaveClass("max-w-content");
+    expect(screen.getByText("Question").parentElement).toHaveClass("max-w-content");
+  });
+
+  it("puts the road and the action bar inside landmarks, so nothing floats outside them", () => {
+    render(
+      <OnboardingShell stepId="name">
+        <OnboardingContent>
+          <p>Question</p>
+        </OnboardingContent>
+        <ActionBar formId="f" />
+      </OnboardingShell>,
+    );
+    expect(within(screen.getByRole("banner")).getByRole("progressbar")).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("main")).getByRole("button", { name: "Next" }),
+    ).toBeInTheDocument();
   });
 });

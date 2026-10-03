@@ -2,14 +2,16 @@ import { expect, test } from "@playwright/test";
 import {
   adminClient,
   chooseRole,
+  displayPhone,
+  enterCode,
   formAlert,
   login,
   OTP,
   PHONES,
   requestCode,
   resetUser,
+  seedDriverAtStep,
   seedUser,
-  signUp,
   WRONG_OTP,
 } from "./helpers";
 
@@ -18,6 +20,8 @@ test.describe("phone login", () => {
     await page.goto("/login");
     const phone = page.getByLabel("Mobile number");
 
+    // PREFILL_TEST_LOGIN may have filled the field; this test types from empty.
+    await phone.fill("");
     await phone.pressSequentially("5555550100");
     await expect(phone).toHaveValue("(555) 555-0100");
 
@@ -31,11 +35,11 @@ test.describe("phone login", () => {
     await resetUser(PHONES.driver);
     await requestCode(page, PHONES.driver);
 
-    await expect(page.getByText("(555) 555-0100")).toBeVisible();
+    await expect(page.getByText(displayPhone(PHONES.driver))).toBeVisible();
     await expect(page.getByLabel("6-digit code")).toHaveAttribute("autocomplete", "one-time-code");
     await expect(page.getByText(/Resend in \d:\d\d/)).toBeVisible();
 
-    await page.getByLabel("6-digit code").fill(OTP);
+    await enterCode(page, OTP);
     await expect(page).toHaveURL(/\/choose-role/);
 
     await chooseRole(page, "driver");
@@ -54,11 +58,11 @@ test.describe("phone login", () => {
     await seedUser(PHONES.driver, "driver");
     await requestCode(page, PHONES.driver);
 
-    await page.getByLabel("6-digit code").fill(WRONG_OTP);
+    await enterCode(page, WRONG_OTP);
     await expect(formAlert(page)).toHaveText("That code is incorrect or has expired");
     await expect(page).toHaveURL(/\/verify/);
 
-    await page.getByLabel("6-digit code").fill(OTP);
+    await enterCode(page, OTP);
     await expect(page).toHaveURL(/\/driver\//);
   });
 
@@ -67,6 +71,8 @@ test.describe("phone login", () => {
     await requestCode(page, PHONES.driver);
 
     const code = page.getByLabel("6-digit code");
+    // Start empty: PREFILL_TEST_LOGIN may have filled the code already.
+    await code.fill("");
     await code.focus();
     await page.evaluate(() => {
       const input = document.querySelector<HTMLInputElement>('input[name="code"]')!;
@@ -163,7 +169,7 @@ test.describe("role routing", () => {
   test("a blocked user cannot log in", async ({ page }) => {
     await seedUser(PHONES.driver, "driver", "blocked");
     await requestCode(page, PHONES.driver);
-    await page.getByLabel("6-digit code").fill(OTP);
+    await enterCode(page, OTP);
 
     await expect(formAlert(page)).toContainText("blocked");
     await page.goto("/driver/profile");
@@ -173,8 +179,10 @@ test.describe("role routing", () => {
 
 test.describe("session", () => {
   test("logout ends the session", async ({ page }) => {
-    await signUp(page, PHONES.driver, "driver");
-    await expect(page).toHaveURL(/\/driver\//);
+    // Log out lives in the app shell, which opens once the card is complete.
+    await seedDriverAtStep(PHONES.driver, 13);
+    await login(page, PHONES.driver);
+    await expect(page).toHaveURL(/\/driver\/profile$/);
 
     await page.getByRole("button", { name: "Log out" }).click();
     await expect(page).toHaveURL(/\/login$/);
@@ -195,10 +203,10 @@ test.describe("session", () => {
   });
 
   test("the session survives a reload", async ({ page }) => {
-    await seedUser(PHONES.driver, "driver");
+    await seedDriverAtStep(PHONES.driver, 13);
     await login(page, PHONES.driver);
     await page.reload();
-    await expect(page).toHaveURL(/\/driver\//);
+    await expect(page).toHaveURL(/\/driver\/profile$/);
     await expect(page.getByRole("button", { name: "Log out" })).toBeVisible();
   });
 });

@@ -74,7 +74,7 @@ export function Stepper({ label, value, onChange, min, max, unit, disabled, erro
             aria-invalid={error ? true : undefined}
             placeholder="0"
             className={cn(
-              "w-full bg-transparent text-center font-heading text-number leading-number font-semibold tabular-nums text-foreground placeholder:text-muted-foreground",
+              "h-target w-full bg-transparent text-center font-heading text-number leading-number font-semibold tabular-nums text-foreground placeholder:text-muted-foreground",
             )}
           />
           <span className="text-helper leading-helper text-muted-foreground">{unit}</span>

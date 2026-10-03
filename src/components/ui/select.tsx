@@ -59,7 +59,7 @@ function SelectContent({
       <SelectPrimitive.Content
         data-slot="select-content"
         className={cn(
-          "relative z-50 max-h-(--radix-select-content-available-height) min-w-36 origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-card border border-border bg-popover text-popover-foreground shadow-2 duration-(--dur-state) data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+          "relative z-50 max-h-(--radix-select-content-available-height) min-w-36 origin-(--radix-select-content-transform-origin) overflow-x-hidden overflow-y-auto rounded-card border-2 border-border-strong bg-popover p-1 text-popover-foreground shadow-2 duration-(--dur-state) data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
           position === "popper" &&
             "data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1",
           className,
@@ -100,14 +100,14 @@ function SelectItem({
     <SelectPrimitive.Item
       data-slot="select-item"
       className={cn(
-        "relative flex min-h-target w-full cursor-default items-center gap-2 rounded-badge py-2 pr-10 pl-3 text-body outline-hidden select-none focus:bg-accent focus:text-accent-foreground data-disabled:pointer-events-none data-disabled:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5",
+        "relative flex min-h-target w-full cursor-default items-center gap-2 rounded-badge py-2 pr-10 pl-3 text-body outline-hidden select-none focus:bg-muted data-highlighted:bg-muted data-[state=checked]:bg-selection-tint data-[state=checked]:font-semibold data-disabled:pointer-events-none data-disabled:text-muted-foreground [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-5",
         className,
       )}
       {...props}
     >
       <span className="pointer-events-none absolute right-3 flex size-5 items-center justify-center">
         <SelectPrimitive.ItemIndicator>
-          <CheckIcon className="pointer-events-none" />
+          <CheckIcon className="pointer-events-none text-selection" strokeWidth={3} />
         </SelectPrimitive.ItemIndicator>
       </span>
       <SelectPrimitive.ItemText>{children}</SelectPrimitive.ItemText>

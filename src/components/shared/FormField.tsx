@@ -22,6 +22,10 @@ interface FormFieldProps {
   required?: boolean;
   /** Shows a check inside the field once the value is known to be good. */
   success?: boolean;
+  /** Draws the error icon inside the field as well. Off for selects and textareas. */
+  errorIcon?: boolean;
+  /** The error normally replaces the helper text; a counter is worth keeping. */
+  keepDescriptionOnError?: boolean;
   className?: string;
 }
 
@@ -36,18 +40,22 @@ export function FormField({
   description,
   required = false,
   success = false,
+  errorIcon = true,
+  keepDescriptionOnError = false,
   className,
 }: FormFieldProps) {
   const generatedId = useId();
   const id = (isValidElement(children) && children.props.id) || generatedId;
-  const descriptionId = description ? `${id}-description` : undefined;
+  const showDescription = Boolean(description) && (!error || keepDescriptionOnError);
+  const descriptionId = showDescription ? `${id}-description` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   const describedBy = [descriptionId, errorId].filter(Boolean).join(" ") || undefined;
   const showCheck = success && !error;
+  const showErrorIcon = Boolean(error) && errorIcon;
 
   const control = cloneElement(children, {
     id,
-    className: cn(children.props.className, showCheck && "pr-12"),
+    className: cn(children.props.className, (showCheck || showErrorIcon) && "pr-12"),
     "aria-invalid": error ? true : undefined,
     "aria-describedby": describedBy,
     "aria-required": required || undefined,
@@ -63,19 +71,25 @@ export function FormField({
           </span>
         )}
       </Label>
-      {showCheck ? (
-        <div className="relative">
-          {control}
+      {/* The wrapper is always there, so an icon appearing never remounts the control. */}
+      <div className="relative">
+        {control}
+        {showCheck && (
           <CircleCheck
             aria-hidden="true"
             data-slot="field-success"
             className="pointer-events-none absolute top-1/2 right-4 size-5 -translate-y-1/2 text-success"
           />
-        </div>
-      ) : (
-        control
-      )}
-      {description && (
+        )}
+        {showErrorIcon && (
+          <CircleAlert
+            aria-hidden="true"
+            data-slot="field-error"
+            className="pointer-events-none absolute top-1/2 right-4 size-5 -translate-y-1/2 text-destructive"
+          />
+        )}
+      </div>
+      {showDescription && (
         <p id={descriptionId} className="text-helper leading-helper text-muted-foreground">
           {description}
         </p>

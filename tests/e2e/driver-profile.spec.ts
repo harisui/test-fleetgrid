@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { adminClient, login, PHONES, resetUser, seedUser } from "./helpers";
+import { adminClient, displayPhone, login, PHONES, resetUser, seedUser } from "./helpers";
 
 const CONSENT_TEXT =
   "I agree to receive text messages from FleetGrid about available shifts at this number. Message frequency varies. Message and data rates may apply. Reply STOP to opt out, HELP for help.";
@@ -33,7 +33,7 @@ async function startWithCompletedCard(
       sms_opt_in_text: CONSENT_TEXT,
       sms_opted_out: options.optedOut ?? false,
       sms_opted_out_at: options.optedOut ? new Date().toISOString() : null,
-      onboarding_step: 6,
+      onboarding_step: 13,
       card_completed: true,
     })
     .select("id")
@@ -56,10 +56,10 @@ test.describe("driver profile", () => {
 
     await expect(status.getByText("Pending review")).toBeVisible();
     await expect(status.getByText("Subscribed")).toBeVisible();
-    await expect(status.getByText("(555) 555-0100")).toBeVisible();
+    await expect(status.getByText(displayPhone(PHONES.driver))).toBeVisible();
 
     await expect(page.getByLabel("Full name")).toHaveValue("Pat Driver");
-    await expect(page.getByLabel("State")).toHaveValue("TX");
+    await expect(page.getByRole("combobox", { name: /State/ })).toHaveText("Texas");
     await expect(page.getByRole("radio", { name: "Class A" })).toBeChecked();
     await expect(page.getByRole("checkbox", { name: "Full time" })).toBeChecked();
     await expect(page.getByLabel("About you")).toHaveValue("Reliable and on time.");
@@ -84,7 +84,8 @@ test.describe("driver profile", () => {
 
     await page.getByLabel("Full name").fill("Patricia Driver");
     await page.getByLabel("City").fill("Austin");
-    await page.getByLabel("State").selectOption("OK");
+    await page.getByRole("combobox", { name: /State/ }).click();
+    await page.getByRole("option", { name: "Oklahoma" }).click();
     await page.getByLabel("ZIP code").fill("73301");
     await page.getByLabel("Service radius (miles)").fill("200");
     await page.getByText("Mechanic", { exact: true }).click();
@@ -118,12 +119,12 @@ test.describe("driver profile", () => {
       sms_opt_in: true,
       sms_opt_in_text: CONSENT_TEXT,
       card_completed: true,
-      onboarding_step: 6,
+      onboarding_step: 13,
     });
 
     await page.reload();
     await expect(page.getByLabel("Full name")).toHaveValue("Patricia Driver");
-    await expect(page.getByLabel("State")).toHaveValue("OK");
+    await expect(page.getByRole("combobox", { name: /State/ })).toHaveText("Oklahoma");
     await expect(page.getByRole("radio", { name: "Class B" })).toBeChecked();
     await expect(page.getByText("Forklift", { exact: true })).toBeVisible();
   });

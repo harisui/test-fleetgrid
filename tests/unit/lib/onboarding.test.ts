@@ -162,6 +162,15 @@ describe("flow navigation", () => {
     expect(stepsOfMile(3, noCdl).map((step) => step.id)).toEqual(["cdlClass", "certifications"]);
     expect(stepsOfMile(5, withCdl).map((step) => step.id)).toEqual(["bio", "consent"]);
   });
+
+  it("lists every screen of a mile when no context is given, never the done screen", () => {
+    expect(stepsOfMile(3).map((step) => step.id)).toEqual([
+      "cdlClass",
+      "endorsements",
+      "certifications",
+    ]);
+    expect(stepsOfMile(5).map((step) => step.id)).toEqual(["bio", "consent"]);
+  });
 });
 
 describe("options", () => {

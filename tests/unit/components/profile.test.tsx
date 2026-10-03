@@ -80,7 +80,7 @@ describe("ProfileEditor", () => {
     render(<ProfileEditor driver={buildDriver({ serviceRadiusMiles: 120 })} />);
     expect(screen.getByLabelText(/Full name/)).toHaveValue("Pat Driver");
     expect(screen.getByLabelText("City")).toHaveValue("Dallas");
-    expect(screen.getByLabelText(/State/)).toHaveValue("TX");
+    expect(screen.getByRole("combobox", { name: /State/ })).toHaveTextContent("Texas");
     expect(screen.getByLabelText(/ZIP code/)).toHaveValue("75201");
     expect(screen.getByLabelText(/Service radius/)).toHaveValue(120);
     expect(screen.getByRole("checkbox", { name: "CDL driver" })).toBeChecked();

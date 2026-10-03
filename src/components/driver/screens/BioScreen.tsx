@@ -28,6 +28,8 @@ function BioFields({ showQuestion, question }: ScreenFieldsProps) {
       <FormField
         label="About you"
         error={errors.bio?.message}
+        errorIcon={false}
+        keepDescriptionOnError
         description={
           <span className="flex justify-between gap-2">
             <span>Optional. Carriers see this with your card.</span>

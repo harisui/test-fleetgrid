@@ -109,8 +109,8 @@ describe("FormField", () => {
     expect(control).toHaveAttribute("aria-describedby", description.id);
   });
 
-  it("shows the error, marks the control invalid and links both texts", () => {
-    render(
+  it("shows the error in place of the helper, with an icon in the field, and marks the control invalid", () => {
+    const { container } = render(
       <FormField label="ZIP" description="5 digits" error="Enter a valid ZIP code">
         <input />
       </FormField>,
@@ -119,10 +119,31 @@ describe("FormField", () => {
     const error = screen.getByRole("alert");
     expect(error).toHaveTextContent("Enter a valid ZIP code");
     expect(control).toHaveAttribute("aria-invalid", "true");
+    expect(control).toHaveAttribute("aria-describedby", error.id);
+    expect(screen.queryByText("5 digits")).not.toBeInTheDocument();
+    expect(container.querySelector("[data-slot=field-error]")).toBeInTheDocument();
+    expect(control).toHaveClass("pr-12");
+  });
+
+  it("can keep the helper next to the error and leave the field icon out", () => {
+    const { container } = render(
+      <FormField
+        label="About you"
+        description="12 / 10"
+        error="Keep it shorter"
+        errorIcon={false}
+        keepDescriptionOnError
+      >
+        <textarea />
+      </FormField>,
+    );
+    const control = screen.getByLabelText("About you");
     expect(control.getAttribute("aria-describedby")?.split(" ")).toEqual([
-      screen.getByText("5 digits").id,
-      error.id,
+      screen.getByText("12 / 10").id,
+      screen.getByRole("alert").id,
     ]);
+    expect(container.querySelector("[data-slot=field-error]")).not.toBeInTheDocument();
+    expect(control).not.toHaveClass("pr-12");
   });
 
   it("applies a custom className to the wrapper", () => {

@@ -63,7 +63,15 @@ Real SMS is never sent locally or in tests. These numbers always accept the code
 | (555) 555-0102         | seeded **admin**             |
 | (555) 555-0103 to 0109 | reserved for automated tests |
 
+The e2e suite deletes and recreates 0100, 0101, 0102 and 0108 before each test, so a browser session on one of them breaks while `pnpm test:e2e` runs ("An unexpected response was received from the server" after an action). To click around while tests run, sign in with 0104 to 0107 instead.
+
+`PREFILL_TEST_LOGIN=true` in `.env.local` starts the login and code forms filled with `TEST_PHONE_DRIVER` and `TEST_OTP`. It is ignored in production builds.
+
+To start over with a number, use "Delete my account" at the bottom of the driver profile or the carrier page. It removes the person's files, documents, card, profile and sign-in (a compliance requirement, available to everyone), so the same number can sign up again.
+
 Any other number fails instead of sending a message. The seed also creates 25 sample drivers (`+15555551001` to `+15555551025`) for search and admin screens. They cannot log in.
+
+The table lives in `supabase/config.toml` under `[auth.sms.test_otp]`. `.env.local` carries the same values as `TEST_PHONE_DRIVER`, `TEST_PHONE_CARRIER`, `TEST_PHONE_ADMIN` and `TEST_OTP` for the e2e tests and for reference; change them only together with that table.
 
 ## Scripts
 
@@ -79,15 +87,16 @@ Any other number fails instead of sending a message. The seed also creates 25 sa
 
 ### Tests
 
-| Command                 | Layer                                                          | Needs                          |
-| ----------------------- | -------------------------------------------------------------- | ------------------------------ |
-| `pnpm test`             | unit tests (services with fakes, schemas, helpers, components) | nothing                        |
-| `pnpm test:watch`       | unit tests in watch mode                                       | nothing                        |
-| `pnpm test:coverage`    | unit tests with coverage thresholds                            | nothing                        |
-| `pnpm test:db`          | pgTAP: schema, constraints, triggers, RLS policies             | Supabase running               |
-| `pnpm test:integration` | repositories, RLS and storage through real clients             | Supabase running, `.env.local` |
-| `pnpm test:e2e`         | Playwright on desktop Chrome, iPhone 13 and Pixel 7 viewports  | Supabase running, `.env.local` |
-| `pnpm test:all`         | everything above plus lint and typecheck                       | Supabase running, `.env.local` |
+| Command                 | Layer                                                          | Needs                           |
+| ----------------------- | -------------------------------------------------------------- | ------------------------------- |
+| `pnpm test`             | unit tests (services with fakes, schemas, helpers, components) | nothing                         |
+| `pnpm test:watch`       | unit tests in watch mode                                       | nothing                         |
+| `pnpm test:coverage`    | unit tests with coverage thresholds                            | nothing                         |
+| `pnpm test:db`          | pgTAP: schema, constraints, triggers, RLS policies             | Supabase running                |
+| `pnpm test:integration` | repositories, RLS and storage through real clients             | Supabase running, `.env.local`  |
+| `pnpm test:e2e`         | Playwright on desktop Chrome, iPhone 13 and Pixel 7 viewports  | Supabase running, `.env.local`  |
+| `pnpm test:all`         | everything above plus lint and typecheck                       | Supabase running, `.env.local`  |
+| `pnpm design-review`    | screenshots of every onboarding screen next to the prototype   | dev server and Supabase running |
 
 Extra e2e options:
 
@@ -99,6 +108,11 @@ E2E_WEBKIT=1 pnpm exec playwright test --project=mobile-safari-webkit   # real S
 ```
 
 Coverage thresholds (enforced in `vitest.config.ts`): services 95% lines and 90% branches, `src/lib` 95% lines, overall 85% lines. A task is done only when `pnpm test:all` is green.
+
+`pnpm design-review` writes `design-review/index.html` (ignored by git): each of the thirteen
+onboarding screens of the running app beside the approved prototype frame in
+`tests/design-review/workshop-prototype.html`, at 390×844 in light and dark, plus the grouped
+desktop pages. Open the file in a browser to compare.
 
 ## Architecture
 

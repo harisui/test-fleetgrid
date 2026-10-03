@@ -136,9 +136,13 @@ export function previousStepId(id: StepId, context: FlowContext): StepId | null 
   return number >= FIRST_STEP_NUMBER ? stepByNumber(number).id : null;
 }
 
-/** The screens of one mile, in order, that apply. Used to group a mile on wide screens. */
-export function stepsOfMile(mile: MileNumber, context: FlowContext): Step[] {
+/**
+ * The screens of one mile, in order. With a context, only the ones that apply; without one,
+ * every screen of the mile, for a page that decides live which of them to show.
+ */
+export function stepsOfMile(mile: MileNumber, context?: FlowContext): Step[] {
   return STEPS.filter(
-    (step) => step.mile === mile && step.id !== "done" && stepApplies(step.id, context),
+    (step) =>
+      step.mile === mile && step.id !== "done" && (!context || stepApplies(step.id, context)),
   );
 }

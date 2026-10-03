@@ -5,17 +5,17 @@ import type { StepId } from "@/lib/onboarding/steps";
 
 interface OnboardingShellProps {
   stepId: StepId;
+  /** The screen: an `OnboardingContent` column, then its action bar. */
   children: ReactNode;
-  /** The sticky action bar, rendered below the content. */
-  actionBar?: ReactNode;
 }
 
 /**
  * The frame around every onboarding screen: wordmark and Help in a graphite header, the
- * lane progress bar, a 560px content column, and the action bar. No app navigation, no
- * log out, no page title. Nothing competes with the question.
+ * lane progress bar, then the screen. No app navigation, no log out, no page title. Nothing
+ * competes with the question. The shell stays mounted while screens change inside it, so
+ * the road animates from one step to the next instead of being redrawn.
  */
-export function OnboardingShell({ stepId, children, actionBar }: OnboardingShellProps) {
+export function OnboardingShell({ stepId, children }: OnboardingShellProps) {
   return (
     <div className="flex min-h-dvh flex-col bg-background" data-slot="onboarding-shell">
       <a
@@ -24,24 +24,35 @@ export function OnboardingShell({ stepId, children, actionBar }: OnboardingShell
       >
         Skip to content
       </a>
-      <header className="bg-sign-panel text-sign-panel-foreground">
-        <div className="mx-auto flex h-14 w-full max-w-content items-center justify-between px-4">
-          <span className="font-heading text-h2 leading-h2 font-bold tracking-wide">FLEETGRID</span>
-          <HelpDialog />
+      {/* The road is part of the banner, so every piece of the page sits in a landmark. */}
+      <header>
+        <div className="bg-sign-panel text-sign-panel-foreground">
+          <div className="mx-auto flex h-14 w-full max-w-content items-center justify-between px-4">
+            <span className="font-heading text-h2 leading-h2 font-bold tracking-wide">
+              FLEETGRID
+            </span>
+            <HelpDialog />
+          </div>
+        </div>
+        <div className="border-b border-border bg-card text-foreground">
+          <div className="mx-auto w-full max-w-content px-4 pt-2 pb-3">
+            <LaneProgress stepId={stepId} />
+          </div>
         </div>
       </header>
-      <div className="border-b border-border bg-card">
-        <div className="mx-auto w-full max-w-content px-4 pt-2 pb-3">
-          <LaneProgress stepId={stepId} />
-        </div>
-      </div>
-      <main
-        id="main-content"
-        className="mx-auto flex w-full max-w-content flex-1 flex-col gap-4 px-4 py-4 pb-8"
-      >
+      {/* The action bar belongs to the main content, so it too sits in a landmark. */}
+      <main id="main-content" className="flex flex-1 flex-col">
         {children}
       </main>
-      {actionBar}
+    </div>
+  );
+}
+
+/** The 560px content column of a screen. The action bar follows it, outside the column. */
+export function OnboardingContent({ children }: { children: ReactNode }) {
+  return (
+    <div className="mx-auto flex w-full max-w-content flex-1 flex-col gap-4 px-4 py-4 pb-8">
+      {children}
     </div>
   );
 }

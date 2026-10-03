@@ -1,17 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useFormContext, useWatch } from "react-hook-form";
-import { ScreenQuestion } from "@/components/driver/screens/common";
+import { Controller, useFormContext, useWatch } from "react-hook-form";
+import { ScreenHelper, ScreenQuestion } from "@/components/driver/screens/common";
 import type {
   OnboardingFormValues,
   ScreenDefinition,
   ScreenFieldsProps,
 } from "@/components/driver/screens/types";
 import { FormField } from "@/components/shared/FormField";
+import { SelectInput } from "@/components/shared/SelectInput";
 import { Input } from "@/components/ui/input";
-import { NativeSelect, NativeSelectOption } from "@/components/ui/native-select";
-import { US_STATES } from "@/lib/constants";
+import { US_STATE_OPTIONS } from "@/lib/constants";
 import { normalizeZip, zipScreenSchema } from "@/lib/validation/onboarding.schema";
 import { lookupZipAction } from "@/server/actions/driver.actions";
 
@@ -24,7 +24,7 @@ interface LookupResult {
 
 const HELPERS = {
   idle: "5 digits, like 60601.",
-  found: "City and state filled in from your ZIP. You can change them.",
+  found: "City and state filled in from your ZIP.",
   missing: "We could not find that ZIP. Enter your city and state.",
 } as const;
 
@@ -83,21 +83,28 @@ function ZipFields({ showQuestion, question }: ScreenFieldsProps) {
           enterKeyHint="next"
         />
       </FormField>
-      <div className="grid gap-4 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-4">
         <FormField label="City" error={errors.city?.message}>
           <Input {...register("city")} autoComplete="address-level2" enterKeyHint="next" />
         </FormField>
-        <FormField label="State" error={errors.state?.message}>
-          <NativeSelect {...register("state")} autoComplete="address-level1" className="w-full">
-            <NativeSelectOption value="">Select</NativeSelectOption>
-            {US_STATES.map(([code, name]) => (
-              <NativeSelectOption key={code} value={code}>
-                {name}
-              </NativeSelectOption>
-            ))}
-          </NativeSelect>
-        </FormField>
+        <Controller
+          control={control}
+          name="state"
+          render={({ field }) => (
+            <FormField label="State" error={errors.state?.message} errorIcon={false}>
+              <SelectInput
+                name={field.name}
+                value={field.value ?? ""}
+                onValueChange={field.onChange}
+                onBlur={field.onBlur}
+                options={US_STATE_OPTIONS}
+                autoComplete="address-level1"
+              />
+            </FormField>
+          )}
+        />
       </div>
+      <ScreenHelper>City and state fill in from your ZIP. You can change them.</ScreenHelper>
     </>
   );
 }

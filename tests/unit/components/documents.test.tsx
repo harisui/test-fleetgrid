@@ -92,15 +92,18 @@ describe("DocumentUploader", () => {
     expect(items[1]).toHaveTextContent("medical.pdf · 2.0 MB");
   });
 
-  it("offers every document type and accepts only images and PDF", () => {
+  it("offers every document type and accepts only images and PDF", async () => {
     render(<DocumentUploader initialDocuments={[]} />);
-    expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual([
+    await userEvent.click(screen.getByRole("combobox", { name: "Document type" }));
+    const options = await screen.findAllByRole("option");
+    expect(options.map((option) => option.textContent)).toEqual([
       "CDL (front)",
       "CDL (back)",
       "Medical card",
       "Certification",
       "Other",
     ]);
+    await userEvent.keyboard("{Escape}");
     expect(chooser()).toHaveAttribute("accept", "image/jpeg,image/png,image/webp,application/pdf");
   });
 
@@ -110,7 +113,9 @@ describe("DocumentUploader", () => {
     image.prepareFileForUpload.mockResolvedValue(compressed);
 
     render(<DocumentUploader initialDocuments={[]} />);
-    await userEvent.selectOptions(screen.getByLabelText("Document type"), "cdl_back");
+    await userEvent.click(screen.getByRole("combobox", { name: "Document type" }));
+    await userEvent.click(await screen.findByRole("option", { name: "CDL (back)" }));
+    expect(screen.getByRole("combobox", { name: "Document type" })).toHaveTextContent("CDL (back)");
     await choose(original);
 
     await waitFor(() => expect(within(list()).getAllByRole("listitem")).toHaveLength(1));
@@ -224,7 +229,7 @@ describe("DocumentUploader", () => {
     await choose(fileOf("a.pdf", "application/pdf"));
 
     expect(await screen.findByRole("button", { name: "Uploading..." })).toBeDisabled();
-    expect(screen.getByLabelText("Document type")).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: "Document type" })).toBeDisabled();
 
     // A second file chosen meanwhile is ignored.
     await choose(fileOf("b.pdf", "application/pdf"));

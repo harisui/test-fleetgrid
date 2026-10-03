@@ -1,10 +1,13 @@
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { FileZipProvider } from "@/server/providers/ZipProvider";
+import { AccountRepository } from "@/server/repositories/AccountRepository";
 import { AuthRepository } from "@/server/repositories/AuthRepository";
 import type { TypedSupabaseClient } from "@/server/repositories/BaseRepository";
 import { DocumentRepository } from "@/server/repositories/DocumentRepository";
 import { DriverRepository } from "@/server/repositories/DriverRepository";
 import { ProfileRepository } from "@/server/repositories/ProfileRepository";
+import { AccountService } from "@/server/services/AccountService";
 import { AuthService } from "@/server/services/AuthService";
 import { DocumentService } from "@/server/services/DocumentService";
 import { DriverService } from "@/server/services/DriverService";
@@ -23,6 +26,12 @@ export function buildContainer(supabase: TypedSupabaseClient) {
 
   return {
     authService: new AuthService(auth, profiles),
+    accountService: new AccountService(
+      auth,
+      drivers,
+      documents,
+      () => new AccountRepository(createAdminClient()),
+    ),
     profileService: new ProfileService(profiles),
     driverService: new DriverService(drivers, profiles),
     documentService: new DocumentService(documents, drivers, profiles),

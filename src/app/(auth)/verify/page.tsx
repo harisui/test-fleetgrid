@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { OtpForm } from "@/components/auth/OtpForm";
 import { SignHeader } from "@/components/onboarding/SignHeader";
+import { testLoginPrefill } from "@/lib/auth/prefill";
 import { LOGIN_PATH } from "@/lib/auth/routes";
 import { normalizeUsPhone } from "@/lib/phone";
 import { SIGNUP_ROLES } from "@/types/domain";
@@ -18,7 +19,7 @@ export default async function VerifyPage({ searchParams }: PageProps<"/verify">)
   return (
     <AuthShell>
       <SignHeader eyebrow="Check your texts" title="What is the code we sent you?" />
-      <OtpForm phone={phone} role={role} />
+      <OtpForm phone={phone} role={role} defaultCode={testLoginPrefill().code} />
     </AuthShell>
   );
 }

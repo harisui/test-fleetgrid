@@ -97,3 +97,5 @@ export const US_STATES = [
 ] as const;
 
 export const US_STATE_CODES = US_STATES.map(([code]) => code);
+/** The states as dropdown options, value = code, label = name. */
+export const US_STATE_OPTIONS = US_STATES.map(([code, name]) => ({ value: code, label: name }));

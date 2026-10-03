@@ -33,13 +33,17 @@ test.describe("public pages", () => {
     });
 
     test(`${path} has no accessibility violations (light)`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: "light" });
+      // Light is the default, whatever the device prefers.
+      await page.emulateMedia({ colorScheme: "dark" });
       await page.goto(path);
+      await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
       await expectNoAccessibilityViolations(page);
     });
 
     test(`${path} has no accessibility violations (dark)`, async ({ page }) => {
-      await page.emulateMedia({ colorScheme: "dark" });
+      await page
+        .context()
+        .addCookies([{ name: "fleetgrid-theme", value: "dark", url: "http://localhost:3000" }]);
       await page.goto(path);
       await expect(page.locator("html")).toHaveClass(/\bdark\b/);
       await expectNoAccessibilityViolations(page);
