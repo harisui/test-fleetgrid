@@ -9,3 +9,5 @@ supabase/.temp
 supabase/.branches
 Artifacts
 AGENTS.md
+CLAUDE.md
+.claude

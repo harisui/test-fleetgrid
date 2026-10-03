@@ -49,3 +49,9 @@ next-env.d.ts
 # supabase
 supabase/.temp
 supabase/.branches
+
+# AI assistant files and project notes (local only)
+/CLAUDE.md
+/AGENTS.md
+/.claude/
+/Artifacts/

@@ -2,7 +2,7 @@
 
 A confidential B2B directory that connects local freight carriers with certified transport operators (CDL drivers, yard spotters, mechanics).
 
-**Status:** Milestone 1 (foundation and driver side). The full brief and progress log live in [Artifacts/Requirements.md](Artifacts/Requirements.md).
+**Status:** Milestone 1 (foundation and driver side).
 
 ## Prerequisites
 
