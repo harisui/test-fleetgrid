@@ -1,4 +1,5 @@
 import { MessageSquareOff, MessageSquareText } from "lucide-react";
+import { InlineNote } from "@/components/shared/InlineNote";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
 import { formatE164ForDisplay } from "@/lib/phone";
@@ -23,49 +24,45 @@ export function AccountStatusCard({ profile, driver }: AccountStatusCardProps) {
   return (
     <section
       aria-label="Account status"
-      className="border-border bg-card flex flex-col gap-4 rounded-lg border p-4"
+      className="flex flex-col gap-4 rounded-card border border-border bg-card p-4"
     >
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold">Account</h2>
+          <h2 className="text-label leading-label font-semibold">Account</h2>
           <StatusBadge status={profile.status} />
         </div>
-        <p className="text-muted-foreground text-sm">{STATUS_HELP[profile.status]}</p>
+        <p className="text-helper leading-helper text-muted-foreground">
+          {STATUS_HELP[profile.status]}
+        </p>
       </div>
 
-      <div className="border-border flex flex-col gap-2 border-t pt-4">
+      <div className="flex flex-col gap-2 border-t border-border pt-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold">Text messages</h2>
+          <h2 className="text-label leading-label font-semibold">Text messages</h2>
           {receivingTexts ? (
-            <Badge
-              variant="outline"
-              data-sms="subscribed"
-              className="border-success/60 bg-success/15 text-foreground"
-            >
+            <Badge variant="success" data-sms="subscribed">
               <MessageSquareText aria-hidden="true" />
               Subscribed
             </Badge>
           ) : (
-            <Badge
-              variant="outline"
-              data-sms="off"
-              className="border-warning/60 bg-warning/15 text-foreground"
-            >
+            <Badge variant="warning" data-sms="off">
               <MessageSquareOff aria-hidden="true" />
               {driver.smsOptedOut ? "Opted out" : "Not subscribed"}
             </Badge>
           )}
         </div>
-        <p className="text-muted-foreground text-sm">
+        <p className="text-helper leading-helper text-muted-foreground">
           Shift offers go to{" "}
-          <span className="text-foreground font-medium">{formatE164ForDisplay(profile.phone)}</span>
+          <span className="font-semibold text-foreground">
+            {formatE164ForDisplay(profile.phone)}
+          </span>
           .
         </p>
         {driver.smsOptedOut && (
-          <p className="border-warning/60 bg-warning/15 rounded-md border p-3 text-sm">
+          <InlineNote variant="warning">
             You replied STOP, so we are not texting you shift offers. To start again, text{" "}
             <strong>START</strong> to the FleetGrid number that sent your offers.
-          </p>
+          </InlineNote>
         )}
       </div>
     </section>

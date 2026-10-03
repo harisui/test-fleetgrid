@@ -37,9 +37,9 @@ afterEach(() => {
 });
 
 describe("ThemeToggle", () => {
-  it("has an accessible name and a 44px tap target", () => {
+  it("has an accessible name and a 48px tap target", () => {
     render(<ThemeToggle />);
-    expect(screen.getByRole("button", { name: "Toggle dark mode" })).toHaveClass("size-11");
+    expect(screen.getByRole("button", { name: "Toggle dark mode" })).toHaveClass("size-target");
   });
 
   it("switches to dark mode and persists the choice in the cookie", async () => {

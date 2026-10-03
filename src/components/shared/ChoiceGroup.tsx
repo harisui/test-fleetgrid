@@ -1,6 +1,6 @@
 "use client";
 
-import { Check } from "lucide-react";
+import { Check, CircleAlert } from "lucide-react";
 import { useId } from "react";
 import { cn } from "@/lib/utils";
 
@@ -38,8 +38,8 @@ type ChoiceGroupProps<T extends string> = MultipleProps<T> | SingleProps<T>;
 const COLUMN_CLASS = { 1: "grid-cols-1", 2: "grid-cols-2", 3: "grid-cols-3" } as const;
 
 /**
- * Large, tappable choice cards backed by real checkboxes or radios.
- * Use `multiple` for "select all that apply" and omit it for "pick one".
+ * Compact choice cards backed by real checkboxes or radios, for the profile editor.
+ * Onboarding uses OptionGroup (icon cards). Selected state is graphite, never orange.
  */
 export function ChoiceGroup<T extends string>(props: ChoiceGroupProps<T>) {
   const { label, options, error, description, required, disabled, columns = 1 } = props;
@@ -69,7 +69,7 @@ export function ChoiceGroup<T extends string>(props: ChoiceGroupProps<T>) {
       aria-invalid={error ? true : undefined}
       aria-describedby={[descriptionId, errorId].filter(Boolean).join(" ") || undefined}
     >
-      <legend className="mb-2 text-sm font-medium">
+      <legend className="mb-2 text-label leading-label font-semibold">
         {label}
         {required && (
           <span aria-hidden="true" className="text-destructive">
@@ -79,23 +79,23 @@ export function ChoiceGroup<T extends string>(props: ChoiceGroupProps<T>) {
         )}
       </legend>
       {description && (
-        <p id={descriptionId} className="text-muted-foreground -mt-1 text-sm">
+        <p id={descriptionId} className="-mt-1 text-helper leading-helper text-muted-foreground">
           {description}
         </p>
       )}
 
-      <div className={cn("grid gap-2", COLUMN_CLASS[columns])}>
+      <div className={cn("grid gap-3", COLUMN_CLASS[columns])}>
         {options.map((option) => {
           const selected = isSelected(option.value);
           return (
             <label
               key={option.value}
               className={cn(
-                "border-input bg-card flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
-                "has-focus-visible:border-ring has-focus-visible:ring-ring/50 has-focus-visible:ring-3",
-                "has-disabled:cursor-not-allowed has-disabled:opacity-50",
-                selected && "border-primary bg-secondary text-secondary-foreground",
-                error && !selected && "border-destructive",
+                "flex min-h-card-min cursor-pointer items-center gap-3 rounded-card border bg-card px-3 py-2 text-label font-semibold transition-colors duration-(--dur-state) ease-standard",
+                "has-disabled:cursor-not-allowed has-disabled:text-muted-foreground",
+                selected
+                  ? "border-selection bg-selection-tint ring-1 ring-selection ring-inset"
+                  : "border-border-strong",
               )}
             >
               <input
@@ -109,12 +109,11 @@ export function ChoiceGroup<T extends string>(props: ChoiceGroupProps<T>) {
               <span
                 aria-hidden="true"
                 className={cn(
-                  "border-input flex size-5 shrink-0 items-center justify-center border",
-                  props.multiple ? "rounded-sm" : "rounded-full",
-                  selected && "border-primary bg-primary text-primary-foreground",
+                  "flex size-6 shrink-0 items-center justify-center rounded-badge border-2 border-border-strong bg-card",
+                  selected && "border-selection bg-selection text-selection-foreground",
                 )}
               >
-                {selected && <Check className="size-3.5" />}
+                {selected && <Check className="size-4" strokeWidth={3} />}
               </span>
               <span>{option.label}</span>
             </label>
@@ -123,8 +122,13 @@ export function ChoiceGroup<T extends string>(props: ChoiceGroupProps<T>) {
       </div>
 
       {error && (
-        <p id={errorId} role="alert" className="text-destructive text-sm font-medium">
-          {error}
+        <p
+          id={errorId}
+          role="alert"
+          className="flex items-start gap-2 text-helper leading-helper font-semibold text-destructive"
+        >
+          <CircleAlert aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
+          <span>{error}</span>
         </p>
       )}
     </fieldset>

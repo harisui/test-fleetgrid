@@ -20,7 +20,7 @@ export default function ErrorPage({
       <p className="text-muted-foreground">
         Please try again. If it keeps happening, contact support.
       </p>
-      <Button size="touch" className="mt-2" onClick={() => retry()}>
+      <Button className="mt-2" onClick={() => retry()}>
         Try again
       </Button>
     </main>

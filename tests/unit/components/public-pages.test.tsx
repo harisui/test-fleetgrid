@@ -36,8 +36,8 @@ describe("landing page", () => {
 
   it("the buttons are large tap targets", () => {
     render(<LandingPage />);
-    expect(screen.getByRole("link", { name: "I'm a Driver" })).toHaveClass("h-12");
-    expect(screen.getByRole("link", { name: "I'm a Carrier" })).toHaveClass("h-12");
+    expect(screen.getByRole("link", { name: "I'm a Driver" })).toHaveClass("h-target-lg");
+    expect(screen.getByRole("link", { name: "I'm a Carrier" })).toHaveClass("h-target-lg");
   });
 
   it("links to the legal pages from the footer", () => {

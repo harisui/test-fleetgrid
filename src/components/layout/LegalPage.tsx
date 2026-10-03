@@ -1,6 +1,6 @@
-import { TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/layout/AppShell";
+import { InlineNote } from "@/components/shared/InlineNote";
 
 export const LEGAL_PLACEHOLDER_NOTICE = "Legal text to be provided by FleetGrid.";
 
@@ -16,15 +16,11 @@ export function LegalPage({ title, placeholder = false, children }: LegalPagePro
   return (
     <AppShell width="narrow">
       <article className="flex flex-col gap-6">
-        <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+        <h1 className="font-heading text-h1 leading-h1 font-bold">{title}</h1>
         {placeholder && (
-          <p
-            role="note"
-            className="border-warning/60 bg-warning/15 flex items-center gap-3 rounded-md border p-4 font-medium"
-          >
-            <TriangleAlert aria-hidden="true" className="size-5 shrink-0" />
+          <InlineNote variant="warning" role="note" className="font-semibold">
             {LEGAL_PLACEHOLDER_NOTICE}
-          </p>
+          </InlineNote>
         )}
         {children}
       </article>

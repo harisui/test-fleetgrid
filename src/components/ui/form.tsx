@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { CircleAlert } from "lucide-react";
 import { Slot } from "radix-ui";
 import {
   Controller,
@@ -85,7 +86,7 @@ function FormLabel({ className, ...props }: React.ComponentProps<typeof Label>) 
     <Label
       data-slot="form-label"
       data-error={!!error}
-      className={cn("data-[error=true]:text-destructive", className)}
+      className={cn(className)}
       htmlFor={formItemId}
       {...props}
     />
@@ -113,12 +114,13 @@ function FormDescription({ className, ...props }: React.ComponentProps<"p">) {
     <p
       data-slot="form-description"
       id={formDescriptionId}
-      className={cn("text-muted-foreground text-sm", className)}
+      className={cn("text-helper leading-helper text-muted-foreground", className)}
       {...props}
     />
   );
 }
 
+/** Icon plus plain-language message, 16px semibold, in the error color. */
 function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
   const { error, formMessageId } = useFormField();
   const body = error ? String(error?.message ?? "") : props.children;
@@ -132,10 +134,14 @@ function FormMessage({ className, ...props }: React.ComponentProps<"p">) {
       data-slot="form-message"
       id={formMessageId}
       role="alert"
-      className={cn("text-destructive text-sm font-medium", className)}
+      className={cn(
+        "flex items-start gap-2 text-helper leading-helper font-semibold text-destructive",
+        className,
+      )}
       {...props}
     >
-      {body}
+      <CircleAlert aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
+      <span>{body}</span>
     </p>
   );
 }

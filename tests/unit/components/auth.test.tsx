@@ -423,7 +423,7 @@ describe("LogoutButton and AuthCard", () => {
     const button = screen.getByRole("button", { name: "Log out" });
     expect(button).toHaveAttribute("type", "submit");
     expect(button.closest("form")).not.toBeNull();
-    expect(button).toHaveClass("h-11");
+    expect(button).toHaveClass("h-target");
   });
 
   it("AuthCard renders the title as the page heading, with an optional description", () => {

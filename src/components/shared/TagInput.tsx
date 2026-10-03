@@ -1,6 +1,6 @@
 "use client";
 
-import { X } from "lucide-react";
+import { CircleAlert, X } from "lucide-react";
 import { useId, useState, type KeyboardEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,7 +60,7 @@ export function TagInput({
     <div className="flex flex-col gap-2">
       <Label htmlFor={id}>{label}</Label>
 
-      <div className="flex gap-2">
+      <div className="flex gap-3">
         <Input
           id={id}
           value={draft}
@@ -72,13 +72,11 @@ export function TagInput({
           disabled={disabled || full}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy}
-          className="h-11"
           enterKeyHint="done"
         />
         <Button
           type="button"
-          variant="outline"
-          size="touch"
+          variant="secondary"
           onClick={addDraft}
           disabled={disabled || full || draft.trim() === ""}
         >
@@ -87,7 +85,7 @@ export function TagInput({
       </div>
 
       {description && (
-        <p id={`${id}-description`} className="text-muted-foreground text-sm">
+        <p id={`${id}-description`} className="text-helper leading-helper text-muted-foreground">
           {description}
         </p>
       )}
@@ -97,7 +95,7 @@ export function TagInput({
           {value.map((tag) => (
             <li
               key={tag}
-              className="bg-secondary text-secondary-foreground flex items-center gap-1 rounded-full py-1 pr-1 pl-3 text-sm"
+              className="flex h-target items-center gap-1 rounded-chip border border-border-strong bg-card pr-1 pl-4 text-label font-semibold"
             >
               <span>{tag}</span>
               <button
@@ -105,9 +103,9 @@ export function TagInput({
                 onClick={() => onChange(value.filter((item) => item !== tag))}
                 disabled={disabled}
                 aria-label={`Remove ${tag}`}
-                className="hover:bg-foreground/10 focus-visible:ring-ring flex size-7 items-center justify-center rounded-full outline-none focus-visible:ring-2"
+                className="flex size-10 items-center justify-center rounded-badge hover:bg-muted"
               >
-                <X aria-hidden="true" className="size-4" />
+                <X aria-hidden="true" className="size-5" />
               </button>
             </li>
           ))}
@@ -115,8 +113,13 @@ export function TagInput({
       )}
 
       {error && (
-        <p id={`${id}-error`} role="alert" className="text-destructive text-sm font-medium">
-          {error}
+        <p
+          id={`${id}-error`}
+          role="alert"
+          className="flex items-start gap-2 text-helper leading-helper font-semibold text-destructive"
+        >
+          <CircleAlert aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
+          <span>{error}</span>
         </p>
       )}
     </div>

@@ -183,6 +183,7 @@ export const REQUIRED_SHARED_TOKENS = [
   "--text-h2",
   "--text-code",
   "--tracking-code",
+  "--text-number",
   "--text-small",
   "--dur-press",
   "--dur-state",

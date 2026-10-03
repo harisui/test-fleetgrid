@@ -121,7 +121,7 @@ export function OtpForm({
           pattern="\d*"
           maxLength={OTP_LENGTH + 4}
           placeholder="123456"
-          className="h-14 text-center font-mono text-2xl tracking-[0.4em]"
+          className="text-center font-mono text-code tracking-code"
           ref={inputRef}
           defaultValue=""
           onChange={(event) => handleChange(event.target)}
@@ -130,23 +130,17 @@ export function OtpForm({
         />
       </FormField>
 
-      <LoadingButton type="submit" size="touch" loading={pending} loadingText="Checking...">
+      <LoadingButton type="submit" loading={pending} loadingText="Checking...">
         Verify
       </LoadingButton>
 
-      <div className="text-center text-sm">
+      <div className="text-center text-helper">
         {secondsLeft > 0 ? (
           <p className="text-muted-foreground" aria-live="polite">
             Resend code in {secondsLeft}s
           </p>
         ) : (
-          <Button
-            type="button"
-            variant="link"
-            className="h-11"
-            onClick={handleResend}
-            disabled={resending}
-          >
+          <Button type="button" variant="link" onClick={handleResend} disabled={resending}>
             {resending ? "Sending..." : "Resend code"}
           </Button>
         )}

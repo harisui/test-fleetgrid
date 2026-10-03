@@ -64,21 +64,11 @@ export function BasicsFields<T extends FieldValues>({
   return (
     <>
       <FormField label="Full name" error={errorOf("fullName")} required>
-        <Input
-          {...register(field<T>("fullName"))}
-          autoComplete="name"
-          className="h-11"
-          disabled={disabled}
-        />
+        <Input {...register(field<T>("fullName"))} autoComplete="name" disabled={disabled} />
       </FormField>
 
       <FormField label="City" error={errorOf("city")}>
-        <Input
-          {...register(field<T>("city"))}
-          autoComplete="address-level2"
-          className="h-11"
-          disabled={disabled}
-        />
+        <Input {...register(field<T>("city"))} autoComplete="address-level2" disabled={disabled} />
       </FormField>
 
       <div className="grid grid-cols-2 gap-4">
@@ -86,7 +76,7 @@ export function BasicsFields<T extends FieldValues>({
           <NativeSelect
             {...register(field<T>("state"))}
             autoComplete="address-level1"
-            className="w-full [&_select]:h-11"
+            className="w-full"
             disabled={disabled}
           >
             <NativeSelectOption value="">Select</NativeSelectOption>
@@ -104,7 +94,6 @@ export function BasicsFields<T extends FieldValues>({
             inputMode="numeric"
             autoComplete="postal-code"
             maxLength={5}
-            className="h-11"
             disabled={disabled}
           />
         </FormField>
@@ -122,7 +111,6 @@ export function BasicsFields<T extends FieldValues>({
           inputMode="numeric"
           min={SERVICE_RADIUS_MIN_MILES}
           max={SERVICE_RADIUS_MAX_MILES}
-          className="h-11"
           disabled={disabled}
         />
       </FormField>
@@ -200,7 +188,6 @@ export function LicensesFields<T extends FieldValues>({
           inputMode="numeric"
           min={0}
           max={YEARS_EXPERIENCE_MAX}
-          className="h-11"
           disabled={disabled}
         />
       </FormField>
@@ -261,7 +248,7 @@ export function AvailabilityFields<T extends FieldValues>({
             <span>Optional. A few lines carriers will read.</span>
             <span
               aria-live="polite"
-              className={bioLength > BIO_MAX_LENGTH ? "text-destructive font-medium" : undefined}
+              className={bioLength > BIO_MAX_LENGTH ? "font-semibold text-destructive" : undefined}
             >
               {bioLength}/{BIO_MAX_LENGTH}
             </span>

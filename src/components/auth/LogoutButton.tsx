@@ -6,7 +6,7 @@ import { signOutAction } from "@/server/actions/auth.actions";
 export function LogoutButton() {
   return (
     <form action={signOutAction}>
-      <Button type="submit" variant="ghost" size="touch" className="px-3">
+      <Button type="submit" variant="ghost" size="md" className="px-3">
         <LogOut aria-hidden="true" />
         <span>Log out</span>
       </Button>

@@ -63,9 +63,11 @@ export function RoleChooser({ defaultRole }: RoleChooserProps) {
             <label
               key={option.role}
               className={cn(
-                "border-border bg-card flex min-h-20 cursor-pointer items-center gap-4 rounded-lg border-2 p-4 transition-colors",
-                "has-focus-visible:ring-ring has-focus-visible:ring-2",
-                selected && "border-primary bg-secondary",
+                "flex min-h-20 cursor-pointer items-center gap-4 rounded-card border bg-card p-4 transition-colors duration-(--dur-state) ease-standard",
+                "has-focus-visible:outline-3 has-focus-visible:outline-ring has-focus-visible:outline-offset-2",
+                selected
+                  ? "border-selection bg-selection-tint ring-1 ring-selection ring-inset"
+                  : "border-border-strong",
               )}
             >
               <input
@@ -81,15 +83,17 @@ export function RoleChooser({ defaultRole }: RoleChooserProps) {
               />
               <span
                 className={cn(
-                  "bg-muted text-muted-foreground flex size-12 shrink-0 items-center justify-center rounded-full",
-                  selected && "bg-primary text-primary-foreground",
+                  "flex size-10 shrink-0 items-center justify-center rounded-field bg-muted text-foreground",
+                  selected && "bg-selection text-selection-foreground",
                 )}
               >
                 {option.icon}
               </span>
               <span className="flex flex-col">
-                <span className="text-base font-semibold">{option.title}</span>
-                <span className="text-muted-foreground text-sm">{option.description}</span>
+                <span className="text-body leading-body font-semibold">{option.title}</span>
+                <span className="text-helper leading-helper text-muted-foreground">
+                  {option.description}
+                </span>
               </span>
             </label>
           );
@@ -97,14 +101,13 @@ export function RoleChooser({ defaultRole }: RoleChooserProps) {
       </fieldset>
 
       {error && (
-        <p role="alert" className="text-destructive text-sm font-medium">
+        <p role="alert" className="text-helper leading-helper font-semibold text-destructive">
           {error}
         </p>
       )}
 
       <LoadingButton
         type="button"
-        size="touch"
         loading={pending}
         loadingText="Setting up..."
         onClick={handleContinue}

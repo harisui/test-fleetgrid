@@ -95,10 +95,25 @@
   --text-h2--line-height: var(--lh-h2);
   --text-code: var(--text-code);
   --text-code--line-height: var(--lh-code);
+  --text-number: var(--text-number);
+  --text-number--line-height: var(--lh-number);
   --text-small: var(--text-small);
   --text-small--line-height: var(--lh-small);
   --tracking-eyebrow: var(--tracking-eyebrow);
   --tracking-code: var(--tracking-code);
+
+  /* Line heights on their own: leading-body, leading-label, leading-h1 and so on */
+  --leading-body: var(--lh-body);
+  --leading-body-lg: var(--lh-body-lg);
+  --leading-label: var(--lh-label);
+  --leading-helper: var(--lh-helper);
+  --leading-button: var(--lh-button);
+  --leading-eyebrow: var(--lh-eyebrow);
+  --leading-h1: var(--lh-h1);
+  --leading-h2: var(--lh-h2);
+  --leading-code: var(--lh-code);
+  --leading-number: var(--lh-number);
+  --leading-small: var(--lh-small);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);

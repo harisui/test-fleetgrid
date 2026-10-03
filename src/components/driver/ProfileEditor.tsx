@@ -3,6 +3,7 @@
 import { toast } from "sonner";
 import { AvailabilityFields, BasicsFields, LicensesFields } from "@/components/driver/CardFields";
 import { useStepForm } from "@/components/driver/useStepForm";
+import { InlineNote } from "@/components/shared/InlineNote";
 import { LoadingButton } from "@/components/shared/LoadingButton";
 import { driverCardSchema } from "@/lib/validation/driver.schema";
 import { updateCardAction } from "@/server/actions/driver.actions";
@@ -53,30 +54,29 @@ export function ProfileEditor({ driver }: ProfileEditorProps) {
   return (
     <form onSubmit={submit} noValidate className="flex flex-col gap-8">
       <fieldset className="flex flex-col gap-5">
-        <legend className="mb-4 text-lg font-semibold">Basics</legend>
+        <legend className="mb-4 font-heading text-h2 leading-h2 font-semibold">Basics</legend>
         <BasicsFields {...shared} />
       </fieldset>
 
       <fieldset className="flex flex-col gap-5">
-        <legend className="mb-4 text-lg font-semibold">Role and licenses</legend>
+        <legend className="mb-4 font-heading text-h2 leading-h2 font-semibold">
+          Role and licenses
+        </legend>
         <LicensesFields {...shared} cdlClass={cdlClass} />
       </fieldset>
 
       <fieldset className="flex flex-col gap-5">
-        <legend className="mb-4 text-lg font-semibold">Availability</legend>
+        <legend className="mb-4 font-heading text-h2 leading-h2 font-semibold">Availability</legend>
         <AvailabilityFields {...shared} bioLength={bioLength} />
       </fieldset>
 
       {formError && (
-        <p
-          role="alert"
-          className="border-destructive/60 bg-destructive/15 rounded-md border p-3 text-sm"
-        >
+        <InlineNote variant="error" role="alert">
           {formError}
-        </p>
+        </InlineNote>
       )}
 
-      <LoadingButton type="submit" size="touch" loading={pending} loadingText="Saving...">
+      <LoadingButton type="submit" loading={pending} loadingText="Saving...">
         Save changes
       </LoadingButton>
     </form>

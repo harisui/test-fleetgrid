@@ -65,7 +65,6 @@ export function PhoneForm({ role }: PhoneFormProps) {
           inputMode="tel"
           autoComplete="tel-national"
           placeholder="(555) 555-0100"
-          className="h-12 text-lg"
           ref={inputRef}
           defaultValue=""
           onChange={(event) => {
@@ -76,7 +75,7 @@ export function PhoneForm({ role }: PhoneFormProps) {
         />
       </FormField>
 
-      <LoadingButton type="submit" size="touch" loading={pending} loadingText="Sending code...">
+      <LoadingButton type="submit" loading={pending} loadingText="Sending code...">
         Send code
       </LoadingButton>
     </form>

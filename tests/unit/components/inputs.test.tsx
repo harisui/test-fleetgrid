@@ -120,9 +120,12 @@ describe("ChoiceGroup", () => {
     expect(screen.getByRole("checkbox", { name: "Alpha" })).toBeDisabled();
   });
 
-  it("each option is at least 44px tall", () => {
+  it("each option is at least 64px tall and selects in graphite", async () => {
     render(<SingleHarness />);
-    expect(screen.getByText("Alpha").closest("label")).toHaveClass("min-h-11");
+    const option = screen.getByText("Alpha").closest("label")!;
+    expect(option).toHaveClass("min-h-card-min");
+    await userEvent.click(option);
+    expect(option).toHaveClass("border-selection", "bg-selection-tint");
   });
 });
 

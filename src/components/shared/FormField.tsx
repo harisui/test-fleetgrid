@@ -1,11 +1,13 @@
 "use client";
 
+import { CircleAlert, CircleCheck } from "lucide-react";
 import { cloneElement, isValidElement, useId, type ReactElement, type ReactNode } from "react";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 
 interface ControlProps {
   id?: string;
+  className?: string;
   "aria-invalid"?: boolean;
   "aria-describedby"?: string;
   "aria-required"?: boolean;
@@ -18,12 +20,14 @@ interface FormFieldProps {
   error?: string;
   description?: ReactNode;
   required?: boolean;
+  /** Shows a check inside the field once the value is known to be good. */
+  success?: boolean;
   className?: string;
 }
 
 /**
- * Label + control + help text + error, wired together for accessibility.
- * Works with any control and with react-hook-form's `register`.
+ * Label above, control, helper text below, error with an icon. Wired together for
+ * accessibility and usable with react-hook-form's `register`.
  */
 export function FormField({
   label,
@@ -31,6 +35,7 @@ export function FormField({
   error,
   description,
   required = false,
+  success = false,
   className,
 }: FormFieldProps) {
   const generatedId = useId();
@@ -38,9 +43,18 @@ export function FormField({
   const descriptionId = description ? `${id}-description` : undefined;
   const errorId = error ? `${id}-error` : undefined;
   const describedBy = [descriptionId, errorId].filter(Boolean).join(" ") || undefined;
+  const showCheck = success && !error;
+
+  const control = cloneElement(children, {
+    id,
+    className: cn(children.props.className, showCheck && "pr-12"),
+    "aria-invalid": error ? true : undefined,
+    "aria-describedby": describedBy,
+    "aria-required": required || undefined,
+  });
 
   return (
-    <div className={cn("flex flex-col gap-2", className)}>
+    <div className={cn("flex flex-col gap-2", className)} data-slot="form-field">
       <Label htmlFor={id}>
         {label}
         {required && (
@@ -49,20 +63,31 @@ export function FormField({
           </span>
         )}
       </Label>
-      {cloneElement(children, {
-        id,
-        "aria-invalid": error ? true : undefined,
-        "aria-describedby": describedBy,
-        "aria-required": required || undefined,
-      })}
+      {showCheck ? (
+        <div className="relative">
+          {control}
+          <CircleCheck
+            aria-hidden="true"
+            data-slot="field-success"
+            className="pointer-events-none absolute top-1/2 right-4 size-5 -translate-y-1/2 text-success"
+          />
+        </div>
+      ) : (
+        control
+      )}
       {description && (
-        <p id={descriptionId} className="text-muted-foreground text-sm">
+        <p id={descriptionId} className="text-helper leading-helper text-muted-foreground">
           {description}
         </p>
       )}
       {error && (
-        <p id={errorId} role="alert" className="text-destructive text-sm font-medium">
-          {error}
+        <p
+          id={errorId}
+          role="alert"
+          className="flex items-start gap-2 text-helper leading-helper font-semibold text-destructive"
+        >
+          <CircleAlert aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
+          <span>{error}</span>
         </p>
       )}
     </div>

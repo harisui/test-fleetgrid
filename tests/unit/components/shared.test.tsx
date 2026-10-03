@@ -55,13 +55,13 @@ describe("LoadingButton", () => {
 
   it("passes through button props", () => {
     render(
-      <LoadingButton type="submit" size="touch">
+      <LoadingButton type="submit" size="md">
         Go
       </LoadingButton>,
     );
     const button = screen.getByRole("button", { name: "Go" });
     expect(button).toHaveAttribute("type", "submit");
-    expect(button).toHaveClass("h-11");
+    expect(button).toHaveClass("h-target");
   });
 });
 
@@ -160,9 +160,9 @@ describe("EmptyState", () => {
 
 describe("StatusBadge", () => {
   it.each([
-    ["pending", "Pending review", "bg-warning/15"],
-    ["approved", "Approved", "bg-success/15"],
-    ["blocked", "Blocked", "bg-destructive/15"],
+    ["pending", "Pending review", "bg-warning-subtle"],
+    ["approved", "Approved", "bg-success-subtle"],
+    ["blocked", "Blocked", "bg-destructive-subtle"],
   ] as const)("renders %s with its label and color", (status, label, className) => {
     render(<StatusBadge status={status} />);
     const badge = screen.getByText(label);

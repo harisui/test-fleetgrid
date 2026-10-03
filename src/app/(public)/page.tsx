@@ -35,13 +35,13 @@ export default function LandingPage() {
         </div>
 
         <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
-          <Button asChild size="touch" className="h-12 sm:min-w-48">
+          <Button asChild className="sm:min-w-48">
             <Link href="/login?role=driver">
               <Truck aria-hidden="true" />
               I&apos;m a Driver
             </Link>
           </Button>
-          <Button asChild size="touch" variant="outline" className="h-12 sm:min-w-48">
+          <Button asChild variant="secondary" className="sm:min-w-48">
             <Link href="/login?role=carrier">
               <Building2 aria-hidden="true" />
               I&apos;m a Carrier
@@ -51,10 +51,10 @@ export default function LandingPage() {
 
         <ul className="grid w-full gap-4 text-left sm:grid-cols-2">
           {POINTS.map((point) => (
-            <li key={point.title} className="border-border bg-card rounded-lg border p-4">
-              <point.icon aria-hidden="true" className="text-muted-foreground size-6" />
+            <li key={point.title} className="rounded-card border border-border bg-card p-4">
+              <point.icon aria-hidden="true" className="size-6 text-muted-foreground" />
               <h2 className="mt-3 font-semibold">{point.title}</h2>
-              <p className="text-muted-foreground mt-1 text-sm">{point.text}</p>
+              <p className="mt-1 text-helper leading-helper text-muted-foreground">{point.text}</p>
             </li>
           ))}
         </ul>

@@ -5,6 +5,7 @@ import { useRef, useState, type ChangeEvent } from "react";
 import { toast } from "sonner";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { FormField } from "@/components/shared/FormField";
+import { InlineNote } from "@/components/shared/InlineNote";
 import { LoadingButton } from "@/components/shared/LoadingButton";
 import { Button } from "@/components/ui/button";
 import {
@@ -137,13 +138,13 @@ export function DocumentUploader({ initialDocuments }: DocumentUploaderProps) {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="border-border bg-card flex flex-col gap-4 rounded-lg border p-4">
+      <div className="flex flex-col gap-4 rounded-card border border-border bg-card p-4">
         <FormField label="Document type">
           <NativeSelect
             value={type}
             onChange={(event) => setType(event.target.value as DocumentType)}
             disabled={uploading}
-            className="w-full [&_select]:h-11"
+            className="w-full"
           >
             {DOCUMENT_TYPES.map((value) => (
               <NativeSelectOption key={value} value={value}>
@@ -164,8 +165,7 @@ export function DocumentUploader({ initialDocuments }: DocumentUploaderProps) {
         />
         <LoadingButton
           type="button"
-          variant="outline"
-          size="touch"
+          variant="secondary"
           loading={uploading}
           loadingText={status}
           onClick={() => fileInput.current?.click()}
@@ -173,12 +173,14 @@ export function DocumentUploader({ initialDocuments }: DocumentUploaderProps) {
           <Upload aria-hidden="true" />
           Choose photo or PDF
         </LoadingButton>
-        <p className="text-muted-foreground text-sm">JPG, PNG, WebP or PDF. Up to 10 MB.</p>
+        <p className="text-helper leading-helper text-muted-foreground">
+          JPG, PNG, WebP or PDF. Up to 10 MB.
+        </p>
 
         {error && (
-          <p role="alert" className="text-destructive text-sm font-medium">
+          <InlineNote variant="error" role="alert">
             {error}
-          </p>
+          </InlineNote>
         )}
       </div>
 
@@ -196,19 +198,21 @@ export function DocumentUploader({ initialDocuments }: DocumentUploaderProps) {
             return (
               <li
                 key={document.id}
-                className="border-border bg-card flex items-center gap-3 rounded-lg border p-3"
+                className="flex items-center gap-3 rounded-card border border-border bg-card p-3"
               >
-                <Icon aria-hidden="true" className="text-muted-foreground size-6 shrink-0" />
+                <Icon aria-hidden="true" className="size-6 shrink-0 text-muted-foreground" />
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium">{DOCUMENT_TYPE_LABELS[document.type]}</p>
-                  <p className="text-muted-foreground truncate text-sm">
+                  <p className="text-label leading-label font-semibold">
+                    {DOCUMENT_TYPE_LABELS[document.type]}
+                  </p>
+                  <p className="truncate text-helper leading-helper text-muted-foreground">
                     {document.fileName} · {formatFileSize(document.sizeBytes)}
                   </p>
                 </div>
                 <Button
                   type="button"
                   variant="ghost"
-                  size="icon-touch"
+                  size="icon"
                   onClick={() => handlePreview(document)}
                   disabled={busy}
                   aria-label={`Preview ${document.fileName}`}
@@ -218,12 +222,12 @@ export function DocumentUploader({ initialDocuments }: DocumentUploaderProps) {
                 <Button
                   type="button"
                   variant="ghost"
-                  size="icon-touch"
+                  size="icon"
                   onClick={() => setToDelete(document)}
                   disabled={busy}
                   aria-label={`Delete ${document.fileName}`}
                 >
-                  <Trash2 aria-hidden="true" className="text-destructive size-5" />
+                  <Trash2 aria-hidden="true" className="size-5 text-destructive" />
                 </Button>
               </li>
             );
@@ -239,7 +243,7 @@ export function DocumentUploader({ initialDocuments }: DocumentUploaderProps) {
           </DialogHeader>
           {preview &&
             (preview.document.mimeType === "application/pdf" ? (
-              <Button asChild size="touch">
+              <Button asChild>
                 <a href={preview.url} target="_blank" rel="noopener noreferrer">
                   Open PDF
                 </a>
@@ -250,7 +254,7 @@ export function DocumentUploader({ initialDocuments }: DocumentUploaderProps) {
               <img
                 src={preview.url}
                 alt={`${DOCUMENT_TYPE_LABELS[preview.document.type]} preview`}
-                className="max-h-[70dvh] w-full rounded-md object-contain"
+                className="max-h-[70dvh] w-full rounded-field object-contain"
               />
             ))}
         </DialogContent>
@@ -268,8 +272,7 @@ export function DocumentUploader({ initialDocuments }: DocumentUploaderProps) {
           <DialogFooter>
             <Button
               type="button"
-              variant="outline"
-              size="touch"
+              variant="secondary"
               onClick={() => setToDelete(undefined)}
               disabled={busyId !== undefined}
             >
@@ -277,10 +280,7 @@ export function DocumentUploader({ initialDocuments }: DocumentUploaderProps) {
             </Button>
             <LoadingButton
               type="button"
-              variant="outline"
-              size="touch"
-              // Tinted background with normal text keeps contrast AA in every theme.
-              className="border-destructive bg-destructive/15 hover:bg-destructive/25 dark:border-destructive dark:bg-destructive/25 dark:hover:bg-destructive/35"
+              variant="destructive"
               loading={busyId !== undefined}
               loadingText="Deleting..."
               onClick={handleDelete}
