@@ -3,11 +3,11 @@ import { expect, test } from "@playwright/test";
 const html = "html";
 
 test.describe("dark mode", () => {
-  test("defaults to the system setting", async ({ browser }) => {
+  test("light is the default, whatever the system setting", async ({ browser }) => {
     const dark = await browser.newContext({ colorScheme: "dark" });
     const darkPage = await dark.newPage();
     await darkPage.goto("/");
-    await expect(darkPage.locator(html)).toHaveClass(/\bdark\b/);
+    await expect(darkPage.locator(html)).not.toHaveClass(/\bdark\b/);
     await dark.close();
 
     const light = await browser.newContext({ colorScheme: "light" });

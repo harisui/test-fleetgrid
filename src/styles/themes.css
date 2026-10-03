@@ -1,248 +1,381 @@
 /* =========================================================
    FLEETGRID THEMES
-   Only ONE theme block should be active at a time.
-   To switch: comment out the active block, uncomment another.
-   Components must only use these variables, never raw colors.
+   The only place colors, radii, shadows, type sizes and motion
+   values are defined. Components use these variables only.
+
+   SHARED: non-color tokens, always active.
+   THEME 1 is active. Themes 2 and 3 are each wrapped in ONE block
+   comment: uncomment a whole theme and comment the active one to switch.
+   Every theme defines the identical token set for :root and .dark.
+   CSS comments cannot nest, so the commented themes contain no comments.
    ========================================================= */
 
+/* ==== SHARED START ==== */
+:root {
+  --radius-card: 6px;
+  --radius-field: 4px;
+  --radius-button: 4px;
+  --radius-chip: 4px;
+  --radius-badge: 2px;
+  --radius-sheet: 8px;
+  --radius-sign: 4px;
+
+  --border-1: 1px;
+  --border-2: 2px;
+  --border-3: 3px;
+  --focus-offset: 2px;
+
+  --shadow-0: none;
+  --shadow-1: 0 1px 2px rgb(0 0 0 / 0.08);
+  --shadow-2: 0 4px 12px rgb(0 0 0 / 0.12);
+
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+
+  --target-min: 48px;
+  --target-primary: 56px;
+  --card-min-h: 64px;
+
+  --text-body: 1.125rem;
+  --lh-body: 1.75rem;
+  --text-body-lg: 1.25rem;
+  --lh-body-lg: 1.875rem;
+  --text-label: 1rem;
+  --lh-label: 1.5rem;
+  --text-helper: 1rem;
+  --lh-helper: 1.5rem;
+  --text-button: 1.1875rem;
+  --lh-button: 1.5rem;
+  --text-eyebrow: 1rem;
+  --lh-eyebrow: 1.25rem;
+  --tracking-eyebrow: 0.08em;
+  --text-h1: 1.875rem;
+  --lh-h1: 2.125rem;
+  --text-h2: 1.5rem;
+  --lh-h2: 1.875rem;
+  --text-code: 1.25rem;
+  --lh-code: 1.75rem;
+  --tracking-code: 0.12em;
+  --text-small: 0.875rem;
+  --lh-small: 1.25rem;
+
+  --dur-press: 120ms;
+  --dur-state: 160ms;
+  --dur-move: 200ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+}
+
+.dark {
+  --shadow-1: none;
+  --shadow-2: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --dur-press: 0ms;
+    --dur-state: 0ms;
+    --dur-move: 0ms;
+  }
+}
+/* ==== SHARED END ==== */
+
+/* ==== THEME 1 START ==== */
 /* ---------------------------------------------------------
-   THEME 1: MIDNIGHT FREIGHT (ACTIVE)
-   Deep navy with highway amber. Trustworthy, logistics-grade.
+   THEME 1: WORKSHOP (ACTIVE)
+   Graphite chassis, black-on-white labels, safety orange as a
+   paint stripe. Orange is used only for the primary button fill,
+   the progress fill, the sign-panel stripe and the check badge.
+   Selection is graphite ink. Never orange text, borders or selection.
    --------------------------------------------------------- */
 :root {
-  --radius: 0.625rem;
-
-  --background: #ffffff;
-  --foreground: #0b1726;
-
+  --background: #f4f4f4;
+  --foreground: #16191d;
   --card: #ffffff;
-  --card-foreground: #0b1726;
+  --card-foreground: #16191d;
   --popover: #ffffff;
-  --popover-foreground: #0b1726;
-
-  --primary: #0f2a4a;
+  --popover-foreground: #16191d;
+  --surface-raised: #ffffff;
+  --muted: #ebedef;
+  --muted-foreground: #4d5359;
+  --accent: #ebedef;
+  --accent-foreground: #16191d;
+  --secondary: #ebedef;
+  --secondary-foreground: #16191d;
+  --primary: #b84a00;
+  --primary-hover: #9a3d00;
   --primary-foreground: #ffffff;
-
-  --secondary: #eef2f7;
-  --secondary-foreground: #0f2a4a;
-
-  --muted: #f4f6f9;
-  --muted-foreground: #5b6b80;
-
-  --accent: #f59e0b;
-  --accent-foreground: #1a1204;
-
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-
-  --success: #16a34a;
+  --selection: #2b3036;
+  --selection-foreground: #ffffff;
+  --selection-tint: #e4e7ea;
+  --border: #d4d6d8;
+  --border-strong: #6e747a;
+  --input: #6e747a;
+  --ring: #1a4480;
+  --sign-panel: #1f2328;
+  --sign-panel-foreground: #ffffff;
+  --sign-panel-muted: #b8bec4;
+  --sign-panel-border: #f08a3c;
+  --progress-track: #d4d6d8;
+  --progress-fill: #b84a00;
+  --lane-line: #ffffff;
+  --success: #1e6b3a;
   --success-foreground: #ffffff;
-  --warning: #d97706;
+  --success-subtle: #e9f3ec;
+  --warning: #8a6a00;
   --warning-foreground: #ffffff;
-
-  --border: #e2e8f0;
-  --input: #e2e8f0;
-  --ring: #f59e0b;
-
-  --sidebar: #0f2a4a;
-  --sidebar-foreground: #e6edf5;
+  --warning-subtle: #fbf1dc;
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+  --destructive-subtle: #fbeae8;
+  --info: #1a4480;
+  --info-foreground: #ffffff;
+  --info-subtle: #eceff3;
 }
 
 .dark {
-  --background: #08121f;
-  --foreground: #e6edf5;
-
-  --card: #0d1b2d;
-  --card-foreground: #e6edf5;
-  --popover: #0d1b2d;
-  --popover-foreground: #e6edf5;
-
-  --primary: #f59e0b;
-  --primary-foreground: #1a1204;
-
-  --secondary: #16283f;
-  --secondary-foreground: #e6edf5;
-
-  --muted: #13243a;
-  --muted-foreground: #94a3b8;
-
-  --accent: #fbbf24;
-  --accent-foreground: #1a1204;
-
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-
-  --success: #22c55e;
-  --success-foreground: #04120a;
-  --warning: #f59e0b;
-  --warning-foreground: #1a1204;
-
-  --border: #1f3350;
-  --input: #1f3350;
-  --ring: #fbbf24;
-
-  --sidebar: #050d17;
-  --sidebar-foreground: #e6edf5;
+  --background: #121416;
+  --foreground: #e8e9ea;
+  --card: #1a1d21;
+  --card-foreground: #e8e9ea;
+  --popover: #23272c;
+  --popover-foreground: #e8e9ea;
+  --surface-raised: #23272c;
+  --muted: #23272c;
+  --muted-foreground: #a9aeb4;
+  --accent: #23272c;
+  --accent-foreground: #e8e9ea;
+  --secondary: #23272c;
+  --secondary-foreground: #e8e9ea;
+  --primary: #f08a3c;
+  --primary-hover: #f5a262;
+  --primary-foreground: #121416;
+  --selection: #d0d4d8;
+  --selection-foreground: #121416;
+  --selection-tint: #2a2f35;
+  --border: #2c3136;
+  --border-strong: #6e747a;
+  --input: #6e747a;
+  --ring: #8ab4e8;
+  --sign-panel: #0e1012;
+  --sign-panel-foreground: #e8e9ea;
+  --sign-panel-muted: #a9aeb4;
+  --sign-panel-border: #f08a3c;
+  --progress-track: #2c3136;
+  --progress-fill: #f08a3c;
+  --lane-line: #6e747a;
+  --success: #6cc08a;
+  --success-foreground: #121416;
+  --success-subtle: #15291d;
+  --warning: #e6c04a;
+  --warning-foreground: #121416;
+  --warning-subtle: #2e2412;
+  --destructive: #f47c7c;
+  --destructive-foreground: #121416;
+  --destructive-subtle: #331a18;
+  --info: #8ab4e8;
+  --info-foreground: #121416;
+  --info-subtle: #1c2430;
 }
+/* ==== THEME 1 END ==== */
 
+/* ==== THEME 2 START ==== */
 /* ---------------------------------------------------------
-   THEME 2: STEEL SIGNAL
-   Graphite steel with signal orange. Industrial, high contrast.
+   THEME 2: INTERSTATE
+   USWDS navy, graphite like asphalt, steel blue selection.
+   Calm, official, reliable.
    ---------------------------------------------------------
 :root {
-  --radius: 0.5rem;
-
-  --background: #ffffff;
-  --foreground: #111827;
-
+  --background: #f4f4f7;
+  --foreground: #10141a;
   --card: #ffffff;
-  --card-foreground: #111827;
+  --card-foreground: #10141a;
   --popover: #ffffff;
-  --popover-foreground: #111827;
-
-  --primary: #1f2937;
+  --popover-foreground: #10141a;
+  --surface-raised: #ffffff;
+  --muted: #ebedef;
+  --muted-foreground: #4a5060;
+  --accent: #ebedef;
+  --accent-foreground: #10141a;
+  --secondary: #ebedef;
+  --secondary-foreground: #10141a;
+  --primary: #1a4480;
+  --primary-hover: #162e51;
   --primary-foreground: #ffffff;
-
-  --secondary: #f3f4f6;
-  --secondary-foreground: #1f2937;
-
-  --muted: #f5f5f4;
-  --muted-foreground: #6b7280;
-
-  --accent: #ea580c;
-  --accent-foreground: #ffffff;
-
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-
-  --success: #16a34a;
+  --selection: #005ea2;
+  --selection-foreground: #ffffff;
+  --selection-tint: #eaf1f8;
+  --border: #d0d0d8;
+  --border-strong: #6b7080;
+  --input: #6b7080;
+  --ring: #2563eb;
+  --sign-panel: #14202e;
+  --sign-panel-foreground: #ffffff;
+  --sign-panel-muted: #b8c2cc;
+  --sign-panel-border: #b8c2cc;
+  --progress-track: #d0d0d8;
+  --progress-fill: #1a4480;
+  --lane-line: #ffffff;
+  --success: #1e6b3a;
   --success-foreground: #ffffff;
-  --warning: #ca8a04;
+  --success-subtle: #e9f3ec;
+  --warning: #9a5b00;
   --warning-foreground: #ffffff;
-
-  --border: #e5e7eb;
-  --input: #e5e7eb;
-  --ring: #ea580c;
-
-  --sidebar: #1f2937;
-  --sidebar-foreground: #f3f4f6;
+  --warning-subtle: #fbf1dc;
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+  --destructive-subtle: #fbeae8;
+  --info: #3a4a5a;
+  --info-foreground: #ffffff;
+  --info-subtle: #eceff3;
 }
 
 .dark {
-  --background: #0c0f14;
-  --foreground: #f3f4f6;
-
-  --card: #151a21;
-  --card-foreground: #f3f4f6;
-  --popover: #151a21;
-  --popover-foreground: #f3f4f6;
-
-  --primary: #f97316;
-  --primary-foreground: #1a0a02;
-
-  --secondary: #1f2630;
-  --secondary-foreground: #f3f4f6;
-
-  --muted: #1a2029;
-  --muted-foreground: #9ca3af;
-
-  --accent: #fb923c;
-  --accent-foreground: #1a0a02;
-
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-
-  --success: #22c55e;
-  --success-foreground: #04120a;
-  --warning: #eab308;
-  --warning-foreground: #1a1402;
-
+  --background: #10141a;
+  --foreground: #e8eaed;
+  --card: #171c24;
+  --card-foreground: #e8eaed;
+  --popover: #1f2530;
+  --popover-foreground: #e8eaed;
+  --surface-raised: #1f2530;
+  --muted: #1f2530;
+  --muted-foreground: #a8b0bc;
+  --accent: #1f2530;
+  --accent-foreground: #e8eaed;
+  --secondary: #1f2530;
+  --secondary-foreground: #e8eaed;
+  --primary: #8ab4e8;
+  --primary-hover: #a8c8f0;
+  --primary-foreground: #10141a;
+  --selection: #6fa3e0;
+  --selection-foreground: #10141a;
+  --selection-tint: #1a2a40;
   --border: #2a313c;
-  --input: #2a313c;
-  --ring: #fb923c;
-
-  --sidebar: #090c10;
-  --sidebar-foreground: #f3f4f6;
+  --border-strong: #6b7484;
+  --input: #6b7484;
+  --ring: #7db4ff;
+  --sign-panel: #0b1622;
+  --sign-panel-foreground: #e8eaed;
+  --sign-panel-muted: #a8b0bc;
+  --sign-panel-border: #3a4a5a;
+  --progress-track: #2a313c;
+  --progress-fill: #8ab4e8;
+  --lane-line: #6b7484;
+  --success: #6cc08a;
+  --success-foreground: #10141a;
+  --success-subtle: #15291d;
+  --warning: #f0b44c;
+  --warning-foreground: #10141a;
+  --warning-subtle: #2e2412;
+  --destructive: #f28b82;
+  --destructive-foreground: #10141a;
+  --destructive-subtle: #331a18;
+  --info: #b4c0d0;
+  --info-foreground: #10141a;
+  --info-subtle: #1c2430;
 }
 --------------------------------------------------------- */
+/* ==== THEME 2 END ==== */
 
+/* ==== THEME 3 START ==== */
 /* ---------------------------------------------------------
-   THEME 3: ROUTE TEAL
-   Deep teal with lime go-signal. Modern, calm, fresh.
+   THEME 3: GUIDE SIGN
+   Interstate guide-sign green with a white legend. Steady and
+   confident. Weakest for red-green color blindness: selection relies
+   on the border, the check badge and aria-checked, never color alone.
    ---------------------------------------------------------
 :root {
-  --radius: 0.75rem;
-
-  --background: #ffffff;
-  --foreground: #0a1f1d;
-
+  --background: #f4f4f0;
+  --foreground: #121a16;
   --card: #ffffff;
-  --card-foreground: #0a1f1d;
+  --card-foreground: #121a16;
   --popover: #ffffff;
-  --popover-foreground: #0a1f1d;
-
-  --primary: #0f766e;
+  --popover-foreground: #121a16;
+  --surface-raised: #ffffff;
+  --muted: #ebeeea;
+  --muted-foreground: #4a544e;
+  --accent: #ebeeea;
+  --accent-foreground: #121a16;
+  --secondary: #ebeeea;
+  --secondary-foreground: #121a16;
+  --primary: #005f47;
+  --primary-hover: #004b37;
   --primary-foreground: #ffffff;
-
-  --secondary: #ecf7f5;
-  --secondary-foreground: #0f4f4a;
-
-  --muted: #f3f8f7;
-  --muted-foreground: #5a706d;
-
-  --accent: #84cc16;
-  --accent-foreground: #142002;
-
-  --destructive: #dc2626;
-  --destructive-foreground: #ffffff;
-
-  --success: #16a34a;
+  --selection: #006b54;
+  --selection-foreground: #ffffff;
+  --selection-tint: #e8f2ec;
+  --border: #d4d8d2;
+  --border-strong: #6b746e;
+  --input: #6b746e;
+  --ring: #1a4480;
+  --sign-panel: #00553f;
+  --sign-panel-foreground: #ffffff;
+  --sign-panel-muted: #cfe3d8;
+  --sign-panel-border: #ffffff;
+  --progress-track: #d4d8d2;
+  --progress-fill: #005f47;
+  --lane-line: #ffffff;
+  --success: #1e6b3a;
   --success-foreground: #ffffff;
-  --warning: #d97706;
+  --success-subtle: #e9f3ec;
+  --warning: #9a5b00;
   --warning-foreground: #ffffff;
-
-  --border: #dbe7e5;
-  --input: #dbe7e5;
-  --ring: #0f766e;
-
-  --sidebar: #0f4f4a;
-  --sidebar-foreground: #e8f5f3;
+  --warning-subtle: #fbf1dc;
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
+  --destructive-subtle: #fbeae8;
+  --info: #1a4480;
+  --info-foreground: #ffffff;
+  --info-subtle: #eceff3;
 }
 
 .dark {
-  --background: #061413;
-  --foreground: #e3f2f0;
-
-  --card: #0b1f1d;
-  --card-foreground: #e3f2f0;
-  --popover: #0b1f1d;
-  --popover-foreground: #e3f2f0;
-
-  --primary: #2dd4bf;
-  --primary-foreground: #042420;
-
-  --secondary: #12302d;
-  --secondary-foreground: #e3f2f0;
-
-  --muted: #102926;
-  --muted-foreground: #8fb3ae;
-
-  --accent: #a3e635;
-  --accent-foreground: #142002;
-
-  --destructive: #ef4444;
-  --destructive-foreground: #ffffff;
-
-  --success: #22c55e;
-  --success-foreground: #04120a;
-  --warning: #f59e0b;
-  --warning-foreground: #1a1204;
-
-  --border: #1d3d39;
-  --input: #1d3d39;
-  --ring: #2dd4bf;
-
-  --sidebar: #031110;
-  --sidebar-foreground: #e3f2f0;
+  --background: #0f1513;
+  --foreground: #e6eae7;
+  --card: #161d1a;
+  --card-foreground: #e6eae7;
+  --popover: #1e2622;
+  --popover-foreground: #e6eae7;
+  --surface-raised: #1e2622;
+  --muted: #1e2622;
+  --muted-foreground: #a6b0aa;
+  --accent: #1e2622;
+  --accent-foreground: #e6eae7;
+  --secondary: #1e2622;
+  --secondary-foreground: #e6eae7;
+  --primary: #5fc29b;
+  --primary-hover: #80d0b0;
+  --primary-foreground: #0f1513;
+  --selection: #5fc29b;
+  --selection-foreground: #0f1513;
+  --selection-tint: #173327;
+  --border: #29322e;
+  --border-strong: #6e7a74;
+  --input: #6e7a74;
+  --ring: #8ab4e8;
+  --sign-panel: #0b3a2c;
+  --sign-panel-foreground: #e6eae7;
+  --sign-panel-muted: #a6b0aa;
+  --sign-panel-border: #a6b0aa;
+  --progress-track: #29322e;
+  --progress-fill: #5fc29b;
+  --lane-line: #6e7a74;
+  --success: #7bc98a;
+  --success-foreground: #0f1513;
+  --success-subtle: #15291d;
+  --warning: #f0b44c;
+  --warning-foreground: #0f1513;
+  --warning-subtle: #2e2412;
+  --destructive: #f28b82;
+  --destructive-foreground: #0f1513;
+  --destructive-subtle: #331a18;
+  --info: #8ab4e8;
+  --info-foreground: #0f1513;
+  --info-subtle: #1c2430;
 }
 --------------------------------------------------------- */
+/* ==== THEME 3 END ==== */

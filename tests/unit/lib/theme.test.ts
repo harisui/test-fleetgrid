@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   applyStoredTheme,
   buildThemeCookie,
+  DEFAULT_THEME_PREFERENCE,
   parseThemePreference,
   readThemeCookie,
   resolveTheme,
@@ -32,12 +33,16 @@ afterEach(() => {
 });
 
 describe("parseThemePreference", () => {
+  it("light is the default", () => {
+    expect(DEFAULT_THEME_PREFERENCE).toBe("light");
+  });
+
   it.each(["light", "dark", "system"] as const)("accepts %s", (value) => {
     expect(parseThemePreference(value)).toBe(value);
   });
 
-  it.each([undefined, null, "", "purple", "DARK"])("falls back to system for %s", (value) => {
-    expect(parseThemePreference(value)).toBe("system");
+  it.each([undefined, null, "", "purple", "DARK"])("falls back to light for %s", (value) => {
+    expect(parseThemePreference(value)).toBe("light");
   });
 });
 
@@ -47,10 +52,10 @@ describe("readThemeCookie / buildThemeCookie", () => {
     expect(readThemeCookie(`${THEME_COOKIE}=light`)).toBe("light");
   });
 
-  it("defaults to system when missing or invalid", () => {
-    expect(readThemeCookie("")).toBe("system");
-    expect(readThemeCookie(`${THEME_COOKIE}=nope`)).toBe("system");
-    expect(readThemeCookie(`x${THEME_COOKIE}=dark`)).toBe("system");
+  it("defaults to light when missing or invalid", () => {
+    expect(readThemeCookie("")).toBe("light");
+    expect(readThemeCookie(`${THEME_COOKIE}=nope`)).toBe("light");
+    expect(readThemeCookie(`x${THEME_COOKIE}=dark`)).toBe("light");
   });
 
   it("builds a one-year, site-wide cookie", () => {
@@ -61,7 +66,7 @@ describe("readThemeCookie / buildThemeCookie", () => {
 });
 
 describe("resolveTheme", () => {
-  it("follows the system when the preference is system", () => {
+  it("follows the system only when the preference is system", () => {
     expect(resolveTheme("system", true)).toBe("dark");
     expect(resolveTheme("system", false)).toBe("light");
   });
@@ -73,8 +78,15 @@ describe("resolveTheme", () => {
 });
 
 describe("applyStoredTheme", () => {
-  it("defaults to the system setting", () => {
+  it("is light by default, even when the system prefers dark", () => {
     stubSystemDark(true);
+    expect(applyStoredTheme()).toBe("light");
+    expect(document.documentElement).not.toHaveClass("dark");
+  });
+
+  it("follows the system when the user chose system", () => {
+    stubSystemDark(true);
+    document.cookie = buildThemeCookie("system");
     expect(applyStoredTheme()).toBe("dark");
     expect(document.documentElement).toHaveClass("dark");
 
@@ -85,14 +97,15 @@ describe("applyStoredTheme", () => {
 
   it("treats a missing matchMedia as light", () => {
     vi.stubGlobal("matchMedia", undefined);
+    document.cookie = buildThemeCookie("system");
     expect(applyStoredTheme()).toBe("light");
   });
 
-  it("uses the cookie over the system setting", () => {
-    stubSystemDark(true);
-    document.cookie = buildThemeCookie("light");
-    expect(applyStoredTheme()).toBe("light");
-    expect(document.documentElement).not.toHaveClass("dark");
+  it("uses a stored dark choice", () => {
+    stubSystemDark(false);
+    document.cookie = buildThemeCookie("dark");
+    expect(applyStoredTheme()).toBe("dark");
+    expect(document.documentElement).toHaveClass("dark");
   });
 });
 
@@ -132,13 +145,22 @@ describe("THEME_INIT_SCRIPT", () => {
     expect(document.documentElement).not.toHaveClass("dark");
   });
 
-  it("follows the system when nothing is stored", () => {
+  it("stays light when nothing is stored, whatever the system says", () => {
     stubSystemDark(true);
+    document.documentElement.classList.add("dark");
+    run();
+    expect(document.documentElement).not.toHaveClass("dark");
+  });
+
+  it("follows the system when the user chose system", () => {
+    stubSystemDark(true);
+    document.cookie = buildThemeCookie("system");
     run();
     expect(document.documentElement).toHaveClass("dark");
   });
 
   it("never throws", () => {
+    document.cookie = buildThemeCookie("system");
     vi.stubGlobal("matchMedia", () => {
       throw new Error("boom");
     });

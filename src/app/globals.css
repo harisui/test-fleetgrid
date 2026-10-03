@@ -3,7 +3,8 @@
 @import "shadcn/tailwind.css";
 @import "../styles/themes.css";
 
-/* Colors are defined ONLY in src/styles/themes.css. This file maps them to Tailwind. */
+/* Colors, radii, shadows, type sizes and motion are defined ONLY in src/styles/themes.css.
+   This file maps them to Tailwind utilities and sets the base styles. */
 
 @custom-variant dark (&:is(.dark *));
 
@@ -14,42 +15,127 @@
   --color-card-foreground: var(--card-foreground);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
+  --color-surface-raised: var(--surface-raised);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-destructive-foreground: var(--destructive-foreground);
-  --color-success: var(--success);
-  --color-success-foreground: var(--success-foreground);
-  --color-warning: var(--warning);
-  --color-warning-foreground: var(--warning-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-primary: var(--primary);
+  --color-primary-hover: var(--primary-hover);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-selection: var(--selection);
+  --color-selection-foreground: var(--selection-foreground);
+  --color-selection-tint: var(--selection-tint);
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-input: var(--input);
   --color-ring: var(--ring);
-  --color-sidebar: var(--sidebar);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
+  --color-sign-panel: var(--sign-panel);
+  --color-sign-panel-foreground: var(--sign-panel-foreground);
+  --color-sign-panel-muted: var(--sign-panel-muted);
+  --color-sign-panel-border: var(--sign-panel-border);
+  --color-progress-track: var(--progress-track);
+  --color-progress-fill: var(--progress-fill);
+  --color-lane-line: var(--lane-line);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-success-subtle: var(--success-subtle);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning-subtle: var(--warning-subtle);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-destructive-subtle: var(--destructive-subtle);
+  --color-info: var(--info);
+  --color-info-foreground: var(--info-foreground);
+  --color-info-subtle: var(--info-subtle);
+
+  /* Radii: rounded-card, rounded-field, rounded-button, rounded-chip, rounded-badge, rounded-sheet, rounded-sign.
+     The shadcn scale is mapped to the same small values so no primitive can grow a large radius. */
+  --radius-card: var(--radius-card);
+  --radius-field: var(--radius-field);
+  --radius-button: var(--radius-button);
+  --radius-chip: var(--radius-chip);
+  --radius-badge: var(--radius-badge);
+  --radius-sheet: var(--radius-sheet);
+  --radius-sign: var(--radius-sign);
+  --radius-sm: var(--radius-badge);
+  --radius-md: var(--radius-field);
+  --radius-lg: var(--radius-card);
+  --radius-xl: var(--radius-sheet);
+
+  /* Shadows: shadow-0, shadow-1, shadow-2 */
+  --shadow-0: var(--shadow-0);
+  --shadow-1: var(--shadow-1);
+  --shadow-2: var(--shadow-2);
+
+  /* Sizes: h-target, h-target-lg, min-h-card-min */
+  --spacing-target: var(--target-min);
+  --spacing-target-lg: var(--target-primary);
+  --spacing-card-min: var(--card-min-h);
+
+  /* Type: text-body, text-body-lg, text-label, text-helper, text-button, text-eyebrow, text-h1, text-h2, text-code, text-small */
+  --text-body: var(--text-body);
+  --text-body--line-height: var(--lh-body);
+  --text-body-lg: var(--text-body-lg);
+  --text-body-lg--line-height: var(--lh-body-lg);
+  --text-label: var(--text-label);
+  --text-label--line-height: var(--lh-label);
+  --text-helper: var(--text-helper);
+  --text-helper--line-height: var(--lh-helper);
+  --text-button: var(--text-button);
+  --text-button--line-height: var(--lh-button);
+  --text-eyebrow: var(--text-eyebrow);
+  --text-eyebrow--line-height: var(--lh-eyebrow);
+  --text-h1: var(--text-h1);
+  --text-h1--line-height: var(--lh-h1);
+  --text-h2: var(--text-h2);
+  --text-h2--line-height: var(--lh-h2);
+  --text-code: var(--text-code);
+  --text-code--line-height: var(--lh-code);
+  --text-small: var(--text-small);
+  --text-small--line-height: var(--lh-small);
+  --tracking-eyebrow: var(--tracking-eyebrow);
+  --tracking-code: var(--tracking-code);
+
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-geist-sans);
+  --font-heading: var(--font-barlow-condensed);
+
+  /* Motion: duration-(--dur-press) etc., ease-standard */
+  --ease-standard: var(--ease-standard);
+  --default-transition-duration: var(--dur-state);
+  --default-transition-timing-function: var(--ease-standard);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border outline-ring;
   }
   html {
+    font-size: 100%;
     @apply font-sans;
   }
   body {
+    font-size: var(--text-body);
+    line-height: var(--lh-body);
     @apply bg-background text-foreground antialiased;
+  }
+  /* One focus style everywhere: a thick ring in the focus color, offset outside the element. */
+  :focus-visible {
+    outline: var(--border-3) solid var(--ring);
+    outline-offset: var(--focus-offset);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0s !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0s !important;
+      scroll-behavior: auto !important;
+    }
   }
 }

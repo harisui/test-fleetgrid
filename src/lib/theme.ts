@@ -1,5 +1,7 @@
 /**
- * Dark mode preference. Persisted in a cookie, defaults to the system setting.
+ * Dark mode preference. Persisted in a cookie. Light is the default: drivers
+ * work outdoors in sunlight, where a light screen reads best. Dark mode is a
+ * choice the user makes with the toggle.
  * The `.dark` class on <html> switches the CSS variables in src/styles/themes.css.
  */
 
@@ -10,10 +12,12 @@ export const THEME_PREFERENCES = ["light", "dark", "system"] as const;
 export type ThemePreference = (typeof THEME_PREFERENCES)[number];
 export type ResolvedTheme = "light" | "dark";
 
+export const DEFAULT_THEME_PREFERENCE: ThemePreference = "light";
+
 export function parseThemePreference(value: string | null | undefined): ThemePreference {
   return THEME_PREFERENCES.includes(value as ThemePreference)
     ? (value as ThemePreference)
-    : "system";
+    : DEFAULT_THEME_PREFERENCE;
 }
 
 /** Reads the preference from a `document.cookie` style string. */
@@ -63,5 +67,6 @@ export function toggleTheme(): ResolvedTheme {
 /**
  * Inline script for <head>. Runs before first paint so there is no flash,
  * and keeps pages statically rendered (the server never reads the cookie).
+ * Only an explicit "dark" or "system" choice can turn dark mode on.
  */
-export const THEME_INIT_SCRIPT = `(function(){try{var m=document.cookie.match(/(?:^|; )${THEME_COOKIE}=([^;]*)/);var p=m?decodeURIComponent(m[1]):"system";var d=p==="dark"||(p!=="light"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d)}catch(e){}})()`;
+export const THEME_INIT_SCRIPT = `(function(){try{var m=document.cookie.match(/(?:^|; )${THEME_COOKIE}=([^;]*)/);var p=m?decodeURIComponent(m[1]):"${DEFAULT_THEME_PREFERENCE}";var d=p==="dark"||(p==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.classList.toggle("dark",d)}catch(e){}})()`;

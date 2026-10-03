@@ -66,11 +66,11 @@ describe("ThemeToggle", () => {
     expect(document.documentElement).toHaveClass("dark");
   });
 
-  it("defaults to the system setting when nothing is stored", () => {
+  it("defaults to light when nothing is stored, even on a dark system", () => {
     stubSystemDark(true);
     render(<ThemeToggle />);
-    expect(document.documentElement).toHaveClass("dark");
-    expect(readThemeCookie(document.cookie)).toBe("system");
+    expect(document.documentElement).not.toHaveClass("dark");
+    expect(readThemeCookie(document.cookie)).toBe("light");
   });
 });
 
