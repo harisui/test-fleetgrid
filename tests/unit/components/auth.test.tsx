@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { AuthCard } from "@/components/auth/AuthCard";
+import { AuthShell } from "@/components/auth/AuthShell";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { OtpForm } from "@/components/auth/OtpForm";
 import { PhoneForm } from "@/components/auth/PhoneForm";
@@ -34,7 +34,7 @@ beforeEach(() => {
 
 describe("PhoneForm", () => {
   const input = () => screen.getByLabelText(/Mobile number/);
-  const submit = () => screen.getByRole("button", { name: "Send code" });
+  const submit = () => screen.getByRole("button", { name: "Text me a code" });
 
   it("formats the number as it is typed", async () => {
     render(<PhoneForm />);
@@ -159,7 +159,7 @@ describe("OtpForm", () => {
   it("shows the number the code was sent to and a way to change it", () => {
     render(<OtpForm phone={PHONE} />);
     expect(screen.getByText("(555) 555-0100")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Change number" })).toHaveAttribute("href", "/login");
+    expect(screen.getByRole("link", { name: "Change it" })).toHaveAttribute("href", "/login");
   });
 
   it("supports SMS autofill and a numeric keypad", () => {
@@ -281,11 +281,11 @@ describe("OtpForm", () => {
     it("counts down 60 seconds before resend is offered", () => {
       vi.useFakeTimers();
       render(<OtpForm phone={PHONE} />);
-      expect(screen.getByText("Resend code in 60s")).toBeInTheDocument();
+      expect(screen.getByText(/Resend in 1:00/)).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Resend code" })).not.toBeInTheDocument();
 
       act(() => void vi.advanceTimersByTime(1000));
-      expect(screen.getByText("Resend code in 59s")).toBeInTheDocument();
+      expect(screen.getByText(/Resend in 0:59/)).toBeInTheDocument();
 
       for (let second = 0; second < 59; second += 1) act(() => void vi.advanceTimersByTime(1000));
       expect(screen.getByRole("button", { name: "Resend code" })).toBeInTheDocument();
@@ -308,7 +308,7 @@ describe("OtpForm", () => {
       rerender(<OtpForm phone={PHONE} cooldownSeconds={30} />);
       await userEvent.click(screen.getByRole("button", { name: "Resend code" }));
 
-      expect(await screen.findByText("Resend code in 30s")).toBeInTheDocument();
+      expect(await screen.findByText(/Resend in 0:30/)).toBeInTheDocument();
     });
 
     it("shows an error when the resend is rate limited", async () => {
@@ -337,8 +337,8 @@ describe("OtpForm", () => {
 });
 
 describe("RoleChooser", () => {
-  const driver = () => screen.getByRole("radio", { name: /I'm a Driver/ });
-  const carrier = () => screen.getByRole("radio", { name: /I'm a Carrier/ });
+  const driver = () => screen.getByRole("radio", { name: /I drive or work trucks/ });
+  const carrier = () => screen.getByRole("radio", { name: /I hire for my company/ });
   const submit = () => screen.getByRole("button", { name: "Continue" });
 
   it("offers Driver and Carrier, never Admin", () => {
@@ -417,7 +417,7 @@ describe("RoleChooser", () => {
   });
 });
 
-describe("LogoutButton and AuthCard", () => {
+describe("LogoutButton and AuthShell", () => {
   it("LogoutButton is a submit button inside a form", () => {
     render(<LogoutButton />);
     const button = screen.getByRole("button", { name: "Log out" });
@@ -426,21 +426,17 @@ describe("LogoutButton and AuthCard", () => {
     expect(button).toHaveClass("h-target");
   });
 
-  it("AuthCard renders the title as the page heading, with an optional description", () => {
-    const { rerender } = render(
-      <AuthCard title="Log in" description="No password needed.">
+  it("AuthShell shows the wordmark, Help and the legal links, with no app navigation", async () => {
+    render(
+      <AuthShell>
         <p>Body</p>
-      </AuthCard>,
+      </AuthShell>,
     );
-    expect(screen.getByRole("heading", { level: 1, name: "Log in" })).toBeInTheDocument();
-    expect(screen.getByText("No password needed.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "FLEETGRID" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("button", { name: "Help" })).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Legal" })).toBeInTheDocument();
+    expect(screen.queryByRole("navigation", { name: "Main" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Toggle dark mode" })).not.toBeInTheDocument();
     expect(screen.getByText("Body")).toBeInTheDocument();
-
-    rerender(
-      <AuthCard title="Enter your code">
-        <p>Body</p>
-      </AuthCard>,
-    );
-    expect(screen.queryByText("No password needed.")).not.toBeInTheDocument();
   });
 });

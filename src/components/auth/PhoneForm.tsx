@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useRef, useState, type FormEvent } from "react";
+import { useRef, useState, type ComponentProps, type FormEvent } from "react";
 import { toast } from "sonner";
 import { FormField } from "@/components/shared/FormField";
 import { LoadingButton } from "@/components/shared/LoadingButton";
 import { Input } from "@/components/ui/input";
 import { VERIFY_PATH } from "@/lib/auth/routes";
 import { formatUsPhoneInput } from "@/lib/phone";
+import { cn } from "@/lib/utils";
 import { phoneSchema } from "@/lib/validation/phone.schema";
 import { requestOtpAction } from "@/server/actions/auth.actions";
 import type { SignupRole } from "@/types/domain";
@@ -15,6 +16,21 @@ import type { SignupRole } from "@/types/domain";
 interface PhoneFormProps {
   /** Carried through to the role picker so the choice is preselected. */
   role?: SignupRole;
+}
+
+/** A phone field with the fixed US country code in front. US numbers only. */
+function PhoneInput({ className, ...props }: ComponentProps<typeof Input>) {
+  return (
+    <div className="relative">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-body leading-body font-semibold text-muted-foreground"
+      >
+        US +1
+      </span>
+      <Input {...props} className={cn("pl-24", className)} />
+    </div>
+  );
 }
 
 export function PhoneForm({ role }: PhoneFormProps) {
@@ -59,7 +75,7 @@ export function PhoneForm({ role }: PhoneFormProps) {
         error={error}
         required
       >
-        <Input
+        <PhoneInput
           name="phone"
           type="tel"
           inputMode="tel"
@@ -71,12 +87,13 @@ export function PhoneForm({ role }: PhoneFormProps) {
             event.target.value = formatUsPhoneInput(event.target.value);
             if (error) setError(undefined);
           }}
+          enterKeyHint="send"
           autoFocus
         />
       </FormField>
 
       <LoadingButton type="submit" loading={pending} loadingText="Sending code...">
-        Send code
+        Text me a code
       </LoadingButton>
     </form>
   );

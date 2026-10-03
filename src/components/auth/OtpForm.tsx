@@ -2,15 +2,22 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentProps,
+  type FormEvent,
+} from "react";
 import { toast } from "sonner";
 import { FormField } from "@/components/shared/FormField";
 import { LoadingButton } from "@/components/shared/LoadingButton";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { CHOOSE_ROLE_PATH, LOGIN_PATH } from "@/lib/auth/routes";
 import { OTP_LENGTH, OTP_RESEND_COOLDOWN_SECONDS } from "@/lib/constants";
 import { digitsOnly, formatE164ForDisplay } from "@/lib/phone";
+import { cn } from "@/lib/utils";
 import { requestOtpAction, verifyOtpAction } from "@/server/actions/auth.actions";
 import type { SignupRole } from "@/types/domain";
 
@@ -22,6 +29,45 @@ interface OtpFormProps {
   cooldownSeconds?: number;
 }
 
+/** "1:00", "0:45" */
+export function formatCountdown(seconds: number): string {
+  const minutes = Math.floor(seconds / 60);
+  return `${minutes}:${String(seconds % 60).padStart(2, "0")}`;
+}
+
+/**
+ * One real input, drawn as six large boxes. The input stays in the accessibility tree and
+ * keeps SMS autofill and paste working; the boxes only show what was typed.
+ */
+function CodeInput({
+  digits,
+  focused,
+  className,
+  ...props
+}: ComponentProps<"input"> & { digits: string; focused: boolean }) {
+  return (
+    <div className="relative">
+      <div aria-hidden="true" className="grid grid-cols-6 gap-2" data-slot="code-boxes">
+        {Array.from({ length: OTP_LENGTH }, (_, index) => (
+          <div
+            key={index}
+            className={cn(
+              "flex h-target-lg items-center justify-center rounded-field border-2 bg-card font-mono text-code leading-code font-medium tabular-nums",
+              focused && index === Math.min(digits.length, OTP_LENGTH - 1)
+                ? "border-ring"
+                : "border-input",
+              props["aria-invalid"] && "border-destructive",
+            )}
+          >
+            {digits[index] ?? ""}
+          </div>
+        ))}
+      </div>
+      <input {...props} className={cn("absolute inset-0 h-full w-full opacity-0", className)} />
+    </div>
+  );
+}
+
 export function OtpForm({
   phone,
   role,
@@ -30,11 +76,19 @@ export function OtpForm({
   const router = useRouter();
   // Uncontrolled on purpose, so a code typed or autofilled before the scripts load is kept.
   const inputRef = useRef<HTMLInputElement>(null);
+  const [digits, setDigits] = useState("");
+  const [focused, setFocused] = useState(false);
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
   const [resending, setResending] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(cooldownSeconds);
   const submittedCode = useRef<string | null>(null);
+
+  // Show whatever was typed before React took over.
+  useEffect(() => {
+    const typed = digitsOnly(inputRef.current?.value ?? "").slice(0, OTP_LENGTH);
+    if (typed) setDigits(typed);
+  }, []);
 
   // Resend cooldown countdown.
   useEffect(() => {
@@ -73,6 +127,7 @@ export function OtpForm({
     // Works for typing, pasting "123 456" and SMS autofill.
     const next = digitsOnly(input.value).slice(0, OTP_LENGTH);
     input.value = next;
+    setDigits(next);
     if (error) setError(undefined);
     // Submit as soon as the code is complete, once per distinct code.
     if (next.length === OTP_LENGTH && next !== submittedCode.current && !pending) {
@@ -96,6 +151,7 @@ export function OtpForm({
       return;
     }
     if (inputRef.current) inputRef.current.value = "";
+    setDigits("");
     setError(undefined);
     submittedCode.current = null;
     setSecondsLeft(cooldownSeconds);
@@ -104,27 +160,26 @@ export function OtpForm({
 
   return (
     <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-5">
-      <p className="text-muted-foreground text-sm">
-        Enter the code we texted to{" "}
-        <span className="text-foreground font-medium">{formatE164ForDisplay(phone)}</span>.{" "}
-        <Link href={LOGIN_PATH} className="text-foreground underline underline-offset-4">
-          Change number
-        </Link>
+      <p className="text-helper leading-helper text-muted-foreground">
+        We texted a code to{" "}
+        <span className="font-semibold text-foreground">{formatE164ForDisplay(phone)}</span>.
       </p>
 
       <FormField label="6-digit code" error={error} required>
-        <Input
+        <CodeInput
+          digits={digits}
+          focused={focused}
           name="code"
           type="text"
           inputMode="numeric"
           autoComplete="one-time-code"
           pattern="\d*"
           maxLength={OTP_LENGTH + 4}
-          placeholder="123456"
-          className="text-center font-mono text-code tracking-code"
           ref={inputRef}
           defaultValue=""
           onChange={(event) => handleChange(event.target)}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           disabled={pending}
           autoFocus
         />
@@ -134,16 +189,25 @@ export function OtpForm({
         Verify
       </LoadingButton>
 
-      <div className="text-center text-helper">
+      <div className="flex flex-col items-center gap-2 text-center text-helper leading-helper">
         {secondsLeft > 0 ? (
           <p className="text-muted-foreground" aria-live="polite">
-            Resend code in {secondsLeft}s
+            Didn&apos;t get it? Resend in {formatCountdown(secondsLeft)}
           </p>
         ) : (
           <Button type="button" variant="link" onClick={handleResend} disabled={resending}>
             {resending ? "Sending..." : "Resend code"}
           </Button>
         )}
+        <p className="text-muted-foreground">
+          Wrong number?{" "}
+          <Link
+            href={LOGIN_PATH}
+            className="inline-flex min-h-target items-center font-semibold text-foreground underline underline-offset-4"
+          >
+            Change it
+          </Link>
+        </p>
       </div>
     </form>
   );

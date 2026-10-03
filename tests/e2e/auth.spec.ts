@@ -22,7 +22,7 @@ test.describe("phone login", () => {
     await expect(phone).toHaveValue("(555) 555-0100");
 
     await phone.fill("555");
-    await page.getByRole("button", { name: "Send code" }).click();
+    await page.getByRole("button", { name: "Text me a code" }).click();
     await expect(formAlert(page)).toHaveText("Enter a valid US mobile number");
     await expect(page).toHaveURL(/\/login$/);
   });
@@ -33,7 +33,7 @@ test.describe("phone login", () => {
 
     await expect(page.getByText("(555) 555-0100")).toBeVisible();
     await expect(page.getByLabel("6-digit code")).toHaveAttribute("autocomplete", "one-time-code");
-    await expect(page.getByText(/Resend code in \d+s/)).toBeVisible();
+    await expect(page.getByText(/Resend in \d:\d\d/)).toBeVisible();
 
     await page.getByLabel("6-digit code").fill(OTP);
     await expect(page).toHaveURL(/\/choose-role/);
@@ -84,7 +84,10 @@ test.describe("phone login", () => {
     await login(page, PHONES.carrier, "/login?role=carrier");
 
     await expect(page).toHaveURL(/\/choose-role\?role=carrier/);
-    await expect(page.getByRole("radio", { name: /I'm a Carrier/ })).toBeChecked();
+    await expect(page.getByRole("radio", { name: /I hire for my company/ })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
 
     await page.getByRole("button", { name: "Continue" }).click();
     await expect(page).toHaveURL(/\/carrier$/);

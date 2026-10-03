@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { AuthCard } from "@/components/auth/AuthCard";
+import { AuthShell } from "@/components/auth/AuthShell";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { RoleChooser } from "@/components/auth/RoleChooser";
-import { AppShell } from "@/components/layout/AppShell";
+import { SignHeader } from "@/components/onboarding/SignHeader";
 import { requireSession } from "@/lib/auth/guards";
 import { homePathFor } from "@/lib/auth/routes";
 import { SIGNUP_ROLES } from "@/types/domain";
@@ -18,13 +18,16 @@ export default async function ChooseRolePage({ searchParams }: PageProps<"/choos
   const defaultRole = SIGNUP_ROLES.find((candidate) => candidate === params.role);
 
   return (
-    <AppShell width="narrow" headerActions={<LogoutButton />}>
-      <AuthCard
-        title="How will you use FleetGrid?"
-        description="This cannot be changed later, so pick the one that fits."
-      >
-        <RoleChooser defaultRole={defaultRole} />
-      </AuthCard>
-    </AppShell>
+    <AuthShell>
+      <SignHeader eyebrow="One more thing" title="How will you use FleetGrid?" />
+      <p className="text-helper leading-helper text-muted-foreground">
+        Pick the one that fits. This cannot be changed later without our help.
+      </p>
+      <RoleChooser defaultRole={defaultRole} />
+      <div className="flex items-center justify-center gap-2 text-helper leading-helper text-muted-foreground">
+        <span>Wrong number?</span>
+        <LogoutButton />
+      </div>
+    </AuthShell>
   );
 }

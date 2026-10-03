@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import { AuthCard } from "@/components/auth/AuthCard";
+import { AuthShell } from "@/components/auth/AuthShell";
 import { PhoneForm } from "@/components/auth/PhoneForm";
-import { AppShell } from "@/components/layout/AppShell";
+import { SignHeader } from "@/components/onboarding/SignHeader";
 import { InlineNote } from "@/components/shared/InlineNote";
 import { SIGNUP_ROLES } from "@/types/domain";
 
@@ -13,18 +13,17 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const blocked = params.blocked === "1";
 
   return (
-    <AppShell width="narrow">
-      <AuthCard
-        title="Log in or sign up"
-        description="Enter your mobile number. No password needed."
-      >
-        {blocked && (
-          <InlineNote variant="error" role="alert" className="mb-5">
-            Your account has been blocked. Contact support for help.
-          </InlineNote>
-        )}
-        <PhoneForm role={role} />
-      </AuthCard>
-    </AppShell>
+    <AuthShell>
+      <SignHeader eyebrow="Log in or sign up" title="What is your mobile number?" />
+      <p className="text-helper leading-helper text-muted-foreground">
+        No password. We text you a code instead.
+      </p>
+      {blocked && (
+        <InlineNote variant="error" role="alert">
+          Your account has been blocked. Contact support for help.
+        </InlineNote>
+      )}
+      <PhoneForm role={role} />
+    </AuthShell>
   );
 }

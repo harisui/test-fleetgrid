@@ -2,24 +2,26 @@
 
 import { Building2, Truck } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useState } from "react";
 import { LoadingButton } from "@/components/shared/LoadingButton";
-import { cn } from "@/lib/utils";
+import { OptionGroup } from "@/components/shared/OptionGroup";
+import type { CardOption } from "@/lib/onboarding/options";
 import { chooseRoleAction } from "@/server/actions/auth.actions";
 import type { SignupRole } from "@/types/domain";
 
-const OPTIONS: { role: SignupRole; title: string; description: string; icon: ReactNode }[] = [
+/** Plain words first. The official role name is in the description. */
+export const ROLE_OPTIONS: readonly CardOption<SignupRole>[] = [
   {
-    role: "driver",
-    title: "I'm a Driver",
-    description: "CDL drivers, yard spotters and mechanics. Get shift offers by text.",
-    icon: <Truck aria-hidden="true" className="size-6" />,
+    value: "driver",
+    label: "I drive or work trucks",
+    description: "Drivers, yard spotters and mechanics. Get shift offers by text.",
+    icon: Truck,
   },
   {
-    role: "carrier",
-    title: "I'm a Carrier",
-    description: "Freight carriers. Find certified operators and fill shifts fast.",
-    icon: <Building2 aria-hidden="true" className="size-6" />,
+    value: "carrier",
+    label: "I hire for my company",
+    description: "Carriers. Find certified operators and fill shifts fast.",
+    icon: Building2,
   },
 ];
 
@@ -55,56 +57,18 @@ export function RoleChooser({ defaultRole }: RoleChooserProps) {
 
   return (
     <div className="flex flex-col gap-5">
-      <fieldset className="flex flex-col gap-3" disabled={pending}>
-        <legend className="sr-only">Account type</legend>
-        {OPTIONS.map((option) => {
-          const selected = role === option.role;
-          return (
-            <label
-              key={option.role}
-              className={cn(
-                "flex min-h-20 cursor-pointer items-center gap-4 rounded-card border bg-card p-4 transition-colors duration-(--dur-state) ease-standard",
-                "has-focus-visible:outline-3 has-focus-visible:outline-ring has-focus-visible:outline-offset-2",
-                selected
-                  ? "border-selection bg-selection-tint ring-1 ring-selection ring-inset"
-                  : "border-border-strong",
-              )}
-            >
-              <input
-                type="radio"
-                name="role"
-                value={option.role}
-                checked={selected}
-                onChange={() => {
-                  setRole(option.role);
-                  setError(undefined);
-                }}
-                className="sr-only"
-              />
-              <span
-                className={cn(
-                  "flex size-10 shrink-0 items-center justify-center rounded-field bg-muted text-foreground",
-                  selected && "bg-selection text-selection-foreground",
-                )}
-              >
-                {option.icon}
-              </span>
-              <span className="flex flex-col">
-                <span className="text-body leading-body font-semibold">{option.title}</span>
-                <span className="text-helper leading-helper text-muted-foreground">
-                  {option.description}
-                </span>
-              </span>
-            </label>
-          );
-        })}
-      </fieldset>
-
-      {error && (
-        <p role="alert" className="text-helper leading-helper font-semibold text-destructive">
-          {error}
-        </p>
-      )}
+      <OptionGroup
+        label="Account type"
+        labelHidden
+        options={ROLE_OPTIONS}
+        value={role}
+        onChange={(next) => {
+          setRole(next);
+          setError(undefined);
+        }}
+        error={error}
+        disabled={pending}
+      />
 
       <LoadingButton
         type="button"

@@ -6,7 +6,7 @@ const PUBLIC_PAGES = [
   { path: "/terms", heading: "Terms of Service" },
   { path: "/privacy", heading: "Privacy Policy" },
   { path: "/sms-terms", heading: "SMS Terms" },
-  { path: "/login", heading: "Log in or sign up" },
+  { path: "/login", heading: "What is your mobile number?" },
 ];
 
 async function expectNoAccessibilityViolations(page: Page) {

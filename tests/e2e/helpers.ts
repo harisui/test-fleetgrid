@@ -92,7 +92,7 @@ export async function requestCode(page: Page, phone: string, loginPath = "/login
   await respectResendInterval(phone);
   await page.goto(loginPath);
   await page.getByLabel("Mobile number").fill(national(phone));
-  await page.getByRole("button", { name: "Send code" }).click();
+  await page.getByRole("button", { name: "Text me a code" }).click();
   await expect(page).toHaveURL(/\/verify\?/);
 }
 
@@ -111,10 +111,9 @@ export const formAlert = (page: Page) => page.getByRole("main").getByRole("alert
 
 /** Picks a role card the way a person does, by tapping its label. */
 export async function chooseRole(page: Page, role: "driver" | "carrier") {
-  await page.getByText(role === "driver" ? "I'm a Driver" : "I'm a Carrier").click();
-  await expect(
-    page.getByRole("radio", { name: role === "driver" ? /I'm a Driver/ : /I'm a Carrier/ }),
-  ).toBeChecked();
+  const name = role === "driver" ? /I drive or work trucks/ : /I hire for my company/;
+  await page.getByRole("radio", { name }).click();
+  await expect(page.getByRole("radio", { name })).toHaveAttribute("aria-checked", "true");
 }
 
 /** Login for a number with no account yet, choosing a role. */
