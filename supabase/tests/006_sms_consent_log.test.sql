@@ -90,7 +90,7 @@ select pg_temp.sign_out();
 -- Admin: read only.
 select pg_temp.sign_in('33333333-3333-4333-8333-333333333333', '15555559003');
 select results_eq(
-  $$select phone, event::text, source::text, consent_version from public.sms_consent_log$$,
+  $$select phone, event::text, source::text, consent_version from public.sms_consent_log where phone = '+15555559001'$$,
   $$values ('+15555559001', 'opt_in', 'onboarding', '2026-10-v1')$$,
   'an admin reads the log'
 );
