@@ -131,7 +131,9 @@ test.describe("driver onboarding, one question per screen", () => {
 
     await expect(screenHeading(page)).toHaveText("You are listed.");
     await expect(page.getByText("Profile complete", { exact: true })).toBeVisible();
-    await expect(page.getByText(/Carriers near 75201 can now find you/)).toBeVisible();
+    await expect(
+      page.getByText(/Once your profile is approved, carriers near 75201 can find you/),
+    ).toBeVisible();
     expect(Date.now() - started).toBeLessThan(FIVE_MINUTES_MS);
 
     const row = await driverRow();

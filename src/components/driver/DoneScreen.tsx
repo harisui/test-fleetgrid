@@ -17,7 +17,7 @@ interface DoneScreenProps {
 const NEXT_STEPS = [
   {
     icon: Search,
-    text: "A FleetGrid reviewer checks your profile, usually within one business day.",
+    text: "A FleetGrid reviewer will check your profile.",
   },
   { icon: MessageSquareText, text: "Shift offers arrive by text. Reply YES to claim one." },
   { icon: FileText, text: "You can add your CDL and medical card any time from Documents." },
@@ -37,8 +37,8 @@ export function DoneScreen({ driver, phone, onEdit }: DoneScreenProps) {
           srText="Step 5 of 5: Finish. Profile complete."
         />
         <p>
-          Carriers near {driver.zip} can now find you. We will text you at {maskPhone(phone)} when a
-          carrier sends a shift.
+          Once your profile is approved, carriers near {driver.zip} can find you. We will text you
+          at {maskPhone(phone)} when a carrier sends a shift.
         </p>
         <SummaryCard driver={driver} onEdit={onEdit} />
         <ul className="flex flex-col gap-3" aria-label="What happens next">

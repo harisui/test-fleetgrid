@@ -385,7 +385,12 @@ describe("papers, about you, consent, done", () => {
     );
     expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("consent", { consent: true });
     expect(router.refresh).toHaveBeenCalledOnce();
-    expect(screen.getByText(/Carriers near 75201 can now find you/)).toBeInTheDocument();
+    // Drivers start as pending: the done screen promises nothing that depends on approval.
+    expect(
+      screen.getByText(/Once your profile is approved, carriers near 75201 can find you/),
+    ).toBeInTheDocument();
+    expect(screen.getByText("A FleetGrid reviewer will check your profile.")).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/can now find you|business day|within \d/);
     expect(screen.getByRole("link", { name: "Go to my profile" })).toHaveAttribute(
       "href",
       "/driver/profile",
