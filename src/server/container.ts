@@ -33,7 +33,7 @@ export function buildContainer(supabase: TypedSupabaseClient) {
       () => new AccountRepository(createAdminClient()),
     ),
     profileService: new ProfileService(profiles),
-    driverService: new DriverService(drivers, profiles),
+    driverService: new DriverService(drivers, profiles, zipProvider),
     documentService: new DocumentService(documents, drivers, profiles),
     zipLookupService: new ZipLookupService(zipProvider),
   };

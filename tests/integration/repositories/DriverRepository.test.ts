@@ -109,6 +109,20 @@ describe("DriverRepository (local Supabase)", () => {
     });
   });
 
+  it("update stores the ZIP's coordinates as a pair and can clear them", async () => {
+    const located = await repository.update(driver.id, { lat: 32.78111, lng: -96.79722 });
+    expect(located.lat).toBeCloseTo(32.78111, 5);
+    expect(located.lng).toBeCloseTo(-96.79722, 5);
+
+    const error = await repository.update(driver.id, { lat: 32.78111, lng: null }).catch((e) => e);
+    expect(error).toBeInstanceOf(AppError);
+    expect((error as AppError).code).toBe("VALIDATION");
+
+    const cleared = await repository.update(driver.id, { lat: null, lng: null });
+    expect(cleared.lat).toBeNull();
+    expect(cleared.lng).toBeNull();
+  });
+
   it("update can clear nullable fields and store consent with completion", async () => {
     await repository.update(driver.id, { availability: ["full_time"], bio: "Hello", city: null });
     const consentAt = "2026-10-05T15:30:00.000Z";

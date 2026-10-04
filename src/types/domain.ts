@@ -115,6 +115,9 @@ export interface Driver {
   state: string | null;
   zip: string | null;
   serviceRadiusMiles: number;
+  /** Centre of the saved ZIP in decimal degrees, from the bundled dataset. Null when unknown. */
+  lat: number | null;
+  lng: number | null;
   availability: AvailabilityType[];
   certifications: string[];
   bio: string | null;

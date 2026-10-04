@@ -43,6 +43,8 @@ export class FakeDriverRepository implements IDriverRepository {
       state: input.state ?? null,
       zip: input.zip ?? null,
       serviceRadiusMiles: input.serviceRadiusMiles ?? 50,
+      lat: null,
+      lng: null,
       availability: [],
       certifications: [],
       bio: null,

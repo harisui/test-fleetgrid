@@ -7,6 +7,7 @@ import { AppError } from "@/server/errors/AppError";
 import { DriverService, missingCardFields } from "@/server/services/DriverService";
 import { FakeDriverRepository } from "../../fakes/FakeDriverRepository";
 import { FakeProfileRepository } from "../../fakes/FakeProfileRepository";
+import { FakeZipProvider } from "../../fakes/FakeZipProvider";
 import {
   buildDriver,
   buildPartialDriver,
@@ -31,12 +32,17 @@ const NOW = new Date("2026-10-05T15:30:00.000Z");
 describe("DriverService", () => {
   let drivers: FakeDriverRepository;
   let profiles: FakeProfileRepository;
+  let zips: FakeZipProvider;
   let service: DriverService;
 
   beforeEach(() => {
     drivers = new FakeDriverRepository();
     profiles = new FakeProfileRepository([buildProfile()]);
-    service = new DriverService(drivers, profiles, () => NOW);
+    zips = new FakeZipProvider([
+      { zip: "75201", city: "Dallas", state: "TX", lat: 32.78111, lng: -96.79722 },
+      { zip: "60601", city: "Chicago", state: "IL", lat: 41.8858, lng: -87.6181 },
+    ]);
+    service = new DriverService(drivers, profiles, zips, () => NOW);
   });
 
   /** Saves every screen up to and including `upTo` with valid input. */
@@ -228,6 +234,29 @@ describe("DriverService", () => {
       expect(driver.onboardingStep).toBe(stepNumber("distance"));
     });
 
+    it("stores the ZIP's coordinates from the bundled dataset, never from the client", async () => {
+      const driver = await service.saveScreen(USER_ID, "zip", {
+        zip: "75201",
+        city: "Dallas",
+        state: "TX",
+        lat: 0,
+        lng: 0,
+      });
+      expect(driver.lat).toBe(32.78111);
+      expect(driver.lng).toBe(-96.79722);
+      expect(zips.calls).toEqual(["75201"]);
+    });
+
+    it("leaves the coordinates empty for a ZIP the dataset does not know", async () => {
+      await service.saveScreen(USER_ID, "zip", { zip: "75201", city: "Dallas", state: "TX" });
+      const driver = await service.saveScreen(USER_ID, "zip", {
+        zip: "99999",
+        city: "Nowhere",
+        state: "TX",
+      });
+      expect(driver).toMatchObject({ zip: "99999", lat: null, lng: null });
+    });
+
     it("rejects a bad ZIP with a plain message", async () => {
       const error = await expectAppError(
         service.saveScreen(USER_ID, "zip", { zip: "6060", state: "IL" }),
@@ -396,7 +425,12 @@ describe("DriverService", () => {
 
     it("submitting consent twice keeps the original timestamp and text", async () => {
       const first = await service.saveScreen(USER_ID, "consent", { consent: true });
-      const later = new DriverService(drivers, profiles, () => new Date("2027-01-01T00:00:00Z"));
+      const later = new DriverService(
+        drivers,
+        profiles,
+        zips,
+        () => new Date("2027-01-01T00:00:00Z"),
+      );
       const second = await later.saveScreen(USER_ID, "consent", { consent: true });
       expect(second.smsOptInAt).toBe(first.smsOptInAt);
       expect(second.cardCompleted).toBe(true);
@@ -478,6 +512,9 @@ describe("DriverService", () => {
         fullName: "Patricia Driver",
         city: "Austin",
         zip: "73301",
+        // The coordinates follow the ZIP: 73301 is not in the fake dataset.
+        lat: null,
+        lng: null,
         serviceRadiusMiles: 120,
         operatorTypes: ["yard_spotter", "mechanic"],
         cdlClass: "B",
@@ -558,7 +595,7 @@ describe("DriverService", () => {
   });
 
   it("uses the real clock by default", async () => {
-    const realClock = new DriverService(drivers, profiles);
+    const realClock = new DriverService(drivers, profiles, zips);
     await completeThrough("bio");
     const before = Date.now();
     const driver = await realClock.saveScreen(USER_ID, "consent", { consent: true });

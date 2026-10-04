@@ -22,7 +22,8 @@ function DistanceFields({ showQuestion, question, driver }: ScreenFieldsProps) {
       : "";
   return (
     <>
-      <ScreenHelper>{from}Pick the farthest you would go.</ScreenHelper>
+      {/* Shifts are matched by state (Milestone 3); this answer is information for carriers. */}
+      <ScreenHelper>{from}Tells carriers how far you&apos;re willing to go for work.</ScreenHelper>
       <Controller
         control={control}
         name="serviceRadiusMiles"

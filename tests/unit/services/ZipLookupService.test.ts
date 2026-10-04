@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { ZipLookupService } from "@/server/services/ZipLookupService";
 import { FakeZipProvider } from "../../fakes/FakeZipProvider";
 
-const CHICAGO = { zip: "60601", city: "Chicago", state: "IL" };
+const CHICAGO = { zip: "60601", city: "Chicago", state: "IL", lat: 41.8858, lng: -87.6181 };
 
 describe("ZipLookupService", () => {
   const provider = new FakeZipProvider([CHICAGO]);

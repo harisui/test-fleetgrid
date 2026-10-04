@@ -22,6 +22,8 @@ export interface DriverPatch {
   state?: string | null;
   zip?: string | null;
   serviceRadiusMiles?: number;
+  lat?: number | null;
+  lng?: number | null;
   operatorTypes?: OperatorType[];
   cdlClass?: CdlClass;
   endorsements?: Endorsement[];
@@ -55,6 +57,8 @@ export function mapDriver(row: DriverRow): Driver {
     state: row.state,
     zip: row.zip,
     serviceRadiusMiles: row.service_radius_miles,
+    lat: row.lat,
+    lng: row.lng,
     availability: row.availability,
     certifications: row.certifications,
     bio: row.bio,
@@ -78,6 +82,8 @@ export function toDriverUpdate(patch: DriverPatch): DriverUpdate {
     state: "state",
     zip: "zip",
     serviceRadiusMiles: "service_radius_miles",
+    lat: "lat",
+    lng: "lng",
     operatorTypes: "operator_types",
     cdlClass: "cdl_class",
     endorsements: "endorsements",

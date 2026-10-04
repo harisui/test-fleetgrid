@@ -25,7 +25,7 @@ select columns_are('public', 'profiles',
   array['id', 'role', 'phone', 'status', 'created_at', 'updated_at']);
 select columns_are('public', 'drivers', array[
   'id', 'profile_id', 'full_name', 'operator_types', 'cdl_class', 'endorsements',
-  'years_experience', 'city', 'state', 'zip', 'service_radius_miles', 'availability',
+  'years_experience', 'city', 'state', 'zip', 'service_radius_miles', 'lat', 'lng', 'availability',
   'certifications', 'bio', 'sms_opt_in', 'sms_opt_in_at', 'sms_opt_in_text', 'sms_opted_out',
   'sms_opted_out_at', 'onboarding_step', 'card_completed', 'created_at', 'updated_at']);
 select columns_are('public', 'driver_documents', array[
@@ -248,6 +248,18 @@ select throws_ok(pg_temp.update_driver($$service_radius_miles = 4$$), '23514', n
 select throws_ok(pg_temp.update_driver($$service_radius_miles = 501$$), '23514', null, 'radius over 500 rejected');
 select lives_ok(pg_temp.update_driver($$service_radius_miles = 5$$), 'radius 5 accepted');
 select lives_ok(pg_temp.update_driver($$service_radius_miles = 500$$), 'radius 500 accepted');
+-- Coordinates (0007): optional, always as a pair, inside the valid ranges.
+select has_column('drivers', 'lat');
+select has_column('drivers', 'lng');
+select col_type_is('drivers', 'lat', 'numeric(8,5)');
+select col_type_is('drivers', 'lng', 'numeric(8,5)');
+select col_is_null('drivers', 'lat');
+select col_is_null('drivers', 'lng');
+select lives_ok(pg_temp.update_driver($$lat = 32.78111, lng = -96.79722$$), 'coordinates accepted');
+select throws_ok(pg_temp.update_driver($$lat = 90.00001, lng = 0$$), '23514', null, 'latitude over 90 rejected');
+select throws_ok(pg_temp.update_driver($$lat = 0, lng = -180.5$$), '23514', null, 'longitude under -180 rejected');
+select throws_ok(pg_temp.update_driver($$lat = 32.78111, lng = null$$), '23514', null, 'latitude without longitude rejected');
+select lives_ok(pg_temp.update_driver($$lat = null, lng = null$$), 'coordinates can be cleared together');
 select throws_ok(pg_temp.update_driver($$bio = repeat('x', 501)$$), '23514', null, 'bio over 500 chars rejected');
 select lives_ok(pg_temp.update_driver($$bio = repeat('x', 500)$$), 'bio of 500 chars accepted');
 select throws_ok(pg_temp.update_driver($$onboarding_step = 0$$), '23514', null, 'onboarding step 0 rejected');
