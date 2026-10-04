@@ -17,7 +17,8 @@
     "test:integration": "vitest run -c vitest.integration.config.ts",
     "test:db": "supabase test db",
     "test:e2e": "playwright test",
-    "design-review": "playwright test -c playwright.design-review.config.ts",
+    "design-review": "playwright test -c playwright.design-review.config.ts workshop.review",
+    "screenshots:opt-in": "playwright test -c playwright.design-review.config.ts opt-in.review",
     "test:all": "pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm test:db && pnpm test:integration && pnpm test:e2e",
     "db:types": "supabase gen types typescript --local > src/types/database.types.ts",
     "db:reset": "supabase db reset"

@@ -46,6 +46,7 @@ next-env.d.ts
 /test-results
 /blob-report
 /design-review
+/screenshots
 
 # supabase
 supabase/.temp
