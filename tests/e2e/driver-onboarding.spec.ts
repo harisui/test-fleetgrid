@@ -262,7 +262,7 @@ test.describe("driver onboarding, one question per screen", () => {
     await expect(screenHeading(page)).toHaveText("What class is your CDL?");
   });
 
-  test("X auto-selects H and N, dropping N drops X, and None clears the rest", async ({ page }) => {
+  test("X auto-selects H and N, S auto-selects P, and None clears the rest", async ({ page }) => {
     await resumeAt(page, 8, { endorsements: [] });
     await expect(screenHeading(page)).toHaveText("Any extra letters on your CDL?");
     await expect(page.getByRole("img", { name: /front of a CDL/ })).toBeVisible();
@@ -279,6 +279,13 @@ test.describe("driver onboarding, one question per screen", () => {
     await card(page, "checkbox", /^N\b/).click();
     await expect(card(page, "checkbox", /^X\b/)).toHaveAttribute("aria-checked", "false");
     await expect(card(page, "checkbox", /^H\b/)).toHaveAttribute("aria-checked", "true");
+
+    // S (school bus) needs P (passengers): S brings P in, dropping P drops S.
+    await card(page, "checkbox", /^S\b/).click();
+    await expect(card(page, "checkbox", /^P\b/)).toHaveAttribute("aria-checked", "true");
+    await expect(page.getByText(/S includes P\./)).toBeVisible();
+    await card(page, "checkbox", /^P\b/).click();
+    await expect(card(page, "checkbox", /^S\b/)).toHaveAttribute("aria-checked", "false");
 
     await card(page, "checkbox", /^None/).click();
     await expect(card(page, "checkbox", /^H\b/)).toHaveAttribute("aria-checked", "false");

@@ -268,9 +268,22 @@ describe("endorsement rules", () => {
     expect(toggleEndorsement(["T", "P"], "P")).toEqual(["T"]);
   });
 
-  it("normalizes saved data the same way", () => {
+  it("picking S (school bus) also picks P (passengers), the federal rule", () => {
+    expect(toggleEndorsement([], "S")).toEqual(["P", "S"]);
+    expect(toggleEndorsement(["T"], "S")).toEqual(["T", "P", "S"]);
+  });
+
+  it("dropping P also drops S, while dropping S keeps P", () => {
+    expect(toggleEndorsement(["P", "S"], "P")).toEqual([]);
+    expect(toggleEndorsement(["T", "P", "S"], "P")).toEqual(["T"]);
+    expect(toggleEndorsement(["P", "S"], "S")).toEqual(["P"]);
+  });
+
+  it("normalizes saved data the same way: X brings H and N, S brings P", () => {
     expect(normalizeEndorsements(["X"])).toEqual(["X", "H", "N"]);
-    expect(normalizeEndorsements(["S", "H"])).toEqual(["H", "S"]);
+    expect(normalizeEndorsements(["S", "H"])).toEqual(["H", "P", "S"]);
+    expect(normalizeEndorsements(["S"])).toEqual(["P", "S"]);
+    expect(normalizeEndorsements(["P"])).toEqual(["P"]);
     expect(normalizeEndorsements([])).toEqual([]);
   });
 });

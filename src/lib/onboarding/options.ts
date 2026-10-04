@@ -83,10 +83,13 @@ export const ENDORSEMENT_OPTIONS: readonly CardOption<Endorsement>[] = [
 ];
 
 export const ENDORSEMENT_X_NOTE = "X includes H and N.";
+export const ENDORSEMENT_S_NOTE =
+  "S includes P. School bus drivers also need the passenger endorsement.";
 
 /**
  * Applies the endorsement rules after one letter is tapped:
- * picking X also picks H and N; dropping H or N also drops X.
+ * picking X also picks H and N; dropping H or N also drops X;
+ * picking S also picks P (federal rule); dropping P also drops S.
  */
 export function toggleEndorsement(
   current: readonly Endorsement[],
@@ -96,23 +99,26 @@ export function toggleEndorsement(
   if (selected.has(letter)) {
     selected.delete(letter);
     if (letter === "H" || letter === "N") selected.delete("X");
+    if (letter === "P") selected.delete("S");
   } else {
     selected.add(letter);
     if (letter === "X") {
       selected.add("H");
       selected.add("N");
     }
+    if (letter === "S") selected.add("P");
   }
   return ENDORSEMENT_OPTIONS.map((option) => option.value).filter((value) => selected.has(value));
 }
 
-/** The same rule for saved data: X always comes with H and N. Keeps the display order. */
+/** The same rules for saved data: X always comes with H and N, S with P. Keeps the display order. */
 export function normalizeEndorsements(values: readonly Endorsement[]): Endorsement[] {
   const selected = new Set(values);
   if (selected.has("X")) {
     selected.add("H");
     selected.add("N");
   }
+  if (selected.has("S")) selected.add("P");
   return ENDORSEMENT_OPTIONS.map((option) => option.value).filter((value) => selected.has(value));
 }
 

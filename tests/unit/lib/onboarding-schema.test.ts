@@ -196,6 +196,10 @@ describe("endorsements and certifications", () => {
       endorsements: ["X", "H", "N"],
     });
     expect(endorsementsScreenSchema.parse({})).toEqual({ endorsements: [] });
+    // S is never stored without P.
+    expect(endorsementsScreenSchema.parse({ endorsements: ["S"] })).toEqual({
+      endorsements: ["P", "S"],
+    });
     expect(Object.keys(errorsOf(endorsementsScreenSchema, { endorsements: ["Z"] }))).toEqual([
       "endorsements.0",
     ]);

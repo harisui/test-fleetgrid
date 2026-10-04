@@ -15,6 +15,7 @@ import { OptionCard } from "@/components/shared/OptionCard";
 import { OptionGroup } from "@/components/shared/OptionGroup";
 import {
   ENDORSEMENT_OPTIONS,
+  ENDORSEMENT_S_NOTE,
   ENDORSEMENT_X_NOTE,
   toggleEndorsement,
 } from "@/lib/onboarding/options";
@@ -78,6 +79,11 @@ function EndorsementsFields({ showQuestion, question, helper }: ScreenFieldsProp
               {value.includes("X") && (
                 <InlineNote variant="info" data-slot="x-note">
                   {ENDORSEMENT_X_NOTE}
+                </InlineNote>
+              )}
+              {value.includes("S") && (
+                <InlineNote variant="info" data-slot="s-note">
+                  {ENDORSEMENT_S_NOTE}
                 </InlineNote>
               )}
             </>

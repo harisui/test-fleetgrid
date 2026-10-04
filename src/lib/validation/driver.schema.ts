@@ -10,6 +10,7 @@ import {
   US_STATE_CODES,
   YEARS_EXPERIENCE_MAX,
 } from "@/lib/constants";
+import { normalizeEndorsements } from "@/lib/onboarding/options";
 import { AVAILABILITY_TYPES, CDL_CLASSES, ENDORSEMENTS, OPERATOR_TYPES } from "@/types/domain";
 
 /** Empty or whitespace-only strings become null. */
@@ -97,7 +98,8 @@ export const driverLicensesSchema = z
       .min(1, "Select at least one role")
       .transform(unique),
     cdlClass: z.enum(CDL_CLASSES, { error: "Select your CDL class" }),
-    endorsements: z.array(z.enum(ENDORSEMENTS)).default([]).transform(unique),
+    // The same letter rules as onboarding: X brings H and N, S brings P.
+    endorsements: z.array(z.enum(ENDORSEMENTS)).default([]).transform(normalizeEndorsements),
     yearsExperience: wholeNumber({
       required: "Enter your years of experience",
       min: [0, "Experience cannot be negative"],

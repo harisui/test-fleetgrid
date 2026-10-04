@@ -204,8 +204,14 @@ describe("driverLicensesSchema (step 2)", () => {
       }),
     );
     expect(parsed.operatorTypes).toEqual(["cdl_driver", "mechanic"]);
-    expect(parsed.endorsements).toEqual(["H", "X"]);
+    // The letter rules apply on the profile too: X brings H and N, in display order.
+    expect(parsed.endorsements).toEqual(["X", "H", "N"]);
     expect(parsed.certifications).toEqual(["TWIC", "OSHA 10"]);
+  });
+
+  it("applies the S-needs-P rule on the profile", () => {
+    const parsed = driverLicensesSchema.parse(validLicenses({ endorsements: ["S"] }));
+    expect(parsed.endorsements).toEqual(["P", "S"]);
   });
 
   it("drops endorsements when there is no CDL", () => {

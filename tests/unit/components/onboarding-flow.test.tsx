@@ -298,6 +298,14 @@ describe("license screens", () => {
     expect(screen.getByRole("checkbox", { name: /^H\b/ })).toHaveAttribute("aria-checked", "true");
     expect(screen.queryByText("X includes H and N.")).not.toBeInTheDocument();
 
+    // S (school bus) needs P (passengers).
+    await userEvent.click(screen.getByRole("checkbox", { name: /^S\b/ }));
+    expect(screen.getByRole("checkbox", { name: /^P\b/ })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByText(/S includes P\./)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("checkbox", { name: /^P\b/ }));
+    expect(screen.getByRole("checkbox", { name: /^S\b/ })).toHaveAttribute("aria-checked", "false");
+    expect(screen.queryByText(/S includes P\./)).not.toBeInTheDocument();
+
     await userEvent.click(screen.getByRole("checkbox", { name: /^None/ }));
     expect(screen.getByRole("checkbox", { name: /^None/ })).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("checkbox", { name: /^H\b/ })).toHaveAttribute("aria-checked", "false");
