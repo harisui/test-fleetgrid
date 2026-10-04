@@ -96,15 +96,39 @@ describe("DocumentUploader", () => {
     render(<DocumentUploader initialDocuments={[]} />);
     await userEvent.click(screen.getByRole("combobox", { name: "Document type" }));
     const options = await screen.findAllByRole("option");
+    // Certificates have their own tile, so the dropdown leaves them out.
     expect(options.map((option) => option.textContent)).toEqual([
       "CDL (front)",
       "CDL (back)",
       "Medical card",
-      "Certification",
       "Other",
     ]);
     await userEvent.keyboard("{Escape}");
     expect(chooser()).toHaveAttribute("accept", "image/jpeg,image/png,image/webp,application/pdf");
+  });
+
+  it("shows the Other papers tile with the certificates already uploaded", () => {
+    render(
+      <DocumentUploader
+        initialDocuments={[
+          buildDocument({
+            id: "d0000000-0000-4000-8000-000000000201",
+            type: "certification",
+            fileName: "twic.pdf",
+          }),
+          buildDocument({
+            id: "d0000000-0000-4000-8000-000000000202",
+            type: "cdl_front",
+            fileName: "front.jpg",
+          }),
+        ]}
+      />,
+    );
+    const tile = screen.getByText("Other papers").closest("[data-slot=multi-upload-tile]")!;
+    expect(tile).toHaveAttribute("data-count", "1");
+    expect(within(tile as HTMLElement).getByText(/twic\.pdf/)).toBeInTheDocument();
+    expect(within(tile as HTMLElement).queryByText(/front\.jpg/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Remove twic.pdf" })).toBeInTheDocument();
   });
 
   it("uploads: compress, reserve, send to storage, confirm, then list", async () => {

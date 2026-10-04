@@ -60,6 +60,57 @@ describe("DocumentService", () => {
     documents.files.set(path, info);
   }
 
+  describe("other papers limit", () => {
+    const certificate = (index: number) =>
+      buildDocument({
+        id: `d0000000-0000-4000-8000-00000000010${index}`,
+        driverId: DRIVER_ID,
+        type: "certification",
+        storagePath: `${DRIVER_ID}/c0000000-0000-4000-8000-00000000010${index}.pdf`,
+      });
+
+    function keepCertificates(count: number) {
+      for (let index = 0; index < count; index += 1) {
+        const document = certificate(index);
+        documents.rows.set(document.id, document);
+      }
+    }
+
+    it("issues a token for the fifth certificate but not the sixth", async () => {
+      keepCertificates(4);
+      await expect(
+        service.prepareUpload(USER_ID, uploadInput({ type: "certification" })),
+      ).resolves.toBeDefined();
+
+      keepCertificates(5);
+      const error = await expectAppError(
+        service.prepareUpload(USER_ID, uploadInput({ type: "certification" })),
+      );
+      expect(error.code).toBe("VALIDATION");
+      expect(error.message).toBe("You can add up to 5 other papers");
+      expect(documents.issuedTokens).toHaveLength(1);
+    });
+
+    it("refuses to record a sixth certificate even when the file already arrived", async () => {
+      keepCertificates(5);
+      storeFile();
+      const error = await expectAppError(
+        service.confirmUpload(USER_ID, {
+          type: "certification",
+          fileName: "sixth.jpg",
+          storagePath: OWN_PATH,
+        }),
+      );
+      expect(error.code).toBe("VALIDATION");
+      expect(documents.rows.size).toBe(5);
+    });
+
+    it("does not limit the other document types", async () => {
+      keepCertificates(5);
+      await expect(service.prepareUpload(USER_ID, uploadInput())).resolves.toBeDefined();
+    });
+  });
+
   describe("authorization", () => {
     it.each(["carrier", "admin"] as const)("rejects a %s on every method", async (role) => {
       profiles.rows.set(USER_ID, buildProfile({ role }));

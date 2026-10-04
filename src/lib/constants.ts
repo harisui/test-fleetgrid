@@ -23,6 +23,9 @@ export const SMS_PROGRAM_NAME = "FleetGrid Shift Alerts";
 export const SUPPORT_CONTACT_PLACEHOLDER = "support contact to be provided by FleetGrid.";
 
 export const DOCUMENTS_BUCKET = "driver-documents";
+/** "Other papers" (document type certification) a driver can keep at once. */
+export const CERTIFICATION_DOCUMENTS_MAX = 5;
+export const CERTIFICATION_LIMIT_MESSAGE = `You can add up to ${CERTIFICATION_DOCUMENTS_MAX} other papers`;
 export const SIGNED_URL_TTL_SECONDS = 60;
 
 /** File extension stored in the bucket for each allowed mime type. */

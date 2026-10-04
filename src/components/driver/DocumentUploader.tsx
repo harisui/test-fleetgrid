@@ -16,8 +16,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { OnboardingDocuments } from "@/components/driver/OnboardingDocuments";
 import { SelectInput } from "@/components/shared/SelectInput";
 import { ALLOWED_UPLOAD_MIME } from "@/lib/constants";
+import { OTHER_PAPERS_TILE } from "@/lib/onboarding/options";
 import { formatFileSize, prepareFileForUpload } from "@/lib/image";
 import { uploadWithToken } from "@/lib/supabase/upload";
 import { validateUploadFile } from "@/lib/validation/document.schema";
@@ -143,7 +145,8 @@ export function DocumentUploader({ initialDocuments }: DocumentUploaderProps) {
           <SelectInput
             value={type}
             onValueChange={(value) => setType(value as DocumentType)}
-            options={DOCUMENT_TYPES.map((value) => ({
+            // Certificates go through the Other papers tile below, which holds several.
+            options={DOCUMENT_TYPES.filter((value) => value !== "certification").map((value) => ({
               value,
               label: DOCUMENT_TYPE_LABELS[value],
             }))}
@@ -180,6 +183,12 @@ export function DocumentUploader({ initialDocuments }: DocumentUploaderProps) {
           </InlineNote>
         )}
       </div>
+
+      <OnboardingDocuments
+        documents={documents}
+        onChange={setDocuments}
+        tiles={[OTHER_PAPERS_TILE]}
+      />
 
       {documents.length === 0 ? (
         <EmptyState

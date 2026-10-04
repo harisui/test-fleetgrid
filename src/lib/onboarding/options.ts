@@ -16,6 +16,7 @@ import {
   Wrench,
   type LucideIcon,
 } from "lucide-react";
+import { CERTIFICATION_DOCUMENTS_MAX } from "@/lib/constants";
 import type {
   AvailabilityType,
   CdlClass,
@@ -151,11 +152,24 @@ export const CERTIFICATION_SUGGESTIONS = ["Forklift", "TWIC", "OSHA 10", "ASE"] 
 export interface DocumentTile {
   type: DocumentType;
   label: string;
+  /** Shown under the label instead of the file rules. */
+  helper?: string;
+  /** How many files the tile holds. One means a new upload replaces the old file. */
+  max: number;
 }
 
-/** The three papers asked for during onboarding. Other types can be added from Documents later. */
+/** Proof of the certifications listed on screen 9: TWIC, forklift cards and the like. */
+export const OTHER_PAPERS_TILE: DocumentTile = {
+  type: "certification",
+  label: "Other papers",
+  helper: "TWIC card, forklift card, other certificates",
+  max: CERTIFICATION_DOCUMENTS_MAX,
+};
+
+/** The papers asked for during onboarding. The same tiles appear on the Documents page. */
 export const ONBOARDING_DOCUMENT_TILES: readonly DocumentTile[] = [
-  { type: "cdl_front", label: "Front of your CDL" },
-  { type: "cdl_back", label: "Back of your CDL" },
-  { type: "medical_card", label: "Medical card" },
+  { type: "cdl_front", label: "Front of your CDL", max: 1 },
+  { type: "cdl_back", label: "Back of your CDL", max: 1 },
+  { type: "medical_card", label: "Medical card", max: 1 },
+  OTHER_PAPERS_TILE,
 ];

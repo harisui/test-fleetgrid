@@ -333,7 +333,7 @@ describe("license screens", () => {
 });
 
 describe("papers, about you, consent, done", () => {
-  it("papers can be skipped and shows the three tiles", async () => {
+  it("papers can be skipped and shows the four tiles", async () => {
     actions.saveOnboardingScreenAction.mockResolvedValue(
       ok(buildPartialDriver({ onboardingStep: 11 })),
     );
@@ -341,7 +341,9 @@ describe("papers, about you, consent, done", () => {
     expect(screen.getByText("Front of your CDL")).toBeInTheDocument();
     expect(screen.getByText("Back of your CDL")).toBeInTheDocument();
     expect(screen.getByText("Medical card")).toBeInTheDocument();
-    expect(screen.getAllByRole("button", { name: "Take a photo" })).toHaveLength(3);
+    expect(screen.getByText("Other papers")).toBeInTheDocument();
+    expect(screen.getByText("TWIC card, forklift card, other certificates")).toBeInTheDocument();
+    expect(screen.getAllByRole("button", { name: "Take a photo" })).toHaveLength(4);
     await userEvent.click(screen.getByRole("button", { name: "Skip for now" }));
     await waitFor(() =>
       expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("documents", {}),

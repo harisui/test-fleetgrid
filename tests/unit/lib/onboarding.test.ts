@@ -235,12 +235,16 @@ describe("options", () => {
     expect(experienceChipFor(99)).toBeNull();
   });
 
-  it("asks for the front and back of the CDL and the medical card", () => {
-    expect(ONBOARDING_DOCUMENT_TILES.map((tile) => tile.type)).toEqual([
-      "cdl_front",
-      "cdl_back",
-      "medical_card",
+  it("asks for the front and back of the CDL, the medical card and other papers", () => {
+    expect(ONBOARDING_DOCUMENT_TILES.map((tile) => [tile.type, tile.max])).toEqual([
+      ["cdl_front", 1],
+      ["cdl_back", 1],
+      ["medical_card", 1],
+      ["certification", 5],
     ]);
+    const other = ONBOARDING_DOCUMENT_TILES[3];
+    expect(other.label).toBe("Other papers");
+    expect(other.helper).toBe("TWIC card, forklift card, other certificates");
   });
 });
 

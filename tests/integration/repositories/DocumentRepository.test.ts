@@ -170,6 +170,21 @@ describe("DocumentRepository (local Supabase)", () => {
       expect(error.code).toBe("VALIDATION");
     });
 
+    it("create refuses a sixth certification document until one is deleted", async () => {
+      const certificate = () =>
+        input(driver, { type: "certification" as const, storagePath: pathFor(driver, "pdf") });
+      const kept = [];
+      for (let index = 0; index < 5; index += 1) kept.push(await repository.create(certificate()));
+
+      const error = await expectAppError(repository.create(certificate()));
+      expect(error.code).toBe("VALIDATION");
+
+      // Other types are not limited, and a delete frees a slot.
+      await expect(repository.create(input(driver, { type: "other" }))).resolves.toBeDefined();
+      await repository.delete(kept[0].id);
+      await expect(repository.create(certificate())).resolves.toBeDefined();
+    });
+
     it("delete removes an own record", async () => {
       const document = await repository.create(input(driver));
       await repository.delete(document.id);

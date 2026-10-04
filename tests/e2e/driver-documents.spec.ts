@@ -202,6 +202,76 @@ test.describe("driver documents", () => {
     expect(await storedFiles(driverId)).toHaveLength(1);
   });
 
+  test("Other papers hold several files, up to five", async ({ page }) => {
+    const driverId = await startWithCard(page);
+    await adminClient()
+      .from("drivers")
+      .update({
+        service_radius_miles: 50,
+        operator_types: ["mechanic"],
+        years_experience: 3,
+        availability: ["on_call"],
+        cdl_class: "none",
+        certifications: ["TWIC", "Forklift"],
+        onboarding_step: 10,
+      })
+      .eq("id", driverId);
+    await page.goto("/driver/onboarding");
+    await expectScreen(page, "Do you want to add your papers now?");
+    const tile = page.locator("[data-slot=multi-upload-tile]");
+    await expect(tile).toContainText("TWIC card, forklift card, other certificates");
+    await expect(tile).toHaveAttribute("data-count", "0");
+
+    const chooser = page.getByLabel("Choose a file for other papers");
+    await chooser.setInputFiles({ name: "twic.pdf", mimeType: "application/pdf", buffer: PDF });
+    await expect(tile).toHaveAttribute("data-count", "1");
+    await chooser.setInputFiles({ name: "forklift.png", mimeType: "image/png", buffer: PNG });
+    await expect(tile).toHaveAttribute("data-count", "2");
+    await expect(tile.getByRole("list", { name: "Other papers files" })).toContainText("twic.pdf");
+    await expect(tile.getByRole("list", { name: "Other papers files" })).toContainText(
+      "forklift.png",
+    );
+    expect(
+      (await documentRows(driverId)).filter((row) => row.type === "certification"),
+    ).toHaveLength(2);
+
+    await tile.getByRole("button", { name: "Remove twic.pdf" }).click();
+    await expect(tile).toHaveAttribute("data-count", "1");
+    await expect(tile).not.toContainText("twic.pdf");
+    expect(await storedFiles(driverId)).toHaveLength(1);
+
+    // At five the tile stops taking files, and the server refuses a sixth anyway.
+    const admin = adminClient();
+    for (let index = 0; index < 4; index += 1) {
+      await admin.from("driver_documents").insert({
+        driver_id: driverId,
+        type: "certification",
+        storage_path: `${driverId}/00000000-0000-4000-8000-00000000010${index}.pdf`,
+        file_name: `cert-${index}.pdf`,
+        mime_type: "application/pdf",
+        size_bytes: 1000,
+      });
+    }
+    await page.reload();
+    await expect(tile).toHaveAttribute("data-count", "5");
+    await expect(tile.getByText(/You can add up to 5 other papers/)).toBeVisible();
+    // Exact: the hidden camera input is named "Take a photo of other papers".
+    await expect(tile.getByRole("button", { name: "Take a photo", exact: true })).toHaveCount(0);
+    const sixth = await admin.from("driver_documents").insert({
+      driver_id: driverId,
+      type: "certification",
+      storage_path: `${driverId}/00000000-0000-4000-8000-000000000199.pdf`,
+      file_name: "cert-6.pdf",
+      mime_type: "application/pdf",
+      size_bytes: 1000,
+    });
+    expect(sixth.error?.code).toBe("23514");
+
+    // The Documents page shows the same tile.
+    await page.goto("/driver/documents");
+    await expect(page.locator("[data-slot=multi-upload-tile]")).toHaveAttribute("data-count", "5");
+  });
+
   test("another driver cannot see or fetch the file", async ({ page, browser }) => {
     const driverId = await startWithCard(page);
     await fileChooser(page).setInputFiles({ name: "cdl.png", mimeType: "image/png", buffer: PNG });

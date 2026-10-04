@@ -1,5 +1,10 @@
 import { randomUUID } from "node:crypto";
-import { MIME_EXTENSION, SIGNED_URL_TTL_SECONDS } from "@/lib/constants";
+import {
+  CERTIFICATION_DOCUMENTS_MAX,
+  CERTIFICATION_LIMIT_MESSAGE,
+  MIME_EXTENSION,
+  SIGNED_URL_TTL_SECONDS,
+} from "@/lib/constants";
 import {
   confirmUploadSchema,
   documentIdSchema,
@@ -9,7 +14,7 @@ import { AppError, parseInput } from "@/server/errors/AppError";
 import type { IDocumentRepository } from "@/server/repositories/DocumentRepository";
 import type { IDriverRepository } from "@/server/repositories/DriverRepository";
 import type { IProfileRepository } from "@/server/repositories/ProfileRepository";
-import type { Driver, DriverDocument } from "@/types/domain";
+import type { DocumentType, Driver, DriverDocument } from "@/types/domain";
 
 export interface PreparedUpload {
   /** Where the file must be stored: {driver_id}/{uuid}.{ext} */
@@ -43,7 +48,8 @@ export class DocumentService {
 
   async prepareUpload(userId: string, input: unknown): Promise<PreparedUpload> {
     const driver = await this.requireDriver(userId);
-    const { mimeType } = parseInput(documentUploadSchema, input);
+    const { type, mimeType } = parseInput(documentUploadSchema, input);
+    await this.requireRoomFor(driver, type);
 
     const storagePath = `${driver.id}/${this.newId()}.${MIME_EXTENSION[mimeType]}`;
     const token = await this.documents.createUploadToken(storagePath);
@@ -58,6 +64,7 @@ export class DocumentService {
     if (!storagePath.startsWith(`${driver.id}/`)) {
       throw AppError.forbidden("This file could not be saved");
     }
+    await this.requireRoomFor(driver, type);
 
     const file = await this.documents.getFileInfo(storagePath);
     if (!file) throw AppError.validation("Upload did not finish. Please try again.");
@@ -118,6 +125,16 @@ export class DocumentService {
       throw AppError.notFound("Document not found");
     }
     return document;
+  }
+
+  /** "Other papers" are capped; the database trigger (0008) enforces the same limit. */
+  private async requireRoomFor(driver: Driver, type: DocumentType): Promise<void> {
+    if (type !== "certification") return;
+    const existing = await this.documents.listByDriverId(driver.id);
+    const count = existing.filter((document) => document.type === "certification").length;
+    if (count >= CERTIFICATION_DOCUMENTS_MAX) {
+      throw AppError.validation(CERTIFICATION_LIMIT_MESSAGE, { type: CERTIFICATION_LIMIT_MESSAGE });
+    }
   }
 
   private async requireDriver(userId: string): Promise<Driver> {
