@@ -9,6 +9,12 @@ export default function PrivacyPage() {
       <p className="text-muted-foreground">
         The final Privacy Policy will be published here before FleetGrid opens to the public.
       </p>
+      {/* Placeholder wording for the consent record; the client's lawyer reviews it. */}
+      <p data-slot="consent-retention" className="text-muted-foreground">
+        We keep a record of text-message consent and opt-outs, including the phone number and time,
+        as required by US texting rules, even after an account is deleted.{" "}
+        <span className="text-small leading-small font-semibold">(Pending legal review.)</span>
+      </p>
       <p className="text-small leading-small text-muted-foreground">
         ZIP code, city and state data comes from{" "}
         <a

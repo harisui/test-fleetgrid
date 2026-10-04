@@ -1,4 +1,4 @@
-import { SMS_CONSENT_TEXT } from "@/lib/constants";
+import { SMS_CONSENT_TEXT, SMS_CONSENT_VERSION } from "@/lib/constants";
 import {
   DONE_STEP_NUMBER,
   FIRST_STEP_NUMBER,
@@ -27,6 +27,7 @@ import {
 } from "@/lib/validation/onboarding.schema";
 import { AppError, parseInput } from "@/server/errors/AppError";
 import type { IZipProvider } from "@/server/providers/ZipProvider";
+import type { IConsentLogRepository } from "@/server/repositories/ConsentLogRepository";
 import type { DriverPatch, IDriverRepository } from "@/server/repositories/DriverRepository";
 import type { IProfileRepository } from "@/server/repositories/ProfileRepository";
 import type { Driver, Profile } from "@/types/domain";
@@ -62,6 +63,8 @@ export class DriverService {
     private readonly profiles: IProfileRepository,
     /** Bundled ZIP dataset, for the coordinates stored with a saved ZIP. */
     private readonly zips: IZipProvider,
+    /** The SMS consent audit log, built on demand because only the service role may write it. */
+    private readonly consentLog: () => IConsentLogRepository,
     private readonly now: () => Date = () => new Date(),
   ) {}
 
@@ -215,6 +218,16 @@ export class DriverService {
     const patch: DriverPatch = { onboardingStep: DONE_STEP_NUMBER, cardCompleted: true };
     // Keep the original consent record if the driver already agreed.
     if (!existing.smsOptIn) {
+      // The audit row goes first: proof of consent must exist before anything relies on it.
+      const profile = await this.profiles.findById(userId);
+      if (!profile) throw AppError.forbidden("Only drivers can do this");
+      await this.consentLog().record({
+        phone: profile.phone,
+        event: "opt_in",
+        consentText: SMS_CONSENT_TEXT,
+        consentVersion: SMS_CONSENT_VERSION,
+        source: "onboarding",
+      });
       patch.smsOptIn = true;
       patch.smsOptInAt = this.now().toISOString();
       patch.smsOptInText = SMS_CONSENT_TEXT;

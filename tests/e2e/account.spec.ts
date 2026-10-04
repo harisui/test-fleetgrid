@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
   adminClient,
+  CONSENT_TEXT,
   enterCode,
   login,
   OTP,
@@ -49,6 +50,16 @@ test.describe("delete my account", () => {
       size_bytes: 16,
     });
 
+    // The consent record this driver gave (seeded here, written by onboarding in real life).
+    await admin.from("sms_consent_log").delete().eq("phone", PHONES.driver);
+    await admin.from("sms_consent_log").insert({
+      phone: PHONES.driver,
+      event: "opt_in",
+      consent_text: CONSENT_TEXT,
+      consent_version: "2026-10-v1",
+      source: "onboarding",
+    });
+
     await login(page, PHONES.driver);
     await expect(page).toHaveURL(/\/driver\/profile$/);
     await startDeletion(page);
@@ -62,6 +73,12 @@ test.describe("delete my account", () => {
     expect(profiles).toEqual([]);
     const { data: files } = await admin.storage.from("driver-documents").list(driverId!);
     expect(files ?? []).toEqual([]);
+    // Everything about the person is gone, except the proof of consent.
+    const { data: consent } = await admin
+      .from("sms_consent_log")
+      .select("event, consent_text")
+      .eq("phone", PHONES.driver);
+    expect(consent).toEqual([{ event: "opt_in", consent_text: CONSENT_TEXT }]);
 
     // The number is free again: the next login is a fresh sign-up.
     await login(page, PHONES.driver);

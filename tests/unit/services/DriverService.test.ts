@@ -5,6 +5,7 @@ import { SAVABLE_STEP_IDS, stepNumber, type SavableStepId } from "@/lib/onboardi
 import { CDL_CONFLICT_MESSAGE } from "@/lib/validation/onboarding.schema";
 import { AppError } from "@/server/errors/AppError";
 import { DriverService, missingCardFields } from "@/server/services/DriverService";
+import { FakeConsentLogRepository } from "../../fakes/FakeConsentLogRepository";
 import { FakeDriverRepository } from "../../fakes/FakeDriverRepository";
 import { FakeProfileRepository } from "../../fakes/FakeProfileRepository";
 import { FakeZipProvider } from "../../fakes/FakeZipProvider";
@@ -33,6 +34,8 @@ describe("DriverService", () => {
   let drivers: FakeDriverRepository;
   let profiles: FakeProfileRepository;
   let zips: FakeZipProvider;
+  let consentLog: FakeConsentLogRepository;
+  let logBuilt: number;
   let service: DriverService;
 
   beforeEach(() => {
@@ -42,7 +45,18 @@ describe("DriverService", () => {
       { zip: "75201", city: "Dallas", state: "TX", lat: 32.78111, lng: -96.79722 },
       { zip: "60601", city: "Chicago", state: "IL", lat: 41.8858, lng: -87.6181 },
     ]);
-    service = new DriverService(drivers, profiles, zips, () => NOW);
+    consentLog = new FakeConsentLogRepository();
+    logBuilt = 0;
+    service = new DriverService(
+      drivers,
+      profiles,
+      zips,
+      () => {
+        logBuilt += 1;
+        return consentLog;
+      },
+      () => NOW,
+    );
   });
 
   /** Saves every screen up to and including `upTo` with valid input. */
@@ -423,12 +437,36 @@ describe("DriverService", () => {
       },
     );
 
+    it("writes the consent audit row, with the exact text and version, before completing", async () => {
+      await service.saveScreen(USER_ID, "consent", { consent: true });
+      expect(consentLog.entries).toEqual([
+        {
+          phone: buildProfile().phone,
+          event: "opt_in",
+          consentText: SMS_CONSENT_TEXT,
+          consentVersion: "2026-10-v1",
+          source: "onboarding",
+        },
+      ]);
+      expect(logBuilt).toBe(1);
+    });
+
+    it("does not complete the card when the audit row cannot be written", async () => {
+      consentLog.failNextRecordWith = new Error("log down");
+      await expect(service.saveScreen(USER_ID, "consent", { consent: true })).rejects.toThrow(
+        "log down",
+      );
+      expect(card().smsOptIn).toBe(false);
+      expect(card().cardCompleted).toBe(false);
+    });
+
     it("submitting consent twice keeps the original timestamp and text", async () => {
       const first = await service.saveScreen(USER_ID, "consent", { consent: true });
       const later = new DriverService(
         drivers,
         profiles,
         zips,
+        () => consentLog,
         () => new Date("2027-01-01T00:00:00Z"),
       );
       const second = await later.saveScreen(USER_ID, "consent", { consent: true });
@@ -595,7 +633,7 @@ describe("DriverService", () => {
   });
 
   it("uses the real clock by default", async () => {
-    const realClock = new DriverService(drivers, profiles, zips);
+    const realClock = new DriverService(drivers, profiles, zips, () => consentLog);
     await completeThrough("bio");
     const before = Date.now();
     const driver = await realClock.saveScreen(USER_ID, "consent", { consent: true });

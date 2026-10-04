@@ -74,6 +74,19 @@ isOneToOne: true
                   Relationships: [
                     
                   ]
+                },"sms_consent_log": {
+                  Row: {
+                    "consent_text": string,"consent_version": string,"created_at": string,"event": Database["public"]['Enums']["sms_consent_event"],"id": string,"phone": string,"source": Database["public"]['Enums']["sms_consent_source"]
+                  }
+                  Insert: {
+                    "consent_text": string,"consent_version": string,"created_at"?: string,"event": Database["public"]['Enums']["sms_consent_event"],"id"?: string,"phone": string,"source": Database["public"]['Enums']["sms_consent_source"]
+                  }
+                  Update: {
+                    "consent_text"?: string,"consent_version"?: string,"created_at"?: string,"event"?: Database["public"]['Enums']["sms_consent_event"],"id"?: string,"phone"?: string,"source"?: Database["public"]['Enums']["sms_consent_source"]
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"tos_acceptances": {
                   Row: {
                     "accepted_at": string,"created_at": string,"id": string,"ip": string | null,"profile_id": string,"updated_at": string,"user_agent": string | null,"version": string
@@ -113,7 +126,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "account_status": "pending"|"approved"|"blocked","availability_type": "full_time"|"part_time"|"on_call"|"weekends","cdl_class": "A"|"B"|"C"|"none","document_type": "cdl_front"|"cdl_back"|"medical_card"|"certification"|"other","endorsement": "H"|"N"|"P"|"S"|"T"|"X","operator_type": "cdl_driver"|"yard_spotter"|"mechanic","user_role": "driver"|"carrier"|"admin"
+            "account_status": "pending"|"approved"|"blocked","availability_type": "full_time"|"part_time"|"on_call"|"weekends","cdl_class": "A"|"B"|"C"|"none","document_type": "cdl_front"|"cdl_back"|"medical_card"|"certification"|"other","endorsement": "H"|"N"|"P"|"S"|"T"|"X","operator_type": "cdl_driver"|"yard_spotter"|"mechanic","sms_consent_event": "opt_in"|"opt_out"|"opt_in_again","sms_consent_source": "onboarding"|"sms_stop"|"sms_start"|"profile","user_role": "driver"|"carrier"|"admin"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -233,7 +246,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "account_status": ["pending", "approved", "blocked"],"availability_type": ["full_time", "part_time", "on_call", "weekends"],"cdl_class": ["A", "B", "C", "none"],"document_type": ["cdl_front", "cdl_back", "medical_card", "certification", "other"],"endorsement": ["H", "N", "P", "S", "T", "X"],"operator_type": ["cdl_driver", "yard_spotter", "mechanic"],"user_role": ["driver", "carrier", "admin"]
+            "account_status": ["pending", "approved", "blocked"],"availability_type": ["full_time", "part_time", "on_call", "weekends"],"cdl_class": ["A", "B", "C", "none"],"document_type": ["cdl_front", "cdl_back", "medical_card", "certification", "other"],"endorsement": ["H", "N", "P", "S", "T", "X"],"operator_type": ["cdl_driver", "yard_spotter", "mechanic"],"sms_consent_event": ["opt_in", "opt_out", "opt_in_again"],"sms_consent_source": ["onboarding", "sms_stop", "sms_start", "profile"],"user_role": ["driver", "carrier", "admin"]
           }
         }
 } as const

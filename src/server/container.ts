@@ -3,6 +3,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { FileZipProvider } from "@/server/providers/ZipProvider";
 import { AccountRepository } from "@/server/repositories/AccountRepository";
 import { AuthRepository } from "@/server/repositories/AuthRepository";
+import { ConsentLogRepository } from "@/server/repositories/ConsentLogRepository";
 import type { TypedSupabaseClient } from "@/server/repositories/BaseRepository";
 import { DocumentRepository } from "@/server/repositories/DocumentRepository";
 import { DriverRepository } from "@/server/repositories/DriverRepository";
@@ -33,7 +34,12 @@ export function buildContainer(supabase: TypedSupabaseClient) {
       () => new AccountRepository(createAdminClient()),
     ),
     profileService: new ProfileService(profiles),
-    driverService: new DriverService(drivers, profiles, zipProvider),
+    driverService: new DriverService(
+      drivers,
+      profiles,
+      zipProvider,
+      () => new ConsentLogRepository(createAdminClient()),
+    ),
     documentService: new DocumentService(documents, drivers, profiles),
     zipLookupService: new ZipLookupService(zipProvider),
   };

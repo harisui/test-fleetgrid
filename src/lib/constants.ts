@@ -1,3 +1,4 @@
+/** Bump when SMS_CONSENT_TEXT changes; stored with every consent event in sms_consent_log. */
 export const SMS_CONSENT_VERSION = "2026-10-v1";
 export const SMS_CONSENT_TEXT =
   "I agree to receive text messages from FleetGrid about available shifts at this number. Message frequency varies. Message and data rates may apply. Reply STOP to opt out, HELP for help.";

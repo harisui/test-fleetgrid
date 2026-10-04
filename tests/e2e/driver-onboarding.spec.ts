@@ -160,6 +160,22 @@ test.describe("driver onboarding, one question per screen", () => {
     expect(consentAt).toBeGreaterThanOrEqual(before - 5_000);
     expect(consentAt).toBeLessThanOrEqual(Date.now() + 5_000);
 
+    // The audit log has the same consent, by phone number, so it outlives the account.
+    const { data: consentLog } = await adminClient()
+      .from("sms_consent_log")
+      .select("event, consent_text, consent_version, source")
+      .eq("phone", PHONES.driver)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    expect(consentLog).toEqual([
+      {
+        event: "opt_in",
+        consent_text: CONSENT_TEXT,
+        consent_version: "2026-10-v1",
+        source: "onboarding",
+      },
+    ]);
+
     // The summary can send the driver back to a question, and the profile is now open.
     await page.getByRole("button", { name: "Edit availability" }).click();
     await expect(screenHeading(page)).toHaveText("When can you work?");

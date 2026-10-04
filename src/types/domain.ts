@@ -12,6 +12,8 @@ export type CdlClass = Enums["cdl_class"];
 export type Endorsement = Enums["endorsement"];
 export type AvailabilityType = Enums["availability_type"];
 export type DocumentType = Enums["document_type"];
+export type SmsConsentEvent = Enums["sms_consent_event"];
+export type SmsConsentSource = Enums["sms_consent_source"];
 
 export const USER_ROLES = ["driver", "carrier", "admin"] as const satisfies readonly UserRole[];
 /** Roles a user can pick for themselves at sign-up. */
