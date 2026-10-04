@@ -147,12 +147,20 @@ export async function signUp(page: Page, phone: string, role: "driver" | "carrie
   await expect(page).not.toHaveURL(/\/choose-role/);
 }
 
-/** Answers for every screen, used to seed a driver part-way through onboarding. */
+/** ZIP centres from src/data/us-zips.tsv: one inside the launch areas, one outside. */
+export const PLACES = {
+  houston: { city: "Houston", state: "TX", zip: "77002", lat: 29.7594, lng: -95.3594 },
+  dallas: { city: "Dallas", state: "TX", zip: "75201", lat: 32.7904, lng: -96.8044 },
+} as const;
+
+/** Answers for every screen, used to seed a driver part-way through onboarding. In the launch area. */
 export const CARD_ANSWERS = {
   full_name: "Pat Driver",
-  city: "Dallas",
-  state: "TX",
-  zip: "75201",
+  city: PLACES.houston.city,
+  state: PLACES.houston.state,
+  zip: PLACES.houston.zip,
+  lat: PLACES.houston.lat,
+  lng: PLACES.houston.lng,
   service_radius_miles: 50,
   operator_types: ["cdl_driver"] as const,
   years_experience: 8,
@@ -206,6 +214,8 @@ function driverRowAtStep(stepNumber: number) {
     city: or(answered(2), CARD_ANSWERS.city),
     state: or(answered(2), CARD_ANSWERS.state),
     zip: or(answered(2), CARD_ANSWERS.zip),
+    lat: or(answered(2), CARD_ANSWERS.lat),
+    lng: or(answered(2), CARD_ANSWERS.lng),
     ...(answered(3) && { service_radius_miles: CARD_ANSWERS.service_radius_miles }),
     operator_types: answered(4) ? [...CARD_ANSWERS.operator_types] : [],
     years_experience: or(answered(5), CARD_ANSWERS.years_experience),

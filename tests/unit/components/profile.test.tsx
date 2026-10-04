@@ -64,6 +64,31 @@ describe("AccountStatusCard", () => {
     expect(screen.queryByText("Subscribed")).not.toBeInTheDocument();
   });
 
+  it("marks a driver outside the launch area, with one sentence saying what it means", () => {
+    render(
+      <AccountStatusCard profile={buildProfile()} driver={buildDriver({ inServiceArea: false })} />,
+    );
+    const badge = within(card()).getByText("Outside launch area");
+    expect(badge).toHaveAttribute("data-area", "outside");
+    expect(badge).toHaveAttribute("data-variant", "info");
+    expect(
+      within(card()).getByText(
+        "FleetGrid is launching in the Houston area first. We'll text you when we launch near you.",
+      ),
+    ).toHaveAttribute("data-slot", "launch-area-help");
+    // The account status itself is unchanged.
+    expect(within(card()).getByText("Pending review")).toBeInTheDocument();
+  });
+
+  it.each([
+    ["inside the area", true],
+    ["without coordinates", null],
+  ] as const)("shows no launch-area badge for a driver %s", (_label, inServiceArea) => {
+    render(<AccountStatusCard profile={buildProfile()} driver={buildDriver({ inServiceArea })} />);
+    expect(within(card()).queryByText("Outside launch area")).not.toBeInTheDocument();
+    expect(document.querySelector("[data-slot=launch-area-help]")).toBeNull();
+  });
+
   it("shows Not subscribed when consent was never given", () => {
     render(
       <AccountStatusCard profile={buildProfile()} driver={buildDriver({ smsOptIn: false })} />,

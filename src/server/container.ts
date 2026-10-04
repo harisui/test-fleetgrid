@@ -8,6 +8,7 @@ import type { TypedSupabaseClient } from "@/server/repositories/BaseRepository";
 import { DocumentRepository } from "@/server/repositories/DocumentRepository";
 import { DriverRepository } from "@/server/repositories/DriverRepository";
 import { ProfileRepository } from "@/server/repositories/ProfileRepository";
+import { ServiceAreaRepository } from "@/server/repositories/ServiceAreaRepository";
 import { AccountService } from "@/server/services/AccountService";
 import { AuthService } from "@/server/services/AuthService";
 import { DocumentService } from "@/server/services/DocumentService";
@@ -24,6 +25,7 @@ export function buildContainer(supabase: TypedSupabaseClient) {
   const profiles = new ProfileRepository(supabase);
   const drivers = new DriverRepository(supabase);
   const documents = new DocumentRepository(supabase);
+  const serviceAreas = new ServiceAreaRepository(supabase);
 
   return {
     authService: new AuthService(auth, profiles),
@@ -38,10 +40,11 @@ export function buildContainer(supabase: TypedSupabaseClient) {
       drivers,
       profiles,
       zipProvider,
+      serviceAreas,
       () => new ConsentLogRepository(createAdminClient()),
     ),
     documentService: new DocumentService(documents, drivers, profiles),
-    zipLookupService: new ZipLookupService(zipProvider),
+    zipLookupService: new ZipLookupService(zipProvider, serviceAreas),
   };
 }
 

@@ -74,6 +74,19 @@ isOneToOne: true
                   Relationships: [
                     
                   ]
+                },"service_areas": {
+                  Row: {
+                    "center_lat": number,"center_lng": number,"center_zip": string,"created_at": string,"id": string,"is_active": boolean,"name": string,"radius_miles": number,"updated_at": string
+                  }
+                  Insert: {
+                    "center_lat": number,"center_lng": number,"center_zip": string,"created_at"?: string,"id"?: string,"is_active"?: boolean,"name": string,"radius_miles": number,"updated_at"?: string
+                  }
+                  Update: {
+                    "center_lat"?: number,"center_lng"?: number,"center_zip"?: string,"created_at"?: string,"id"?: string,"is_active"?: boolean,"name"?: string,"radius_miles"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"sms_consent_log": {
                   Row: {
                     "consent_text": string,"consent_version": string,"created_at": string,"event": Database["public"]['Enums']["sms_consent_event"],"id": string,"phone": string,"source": Database["public"]['Enums']["sms_consent_source"]
@@ -121,8 +134,14 @@ isOneToOne: false
 "is_admin":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
+"is_in_service_area":
+{ Args: { "lat": number,"lng": number }; Returns: boolean
+                           },
 "is_privileged":
 { Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"miles_between":
+{ Args: { "lat1": number,"lat2": number,"lng1": number,"lng2": number }; Returns: number
                            }
           }
           Enums: {

@@ -7,6 +7,7 @@ import {
   nextButton,
   PHONE_VIEWPORT,
   PHONES,
+  PLACES,
   resetUser,
   screenHeading,
   seedDriverAtStep,
@@ -64,10 +65,12 @@ test.describe("driver onboarding, one question per screen", () => {
     await nextButton(page).click();
 
     await expect(screenHeading(page)).toHaveText("What is your ZIP code?");
-    await page.getByLabel("ZIP code", { exact: true }).fill("75201");
-    await expect(page.getByLabel("City")).toHaveValue("Dallas");
+    await page.getByLabel("ZIP code", { exact: true }).fill(PLACES.houston.zip);
+    await expect(page.getByLabel("City")).toHaveValue("Houston");
     await expect(page.getByRole("combobox", { name: "State" })).toHaveText("Texas");
     await expect(page.getByText(/City and state filled in from your ZIP/)).toBeVisible();
+    // Houston is inside the launch area: no note.
+    await expect(page.locator("[data-slot=launch-area-note]")).toHaveCount(0);
     await nextButton(page).click();
 
     await expect(screenHeading(page)).toHaveText("How far will you travel for work?");
@@ -132,16 +135,19 @@ test.describe("driver onboarding, one question per screen", () => {
     await expect(screenHeading(page)).toHaveText("You are listed.");
     await expect(page.getByText("Profile complete", { exact: true })).toBeVisible();
     await expect(
-      page.getByText(/Once your profile is approved, carriers near 75201 can find you/),
+      page.getByText(/Once your profile is approved, carriers near 77002 can find you/),
     ).toBeVisible();
+    await expect(page.getByText(/Shift offers arrive by text/)).toBeVisible();
     expect(Date.now() - started).toBeLessThan(FIVE_MINUTES_MS);
 
     const row = await driverRow();
     expect(row).toMatchObject({
       full_name: "Pat Driver",
-      city: "Dallas",
+      city: "Houston",
       state: "TX",
-      zip: "75201",
+      zip: "77002",
+      lat: PLACES.houston.lat,
+      lng: PLACES.houston.lng,
       service_radius_miles: 100,
       operator_types: ["cdl_driver", "yard_spotter"],
       cdl_class: "A",
@@ -184,6 +190,62 @@ test.describe("driver onboarding, one question per screen", () => {
     await expect(screenHeading(page)).toHaveText("You are listed.");
     await page.getByRole("link", { name: "Go to my profile" }).click();
     await expect(page).toHaveURL(/\/driver\/profile$/);
+  });
+
+  test("a driver outside the launch area is told so, still signs up, and is marked on the profile", async ({
+    page,
+  }) => {
+    await resumeAt(page, 2);
+    await expect(screenHeading(page)).toHaveText("What is your ZIP code?");
+    const note = page.locator("[data-slot=launch-area-note]");
+    const zip = page.getByLabel("ZIP code", { exact: true });
+
+    await zip.fill(PLACES.dallas.zip);
+    await expect(page.getByLabel("City")).toHaveValue("Dallas");
+    await expect(note).toBeVisible();
+    await expect(note).toHaveText(
+      "FleetGrid is launching in the Houston area first. You can still sign up. We'll text you when we launch near you.",
+    );
+    // Information only: no error, nothing invalid, Next stays on.
+    await expect(formAlert(page)).toHaveCount(0);
+    await expect(nextButton(page)).toBeEnabled();
+
+    // A Houston ZIP clears the note; back to Dallas brings it back.
+    await zip.fill(PLACES.houston.zip);
+    await expect(page.getByLabel("City")).toHaveValue("Houston");
+    await expect(note).toHaveCount(0);
+    await zip.fill(PLACES.dallas.zip);
+    await expect(note).toBeVisible();
+    await nextButton(page).click();
+    await expect(screenHeading(page)).toHaveText("How far will you travel for work?");
+    expect(await driverRow()).toMatchObject({
+      zip: "75201",
+      lat: PLACES.dallas.lat,
+      lng: PLACES.dallas.lng,
+    });
+
+    // Finish from the consent screen with the Dallas card.
+    await resumeAt(page, 12, { ...PLACES.dallas });
+    await expect(screenHeading(page)).toHaveText("Can we text you about shifts?");
+    await page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) }).click();
+    await nextButton(page, "Agree and finish").click();
+
+    await expect(screenHeading(page)).toHaveText("You're on the list.");
+    await expect(page.getByText("Profile complete", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("FleetGrid isn't in your area yet. We'll text you when it is."),
+    ).toBeVisible();
+    await expect(page.getByText(/Shift offers arrive by text/)).toHaveCount(0);
+    await expect(page.locator("[data-slot=summary-card]")).toBeVisible();
+    expect(await driverRow()).toMatchObject({ card_completed: true, onboarding_step: 13 });
+
+    await page.getByRole("link", { name: "Go to my profile" }).click();
+    await expect(page).toHaveURL(/\/driver\/profile$/);
+    const status = page.getByRole("region", { name: "Account status" });
+    await expect(status.getByText("Outside launch area")).toBeVisible();
+    await expect(status.locator("[data-slot=launch-area-help]")).toHaveText(
+      "FleetGrid is launching in the Houston area first. We'll text you when we launch near you.",
+    );
   });
 
   test("a refresh mid-flow resumes on the same question with the saved answers", async ({
@@ -353,8 +415,8 @@ test.describe("driver onboarding, a mile per page on a wide screen", () => {
     await expect(screenHeading(page)).toHaveText("About");
     await expect(page.getByText("Mile 1 of 5", { exact: true })).toBeVisible();
     await page.getByLabel("Full name").fill("Pat Driver");
-    await page.getByLabel("ZIP code", { exact: true }).fill("75201");
-    await expect(page.getByLabel("City")).toHaveValue("Dallas");
+    await page.getByLabel("ZIP code", { exact: true }).fill(PLACES.houston.zip);
+    await expect(page.getByLabel("City")).toHaveValue("Houston");
     await chip(page, "100 miles").click();
     await nextButton(page).click();
 
@@ -382,8 +444,8 @@ test.describe("driver onboarding, a mile per page on a wide screen", () => {
     await expect(screenHeading(page)).toHaveText("You are listed.");
     expect(await driverRow()).toMatchObject({
       full_name: "Pat Driver",
-      zip: "75201",
-      city: "Dallas",
+      zip: "77002",
+      city: "Houston",
       state: "TX",
       service_radius_miles: 100,
       operator_types: ["cdl_driver"],

@@ -127,6 +127,14 @@ export interface Driver {
   updatedAt: string;
 }
 
+/**
+ * A card plus whether its ZIP sits inside an active service area. Computed live on every
+ * read, never stored. Null when the card has no coordinates yet.
+ */
+export interface LocatedDriver extends Driver {
+  inServiceArea: boolean | null;
+}
+
 export interface DriverDocument {
   id: string;
   driverId: string;

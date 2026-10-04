@@ -1,5 +1,5 @@
 import { SMS_CONSENT_TEXT } from "@/lib/constants";
-import type { Driver, DriverDocument, Profile } from "@/types/domain";
+import type { DriverDocument, LocatedDriver, Profile } from "@/types/domain";
 
 /**
  * Test data builders. Each builder returns a valid object and accepts overrides.
@@ -72,9 +72,9 @@ export function buildProfile(overrides: Partial<Profile> = {}): Profile {
   );
 }
 
-/** A completed qualification card. Override fields to build partial cards. */
-export function buildDriver(overrides: Partial<Driver> = {}): Driver {
-  return build<Driver>(
+/** A completed qualification card inside the launch area. Override fields to build partial cards. */
+export function buildDriver(overrides: Partial<LocatedDriver> = {}): LocatedDriver {
+  return build<LocatedDriver>(
     {
       id: DRIVER_ID,
       profileId: USER_ID,
@@ -99,6 +99,7 @@ export function buildDriver(overrides: Partial<Driver> = {}): Driver {
       smsOptedOutAt: null,
       onboardingStep: 13,
       cardCompleted: true,
+      inServiceArea: true,
       createdAt: TIMESTAMP,
       updatedAt: TIMESTAMP,
     },
@@ -107,7 +108,7 @@ export function buildDriver(overrides: Partial<Driver> = {}): Driver {
 }
 
 /** The card as it looks right after the name screen is saved. */
-export function buildPartialDriver(overrides: Partial<Driver> = {}): Driver {
+export function buildPartialDriver(overrides: Partial<LocatedDriver> = {}): LocatedDriver {
   return buildDriver({
     operatorTypes: [],
     cdlClass: "none",
@@ -126,6 +127,7 @@ export function buildPartialDriver(overrides: Partial<Driver> = {}): Driver {
     smsOptInText: null,
     onboardingStep: 2,
     cardCompleted: false,
+    inServiceArea: null,
     ...overrides,
   });
 }

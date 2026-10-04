@@ -30,13 +30,14 @@ import type { IZipProvider } from "@/server/providers/ZipProvider";
 import type { IConsentLogRepository } from "@/server/repositories/ConsentLogRepository";
 import type { DriverPatch, IDriverRepository } from "@/server/repositories/DriverRepository";
 import type { IProfileRepository } from "@/server/repositories/ProfileRepository";
-import type { Driver, Profile } from "@/types/domain";
+import type { IServiceAreaRepository } from "@/server/repositories/ServiceAreaRepository";
+import type { Driver, LocatedDriver, Profile } from "@/types/domain";
 
 export interface OnboardingState {
   /** The screen the driver should see next. "done" once the card is complete. */
   stepId: StepId;
   completed: boolean;
-  driver: Driver | null;
+  driver: LocatedDriver | null;
 }
 
 /** Required card fields that are still missing, with the screen that collects them. */
@@ -63,6 +64,8 @@ export class DriverService {
     private readonly profiles: IProfileRepository,
     /** Bundled ZIP dataset, for the coordinates stored with a saved ZIP. */
     private readonly zips: IZipProvider,
+    /** The launch areas, asked live whether the card's coordinates fall inside one. */
+    private readonly serviceAreas: IServiceAreaRepository,
     /** The SMS consent audit log, built on demand because only the service role may write it. */
     private readonly consentLog: () => IConsentLogRepository,
     private readonly now: () => Date = () => new Date(),
@@ -77,9 +80,19 @@ export class DriverService {
     return place ? { lat: place.lat, lng: place.lng } : { lat: null, lng: null };
   }
 
-  async getCard(userId: string): Promise<Driver | null> {
+  /** Adds the live answer to "is this card inside a launch area?". Unknown without coordinates. */
+  private async locate(driver: Driver): Promise<LocatedDriver> {
+    const inServiceArea =
+      driver.lat === null || driver.lng === null
+        ? null
+        : await this.serviceAreas.contains(driver.lat, driver.lng);
+    return { ...driver, inServiceArea };
+  }
+
+  async getCard(userId: string): Promise<LocatedDriver | null> {
     await this.requireDriverProfile(userId);
-    return this.drivers.findByProfileId(userId);
+    const driver = await this.drivers.findByProfileId(userId);
+    return driver ? this.locate(driver) : null;
   }
 
   /** Where to resume onboarding. A driver without a card starts on the first screen. */
@@ -100,24 +113,24 @@ export class DriverService {
    * can leave after any question and resume there. Screens cannot be skipped ahead. Going back
    * and saving an earlier screen again is allowed and never moves progress backwards.
    */
-  async saveScreen(userId: string, stepId: unknown, input: unknown): Promise<Driver> {
+  async saveScreen(userId: string, stepId: unknown, input: unknown): Promise<LocatedDriver> {
     if (!isSavableStepId(stepId)) {
       throw AppError.validation("Unknown onboarding step");
     }
     await this.requireDriverProfile(userId);
     const existing = await this.drivers.findByProfileId(userId);
 
-    if (stepId === "name") return this.saveName(userId, existing, input);
+    if (stepId === "name") return this.locate(await this.saveName(userId, existing, input));
 
     if (!existing) throw AppError.validation("Start with the first step");
     if (stepNumber(stepId) > existing.onboardingStep) {
       throw AppError.validation("Finish the earlier steps first");
     }
-    return this.saveLater(userId, existing, stepId, input);
+    return this.locate(await this.saveLater(userId, existing, stepId, input));
   }
 
   /** Edits the whole card after onboarding (profile page). Consent and progress are untouched. */
-  async updateCard(userId: string, input: unknown): Promise<Driver> {
+  async updateCard(userId: string, input: unknown): Promise<LocatedDriver> {
     await this.requireDriverProfile(userId);
     const existing = await this.drivers.findByProfileId(userId);
     if (!existing) throw AppError.notFound("Complete onboarding first");
@@ -126,7 +139,9 @@ export class DriverService {
     if (hasCdlConflict(data.operatorTypes, data.cdlClass)) {
       throw AppError.validation("Check the form", { cdlClass: "CDL driver work needs a CDL" });
     }
-    return this.drivers.update(userId, { ...data, ...this.coordinatesFor(data.zip) });
+    return this.locate(
+      await this.drivers.update(userId, { ...data, ...this.coordinatesFor(data.zip) }),
+    );
   }
 
   private async saveName(userId: string, existing: Driver | null, input: unknown) {

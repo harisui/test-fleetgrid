@@ -1,7 +1,8 @@
-import { Building2, MessageSquareText, ShieldCheck, Truck } from "lucide-react";
+import { Building2, MapPin, MessageSquareText, ShieldCheck, Truck } from "lucide-react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
+import { LAUNCH_LINE } from "@/lib/launch";
 
 const POINTS = [
   {
@@ -31,6 +32,13 @@ export default function LandingPage() {
           <p className="text-muted-foreground text-lg">
             <strong className="text-foreground font-semibold">Drivers:</strong> build your
             qualification card once and get matching shift offers by text.
+          </p>
+          <p
+            className="inline-flex items-center justify-center gap-2 font-semibold text-foreground"
+            data-slot="launch-line"
+          >
+            <MapPin aria-hidden="true" className="size-5 text-muted-foreground" />
+            {LAUNCH_LINE}
           </p>
         </div>
 

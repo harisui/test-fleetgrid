@@ -8,6 +8,7 @@ import { DriverService, missingCardFields } from "@/server/services/DriverServic
 import { FakeConsentLogRepository } from "../../fakes/FakeConsentLogRepository";
 import { FakeDriverRepository } from "../../fakes/FakeDriverRepository";
 import { FakeProfileRepository } from "../../fakes/FakeProfileRepository";
+import { FakeServiceAreaRepository } from "../../fakes/FakeServiceAreaRepository";
 import { FakeZipProvider } from "../../fakes/FakeZipProvider";
 import {
   buildDriver,
@@ -34,6 +35,7 @@ describe("DriverService", () => {
   let drivers: FakeDriverRepository;
   let profiles: FakeProfileRepository;
   let zips: FakeZipProvider;
+  let areas: FakeServiceAreaRepository;
   let consentLog: FakeConsentLogRepository;
   let logBuilt: number;
   let service: DriverService;
@@ -45,12 +47,14 @@ describe("DriverService", () => {
       { zip: "75201", city: "Dallas", state: "TX", lat: 32.78111, lng: -96.79722 },
       { zip: "60601", city: "Chicago", state: "IL", lat: 41.8858, lng: -87.6181 },
     ]);
+    areas = new FakeServiceAreaRepository();
     consentLog = new FakeConsentLogRepository();
     logBuilt = 0;
     service = new DriverService(
       drivers,
       profiles,
       zips,
+      areas,
       () => {
         logBuilt += 1;
         return consentLog;
@@ -466,6 +470,7 @@ describe("DriverService", () => {
         drivers,
         profiles,
         zips,
+        areas,
         () => consentLog,
         () => new Date("2027-01-01T00:00:00Z"),
       );
@@ -632,8 +637,62 @@ describe("DriverService", () => {
     });
   });
 
+  describe("launch area", () => {
+    const dallas = { lat: 32.78111, lng: -96.79722 };
+
+    it("asks the service areas about the saved coordinates and reports the answer", async () => {
+      areas.setAreas((lat) => lat < 31);
+      drivers.rows.set(USER_ID, buildDriver({ ...dallas, inServiceArea: null }));
+      const state = await service.getOnboardingState(USER_ID);
+      expect(state.driver?.inServiceArea).toBe(false);
+      expect(areas.calls.at(-1)).toEqual(dallas);
+
+      areas.setAreas(() => true);
+      expect((await service.getCard(USER_ID))?.inServiceArea).toBe(true);
+    });
+
+    it("is unknown for a card without coordinates, and never asks", async () => {
+      drivers.rows.set(USER_ID, buildPartialDriver());
+      const state = await service.getOnboardingState(USER_ID);
+      expect(state.driver?.inServiceArea).toBeNull();
+      expect(areas.calls).toEqual([]);
+    });
+
+    it("answers for the ZIP just saved, on every screen save and profile edit", async () => {
+      areas.setAreas((lat) => lat < 35);
+      drivers.rows.set(USER_ID, buildPartialDriver());
+      const afterZip = await service.saveScreen(USER_ID, "zip", SCREEN_INPUTS.zip);
+      expect(afterZip.inServiceArea).toBe(true);
+      expect(areas.calls.at(-1)).toEqual(dallas);
+
+      const afterDistance = await service.saveScreen(USER_ID, "distance", SCREEN_INPUTS.distance);
+      expect(afterDistance.inServiceArea).toBe(true);
+
+      await completeThrough("bio");
+      const edited = await service.updateCard(USER_ID, {
+        ...validCard(),
+        zip: "60601",
+        city: "Chicago",
+        state: "IL",
+      });
+      expect(edited.inServiceArea).toBe(false);
+      expect(areas.calls.at(-1)).toEqual({ lat: 41.8858, lng: -87.6181 });
+
+      const unknownZip = await service.updateCard(USER_ID, { ...validCard(), zip: "99999" });
+      expect(unknownZip.inServiceArea).toBeNull();
+    });
+
+    it("reflects a change to the areas on the next read, nothing is stored", async () => {
+      drivers.rows.set(USER_ID, buildDriver({ ...dallas, inServiceArea: null }));
+      expect((await service.getCard(USER_ID))?.inServiceArea).toBe(true);
+      areas.setAreas(() => false);
+      expect((await service.getCard(USER_ID))?.inServiceArea).toBe(false);
+      expect(drivers.rows.get(USER_ID)).not.toHaveProperty("inServiceArea", false);
+    });
+  });
+
   it("uses the real clock by default", async () => {
-    const realClock = new DriverService(drivers, profiles, zips, () => consentLog);
+    const realClock = new DriverService(drivers, profiles, zips, areas, () => consentLog);
     await completeThrough("bio");
     const before = Date.now();
     const driver = await realClock.saveScreen(USER_ID, "consent", { consent: true });

@@ -30,13 +30,13 @@ import {
 } from "@/lib/onboarding/steps";
 import type { SupportContact } from "@/lib/support";
 import { saveOnboardingScreenAction } from "@/server/actions/driver.actions";
-import type { Driver, DriverDocument } from "@/types/domain";
+import type { DriverDocument, LocatedDriver } from "@/types/domain";
 
 const FORM_ID = "screen-form";
 
 interface OnboardingFlowProps {
   initialStepId: StepId;
-  initialDriver: Driver | null;
+  initialDriver: LocatedDriver | null;
   /** The signed-in driver's E.164 phone. */
   phone: string;
   initialDocuments: DriverDocument[];
@@ -134,7 +134,7 @@ interface ScreenPageProps {
   documents: DriverDocument[];
   onDocumentsChange: (documents: DriverDocument[]) => void;
   onBack: () => void;
-  onSaved: (driver: Driver, completed: boolean) => void;
+  onSaved: (driver: LocatedDriver, completed: boolean) => void;
 }
 
 function ScreenPage({
@@ -206,7 +206,7 @@ function ScreenPage({
 
   const submit = form.handleSubmit(async (parsed) => {
     setFormError(undefined);
-    let latest: Driver | null = null;
+    let latest: LocatedDriver | null = null;
     for (const definition of definitions) {
       const result = await saveOnboardingScreenAction(
         definition.id,

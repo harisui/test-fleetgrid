@@ -53,12 +53,19 @@ declare
     'Raj Patel', 'Tyrone Banks', 'Olivia Reyes', 'Kevin O''Brien', 'Fatima Zahra',
     'Brandon Lee', 'Sofia Rossi', 'Andre Williams', 'Megan Fox-Daly', 'Walter Nguyen'
   ];
+  -- City, state, ZIP, and the ZIP centre from src/data/us-zips.tsv. Six Houston-area places
+  -- (inside the launch areas) and four outside, so both paths show up in local data.
   v_places text[][] := array[
-    array['Dallas', 'TX', '75201'], array['Houston', 'TX', '77002'],
-    array['Chicago', 'IL', '60601'], array['Joliet', 'IL', '60431'],
-    array['Atlanta', 'GA', '30303'], array['Memphis', 'TN', '38103'],
-    array['Columbus', 'OH', '43215'], array['Kansas City', 'MO', '64106'],
-    array['Phoenix', 'AZ', '85004'], array['Fontana', 'CA', '92335']
+    array['Houston', 'TX', '77002', '29.7594', '-95.3594'],
+    array['Pasadena', 'TX', '77506', '29.7009', '-95.1989'],
+    array['Baytown', 'TX', '77520', '29.7461', '-94.9653'],
+    array['La Porte', 'TX', '77571', '29.6884', '-95.0513'],
+    array['Houston', 'TX', '77002', '29.7594', '-95.3594'],
+    array['Pasadena', 'TX', '77506', '29.7009', '-95.1989'],
+    array['Dallas', 'TX', '75201', '32.7904', '-96.8044'],
+    array['Austin', 'TX', '78701', '30.2713', '-97.7426'],
+    array['Chicago', 'IL', '60601', '41.8858', '-87.6181'],
+    array['Atlanta', 'GA', '30303', '33.7525', '-84.3888']
   ];
   v_id uuid;
   v_phone text;
@@ -73,7 +80,7 @@ begin
   for i in 1..25 loop
     v_id := ('00000000-0000-4000-a000-' || lpad((1000 + i)::text, 12, '0'))::uuid;
     v_phone := '+1555555' || (1000 + i)::text;
-    v_place := v_places[1 + (i % 10) : 1 + (i % 10)][1:3];
+    v_place := v_places[1 + (i % 10) : 1 + (i % 10)][1:5];
 
     v_operator_types := case i % 5
       when 0 then array['mechanic']::public.operator_type[]
@@ -115,12 +122,13 @@ begin
 
     insert into public.drivers (
       profile_id, full_name, operator_types, cdl_class, endorsements, years_experience,
-      city, state, zip, service_radius_miles, availability, certifications, bio,
+      city, state, zip, lat, lng, service_radius_miles, availability, certifications, bio,
       sms_opt_in, sms_opt_in_at, sms_opt_in_text, sms_opted_out, sms_opted_out_at,
       onboarding_step, card_completed
     ) values (
       v_id, v_names[i], v_operator_types, v_cdl, v_endorsements, (i * 3) % 31,
-      v_place[1][1], v_place[1][2], v_place[1][3], 25 + (i % 6) * 25, v_availability,
+      v_place[1][1], v_place[1][2], v_place[1][3], v_place[1][4]::numeric, v_place[1][5]::numeric,
+      25 + (i % 6) * 25, v_availability,
       case when i % 3 = 0 then array['TWIC', 'Forklift'] when i % 3 = 1 then array['OSHA 10'] else '{}'::text[] end,
       'Seed driver ' || i || '. Reliable, on time, clean record.',
       true, now() - make_interval(days => i),

@@ -1,29 +1,48 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import { ZipLookupService } from "@/server/services/ZipLookupService";
+import { FakeServiceAreaRepository } from "../../fakes/FakeServiceAreaRepository";
 import { FakeZipProvider } from "../../fakes/FakeZipProvider";
 
-const CHICAGO = { zip: "60601", city: "Chicago", state: "IL", lat: 41.8858, lng: -87.6181 };
+const HOUSTON = { zip: "77002", city: "Houston", state: "TX", lat: 29.7594, lng: -95.3594 };
+const DALLAS = { zip: "75201", city: "Dallas", state: "TX", lat: 32.7904, lng: -96.8044 };
 
 describe("ZipLookupService", () => {
-  const provider = new FakeZipProvider([CHICAGO]);
-  const service = new ZipLookupService(provider);
+  const provider = new FakeZipProvider([HOUSTON, DALLAS]);
+  // Only the Houston point is inside a launch area.
+  const areas = new FakeServiceAreaRepository(
+    (lat, lng) => lat === HOUSTON.lat && lng === HOUSTON.lng,
+  );
+  const service = new ZipLookupService(provider, areas);
 
-  it("finds a known ZIP in any forgiving form", () => {
-    expect(service.lookup("60601")).toEqual(CHICAGO);
-    expect(service.lookup("60601-1234")).toEqual(CHICAGO);
-    expect(service.lookup(" 606 01 ")).toEqual(CHICAGO);
+  it("finds a known ZIP in any forgiving form, with the launch-area answer and no coordinates", async () => {
+    const expected = { zip: "77002", city: "Houston", state: "TX", inServiceArea: true };
+    expect(await service.lookup("77002")).toEqual(expected);
+    expect(await service.lookup("77002-1234")).toEqual(expected);
+    expect(await service.lookup(" 770 02 ")).toEqual(expected);
+    expect(areas.calls.at(-1)).toEqual({ lat: HOUSTON.lat, lng: HOUSTON.lng });
   });
 
-  it("returns null for unknown or malformed input without touching the data", () => {
+  it("says when a ZIP is outside every launch area", async () => {
+    expect(await service.lookup("75201")).toEqual({
+      zip: "75201",
+      city: "Dallas",
+      state: "TX",
+      inServiceArea: false,
+    });
+  });
+
+  it("returns null for unknown or malformed input without touching the data or the areas", async () => {
     const before = provider.calls.length;
-    expect(service.lookup("6060")).toBeNull();
-    expect(service.lookup("abcde")).toBeNull();
-    expect(service.lookup(60601)).toBeNull();
-    expect(service.lookup(null)).toBeNull();
-    expect(service.lookup(undefined)).toBeNull();
+    const areaCalls = areas.calls.length;
+    expect(await service.lookup("6060")).toBeNull();
+    expect(await service.lookup("abcde")).toBeNull();
+    expect(await service.lookup(60601)).toBeNull();
+    expect(await service.lookup(null)).toBeNull();
+    expect(await service.lookup(undefined)).toBeNull();
     expect(provider.calls.length).toBe(before);
-    expect(service.lookup("99999")).toBeNull();
+    expect(await service.lookup("99999")).toBeNull();
     expect(provider.calls.at(-1)).toBe("99999");
+    expect(areas.calls.length).toBe(areaCalls);
   });
 });

@@ -12,6 +12,7 @@ import {
   openOnboarding,
   OTP,
   PHONES,
+  PLACES,
   requestCode,
   resetUser,
   screenHeading,
@@ -95,6 +96,12 @@ for (const colorScheme of ["light", "dark"] as const) {
       await expect(page.getByText("Enter your name")).toBeVisible();
       await expectNoAccessibilityViolations(page, "name with error");
 
+      await seedDriverAtStep(PHONES.driver, 2);
+      await openOnboarding(page, PHONES.driver);
+      await page.getByLabel("ZIP code", { exact: true }).fill(PLACES.dallas.zip);
+      await expect(page.locator("[data-slot=launch-area-note]")).toBeVisible();
+      await expectNoAccessibilityViolations(page, "ZIP outside the launch area");
+
       await seedDriverAtStep(PHONES.driver, 7);
       await openOnboarding(page, PHONES.driver);
       await page.getByRole("radio", { name: /No CDL/ }).click();
@@ -118,9 +125,11 @@ for (const colorScheme of ["light", "dark"] as const) {
     });
 
     test("profile and documents", async ({ page }) => {
+      // Opted out and outside the launch area: both notes and both badges on one page.
       const { driverId } = await seedDriverAtStep(PHONES.driver, 13, {
         sms_opted_out: true,
         sms_opted_out_at: new Date().toISOString(),
+        ...PLACES.dallas,
       });
       await adminClient()
         .from("driver_documents")
@@ -135,6 +144,7 @@ for (const colorScheme of ["light", "dark"] as const) {
 
       await login(page, PHONES.driver);
       await expect(page).toHaveURL(/\/driver\/profile$/);
+      await expect(page.getByText("Outside launch area")).toBeVisible();
       await expectNoAccessibilityViolations(page, "profile");
 
       await page.goto("/driver/documents");

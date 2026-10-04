@@ -1,9 +1,10 @@
-import { MessageSquareOff, MessageSquareText } from "lucide-react";
+import { MapPinOff, MessageSquareOff, MessageSquareText } from "lucide-react";
 import { InlineNote } from "@/components/shared/InlineNote";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
+import { OUT_OF_AREA_BADGE, OUT_OF_AREA_PROFILE_TEXT } from "@/lib/launch";
 import { formatE164ForDisplay } from "@/lib/phone";
-import type { AccountStatus, Driver, Profile } from "@/types/domain";
+import type { AccountStatus, LocatedDriver, Profile } from "@/types/domain";
 
 const STATUS_HELP: Record<AccountStatus, string> = {
   pending:
@@ -14,12 +15,14 @@ const STATUS_HELP: Record<AccountStatus, string> = {
 
 interface AccountStatusCardProps {
   profile: Pick<Profile, "status" | "phone">;
-  driver: Pick<Driver, "smsOptIn" | "smsOptedOut">;
+  driver: Pick<LocatedDriver, "smsOptIn" | "smsOptedOut"> &
+    Partial<Pick<LocatedDriver, "inServiceArea">>;
 }
 
 /** Account review status and text message status, with what each one means for the driver. */
 export function AccountStatusCard({ profile, driver }: AccountStatusCardProps) {
   const receivingTexts = driver.smsOptIn && !driver.smsOptedOut;
+  const outOfArea = driver.inServiceArea === false;
 
   return (
     <section
@@ -29,11 +32,27 @@ export function AccountStatusCard({ profile, driver }: AccountStatusCardProps) {
       <div className="flex flex-col gap-2">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-label leading-label font-semibold">Account</h2>
-          <StatusBadge status={profile.status} />
+          <div className="flex flex-wrap items-center gap-2">
+            {outOfArea && (
+              <Badge variant="info" data-area="outside">
+                <MapPinOff aria-hidden="true" />
+                {OUT_OF_AREA_BADGE}
+              </Badge>
+            )}
+            <StatusBadge status={profile.status} />
+          </div>
         </div>
         <p className="text-helper leading-helper text-muted-foreground">
           {STATUS_HELP[profile.status]}
         </p>
+        {outOfArea && (
+          <p
+            className="text-helper leading-helper text-muted-foreground"
+            data-slot="launch-area-help"
+          >
+            {OUT_OF_AREA_PROFILE_TEXT}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-col gap-2 border-t border-border pt-4">

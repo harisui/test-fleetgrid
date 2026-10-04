@@ -5,13 +5,14 @@ import { requireRole } from "@/lib/auth/guards";
 import { getContainer } from "@/server/container";
 import { runAction, type Result } from "@/server/errors/AppError";
 import type { PreparedUpload } from "@/server/services/DocumentService";
-import type { Driver, DriverDocument } from "@/types/domain";
+import type { ZipLookup } from "@/server/services/ZipLookupService";
+import type { DriverDocument, LocatedDriver } from "@/types/domain";
 
 /** Saves one onboarding screen for the signed-in driver. Returns the updated card. */
 export async function saveOnboardingScreenAction(
   stepId: unknown,
   input: unknown,
-): Promise<Result<Driver>> {
+): Promise<Result<LocatedDriver>> {
   return runAction(async () => {
     const { user } = await requireRole("driver");
     const { driverService } = await getContainer();
@@ -21,10 +22,11 @@ export async function saveOnboardingScreenAction(
   });
 }
 
-/** City and state for a ZIP the driver typed, or null when it is not a known US ZIP. */
-export async function lookupZipAction(
-  zip: unknown,
-): Promise<Result<{ zip: string; city: string; state: string } | null>> {
+/**
+ * City and state for a ZIP the driver typed, and whether it sits in a launch area, or null
+ * when it is not a known US ZIP.
+ */
+export async function lookupZipAction(zip: unknown): Promise<Result<ZipLookup | null>> {
   return runAction(async () => {
     await requireRole("driver");
     const { zipLookupService } = await getContainer();
@@ -33,7 +35,7 @@ export async function lookupZipAction(
 }
 
 /** Edits the whole card from the profile page. */
-export async function updateCardAction(input: unknown): Promise<Result<Driver>> {
+export async function updateCardAction(input: unknown): Promise<Result<LocatedDriver>> {
   return runAction(async () => {
     const { user } = await requireRole("driver");
     const { driverService } = await getContainer();

@@ -5,7 +5,7 @@ import { OnboardingFlow } from "@/components/driver/OnboardingFlow";
 import { SMS_CONSENT_TEXT } from "@/lib/constants";
 import { SAVABLE_STEP_IDS, STEPS, type StepId } from "@/lib/onboarding/steps";
 import type { Result } from "@/server/errors/AppError";
-import type { Driver } from "@/types/domain";
+import type { LocatedDriver } from "@/types/domain";
 import { buildDriver, buildPartialDriver } from "../../setup/factories";
 
 const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }));
@@ -34,7 +34,7 @@ const failure = (message: string, fieldErrors?: Record<string, string>): Result<
 const next = () => screen.getByRole("button", { name: "Next" });
 const heading = () => screen.getByRole("heading", { level: 1 });
 
-function renderFlow(stepId: StepId, driver: Driver | null = buildPartialDriver()) {
+function renderFlow(stepId: StepId, driver: LocatedDriver | null = buildPartialDriver()) {
   return render(
     <OnboardingFlow
       initialStepId={stepId}
@@ -111,8 +111,37 @@ describe("name and ZIP", () => {
     expect(heading()).toHaveFocus();
   });
 
+  it("tells a driver outside the launch area so, as information, and keeps going", async () => {
+    actions.lookupZipAction.mockImplementation(async (zip: string) =>
+      ok(
+        zip === "75201"
+          ? { zip, city: "Dallas", state: "TX", inServiceArea: false }
+          : { zip, city: "Houston", state: "TX", inServiceArea: true },
+      ),
+    );
+    renderFlow("zip");
+    const note = () => document.querySelector("[data-slot=launch-area-note]");
+
+    await userEvent.type(screen.getByLabelText("ZIP code"), "75201");
+    await waitFor(() => expect(screen.getByLabelText("City")).toHaveValue("Dallas"));
+    expect(note()).toHaveTextContent(
+      "FleetGrid is launching in the Houston area first. You can still sign up. We'll text you when we launch near you.",
+    );
+    expect(note()).toHaveAttribute("data-variant", "info");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(document.querySelector("[aria-invalid='true']")).toBeNull();
+    expect(next()).toBeEnabled();
+
+    await userEvent.clear(screen.getByLabelText("ZIP code"));
+    await userEvent.type(screen.getByLabelText("ZIP code"), "77002");
+    await waitFor(() => expect(screen.getByLabelText("City")).toHaveValue("Houston"));
+    expect(note()).toBeNull();
+  });
+
   it("fills in the city and state from the ZIP and keeps them editable", async () => {
-    actions.lookupZipAction.mockResolvedValue(ok({ zip: "60601", city: "Chicago", state: "IL" }));
+    actions.lookupZipAction.mockResolvedValue(
+      ok({ zip: "60601", city: "Chicago", state: "IL", inServiceArea: true }),
+    );
     actions.saveOnboardingScreenAction.mockResolvedValue(
       ok(buildPartialDriver({ onboardingStep: 3 })),
     );

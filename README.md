@@ -204,6 +204,14 @@ The user must have logged in once and chosen a role first, so that a profile row
   on the server only, which also stores the coordinates on the driver's card when a ZIP is
   saved, ready for distance matching in a later milestone. The data goes stale slowly, so the
   driver can always edit the city and state it suggests.
+- `service_areas` (migration 0010): where FleetGrid is live. Each row is a centre ZIP with its
+  coordinates and a radius in miles (5 to 250). The launch areas are Houston, TX (77002) and
+  Pasadena, TX (77506), 50 miles each. Whether a driver is inside one is computed live by the
+  Postgres function `is_in_service_area(lat, lng)` (haversine through `miles_between`), never
+  stored, so editing an area takes effect at once. No signed-in user can read or write the
+  table; the app only calls the function. Drivers outside every area can still sign up: they
+  see an info note on the ZIP screen, a "You're on the list" done screen and an "Outside
+  launch area" badge on the profile. Admin management of areas comes in Milestone 3.
 
 ## Project layout
 

@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { adminClient, displayPhone, login, PHONES, resetUser, seedUser } from "./helpers";
+import { adminClient, displayPhone, login, PHONES, PLACES, resetUser, seedUser } from "./helpers";
 
 const CONSENT_TEXT =
   "I agree to receive text messages from FleetGrid about available shifts at this number. Message frequency varies. Message and data rates may apply. Reply STOP to opt out, HELP for help.";
@@ -9,17 +9,20 @@ type Status = "pending" | "approved" | "blocked";
 /** A driver with a completed card, signed in on the profile page. */
 async function startWithCompletedCard(
   page: Page,
-  options: { status?: Status; optedOut?: boolean } = {},
+  options: { status?: Status; optedOut?: boolean; place?: keyof typeof PLACES } = {},
 ): Promise<string> {
   const userId = await seedUser(PHONES.driver, "driver", options.status ?? "pending");
+  const place = PLACES[options.place ?? "houston"];
   const { data, error } = await adminClient()
     .from("drivers")
     .insert({
       profile_id: userId,
       full_name: "Pat Driver",
-      city: "Dallas",
-      state: "TX",
-      zip: "75201",
+      city: place.city,
+      state: place.state,
+      zip: place.zip,
+      lat: place.lat,
+      lng: place.lng,
       service_radius_miles: 50,
       operator_types: ["cdl_driver"],
       cdl_class: "A",
@@ -63,6 +66,26 @@ test.describe("driver profile", () => {
     await expect(page.getByRole("radio", { name: "Class A" })).toBeChecked();
     await expect(page.getByRole("checkbox", { name: "Full time" })).toBeChecked();
     await expect(page.getByLabel("About you")).toHaveValue("Reliable and on time.");
+  });
+
+  test("a driver inside the launch area has no launch-area badge", async ({ page }) => {
+    await startWithCompletedCard(page);
+    const status = page.getByRole("region", { name: "Account status" });
+    await expect(status.getByText("Pending review")).toBeVisible();
+    await expect(status.getByText("Outside launch area")).toHaveCount(0);
+    await expect(status.locator("[data-slot=launch-area-help]")).toHaveCount(0);
+  });
+
+  test("a driver outside the launch area is marked, with one sentence saying why", async ({
+    page,
+  }) => {
+    await startWithCompletedCard(page, { place: "dallas" });
+    const status = page.getByRole("region", { name: "Account status" });
+    await expect(status.getByText("Outside launch area")).toBeVisible();
+    await expect(status.locator("[data-slot=launch-area-help]")).toHaveText(
+      "FleetGrid is launching in the Houston area first. We'll text you when we launch near you.",
+    );
+    await expect(status.getByText("Pending review")).toBeVisible();
   });
 
   test("an approved driver sees the approved status", async ({ page }) => {
@@ -144,7 +167,7 @@ test.describe("driver profile", () => {
       .select("zip, availability")
       .eq("id", driverId)
       .single();
-    expect(data).toEqual({ zip: "75201", availability: ["full_time"] });
+    expect(data).toEqual({ zip: PLACES.houston.zip, availability: ["full_time"] });
   });
 
   test("the documents page is one tap away", async ({ page }) => {

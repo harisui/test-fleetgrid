@@ -25,6 +25,12 @@ describe("landing page", () => {
     expect(within(main).getByText(/get matching shift offers by text/)).toBeInTheDocument();
   });
 
+  it("says where FleetGrid is launching", () => {
+    render(<LandingPage />);
+    const line = within(screen.getByRole("main")).getByText("Now launching in the Houston area.");
+    expect(line).toHaveAttribute("data-slot", "launch-line");
+  });
+
   it("both buttons go to login with the role preselected", () => {
     render(<LandingPage />);
     expect(screen.getByRole("link", { name: "I'm a Driver" })).toHaveAttribute(

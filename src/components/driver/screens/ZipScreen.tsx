@@ -9,9 +9,11 @@ import type {
   ScreenFieldsProps,
 } from "@/components/driver/screens/types";
 import { FormField } from "@/components/shared/FormField";
+import { InlineNote } from "@/components/shared/InlineNote";
 import { SelectInput } from "@/components/shared/SelectInput";
 import { Input } from "@/components/ui/input";
 import { US_STATE_OPTIONS } from "@/lib/constants";
+import { OUT_OF_AREA_NOTE } from "@/lib/launch";
 import { normalizeZip, zipScreenSchema } from "@/lib/validation/onboarding.schema";
 import { lookupZipAction } from "@/server/actions/driver.actions";
 
@@ -20,6 +22,8 @@ const LOOKUP_DELAY_MS = 250;
 interface LookupResult {
   zip: string;
   found: boolean;
+  /** False when the ZIP is outside every launch area. Null when the ZIP is unknown. */
+  inServiceArea: boolean | null;
 }
 
 const HELPERS = {
@@ -54,7 +58,11 @@ function ZipFields({ showQuestion, question }: ScreenFieldsProps) {
         setValue("city", lookup.data.city, { shouldDirty: true, shouldValidate: true });
         setValue("state", lookup.data.state, { shouldDirty: true, shouldValidate: true });
       }
-      setResult({ zip, found: lookup.ok && lookup.data !== null });
+      setResult({
+        zip,
+        found: lookup.ok && lookup.data !== null,
+        inServiceArea: lookup.ok && lookup.data ? lookup.data.inServiceArea : null,
+      });
     }, LOOKUP_DELAY_MS);
     return () => {
       cancelled = true;
@@ -64,10 +72,17 @@ function ZipFields({ showQuestion, question }: ScreenFieldsProps) {
 
   const lookup: keyof typeof HELPERS =
     zip && result?.zip === zip ? (result.found ? "found" : "missing") : "idle";
+  // Information, not a warning: the sign-up goes on exactly as before.
+  const outOfArea = lookup === "found" && result?.inServiceArea === false;
 
   return (
     <>
       <ScreenQuestion show={showQuestion}>{question}</ScreenQuestion>
+      {outOfArea && (
+        <InlineNote variant="info" data-slot="launch-area-note">
+          {OUT_OF_AREA_NOTE}
+        </InlineNote>
+      )}
       <FormField
         label="ZIP code"
         description={HELPERS[lookup]}
