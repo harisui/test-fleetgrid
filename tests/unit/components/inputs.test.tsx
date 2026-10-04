@@ -95,6 +95,24 @@ describe("ChoiceGroup", () => {
     expect(screen.getByText("*")).toHaveAttribute("aria-hidden", "true");
   });
 
+  it("shows an option description under the label, as the description and not the name", () => {
+    render(
+      <ChoiceGroup
+        label="Letter"
+        options={[
+          { value: "a", label: "Alpha", description: "The first letter" },
+          { value: "b", label: "Bravo" },
+        ]}
+        value={undefined}
+        onChange={vi.fn()}
+      />,
+    );
+    const alpha = screen.getByRole("radio", { name: "Alpha" });
+    expect(alpha).toHaveAccessibleDescription("The first letter");
+    expect(screen.getByText("The first letter")).toHaveClass("text-muted-foreground");
+    expect(screen.getByRole("radio", { name: "Bravo" })).not.toHaveAttribute("aria-describedby");
+  });
+
   it("has no error wiring when valid", () => {
     render(<SingleHarness />);
     const group = screen.getByRole("group", { name: "Letter" });

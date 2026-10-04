@@ -92,6 +92,19 @@ describe("ProfileEditor", () => {
     expect(screen.getByLabelText("About you")).toHaveValue("Reliable and on time.");
   });
 
+  it("describes each CDL class in the onboarding words, with the label as the name", () => {
+    render(<ProfileEditor driver={buildDriver()} />);
+    const group = screen.getByRole("group", { name: /CDL class/ });
+    expect(within(group).getByText("Tractor-trailers and big rigs")).toBeInTheDocument();
+    expect(within(group).getByText("Straight trucks, buses, dump trucks")).toBeInTheDocument();
+    expect(
+      within(group).getByText("Passenger vans (16+) and small hazmat vehicles"),
+    ).toBeInTheDocument();
+    expect(within(group).getByText("Fine for yard and shop work")).toBeInTheDocument();
+    const classC = within(group).getByRole("radio", { name: "Class C" });
+    expect(classC).toHaveAccessibleDescription("Passenger vans (16+) and small hazmat vehicles");
+  });
+
   it("groups the fields into three labelled sections", () => {
     render(<ProfileEditor driver={buildDriver()} />);
     for (const name of ["Basics", "Role and licenses", "Availability"]) {

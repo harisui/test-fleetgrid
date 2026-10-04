@@ -22,11 +22,10 @@ import {
   US_STATE_OPTIONS,
   YEARS_EXPERIENCE_MAX,
 } from "@/lib/constants";
+import { CDL_CLASS_OPTIONS } from "@/lib/onboarding/options";
 import {
   AVAILABILITY_LABELS,
   AVAILABILITY_TYPES,
-  CDL_CLASS_LABELS,
-  CDL_CLASSES,
   ENDORSEMENT_LABELS,
   ENDORSEMENTS,
   OPERATOR_TYPE_LABELS,
@@ -49,7 +48,12 @@ const options = <T extends string>(values: readonly T[], labels: Record<T, strin
   values.map((value) => ({ value, label: labels[value] }));
 
 const OPERATOR_OPTIONS = options(OPERATOR_TYPES, OPERATOR_TYPE_LABELS);
-const CDL_OPTIONS = options(CDL_CLASSES, CDL_CLASS_LABELS);
+// The same words as the onboarding cards, so the profile never describes a class differently.
+const CDL_OPTIONS = CDL_CLASS_OPTIONS.map(({ value, label, description }) => ({
+  value,
+  label,
+  description,
+}));
 const ENDORSEMENT_OPTIONS = options(ENDORSEMENTS, ENDORSEMENT_LABELS);
 const AVAILABILITY_OPTIONS = options(AVAILABILITY_TYPES, AVAILABILITY_LABELS);
 

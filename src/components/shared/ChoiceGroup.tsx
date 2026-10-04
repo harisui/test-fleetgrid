@@ -7,6 +7,8 @@ import { cn } from "@/lib/utils";
 export interface ChoiceOption<T extends string> {
   value: T;
   label: string;
+  /** One plain line under the label. Read by screen readers as the description, not the name. */
+  description?: string;
 }
 
 interface BaseProps<T extends string> {
@@ -87,6 +89,10 @@ export function ChoiceGroup<T extends string>(props: ChoiceGroupProps<T>) {
       <div className={cn("grid gap-3", COLUMN_CLASS[columns])}>
         {options.map((option) => {
           const selected = isSelected(option.value);
+          const labelId = `${groupId}-${option.value}-label`;
+          const optionDescriptionId = option.description
+            ? `${groupId}-${option.value}-description`
+            : undefined;
           return (
             <label
               key={option.value}
@@ -104,6 +110,8 @@ export function ChoiceGroup<T extends string>(props: ChoiceGroupProps<T>) {
                 value={option.value}
                 checked={selected}
                 onChange={() => toggle(option.value)}
+                aria-labelledby={labelId}
+                aria-describedby={optionDescriptionId}
                 className="sr-only"
               />
               <span
@@ -115,7 +123,17 @@ export function ChoiceGroup<T extends string>(props: ChoiceGroupProps<T>) {
               >
                 {selected && <Check className="size-4" strokeWidth={3} />}
               </span>
-              <span>{option.label}</span>
+              <span className="flex flex-col">
+                <span id={labelId}>{option.label}</span>
+                {option.description && (
+                  <span
+                    id={optionDescriptionId}
+                    className="text-helper leading-helper font-normal text-muted-foreground"
+                  >
+                    {option.description}
+                  </span>
+                )}
+              </span>
             </label>
           );
         })}

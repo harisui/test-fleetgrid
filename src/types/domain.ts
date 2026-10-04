@@ -64,13 +64,6 @@ export const OPERATOR_TYPE_LABELS: Record<OperatorType, string> = {
   mechanic: "Mechanic",
 };
 
-export const CDL_CLASS_LABELS: Record<CdlClass, string> = {
-  A: "Class A",
-  B: "Class B",
-  C: "Class C",
-  none: "No CDL",
-};
-
 export const ENDORSEMENT_LABELS: Record<Endorsement, string> = {
   H: "H - Hazardous materials",
   N: "N - Tank vehicles",
