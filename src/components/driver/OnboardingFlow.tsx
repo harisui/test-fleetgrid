@@ -28,6 +28,7 @@ import {
   type Step,
   type StepId,
 } from "@/lib/onboarding/steps";
+import type { SupportContact } from "@/lib/support";
 import { saveOnboardingScreenAction } from "@/server/actions/driver.actions";
 import type { Driver, DriverDocument } from "@/types/domain";
 
@@ -39,6 +40,8 @@ interface OnboardingFlowProps {
   /** The signed-in driver's E.164 phone. */
   phone: string;
   initialDocuments: DriverDocument[];
+  /** Shown in the Help sheet. */
+  support?: SupportContact;
 }
 
 function pick(values: OnboardingFormValues, fields: OnboardingField[]): OnboardingFormValues {
@@ -57,6 +60,7 @@ export function OnboardingFlow({
   initialDriver,
   phone,
   initialDocuments,
+  support,
 }: OnboardingFlowProps) {
   const router = useRouter();
   const isDesktop = useMediaQuery(DESKTOP_QUERY);
@@ -79,7 +83,7 @@ export function OnboardingFlow({
 
   if (stepId === "done" && driver) {
     return (
-      <OnboardingShell stepId="done">
+      <OnboardingShell stepId="done" support={support}>
         <DoneScreen driver={driver} phone={phone} onEdit={setStepId} />
       </OnboardingShell>
     );
@@ -94,7 +98,7 @@ export function OnboardingFlow({
   // The shell stays mounted across steps; only the screen inside it is replaced, so the
   // road's fill and truck animate to the next position.
   return (
-    <OnboardingShell stepId={stepId}>
+    <OnboardingShell stepId={stepId} support={support}>
       <ScreenPage
         key={pageKey}
         stepId={stepId}

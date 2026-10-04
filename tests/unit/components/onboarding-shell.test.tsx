@@ -202,27 +202,20 @@ describe("OnboardingShell", () => {
     );
   });
 
-  it("Help opens a dialog with the support placeholder and the terms links", async () => {
+  it("Help opens the help sheet and passes the support contact through", async () => {
     render(
-      <OnboardingShell stepId="name">
+      <OnboardingShell stepId="name" support={{ email: "help@example.com" }}>
         <p>Question</p>
       </OnboardingShell>,
     );
     await userEvent.click(screen.getByRole("button", { name: "Help" }));
-    const dialog = await screen.findByRole("dialog");
-    expect(within(dialog).getByText(/Every answer is saved as you go/)).toBeInTheDocument();
-    expect(
-      within(dialog).getByText(/support contact to be provided by FleetGrid/),
-    ).toBeInTheDocument();
-    expect(within(dialog).getByRole("link", { name: "SMS Terms" })).toHaveAttribute(
+    const sheet = await screen.findByRole("dialog", { name: "Help" });
+    expect(within(sheet).getByText(/Every answer is saved as you go/)).toBeInTheDocument();
+    expect(within(sheet).getByRole("link", { name: "help@example.com" })).toHaveAttribute(
       "href",
-      "/sms-terms",
+      "mailto:help@example.com",
     );
-    expect(within(dialog).getByRole("link", { name: "Privacy Policy" })).toHaveAttribute(
-      "href",
-      "/privacy",
-    );
-    await userEvent.click(within(dialog).getByRole("button", { name: "Close" }));
+    await userEvent.click(within(sheet).getByRole("button", { name: "Close" }));
   });
 
   it("keeps the content column at the token width", () => {

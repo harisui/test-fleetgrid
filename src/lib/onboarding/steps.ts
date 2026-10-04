@@ -15,6 +15,15 @@ export const MILES = [
 export type Mile = (typeof MILES)[number];
 export type MileNumber = Mile["mile"];
 
+/** One line per stage for the Help sheet: what the questions in it are about. */
+export const MILE_SUMMARIES: Record<MileNumber, string> = {
+  1: "Your name, your ZIP code and how far you will travel.",
+  2: "The work you do, your years of experience and when you can work.",
+  3: "Your CDL class, the letters on it and any certifications.",
+  4: "Photos of your CDL, medical card and other papers. You can skip this.",
+  5: "A few words about you, and your OK to receive shift offers by text.",
+};
+
 export const STEPS = [
   { id: "name", mile: 1, question: "What is your name?" },
   { id: "zip", mile: 1, question: "What is your ZIP code?" },

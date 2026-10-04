@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { OnboardingFlow } from "@/components/driver/OnboardingFlow";
 import { requireRole } from "@/lib/auth/guards";
+import { getSupportContact } from "@/lib/support";
 import { getContainer } from "@/server/container";
 
 export const metadata: Metadata = { title: "Set up your profile" };
@@ -19,6 +20,7 @@ export default async function DriverOnboardingPage() {
       initialDriver={state.driver}
       phone={user.phone}
       initialDocuments={documents}
+      support={getSupportContact()}
     />
   );
 }

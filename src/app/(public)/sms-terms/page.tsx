@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalPage } from "@/components/layout/LegalPage";
-import { SMS_CONSENT_TEXT, SMS_PROGRAM_NAME, SUPPORT_CONTACT_PLACEHOLDER } from "@/lib/constants";
+import { SMS_CONSENT_TEXT, SMS_PROGRAM_NAME, SUPPORT_CONTACT_PENDING } from "@/lib/constants";
+import { formatE164ForDisplay } from "@/lib/phone";
+import { getSupportContact } from "@/lib/support";
 
 export const metadata: Metadata = { title: "SMS Terms" };
 
@@ -9,6 +11,19 @@ const linkClass = "text-foreground underline underline-offset-4";
 
 /** SMS program disclosure for carrier registration (A2P 10DLC). */
 export default function SmsTermsPage() {
+  const support = getSupportContact();
+  const contact = [
+    support.phone && (
+      <a key="phone" href={`tel:${support.phone}`} className={linkClass}>
+        {formatE164ForDisplay(support.phone)}
+      </a>
+    ),
+    support.email && (
+      <a key="email" href={`mailto:${support.email}`} className={linkClass}>
+        {support.email}
+      </a>
+    ),
+  ].filter(Boolean);
   return (
     <LegalPage title="SMS Terms">
       <div className="[&_h2]:mt-2 [&_h2]:text-lg [&_h2]:font-semibold flex flex-col gap-4 [&_p]:leading-relaxed">
@@ -47,8 +62,17 @@ export default function SmsTermsPage() {
 
         <h2>Help</h2>
         <p>
-          Reply <strong>HELP</strong> to any FleetGrid message for help, or contact us:{" "}
-          {SUPPORT_CONTACT_PLACEHOLDER}
+          Reply <strong>HELP</strong> to any FleetGrid message for help, or contact us.{" "}
+          <span data-slot="support-contact">
+            {contact.length === 0
+              ? SUPPORT_CONTACT_PENDING
+              : contact.map((part, index) => (
+                  <span key={index}>
+                    {index > 0 && " or "}
+                    {part}
+                  </span>
+                ))}
+          </span>
         </p>
 
         <h2>Carriers</h2>

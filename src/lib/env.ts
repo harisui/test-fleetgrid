@@ -61,6 +61,9 @@ export const serverEnvSchema = clientEnvSchema
     TEST_PHONE_DRIVER: optionalString,
     TEST_OTP: optionalString,
     NODE_ENV: optionalString,
+    // Shown in the Help sheet once the client provides them (src/lib/support.ts).
+    SUPPORT_EMAIL: optionalString,
+    SUPPORT_PHONE: optionalString,
   })
   .superRefine((env, context) => {
     // A production build may only carry the flag against the local stack (CI). Against a

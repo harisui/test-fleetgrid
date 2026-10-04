@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { getSupportContact } from "@/lib/support";
 import { LogoutButton } from "@/components/auth/LogoutButton";
 import { RoleChooser } from "@/components/auth/RoleChooser";
 import { SignHeader } from "@/components/onboarding/SignHeader";
@@ -18,7 +19,7 @@ export default async function ChooseRolePage({ searchParams }: PageProps<"/choos
   const defaultRole = SIGNUP_ROLES.find((candidate) => candidate === params.role);
 
   return (
-    <AuthShell>
+    <AuthShell support={getSupportContact()}>
       <SignHeader eyebrow="One more thing" title="How will you use FleetGrid?" />
       <p className="text-helper leading-helper text-muted-foreground">
         Pick the one that fits. This cannot be changed later without our help.

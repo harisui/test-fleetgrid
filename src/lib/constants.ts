@@ -21,7 +21,8 @@ export const DEFAULT_TIMEZONE = "America/Chicago";
 
 export const SMS_PROGRAM_NAME = "FleetGrid Shift Alerts";
 /** Replace once the client supplies the support email and phone (open question in the brief). */
-export const SUPPORT_CONTACT_PLACEHOLDER = "support contact to be provided by FleetGrid.";
+/** Shown wherever a support contact belongs until SUPPORT_EMAIL or SUPPORT_PHONE is set. */
+export const SUPPORT_CONTACT_PENDING = "Support contact coming soon.";
 
 export const DOCUMENTS_BUCKET = "driver-documents";
 /** "Other papers" (document type certification) a driver can keep at once. */

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { getSupportContact } from "@/lib/support";
 import { PhoneForm } from "@/components/auth/PhoneForm";
 import { SignHeader } from "@/components/onboarding/SignHeader";
 import { InlineNote } from "@/components/shared/InlineNote";
@@ -14,7 +15,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const blocked = params.blocked === "1";
 
   return (
-    <AuthShell>
+    <AuthShell support={getSupportContact()}>
       <SignHeader eyebrow="Log in or sign up" title="What is your mobile number?" />
       <p className="text-helper leading-helper text-muted-foreground">
         No password. We text you a code instead.

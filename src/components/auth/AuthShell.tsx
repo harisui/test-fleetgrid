@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { HelpDialog } from "@/components/onboarding/HelpDialog";
+import { HelpSheet } from "@/components/onboarding/HelpSheet";
+import type { SupportContact } from "@/lib/support";
 
 const LEGAL_LINKS = [
   { href: "/terms", label: "Terms" },
@@ -12,7 +13,14 @@ const LEGAL_LINKS = [
  * The frame around the login, code and role screens: the same graphite header as onboarding
  * (wordmark and Help only), a 560px column, and the legal links. No app navigation.
  */
-export function AuthShell({ children }: { children: ReactNode }) {
+export function AuthShell({
+  children,
+  support,
+}: {
+  children: ReactNode;
+  /** Shown in the Help sheet. */
+  support?: SupportContact;
+}) {
   return (
     <div className="flex min-h-dvh flex-col bg-background" data-slot="auth-shell">
       <a
@@ -26,7 +34,7 @@ export function AuthShell({ children }: { children: ReactNode }) {
           <Link href="/" className="font-heading text-h2 leading-h2 font-bold tracking-wide">
             FLEETGRID
           </Link>
-          <HelpDialog />
+          <HelpSheet support={support} />
         </div>
       </header>
       <main

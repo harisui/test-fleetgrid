@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth/AuthShell";
+import { getSupportContact } from "@/lib/support";
 import { OtpForm } from "@/components/auth/OtpForm";
 import { SignHeader } from "@/components/onboarding/SignHeader";
 import { testLoginPrefill } from "@/lib/auth/prefill";
@@ -17,7 +18,7 @@ export default async function VerifyPage({ searchParams }: PageProps<"/verify">)
   const role = SIGNUP_ROLES.find((candidate) => candidate === params.role);
 
   return (
-    <AuthShell>
+    <AuthShell support={getSupportContact()}>
       <SignHeader eyebrow="Check your texts" title="What is the code we sent you?" />
       <OtpForm phone={phone} role={role} defaultCode={testLoginPrefill().code} />
     </AuthShell>

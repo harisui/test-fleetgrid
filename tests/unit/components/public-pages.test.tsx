@@ -9,6 +9,9 @@ import { SMS_CONSENT_TEXT } from "@/lib/constants";
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
 
+const support = vi.hoisted(() => ({ contact: {} as { email?: string; phone?: string } }));
+vi.mock("@/lib/support", () => ({ getSupportContact: () => support.contact }));
+
 const BANNER = "Legal text to be provided by FleetGrid.";
 
 describe("landing page", () => {
@@ -105,12 +108,29 @@ describe("/sms-terms", () => {
     expect(within(main).getByText("STOP")).toBeInTheDocument();
     expect(within(main).getByText("HELP")).toBeInTheDocument();
     expect(within(main).getByText("START")).toBeInTheDocument();
-    // Support contact (placeholder until the client supplies it)
-    expect(
-      within(main).getByText(/support contact to be provided by FleetGrid/),
-    ).toBeInTheDocument();
+    // Support contact (a placeholder until the client supplies it)
+    expect(within(main).getByText("Support contact coming soon.")).toBeInTheDocument();
     // No sharing for marketing
     expect(within(main).getByText(/do not sell your phone number/)).toBeInTheDocument();
+  });
+
+  it("shows the configured support phone and email as links", () => {
+    support.contact = { email: "help@fleetgridus.com", phone: "+12145550123" };
+    try {
+      render(<SmsTermsPage />);
+      const main = screen.getByRole("main");
+      expect(within(main).queryByText("Support contact coming soon.")).not.toBeInTheDocument();
+      expect(within(main).getByRole("link", { name: "(214) 555-0123" })).toHaveAttribute(
+        "href",
+        "tel:+12145550123",
+      );
+      expect(within(main).getByRole("link", { name: "help@fleetgridus.com" })).toHaveAttribute(
+        "href",
+        "mailto:help@fleetgridus.com",
+      );
+    } finally {
+      support.contact = {};
+    }
   });
 
   it("quotes the exact consent text drivers agree to", () => {

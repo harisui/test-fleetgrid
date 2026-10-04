@@ -1,12 +1,15 @@
 import type { ReactNode } from "react";
-import { HelpDialog } from "@/components/onboarding/HelpDialog";
+import { HelpSheet } from "@/components/onboarding/HelpSheet";
 import { LaneProgress } from "@/components/onboarding/LaneProgress";
 import type { StepId } from "@/lib/onboarding/steps";
+import type { SupportContact } from "@/lib/support";
 
 interface OnboardingShellProps {
   stepId: StepId;
   /** The screen: an `OnboardingContent` column, then its action bar. */
   children: ReactNode;
+  /** Shown in the Help sheet. */
+  support?: SupportContact;
 }
 
 /**
@@ -15,7 +18,7 @@ interface OnboardingShellProps {
  * competes with the question. The shell stays mounted while screens change inside it, so
  * the road animates from one step to the next instead of being redrawn.
  */
-export function OnboardingShell({ stepId, children }: OnboardingShellProps) {
+export function OnboardingShell({ stepId, children, support }: OnboardingShellProps) {
   return (
     <div className="flex min-h-dvh flex-col bg-background" data-slot="onboarding-shell">
       <a
@@ -31,7 +34,7 @@ export function OnboardingShell({ stepId, children }: OnboardingShellProps) {
             <span className="font-heading text-h2 leading-h2 font-bold tracking-wide">
               FLEETGRID
             </span>
-            <HelpDialog />
+            <HelpSheet support={support} />
           </div>
         </div>
         <div className="border-b border-border bg-card text-foreground">
