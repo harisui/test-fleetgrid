@@ -1,5 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
-import { adminClient, formAlert, login, PHONES, resetUser, seedUser } from "./helpers";
+import {
+  adminClient,
+  expectScreen,
+  formAlert,
+  login,
+  PHONES,
+  resetUser,
+  seedUser,
+} from "./helpers";
 
 // 1x1 PNG
 const PNG = Buffer.from(
@@ -172,9 +180,8 @@ test.describe("driver documents", () => {
       })
       .eq("id", driverId);
     await page.goto("/driver/onboarding");
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Do you want to add your papers now?" }),
-    ).toBeVisible();
+    // Phones show the question as the sign title; wide screens group the mile under "Papers".
+    await expectScreen(page, "Do you want to add your papers now?");
     const front = page.locator("[data-slot=upload-tile]").filter({ hasText: "Front of your CDL" });
     await expect(front).toHaveAttribute("data-state", "done");
     await expect(front).toContainText("cdl.png");
