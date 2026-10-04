@@ -47,6 +47,12 @@ describe("PhoneForm", () => {
     expect(input()).toHaveValue("(555) 555-0100");
   });
 
+  it("starts empty with no hint of a test number when nothing is prefilled", () => {
+    render(<PhoneForm />);
+    expect(input()).toHaveValue("");
+    expect(document.body.textContent).not.toMatch(/555-01|123456/);
+  });
+
   it("is a telephone input with autofill hints", () => {
     render(<PhoneForm />);
     expect(input()).toHaveAttribute("type", "tel");

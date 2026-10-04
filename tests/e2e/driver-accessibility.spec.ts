@@ -62,7 +62,7 @@ for (const colorScheme of ["light", "dark"] as const) {
       await resetUser(PHONES.driver);
       await page.goto("/login");
       await expectNoAccessibilityViolations(page, "login");
-      // An empty number is the error state, whatever PREFILL_TEST_LOGIN put there.
+      // An empty number is the error state, whatever ENABLE_TEST_LOGIN put there.
       await page.getByLabel("Mobile number").fill("");
       await page.getByRole("button", { name: "Text me a code" }).click();
       await expect(formAlert(page)).toBeVisible();

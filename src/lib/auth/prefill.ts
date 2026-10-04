@@ -7,17 +7,15 @@ export interface TestLoginPrefill {
   code?: string;
 }
 
-type PrefillEnv = Pick<ServerEnv, "PREFILL_TEST_LOGIN" | "TEST_PHONE_DRIVER" | "TEST_OTP">;
+type PrefillEnv = Pick<ServerEnv, "ENABLE_TEST_LOGIN" | "TEST_PHONE_DRIVER" | "TEST_OTP">;
 
 /**
- * Local convenience: with PREFILL_TEST_LOGIN=true the login and code forms start filled with
- * the test driver number and its code, so a developer taps through in two clicks.
- * Never active in a production build, whatever the variables say.
+ * Local convenience: with ENABLE_TEST_LOGIN=true the login and code forms start filled with
+ * the test driver number and its code, so a developer taps through in two clicks. The flag
+ * is read in one place (src/lib/env.ts), which also refuses it on a production build
+ * against a hosted Supabase project.
  */
-export function testLoginPrefill(
-  env: PrefillEnv = getServerEnv(),
-  nodeEnv: string | undefined = process.env.NODE_ENV,
-): TestLoginPrefill {
-  if (nodeEnv === "production" || env.PREFILL_TEST_LOGIN !== "true") return {};
+export function testLoginPrefill(env: PrefillEnv = getServerEnv()): TestLoginPrefill {
+  if (!env.ENABLE_TEST_LOGIN) return {};
   return { phone: env.TEST_PHONE_DRIVER, code: env.TEST_OTP };
 }

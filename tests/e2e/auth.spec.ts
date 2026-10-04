@@ -20,7 +20,9 @@ test.describe("phone login", () => {
     await page.goto("/login");
     const phone = page.getByLabel("Mobile number");
 
-    // PREFILL_TEST_LOGIN may have filled the field; this test types from empty.
+    // No test hints on the page itself, whatever ENABLE_TEST_LOGIN put in the field.
+    await expect(page.getByText(/555-01|123456/)).toHaveCount(0);
+    // ENABLE_TEST_LOGIN may have filled the field; this test types from empty.
     await phone.fill("");
     await phone.pressSequentially("5555550100");
     await expect(phone).toHaveValue("(555) 555-0100");
@@ -71,7 +73,7 @@ test.describe("phone login", () => {
     await requestCode(page, PHONES.driver);
 
     const code = page.getByLabel("6-digit code");
-    // Start empty: PREFILL_TEST_LOGIN may have filled the code already.
+    // Start empty: ENABLE_TEST_LOGIN may have filled the code already.
     await code.fill("");
     await code.focus();
     await page.evaluate(() => {

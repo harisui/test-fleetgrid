@@ -65,7 +65,9 @@ Real SMS is never sent locally or in tests. These numbers always accept the code
 
 The e2e suite deletes and recreates 0100, 0101, 0102 and 0108 before each test, so a browser session on one of them breaks while `pnpm test:e2e` runs ("An unexpected response was received from the server" after an action). To click around while tests run, sign in with 0104 to 0107 instead.
 
-`PREFILL_TEST_LOGIN=true` in `.env.local` starts the login and code forms filled with `TEST_PHONE_DRIVER` and `TEST_OTP`. It is ignored in production builds.
+`ENABLE_TEST_LOGIN=true` in `.env.local` starts the login and code forms filled with `TEST_PHONE_DRIVER` and `TEST_OTP`. The flag is read in one place (`src/lib/env.ts`), is off unless set to exactly `true`, and a production build refuses to start with it on unless `NEXT_PUBLIC_SUPABASE_URL` is the local stack. Never set it on a hosted deployment.
+
+The test numbers themselves exist only in `supabase/config.toml`, which configures the local stack. The hosted Supabase project must not have test OTP numbers configured (Authentication → Providers → Phone → Test OTPs must stay empty), so no number can sign in without a real text in production.
 
 To start over with a number, use "Delete my account" at the bottom of the driver profile or the carrier page. It removes the person's files, documents, card, profile and sign-in (a compliance requirement, available to everyone), so the same number can sign up again.
 

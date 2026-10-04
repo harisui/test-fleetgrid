@@ -107,7 +107,7 @@ export async function requestCode(page: Page, phone: string, loginPath = "/login
 }
 
 /**
- * Types a code into the verify screen. The field is cleared first: with PREFILL_TEST_LOGIN
+ * Types a code into the verify screen. The field is cleared first: with ENABLE_TEST_LOGIN
  * it may already hold this very code, and filling the same value again changes nothing, so
  * the form would never submit.
  */

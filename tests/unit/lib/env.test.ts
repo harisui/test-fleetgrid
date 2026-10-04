@@ -65,8 +65,41 @@ describe("parseClientEnv", () => {
 });
 
 describe("parseServerEnv", () => {
-  it("accepts a valid server environment", () => {
-    expect(parseServerEnv(validServer)).toEqual(validServer);
+  it("accepts a valid server environment, with the test login flag off by default", () => {
+    expect(parseServerEnv(validServer)).toEqual({ ...validServer, ENABLE_TEST_LOGIN: false });
+  });
+
+  it("reads ENABLE_TEST_LOGIN as a flag: only the exact word true turns it on", () => {
+    expect(parseServerEnv({ ...validServer, ENABLE_TEST_LOGIN: "true" }).ENABLE_TEST_LOGIN).toBe(
+      true,
+    );
+    for (const value of ["1", "yes", "TRUE", "false", ""]) {
+      expect(
+        parseServerEnv({ ...validServer, ENABLE_TEST_LOGIN: value }).ENABLE_TEST_LOGIN,
+        value,
+      ).toBe(false);
+    }
+  });
+
+  it("refuses the test login flag on a production build against a hosted Supabase project", () => {
+    const hosted = {
+      ...validServer,
+      NEXT_PUBLIC_SUPABASE_URL: "https://abcdefgh.supabase.co",
+      ENABLE_TEST_LOGIN: "true",
+      NODE_ENV: "production",
+    };
+    expect(issuesOf(() => parseServerEnv(hosted))).toEqual([
+      "ENABLE_TEST_LOGIN must be off in production: it is on and NEXT_PUBLIC_SUPABASE_URL is not the local stack",
+    ]);
+    // Off, or not production, or the local stack: fine.
+    expect(() => parseServerEnv({ ...hosted, ENABLE_TEST_LOGIN: "false" })).not.toThrow();
+    expect(() => parseServerEnv({ ...hosted, NODE_ENV: "development" })).not.toThrow();
+    expect(() =>
+      parseServerEnv({ ...hosted, NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321" }),
+    ).not.toThrow();
+    expect(() =>
+      parseServerEnv({ ...hosted, NEXT_PUBLIC_SUPABASE_URL: "http://localhost:54321" }),
+    ).not.toThrow();
   });
 
   it("rejects a missing service role key", () => {
