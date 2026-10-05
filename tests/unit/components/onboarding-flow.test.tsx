@@ -61,6 +61,48 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
+describe("scroll hint", () => {
+  /** A page taller than the viewport, scrolled to the top. */
+  function stubTallPage() {
+    Object.defineProperty(document.documentElement, "scrollHeight", {
+      configurable: true,
+      value: 2000,
+    });
+    Object.defineProperty(window, "innerHeight", {
+      configurable: true,
+      writable: true,
+      value: 800,
+    });
+    Object.defineProperty(window, "scrollY", { configurable: true, writable: true, value: 0 });
+  }
+  const hint = () => screen.queryByRole("button", { name: "Scroll down for more" });
+
+  it("shows on the Work mile on a wide screen, where the questions run past the fold", () => {
+    stubDesktop(true);
+    stubTallPage();
+    renderFlow("workType", buildPartialDriver({ onboardingStep: 4 }));
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Work");
+    expect(hint()).toBeInTheDocument();
+  });
+
+  it.each(["name", "cdlClass", "documents", "bio"] as const)(
+    "does not show on the %s page on a wide screen",
+    (stepId) => {
+      stubDesktop(true);
+      stubTallPage();
+      renderFlow(stepId, buildDriver({ onboardingStep: 13, cardCompleted: false }));
+      expect(hint()).not.toBeInTheDocument();
+    },
+  );
+
+  it("does not show on a phone, where each question has its own screen", () => {
+    stubDesktop(false);
+    stubTallPage();
+    renderFlow("workType", buildPartialDriver({ onboardingStep: 4 }));
+    expect(hint()).not.toBeInTheDocument();
+  });
+});
+
 describe("first load", () => {
   it.each(SAVABLE_STEP_IDS)("%s shows the question, no error and no app navigation", (stepId) => {
     const driver =

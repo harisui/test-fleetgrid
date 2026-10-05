@@ -87,7 +87,13 @@ describe("themes.css shared tokens", () => {
       "--dur-press": "0ms",
       "--dur-state": "0ms",
       "--dur-move": "0ms",
+      "--dur-hint": "0ms",
     });
+  });
+
+  it("the scroll hint dips slowly and only a little", () => {
+    expect(Number.parseInt(parsed.shared.root["--dur-hint"], 10)).toBeGreaterThanOrEqual(1500);
+    expect(Number.parseInt(parsed.shared.root["--hint-travel"], 10)).toBeLessThanOrEqual(8);
   });
 
   it("motion has no spring: a standard ease-out curve, presses and state changes in 200ms or less", () => {

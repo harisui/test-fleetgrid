@@ -15,6 +15,7 @@ import { ActionBar } from "@/components/onboarding/ActionBar";
 import { OnboardingContent, OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { SignHeader } from "@/components/onboarding/SignHeader";
 import { InlineNote } from "@/components/shared/InlineNote";
+import { ScrollingArrow } from "@/components/shared/ScrollingArrow";
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery";
 import {
   nextStepId,
@@ -33,6 +34,11 @@ import { saveOnboardingScreenAction } from "@/server/actions/driver.actions";
 import type { DriverDocument, LocatedDriver } from "@/types/domain";
 
 const FORM_ID = "screen-form";
+/**
+ * On a wide screen the Work mile is the first page whose questions run past the fold, so it
+ * alone shows the scroll hint for now.
+ */
+const SCROLL_HINT_MILE = 2;
 
 interface OnboardingFlowProps {
   initialStepId: StepId;
@@ -122,6 +128,7 @@ export function OnboardingFlow({
           if (completed) router.refresh();
         }}
       />
+      {isDesktop && current.mile === SCROLL_HINT_MILE && <ScrollingArrow />}
     </OnboardingShell>
   );
 }

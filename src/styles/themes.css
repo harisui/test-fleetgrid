@@ -72,6 +72,9 @@
   --dur-press: 120ms;
   --dur-state: 160ms;
   --dur-move: 600ms;
+  /* The scroll hint's nudge: one slow cycle, a short travel. */
+  --dur-hint: 1800ms;
+  --hint-travel: 8px;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
 }
 
@@ -85,6 +88,7 @@
     --dur-press: 0ms;
     --dur-state: 0ms;
     --dur-move: 0ms;
+    --dur-hint: 0ms;
   }
 }
 /* ==== SHARED END ==== */

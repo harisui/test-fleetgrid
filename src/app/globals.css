@@ -124,6 +124,19 @@
   --ease-standard: var(--ease-standard);
   --default-transition-duration: var(--dur-state);
   --default-transition-timing-function: var(--ease-standard);
+
+  /* animate-nudge: the scroll hint's slow dip, the only looping motion in the app. */
+  --animate-nudge: nudge var(--dur-hint) var(--ease-standard) infinite;
+}
+
+@keyframes nudge {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(var(--hint-travel));
+  }
 }
 
 /* The dashed center line of the lane progress bar. */

@@ -461,6 +461,34 @@ test.describe("driver onboarding, a mile per page on a wide screen", () => {
     });
   });
 
+  test("the Work mile shows a scroll hint until the bottom is in view, and no other mile does", async ({
+    page,
+  }) => {
+    // Short enough that the Work mile's three questions do not fit.
+    await page.setViewportSize({ width: 1280, height: 720 });
+    await resumeAt(page, 4);
+    await expect(screenHeading(page)).toHaveText("Work");
+    const hint = page.getByRole("button", { name: "Scroll down for more" });
+    await expect(hint).toBeVisible();
+    await expect(hint.locator("svg")).toHaveClass(/animate-nudge/);
+    await expect(hint).toHaveCSS("position", "fixed");
+
+    // Tapping it scrolls on; at the bottom it goes away.
+    const before = await page.evaluate(() => window.scrollY);
+    await hint.click();
+    await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(before);
+    await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await expect(hint).toHaveCount(0);
+
+    // Only the Work mile has it for now.
+    await resumeAt(page, 2);
+    await expect(screenHeading(page)).toHaveText("About");
+    await expect(hint).toHaveCount(0);
+    await resumeAt(page, 7);
+    await expect(screenHeading(page)).toHaveText("License");
+    await expect(hint).toHaveCount(0);
+  });
+
   test("a mile's questions are validated together, and Back returns a whole mile", async ({
     page,
   }) => {
