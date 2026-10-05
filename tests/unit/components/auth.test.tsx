@@ -451,7 +451,8 @@ describe("LogoutButton and AuthShell", () => {
         <p>Body</p>
       </AuthShell>,
     );
-    expect(screen.getByRole("link", { name: "FLEETGRID" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("link", { name: "FleetGrid" })).toHaveAttribute("href", "/");
+    expect(screen.getByRole("img", { name: "FleetGrid" })).toHaveAttribute("data-slot", "logo");
     expect(screen.getByRole("button", { name: "Help" })).toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Legal" })).toBeInTheDocument();
     expect(screen.queryByRole("navigation", { name: "Main" })).not.toBeInTheDocument();

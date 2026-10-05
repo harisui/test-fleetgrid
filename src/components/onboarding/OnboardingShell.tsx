@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { HelpSheet } from "@/components/onboarding/HelpSheet";
 import { LaneProgress } from "@/components/onboarding/LaneProgress";
+import { Logo } from "@/components/shared/Logo";
 import type { StepId } from "@/lib/onboarding/steps";
 import type { SupportContact } from "@/lib/support";
 
@@ -31,9 +32,7 @@ export function OnboardingShell({ stepId, children, support }: OnboardingShellPr
       <header>
         <div className="bg-sign-panel text-sign-panel-foreground">
           <div className="mx-auto flex h-14 w-full max-w-content items-center justify-between px-4">
-            <span className="font-heading text-h2 leading-h2 font-bold tracking-wide">
-              FLEETGRID
-            </span>
+            <Logo height={34} />
             <HelpSheet support={support} />
           </div>
         </div>

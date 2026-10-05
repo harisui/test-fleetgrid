@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { HelpSheet } from "@/components/onboarding/HelpSheet";
+import { Logo } from "@/components/shared/Logo";
 import type { SupportContact } from "@/lib/support";
 
 const LEGAL_LINKS = [
@@ -31,8 +32,8 @@ export function AuthShell({
       </a>
       <header className="bg-sign-panel text-sign-panel-foreground">
         <div className="mx-auto flex h-14 w-full max-w-content items-center justify-between px-4">
-          <Link href="/" className="font-heading text-h2 leading-h2 font-bold tracking-wide">
-            FLEETGRID
+          <Link href="/" className="flex items-center rounded-badge">
+            <Logo height={34} />
           </Link>
           <HelpSheet support={support} />
         </div>

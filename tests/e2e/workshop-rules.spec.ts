@@ -157,7 +157,7 @@ test.describe("Workshop rules", () => {
     await expect(page.getByRole("link", { name: "Profile" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Documents" })).toHaveCount(0);
     await expect(page.getByText("Set up your profile")).toHaveCount(0);
-    await expect(page.getByText("FLEETGRID")).toBeVisible();
+    await expect(page.getByRole("banner").getByRole("img", { name: "FleetGrid" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Help" })).toBeVisible();
   });
 

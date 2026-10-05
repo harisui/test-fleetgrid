@@ -185,7 +185,8 @@ describe("OnboardingShell", () => {
         <ActionBar formId="f" />
       </OnboardingShell>,
     );
-    expect(screen.getByText("FLEETGRID")).toHaveClass("font-heading");
+    expect(screen.getByRole("img", { name: "FleetGrid" })).toHaveAttribute("data-slot", "logo");
+    expect(screen.queryByText("FLEETGRID")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Help" })).toBeInTheDocument();
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "2");
     expect(within(screen.getByRole("main")).getByText("Question")).toBeInTheDocument();
