@@ -192,7 +192,8 @@ describe("name and ZIP", () => {
     expect(note()).toHaveAttribute("data-variant", "info");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(document.querySelector("[aria-invalid='true']")).toBeNull();
-    expect(next()).toBeEnabled();
+    // Next is held only until the dataset's answer reaches the form, a tick after the line shows.
+    await waitFor(() => expect(next()).toBeEnabled());
 
     await userEvent.clear(screen.getByLabelText("ZIP code"));
     await userEvent.type(screen.getByLabelText("ZIP code"), "77002");
@@ -252,7 +253,7 @@ describe("name and ZIP", () => {
     await userEvent.type(field, "60601");
     await waitFor(() => expect(place()).toHaveTextContent("Chicago, IL"));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    expect(next()).toBeEnabled();
+    await waitFor(() => expect(next()).toBeEnabled());
 
     // Fewer than five digits is the schema's error, on Next.
     await userEvent.clear(field);
