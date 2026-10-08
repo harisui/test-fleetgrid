@@ -97,15 +97,21 @@ describe("scroll hint", () => {
   }
   const hint = () => screen.queryByRole("button", { name: "Scroll down for more" });
 
-  it("shows on the Work mile on a wide screen, where the questions run past the fold", () => {
-    stubDesktop(true);
-    stubTallPage();
-    renderFlow("workType", buildPartialDriver({ onboardingStep: 4 }));
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Work");
-    expect(hint()).toBeInTheDocument();
-  });
+  it.each([
+    ["workType", "Work"],
+    ["cdlClass", "License"],
+  ] as const)(
+    "shows on the %s page on a wide screen, where the questions run past the fold",
+    (stepId, mile) => {
+      stubDesktop(true);
+      stubTallPage();
+      renderFlow(stepId, buildDriver({ onboardingStep: 18, cardCompleted: false }));
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(mile);
+      expect(hint()).toBeInTheDocument();
+    },
+  );
 
-  it.each(["name", "cdlClass", "documents", "bio"] as const)(
+  it.each(["name", "documents", "bio"] as const)(
     "does not show on the %s page on a wide screen",
     (stepId) => {
       stubDesktop(true);

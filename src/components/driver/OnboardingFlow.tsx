@@ -27,6 +27,7 @@ import {
   stepNumber,
   stepsOfMile,
   type FlowContext,
+  type MileNumber,
   type Step,
   type StepId,
 } from "@/lib/onboarding/steps";
@@ -36,10 +37,10 @@ import type { DriverDocument, LocatedDriver } from "@/types/domain";
 
 const FORM_ID = "screen-form";
 /**
- * On a wide screen the Work mile is the first page whose questions run past the fold, so it
- * alone shows the scroll hint for now.
+ * On a wide screen the Work and License miles run past the fold (six and four questions),
+ * so those two pages show the scroll hint. The others fit, or nearly.
  */
-const SCROLL_HINT_MILE = 2;
+const SCROLL_HINT_MILES: readonly MileNumber[] = [2, 3];
 
 interface OnboardingFlowProps {
   initialStepId: StepId;
@@ -128,7 +129,7 @@ export function OnboardingFlow({
           if (completed) router.refresh();
         }}
       />
-      {isDesktop && current.mile === SCROLL_HINT_MILE && <ScrollingArrow />}
+      {isDesktop && SCROLL_HINT_MILES.includes(current.mile) && <ScrollingArrow />}
     </OnboardingShell>
   );
 }
