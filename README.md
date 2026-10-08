@@ -204,8 +204,11 @@ The user must have logged in once and chosen a role first, so that a profile row
   sorted: `zip`, `city`, `state`, `lat`, `lng` (decimal degrees, four places). The lookup runs
   on the server only. The driver types the ZIP alone; city, state and coordinates are taken
   from this file when the ZIP is saved, and a ZIP it does not know is rejected (client decision
-  of 2026-10-09). Before launch, compare it with the free HUD USPS ZIP crosswalk
-  (huduser.gov, USPS data, quarterly, needs a free token) and add any ZIP it lacks.
+  of 2026-10-09). Checked 2026-10-09 against the GeoNames export of 2026-10-08 (identical:
+  40,977 ZIPs, no additions, removals or moves) and the Census Bureau's 2024 ZCTA gazetteer
+  (every ZCTA in the 50 states and DC is in the file; the 149 it lacks are Puerto Rico and
+  the territories, which are out of scope). One check remains for launch: the HUD USPS ZIP
+  crosswalk (huduser.gov, USPS data, quarterly), which needs a free account token.
 - `service_areas` (migration 0010): where FleetGrid is live. Each row is a centre ZIP with its
   coordinates and a radius in miles (5 to 250). The launch areas are Houston, TX (77002) and
   Pasadena, TX (77506), 50 miles each. Whether a driver is inside one is computed live by the
