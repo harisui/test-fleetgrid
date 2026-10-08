@@ -275,37 +275,32 @@ describe("DriverService", () => {
   describe("about screens", () => {
     beforeEach(() => completeThrough("name"));
 
-    it("saves the ZIP, city and state and moves on", async () => {
-      const driver = await service.saveScreen(USER_ID, "zip", {
-        zip: "75201-1234",
-        city: " Dallas ",
-        state: "tx",
-      });
+    it("saves the ZIP with the city and state the dataset gives it, and moves on", async () => {
+      const driver = await service.saveScreen(USER_ID, "zip", { zip: "75201-1234" });
       expect(driver).toMatchObject({ zip: "75201", city: "Dallas", state: "TX" });
       expect(driver.onboardingStep).toBe(stepNumber("distance"));
     });
 
-    it("stores the ZIP's coordinates from the bundled dataset, never from the client", async () => {
+    it("takes city, state and coordinates from the bundled dataset, never from the client", async () => {
       const driver = await service.saveScreen(USER_ID, "zip", {
         zip: "75201",
-        city: "Dallas",
-        state: "TX",
+        city: "Typed",
+        state: "ZZ",
         lat: 0,
         lng: 0,
       });
+      expect(driver).toMatchObject({ city: "Dallas", state: "TX" });
       expect(driver.lat).toBe(32.78111);
       expect(driver.lng).toBe(-96.79722);
       expect(zips.calls).toEqual(["75201"]);
     });
 
-    it("leaves the coordinates empty for a ZIP the dataset does not know", async () => {
-      await service.saveScreen(USER_ID, "zip", { zip: "75201", city: "Dallas", state: "TX" });
-      const driver = await service.saveScreen(USER_ID, "zip", {
-        zip: "99999",
-        city: "Nowhere",
-        state: "TX",
-      });
-      expect(driver).toMatchObject({ zip: "99999", lat: null, lng: null });
+    it("rejects a ZIP the dataset does not know and keeps the card as it was", async () => {
+      await service.saveScreen(USER_ID, "zip", { zip: "75201" });
+      const error = await expectAppError(service.saveScreen(USER_ID, "zip", { zip: "99999" }));
+      expect(error.code).toBe("VALIDATION");
+      expect(error.fieldErrors).toEqual({ zip: "We could not find that ZIP. Check the number." });
+      expect(card()).toMatchObject({ zip: "75201", city: "Dallas", lat: 32.78111 });
     });
 
     it("rejects a bad ZIP with a plain message", async () => {
@@ -758,8 +753,7 @@ describe("DriverService", () => {
         USER_ID,
         validCard({
           fullName: "Patricia Driver",
-          city: "Austin",
-          zip: "73301",
+          zip: "60601",
           serviceRadiusMiles: 120,
           operatorTypes: ["cdl_driver", "mechanic"],
           employmentType: "either",
@@ -780,11 +774,12 @@ describe("DriverService", () => {
       );
       expect(driver).toMatchObject({
         fullName: "Patricia Driver",
-        city: "Austin",
-        zip: "73301",
-        // The coordinates follow the ZIP: 73301 is not in the fake dataset.
-        lat: null,
-        lng: null,
+        // City, state and coordinates follow the ZIP, from the dataset.
+        city: "Chicago",
+        state: "IL",
+        zip: "60601",
+        lat: 41.8858,
+        lng: -87.6181,
         serviceRadiusMiles: 120,
         operatorTypes: ["cdl_driver", "mechanic"],
         employmentType: "either",
@@ -968,17 +963,19 @@ describe("DriverService", () => {
       expect(afterDistance.inServiceArea).toBe(true);
 
       await completeThrough("bio");
-      const edited = await service.updateCard(USER_ID, {
-        ...validCard(),
-        zip: "60601",
-        city: "Chicago",
-        state: "IL",
-      });
+      const edited = await service.updateCard(USER_ID, { ...validCard(), zip: "60601" });
       expect(edited.inServiceArea).toBe(false);
       expect(areas.calls.at(-1)).toEqual({ lat: 41.8858, lng: -87.6181 });
+    });
 
-      const unknownZip = await service.updateCard(USER_ID, { ...validCard(), zip: "99999" });
-      expect(unknownZip.inServiceArea).toBeNull();
+    it("rejects an unknown ZIP on the profile and changes nothing", async () => {
+      await completeThrough("consent");
+      const before = drivers.rows.get(USER_ID);
+      const error = await expectAppError(
+        service.updateCard(USER_ID, { ...validCard(), zip: "99999" }),
+      );
+      expect(error.fieldErrors).toEqual({ zip: "We could not find that ZIP. Check the number." });
+      expect(drivers.rows.get(USER_ID)).toEqual(before);
     });
 
     it("reflects a change to the areas on the next read, nothing is stored", async () => {

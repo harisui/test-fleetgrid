@@ -2,24 +2,25 @@
 
 import {
   Controller,
+  useWatch,
   type Control,
   type FieldValues,
   type Path,
   type UseFormRegister,
 } from "react-hook-form";
+import { ZipField } from "@/components/driver/ZipField";
 import { ChoiceGroup, type ChoiceOption } from "@/components/shared/ChoiceGroup";
 import { FormField } from "@/components/shared/FormField";
-import { SelectInput } from "@/components/shared/SelectInput";
 import { TagInput } from "@/components/shared/TagInput";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useZipLookup, type ZipPlace } from "@/hooks/useZipLookup";
 import {
   BIO_MAX_LENGTH,
   CERTIFICATION_MAX_LENGTH,
   CERTIFICATIONS_MAX_COUNT,
   SERVICE_RADIUS_MAX_MILES,
   SERVICE_RADIUS_MIN_MILES,
-  US_STATE_OPTIONS,
 } from "@/lib/constants";
 import {
   CARD_CHECKS,
@@ -92,46 +93,24 @@ export function BasicsFields<T extends FieldValues>({
   register,
   errorOf,
   disabled,
-}: GroupProps<T>) {
+  place,
+}: GroupProps<T> & {
+  /** The saved ZIP with its city and state, shown until the ZIP changes. */ place: ZipPlace | null;
+}) {
+  const lookup = useZipLookup(useWatch({ control, name: field<T>("zip") }), place);
   return (
     <>
       <FormField label="Full name" error={errorOf("fullName")} required>
         <Input {...register(field<T>("fullName"))} autoComplete="name" disabled={disabled} />
       </FormField>
 
-      <FormField label="City" error={errorOf("city")}>
-        <Input {...register(field<T>("city"))} autoComplete="address-level2" disabled={disabled} />
-      </FormField>
-
-      <div className="grid grid-cols-2 gap-4">
-        <Controller
-          control={control}
-          name={field<T>("state")}
-          render={({ field: input }) => (
-            <FormField label="State" error={errorOf("state")} errorIcon={false} required>
-              <SelectInput
-                name={input.name}
-                value={input.value ?? ""}
-                onValueChange={input.onChange}
-                onBlur={input.onBlur}
-                options={US_STATE_OPTIONS}
-                autoComplete="address-level1"
-                disabled={disabled}
-              />
-            </FormField>
-          )}
-        />
-
-        <FormField label="ZIP code" error={errorOf("zip")} required>
-          <Input
-            {...register(field<T>("zip"))}
-            inputMode="numeric"
-            autoComplete="postal-code"
-            maxLength={5}
-            disabled={disabled}
-          />
-        </FormField>
-      </div>
+      <ZipField
+        input={register(field<T>("zip"))}
+        lookup={lookup}
+        error={errorOf("zip")}
+        disabled={disabled}
+        required
+      />
 
       <FormField
         label="Service radius (miles)"

@@ -31,8 +31,6 @@ export function ProfileEditor({ driver }: ProfileEditorProps) {
     schema: driverCardSchema,
     defaultValues: {
       fullName: driver.fullName,
-      city: driver.city ?? "",
-      state: driver.state ?? "",
       zip: driver.zip ?? "",
       serviceRadiusMiles: driver.serviceRadiusMiles,
       operatorTypes: driver.operatorTypes,
@@ -62,6 +60,10 @@ export function ProfileEditor({ driver }: ProfileEditorProps) {
     },
   });
 
+  const place =
+    driver.zip && driver.city && driver.state
+      ? { zip: driver.zip, city: driver.city, state: driver.state }
+      : null;
   const cdlClass = form.watch("cdlClass") ?? "none";
   const cdlDriver = isCdlDriver(form.watch("operatorTypes") ?? []);
   const bioLength = (form.watch("bio") ?? "").length;
@@ -78,7 +80,7 @@ export function ProfileEditor({ driver }: ProfileEditorProps) {
         <legend className="mb-4 font-heading text-h2 leading-h2 font-semibold">
           {SECTIONS.basics}
         </legend>
-        <BasicsFields {...shared} />
+        <BasicsFields {...shared} place={place} />
       </fieldset>
 
       <fieldset className="flex flex-col gap-5">

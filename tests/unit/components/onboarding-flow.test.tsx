@@ -44,6 +44,8 @@ const failure = (message: string, fieldErrors?: Record<string, string>): Result<
 
 const next = () => screen.getByRole("button", { name: "Next" });
 const heading = () => screen.getByRole("heading", { level: 1 });
+/** The read-only "City, ST" line under the ZIP field. */
+const place = () => document.querySelector("[data-slot=zip-place]");
 const chip = (name: string) => screen.getByRole("button", { name });
 /** The chip of one yes-or-no question, found through the question's group. */
 const checkChip = (question: string, name: string) =>
@@ -183,7 +185,7 @@ describe("name and ZIP", () => {
     const note = () => document.querySelector("[data-slot=launch-area-note]");
 
     await userEvent.type(screen.getByLabelText("ZIP code"), "75201");
-    await waitFor(() => expect(screen.getByLabelText("City")).toHaveValue("Dallas"));
+    await waitFor(() => expect(place()).toHaveTextContent("Dallas, TX"));
     expect(note()).toHaveTextContent(
       "FleetGrid is launching in the Houston area first. You can still sign up. We'll text you when we launch near you.",
     );
@@ -194,11 +196,11 @@ describe("name and ZIP", () => {
 
     await userEvent.clear(screen.getByLabelText("ZIP code"));
     await userEvent.type(screen.getByLabelText("ZIP code"), "77002");
-    await waitFor(() => expect(screen.getByLabelText("City")).toHaveValue("Houston"));
+    await waitFor(() => expect(place()).toHaveTextContent("Houston, TX"));
     expect(note()).toBeNull();
   });
 
-  it("fills in the city and state from the ZIP and keeps them editable", async () => {
+  it("shows the city and state from the ZIP as one read-only line and saves only the ZIP", async () => {
     actions.lookupZipAction.mockResolvedValue(
       ok({ zip: "60601", city: "Chicago", state: "IL", inServiceArea: true }),
     );
@@ -206,35 +208,72 @@ describe("name and ZIP", () => {
       ok(buildPartialDriver({ onboardingStep: 3 })),
     );
     renderFlow("zip");
+    expect(place()).toBeNull();
     await userEvent.type(screen.getByLabelText("ZIP code"), "60601");
 
-    await waitFor(() => expect(screen.getByLabelText("City")).toHaveValue("Chicago"));
-    expect(screen.getByRole("combobox", { name: "State" })).toHaveTextContent("Illinois");
+    await waitFor(() => expect(place()).toHaveTextContent("Chicago, IL"));
+    expect(screen.queryByLabelText("City")).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: "State" })).not.toBeInTheDocument();
     expect(screen.getByText(/City and state filled in from your ZIP/)).toBeInTheDocument();
+    expect(document.querySelector("[data-slot=field-success]")).not.toBeNull();
     expect(actions.lookupZipAction).toHaveBeenCalledWith("60601");
 
-    await userEvent.clear(screen.getByLabelText("City"));
-    await userEvent.type(screen.getByLabelText("City"), "Evanston");
     await userEvent.click(next());
     await waitFor(() =>
-      expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("zip", {
-        zip: "60601",
-        city: "Evanston",
-        state: "IL",
-      }),
+      expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("zip", { zip: "60601" }),
     );
   });
 
-  it("explains when a ZIP is unknown and asks for a 5-digit ZIP on Next", async () => {
-    renderFlow("zip");
-    await userEvent.type(screen.getByLabelText("ZIP code"), "99999");
-    await waitFor(() => expect(screen.getByText(/We could not find that ZIP/)).toBeInTheDocument());
+  it("shows the saved place at once, before the lookup answers", () => {
+    renderFlow(
+      "zip",
+      buildPartialDriver({ onboardingStep: 3, zip: "77002", city: "Houston", state: "TX" }),
+    );
+    expect(place()).toHaveTextContent("Houston, TX");
+    expect(screen.getByText("Saved")).toBeInTheDocument();
+  });
 
-    await userEvent.clear(screen.getByLabelText("ZIP code"));
-    await userEvent.type(screen.getByLabelText("ZIP code"), "6060");
+  it("stops on a ZIP the dataset does not know, and lets go once a known one is typed", async () => {
+    actions.lookupZipAction.mockImplementation(async (zip: string) =>
+      ok(zip === "60601" ? { zip, city: "Chicago", state: "IL", inServiceArea: true } : null),
+    );
+    renderFlow("zip");
+    const field = screen.getByLabelText("ZIP code");
+    await userEvent.type(field, "99999");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "We could not find that ZIP. Check the number.",
+    );
+    expect(field).toHaveAttribute("aria-invalid", "true");
+    expect(place()).toBeNull();
+    await waitFor(() => expect(next()).toBeDisabled());
+    expect(actions.saveOnboardingScreenAction).not.toHaveBeenCalled();
+
+    await userEvent.clear(field);
+    await userEvent.type(field, "60601");
+    await waitFor(() => expect(place()).toHaveTextContent("Chicago, IL"));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(next()).toBeEnabled();
+
+    // Fewer than five digits is the schema's error, on Next.
+    await userEvent.clear(field);
+    await userEvent.type(field, "6060");
     await userEvent.click(next());
     expect(await screen.findByText("Enter a 5-digit ZIP code, like 60601")).toBeInTheDocument();
-    expect(screen.getByText("Select your state")).toBeInTheDocument();
+  });
+
+  it("shows the server's answer when it rejects the ZIP", async () => {
+    actions.lookupZipAction.mockResolvedValue(
+      ok({ zip: "60601", city: "Chicago", state: "IL", inServiceArea: true }),
+    );
+    actions.saveOnboardingScreenAction.mockResolvedValue(
+      failure("Check the form", { zip: "We could not find that ZIP. Check the number." }),
+    );
+    renderFlow("zip");
+    await userEvent.type(screen.getByLabelText("ZIP code"), "60601");
+    await waitFor(() => expect(place()).toHaveTextContent("Chicago, IL"));
+    await userEvent.click(next());
+    expect(await screen.findByRole("alert")).toHaveTextContent("We could not find that ZIP");
+    expect(heading()).toHaveTextContent("What is your ZIP code?");
   });
 
   it("Back returns to the previous question with the saved answer", async () => {

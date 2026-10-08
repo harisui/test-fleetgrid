@@ -31,6 +31,7 @@ import {
   nameScreenSchema,
   workTypeScreenSchema,
   availabilityScreenSchema,
+  ZIP_UNKNOWN_MESSAGE,
   zipScreenSchema,
 } from "@/lib/validation/onboarding.schema";
 import { AppError, parseInput } from "@/server/errors/AppError";
@@ -89,12 +90,13 @@ export class DriverService {
   ) {}
 
   /**
-   * Where the ZIP sits, from the bundled dataset, or nulls when it is unknown there. Stored
-   * for a later distance match; the client never sends coordinates.
+   * The city, state and coordinates of a ZIP, from the bundled dataset. The client sends the
+   * ZIP alone; a ZIP the dataset does not know is rejected (client decision of 2026-10-09).
    */
-  private coordinatesFor(zip: string): Pick<DriverPatch, "lat" | "lng"> {
+  private placeFor(zip: string): Pick<DriverPatch, "city" | "state" | "lat" | "lng"> {
     const place = this.zips.find(zip);
-    return place ? { lat: place.lat, lng: place.lng } : { lat: null, lng: null };
+    if (!place) throw AppError.validation(undefined, { zip: ZIP_UNKNOWN_MESSAGE });
+    return { city: place.city, state: place.state, lat: place.lat, lng: place.lng };
   }
 
   /** Adds the live answer to "is this card inside a launch area?". Unknown without coordinates. */
@@ -160,9 +162,7 @@ export class DriverService {
     if (hasCdlConflict(data.operatorTypes, data.cdlClass)) {
       throw AppError.validation("Check the form", { cdlClass: "CDL driver work needs a CDL" });
     }
-    return this.locate(
-      await this.drivers.update(userId, { ...data, ...this.coordinatesFor(data.zip) }),
-    );
+    return this.locate(await this.drivers.update(userId, { ...data, ...this.placeFor(data.zip) }));
   }
 
   private async saveName(userId: string, existing: Driver | null, input: unknown) {
@@ -202,10 +202,7 @@ export class DriverService {
     switch (stepId) {
       case "zip": {
         const data = parseInput(zipScreenSchema, input);
-        return this.drivers.update(
-          userId,
-          advanceTo({ ...data, ...this.coordinatesFor(data.zip) }),
-        );
+        return this.drivers.update(userId, advanceTo({ ...data, ...this.placeFor(data.zip) }));
       }
       case "distance":
         return this.drivers.update(userId, advanceTo(parseInput(distanceScreenSchema, input)));

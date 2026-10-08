@@ -17,7 +17,14 @@ import { buildDriver, buildProfile } from "../../setup/factories";
 const actions = vi.hoisted(() => ({
   saveOnboardingScreenAction: vi.fn(),
   updateCardAction: vi.fn(),
+  lookupZipAction: vi.fn(),
 }));
+
+/** The dataset as the profile sees it: Dallas, Chicago and nothing else. */
+const PLACES: Record<string, { city: string; state: string }> = {
+  "75201": { city: "Dallas", state: "TX" },
+  "60601": { city: "Chicago", state: "IL" },
+};
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 
 vi.mock("@/server/actions/driver.actions", () => actions);
@@ -31,6 +38,9 @@ const failure = (message: string, fieldErrors?: Record<string, string>): Result<
 
 beforeEach(() => {
   vi.clearAllMocks();
+  actions.lookupZipAction.mockImplementation(async (zip: string) =>
+    ok(PLACES[zip] ? { zip, ...PLACES[zip], inServiceArea: false } : null),
+  );
 });
 
 describe("AccountStatusCard", () => {
@@ -115,8 +125,10 @@ describe("ProfileEditor", () => {
   it("is prefilled with every card field", () => {
     render(<ProfileEditor driver={buildDriver({ serviceRadiusMiles: 120 })} />);
     expect(screen.getByLabelText(/Full name/)).toHaveValue("Pat Driver");
-    expect(screen.getByLabelText("City")).toHaveValue("Dallas");
-    expect(screen.getByRole("combobox", { name: /State/ })).toHaveTextContent("Texas");
+    // City and state are one read-only line from the dataset, not fields.
+    expect(document.querySelector("[data-slot=zip-place]")).toHaveTextContent("Dallas, TX");
+    expect(screen.queryByLabelText("City")).not.toBeInTheDocument();
+    expect(screen.queryByRole("combobox", { name: /State/ })).not.toBeInTheDocument();
     expect(screen.getByLabelText(/ZIP code/)).toHaveValue("75201");
     expect(screen.getByLabelText(/Service radius/)).toHaveValue(120);
     expect(screen.getByRole("checkbox", { name: "CDL driver" })).toBeChecked();
@@ -173,17 +185,34 @@ describe("ProfileEditor", () => {
 
   it("handles a card with empty optional fields", () => {
     render(<ProfileEditor driver={buildDriver({ city: null, bio: null })} />);
-    expect(screen.getByLabelText("City")).toHaveValue("");
     expect(screen.getByLabelText("About you")).toHaveValue("");
     expect(screen.getByText("0/500")).toBeInTheDocument();
+  });
+
+  it("follows a new ZIP with the dataset's city and state, and stops on an unknown one", async () => {
+    render(<ProfileEditor driver={buildDriver()} />);
+    const zip = screen.getByLabelText(/ZIP code/);
+    await userEvent.clear(zip);
+    await userEvent.type(zip, "60601");
+    await waitFor(() =>
+      expect(document.querySelector("[data-slot=zip-place]")).toHaveTextContent("Chicago, IL"),
+    );
+    expect(actions.lookupZipAction).toHaveBeenCalledWith("60601");
+
+    await userEvent.clear(zip);
+    await userEvent.type(zip, "99999");
+    expect(
+      await screen.findByText("We could not find that ZIP. Check the number."),
+    ).toBeInTheDocument();
+    expect(document.querySelector("[data-slot=zip-place]")).toBeNull();
   });
 
   it("saves edited values and confirms with a toast", async () => {
     actions.updateCardAction.mockResolvedValue(ok(buildDriver()));
     render(<ProfileEditor driver={buildDriver()} />);
 
-    await userEvent.clear(screen.getByLabelText("City"));
-    await userEvent.type(screen.getByLabelText("City"), "Austin");
+    await userEvent.clear(screen.getByLabelText(/ZIP code/));
+    await userEvent.type(screen.getByLabelText(/ZIP code/), "60601");
     await userEvent.click(screen.getByText("Mechanic"));
     await userEvent.click(screen.getByText("Either works"));
     await userEvent.click(screen.getByText("Weekends"));
@@ -198,9 +227,7 @@ describe("ProfileEditor", () => {
     await waitFor(() =>
       expect(actions.updateCardAction).toHaveBeenCalledWith({
         fullName: "Pat Driver",
-        city: "Austin",
-        state: "TX",
-        zip: "75201",
+        zip: "60601",
         serviceRadiusMiles: 50,
         operatorTypes: ["cdl_driver", "mechanic"],
         employmentType: "either",
@@ -307,12 +334,14 @@ describe("ProfileEditor", () => {
 
   it("shows server field errors and no success toast", async () => {
     actions.updateCardAction.mockResolvedValue(
-      failure("Check the form", { state: "Select your state" }),
+      failure("Check the form", { zip: "We could not find that ZIP. Check the number." }),
     );
     render(<ProfileEditor driver={buildDriver()} />);
     await userEvent.click(save());
 
-    expect(await screen.findByText("Select your state")).toBeInTheDocument();
+    expect(
+      await screen.findByText("We could not find that ZIP. Check the number."),
+    ).toBeInTheDocument();
     expect(toast.success).not.toHaveBeenCalled();
   });
 

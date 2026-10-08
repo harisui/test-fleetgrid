@@ -81,26 +81,18 @@ describe("zip", () => {
     expect(normalizeZip(input)).toBe(expected);
   });
 
-  it("accepts a ZIP in any forgiving form with an editable city and state", () => {
-    expect(zipScreenSchema.parse({ zip: "60601-1234", city: " Chicago ", state: "il" })).toEqual({
+  it("accepts a ZIP in any forgiving form, and nothing else: city and state come from the dataset", () => {
+    expect(zipScreenSchema.parse({ zip: "60601-1234" })).toEqual({ zip: "60601" });
+    expect(zipScreenSchema.parse({ zip: "60601", city: "Typed", state: "ZZ" })).toEqual({
       zip: "60601",
-      city: "Chicago",
-      state: "IL",
     });
-    expect(zipScreenSchema.parse({ zip: "60601", state: "IL" }).city).toBeNull();
   });
 
   it.each([
-    [{ zip: "6060", state: "IL" }, { zip: "Enter a 5-digit ZIP code, like 60601" }],
-    [{ zip: "606011", state: "IL" }, { zip: "Enter a 5-digit ZIP code, like 60601" }],
-    [{ zip: "", state: "IL" }, { zip: "Enter a 5-digit ZIP code, like 60601" }],
-    [{ state: "IL" }, { zip: "Enter a 5-digit ZIP code, like 60601" }],
-    [{ zip: "60601", state: "ZZ" }, { state: "Select your state" }],
-    [{ zip: "60601" }, { state: "Select your state" }],
-    [
-      { zip: "60601", state: "IL", city: "x".repeat(81) },
-      { city: "City must be 80 characters or fewer" },
-    ],
+    [{ zip: "6060" }, { zip: "Enter a 5-digit ZIP code, like 60601" }],
+    [{ zip: "606011" }, { zip: "Enter a 5-digit ZIP code, like 60601" }],
+    [{ zip: "" }, { zip: "Enter a 5-digit ZIP code, like 60601" }],
+    [{}, { zip: "Enter a 5-digit ZIP code, like 60601" }],
   ])("rejects %j", (input, expected) => {
     expect(errorsOf(zipScreenSchema, input)).toEqual(expected);
   });

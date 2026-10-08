@@ -74,8 +74,9 @@ test.describe("driver onboarding, one question per screen", () => {
 
     await expect(screenHeading(page)).toHaveText("What is your ZIP code?");
     await page.getByLabel("ZIP code", { exact: true }).fill(PLACES.houston.zip);
-    await expect(page.getByLabel("City")).toHaveValue("Houston");
-    await expect(page.getByRole("combobox", { name: "State" })).toHaveText("Texas");
+    // City and state come from the dataset as one read-only line; there is nothing to type.
+    await expect(page.locator("[data-slot=zip-place]")).toContainText("Houston, TX");
+    await expect(page.getByLabel("City")).toHaveCount(0);
     await expect(page.getByText(/City and state filled in from your ZIP/)).toBeVisible();
     // Houston is inside the launch area: no note.
     await expect(page.locator("[data-slot=launch-area-note]")).toHaveCount(0);
@@ -296,7 +297,7 @@ test.describe("driver onboarding, one question per screen", () => {
     const zip = page.getByLabel("ZIP code", { exact: true });
 
     await zip.fill(PLACES.dallas.zip);
-    await expect(page.getByLabel("City")).toHaveValue("Dallas");
+    await expect(page.locator("[data-slot=zip-place]")).toContainText("Dallas, TX");
     await expect(note).toBeVisible();
     await expect(note).toHaveText(
       "FleetGrid is launching in the Houston area first. You can still sign up. We'll text you when we launch near you.",
@@ -307,7 +308,7 @@ test.describe("driver onboarding, one question per screen", () => {
 
     // A Houston ZIP clears the note; back to Dallas brings it back.
     await zip.fill(PLACES.houston.zip);
-    await expect(page.getByLabel("City")).toHaveValue("Houston");
+    await expect(page.locator("[data-slot=zip-place]")).toContainText("Houston, TX");
     await expect(note).toHaveCount(0);
     await zip.fill(PLACES.dallas.zip);
     await expect(note).toBeVisible();
@@ -414,10 +415,22 @@ test.describe("driver onboarding, one question per screen", () => {
     await page.getByLabel("Full name").fill("Pat Driver");
     await nextButton(page).click();
     await expect(screenHeading(page)).toHaveText("What is your ZIP code?");
-    await page.getByLabel("ZIP code", { exact: true }).fill("7520");
+    const zip = page.getByLabel("ZIP code", { exact: true });
+    await zip.fill("7520");
     await nextButton(page).click();
     await expect(page.getByText("Enter a 5-digit ZIP code, like 60601")).toBeVisible();
-    await expect(page.getByText("Select your state")).toBeVisible();
+
+    // A ZIP the dataset does not know is an error as soon as it is typed, and Next stays off.
+    await zip.fill("99999");
+    await expect(formAlert(page)).toHaveText("We could not find that ZIP. Check the number.");
+    await expect(zip).toHaveAttribute("aria-invalid", "true");
+    await expect(page.locator("[data-slot=zip-place]")).toHaveCount(0);
+    await expect(nextButton(page)).toBeDisabled();
+
+    await zip.fill(PLACES.houston.zip);
+    await expect(page.locator("[data-slot=zip-place]")).toContainText("Houston, TX");
+    await expect(formAlert(page)).toHaveCount(0);
+    await expect(nextButton(page)).toBeEnabled();
   });
 
   test("the cards and record screens need both answers, and remember them", async ({ page }) => {
@@ -557,7 +570,7 @@ test.describe("driver onboarding, a mile per page on a wide screen", () => {
     await expect(page.getByText("Mile 1 of 5", { exact: true })).toBeVisible();
     await page.getByLabel("Full name").fill("Pat Driver");
     await page.getByLabel("ZIP code", { exact: true }).fill(PLACES.houston.zip);
-    await expect(page.getByLabel("City")).toHaveValue("Houston");
+    await expect(page.locator("[data-slot=zip-place]")).toContainText("Houston, TX");
     await chip(page, "100 miles").click();
     await nextButton(page).click();
 

@@ -7,7 +7,6 @@ import {
   SERVICE_RADIUS_DEFAULT_MILES,
   SERVICE_RADIUS_MAX_MILES,
   SERVICE_RADIUS_MIN_MILES,
-  US_STATE_CODES,
   YEARS_EXPERIENCE_MAX,
 } from "@/lib/constants";
 import { normalizeEndorsements } from "@/lib/onboarding/options";
@@ -74,7 +73,8 @@ const optionalYesNo = (message: string) =>
     .transform((value) => value ?? null);
 
 // ---------------------------------------------------------------------------
-// Step 1: basics
+// Step 1: basics. City, state and coordinates come from the dataset for the ZIP, never
+// from the form (client decision of 2026-10-09).
 // ---------------------------------------------------------------------------
 export const driverBasicsSchema = z.object({
   fullName: z
@@ -82,12 +82,6 @@ export const driverBasicsSchema = z.object({
     .trim()
     .min(2, "Enter your full name")
     .max(FULL_NAME_MAX_LENGTH, `Name must be ${FULL_NAME_MAX_LENGTH} characters or fewer`),
-  city: optionalText(80, "City must be 80 characters or fewer"),
-  state: z
-    .string({ error: "Select your state" })
-    .trim()
-    .toUpperCase()
-    .refine((value) => (US_STATE_CODES as readonly string[]).includes(value), "Select your state"),
   zip: z
     .string({ error: "Enter your ZIP code" })
     .trim()

@@ -101,6 +101,9 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.getByLabel("ZIP code", { exact: true }).fill(PLACES.dallas.zip);
       await expect(page.locator("[data-slot=launch-area-note]")).toBeVisible();
       await expectNoAccessibilityViolations(page, "ZIP outside the launch area");
+      await page.getByLabel("ZIP code", { exact: true }).fill("99999");
+      await expect(formAlert(page)).toBeVisible();
+      await expectNoAccessibilityViolations(page, "ZIP not in the dataset");
 
       await seedDriverAtStep(PHONES.driver, 7);
       await openOnboarding(page, PHONES.driver);
@@ -189,7 +192,7 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.keyboard.press("Tab");
       await expect(page.getByLabel("ZIP code", { exact: true })).toBeFocused();
       await page.keyboard.type("75201");
-      await expect(page.getByLabel("City")).toHaveValue("Dallas");
+      await expect(page.locator("[data-slot=zip-place]")).toContainText("Dallas, TX");
 
       await tabTo(page, page.getByRole("button", { name: "10 miles" }));
       await page.keyboard.press("Tab");

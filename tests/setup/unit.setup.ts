@@ -1,6 +1,11 @@
 import "@testing-library/jest-dom/vitest";
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
 import { afterEach } from "vitest";
+
+// Screens that wait on a debounced lookup (the ZIP field waits 250ms before asking) can
+// overrun the default one-second wait when the machine is busy with another suite. Three
+// seconds keeps those tests about behaviour, not about load.
+configure({ asyncUtilTimeout: 3000 });
 
 // jsdom has no ResizeObserver. Radix UI components (checkbox, dialog) need one to exist.
 if (typeof globalThis.ResizeObserver === "undefined") {

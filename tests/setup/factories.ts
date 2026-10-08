@@ -151,7 +151,7 @@ export function buildPartialDriver(overrides: Partial<LocatedDriver> = {}): Loca
 /** Valid raw input for each onboarding screen, in flow order. */
 export const SCREEN_INPUTS = {
   name: { fullName: "Pat Driver" },
-  zip: { zip: "75201", city: "Dallas", state: "TX" },
+  zip: { zip: "75201" },
   distance: { serviceRadiusMiles: 50 },
   workType: { operatorTypes: ["cdl_driver"] },
   employmentType: { employmentType: "w2" },
@@ -188,8 +188,6 @@ export function buildDocument(overrides: Partial<DriverDocument> = {}): DriverDo
 /** Valid raw form input for each onboarding step. */
 export const validBasics = (overrides: Record<string, unknown> = {}) => ({
   fullName: "Pat Driver",
-  city: "Dallas",
-  state: "TX",
   zip: "75201",
   serviceRadiusMiles: 50,
   ...overrides,

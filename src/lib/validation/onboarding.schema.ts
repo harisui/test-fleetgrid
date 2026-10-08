@@ -6,7 +6,6 @@ import {
   FULL_NAME_MAX_LENGTH,
   SERVICE_RADIUS_MAX_MILES,
   SERVICE_RADIUS_MIN_MILES,
-  US_STATE_CODES,
   YEARS_EXPERIENCE_MAX,
 } from "@/lib/constants";
 import { normalizeEndorsements } from "@/lib/onboarding/options";
@@ -73,15 +72,11 @@ export const zipSchema = z.preprocess(
   z.string({ error: ZIP_MESSAGE }).regex(/^\d{5}$/, ZIP_MESSAGE),
 );
 
-export const zipScreenSchema = z.object({
-  zip: zipSchema,
-  city: optionalText(80, "City must be 80 characters or fewer"),
-  state: z
-    .string({ error: "Select your state" })
-    .trim()
-    .toUpperCase()
-    .refine((value) => (US_STATE_CODES as readonly string[]).includes(value), "Select your state"),
-});
+/** Shown when five digits are typed that the bundled dataset does not know. */
+export const ZIP_UNKNOWN_MESSAGE = "We could not find that ZIP. Check the number.";
+
+/** The ZIP alone. City, state and coordinates come from the dataset on the server. */
+export const zipScreenSchema = z.object({ zip: zipSchema });
 
 export const distanceScreenSchema = z.object({
   serviceRadiusMiles: wholeNumber({

@@ -1,79 +1,52 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Controller, useFormContext, useWatch } from "react-hook-form";
-import { ScreenHelper, ScreenQuestion } from "@/components/driver/screens/common";
+import { useEffect, useMemo } from "react";
+import { useFormContext, useWatch } from "react-hook-form";
+import { ScreenQuestion } from "@/components/driver/screens/common";
 import type {
   OnboardingFormValues,
   ScreenDefinition,
   ScreenFieldsProps,
 } from "@/components/driver/screens/types";
-import { FormField } from "@/components/shared/FormField";
+import { ZipField } from "@/components/driver/ZipField";
 import { InlineNote } from "@/components/shared/InlineNote";
-import { SelectInput } from "@/components/shared/SelectInput";
-import { Input } from "@/components/ui/input";
-import { US_STATE_OPTIONS } from "@/lib/constants";
+import { fiveDigits, useZipLookup, type ZipPlace } from "@/hooks/useZipLookup";
 import { OUT_OF_AREA_NOTE } from "@/lib/launch";
-import { normalizeZip, zipScreenSchema } from "@/lib/validation/onboarding.schema";
-import { lookupZipAction } from "@/server/actions/driver.actions";
+import { zipScreenSchema } from "@/lib/validation/onboarding.schema";
+import type { Driver } from "@/types/domain";
 
-const LOOKUP_DELAY_MS = 250;
-
-interface LookupResult {
-  zip: string;
-  found: boolean;
-  /** False when the ZIP is outside every launch area. Null when the ZIP is unknown. */
-  inServiceArea: boolean | null;
+function savedPlace(driver: Driver | null): ZipPlace | null {
+  return driver?.zip && driver.city && driver.state
+    ? { zip: driver.zip, city: driver.city, state: driver.state }
+    : null;
 }
 
-const HELPERS = {
-  idle: "5 digits, like 60601.",
-  found: "City and state filled in from your ZIP.",
-  missing: "We could not find that ZIP. Enter your city and state.",
-} as const;
-
-function fiveDigits(value: unknown): string | null {
-  const normalized = normalizeZip(value);
-  return typeof normalized === "string" && /^\d{5}$/.test(normalized) ? normalized : null;
-}
-
-function ZipFields({ showQuestion, question }: ScreenFieldsProps) {
+/**
+ * The ZIP alone is typed. City and state come from the dataset and show as one read-only
+ * line; a ZIP the dataset does not know is an error and holds Next.
+ */
+function ZipFields({ showQuestion, question, driver }: ScreenFieldsProps) {
   const {
     register,
     setValue,
     control,
     formState: { errors },
   } = useFormContext<OnboardingFormValues>();
-  const zip = fiveDigits(useWatch({ control, name: "zip" }));
-  const [result, setResult] = useState<LookupResult | null>(null);
+  const zipValue = useWatch({ control, name: "zip" });
+  const saved = useMemo(() => savedPlace(driver), [driver]);
+  const lookup = useZipLookup(zipValue, saved);
+  const city = lookup.place?.city ?? "";
+  const state = lookup.place?.state ?? "";
 
-  // Fill in the city and state as soon as five digits are typed. Later edits win.
+  // Mirror the dataset's answer into the form, so the flow can hold Next until the ZIP is known.
   useEffect(() => {
-    if (!zip) return;
-    let cancelled = false;
-    const timer = setTimeout(async () => {
-      const lookup = await lookupZipAction(zip);
-      if (cancelled) return;
-      if (lookup.ok && lookup.data) {
-        setValue("city", lookup.data.city, { shouldDirty: true, shouldValidate: true });
-        setValue("state", lookup.data.state, { shouldDirty: true, shouldValidate: true });
-      }
-      setResult({
-        zip,
-        found: lookup.ok && lookup.data !== null,
-        inServiceArea: lookup.ok && lookup.data ? lookup.data.inServiceArea : null,
-      });
-    }, LOOKUP_DELAY_MS);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [zip, setValue]);
+    if (lookup.status === "idle" || lookup.status === "pending") return;
+    setValue("city", city, { shouldDirty: true });
+    setValue("state", state, { shouldDirty: true });
+  }, [lookup.status, city, state, setValue]);
 
-  const lookup: keyof typeof HELPERS =
-    zip && result?.zip === zip ? (result.found ? "found" : "missing") : "idle";
   // Information, not a warning: the sign-up goes on exactly as before.
-  const outOfArea = lookup === "found" && result?.inServiceArea === false;
+  const outOfArea = lookup.status === "found" && lookup.inServiceArea === false;
 
   return (
     <>
@@ -83,50 +56,14 @@ function ZipFields({ showQuestion, question }: ScreenFieldsProps) {
           {OUT_OF_AREA_NOTE}
         </InlineNote>
       )}
-      <FormField
-        label="ZIP code"
-        description={HELPERS[lookup]}
-        error={errors.zip?.message}
-        success={lookup === "found"}
-      >
-        <Input
-          {...register("zip")}
-          inputMode="numeric"
-          autoComplete="postal-code"
-          maxLength={10}
-          placeholder="60601"
-          enterKeyHint="next"
-        />
-      </FormField>
-      <div className="grid grid-cols-2 gap-4">
-        <FormField label="City" error={errors.city?.message}>
-          <Input {...register("city")} autoComplete="address-level2" enterKeyHint="next" />
-        </FormField>
-        <Controller
-          control={control}
-          name="state"
-          render={({ field }) => (
-            <FormField label="State" error={errors.state?.message} errorIcon={false}>
-              <SelectInput
-                name={field.name}
-                value={field.value ?? ""}
-                onValueChange={field.onChange}
-                onBlur={field.onBlur}
-                options={US_STATE_OPTIONS}
-                autoComplete="address-level1"
-              />
-            </FormField>
-          )}
-        />
-      </div>
-      <ScreenHelper>City and state fill in from your ZIP. You can change them.</ScreenHelper>
+      <ZipField input={register("zip")} lookup={lookup} error={errors.zip?.message} />
     </>
   );
 }
 
 export const zipScreen: ScreenDefinition = {
   id: "zip",
-  fields: ["zip", "city", "state"],
+  fields: ["zip"],
   schema: () => zipScreenSchema,
   defaults: (driver) => ({
     zip: driver?.zip ?? "",
@@ -134,4 +71,6 @@ export const zipScreen: ScreenDefinition = {
     state: driver?.state ?? "",
   }),
   Fields: ZipFields,
+  // Five digits typed and no place for them: the dataset does not know the ZIP.
+  blocked: (values) => fiveDigits(values.zip) !== null && !values.state,
 };

@@ -70,7 +70,8 @@ test.describe("driver profile", () => {
     await expect(status.getByText(displayPhone(PHONES.driver))).toBeVisible();
 
     await expect(page.getByLabel("Full name")).toHaveValue("Pat Driver");
-    await expect(page.getByRole("combobox", { name: /State/ })).toHaveText("Texas");
+    await expect(page.locator("[data-slot=zip-place]")).toContainText("Houston, TX");
+    await expect(page.getByLabel("City")).toHaveCount(0);
     await expect(page.getByRole("radio", { name: "W-2 employee" })).toBeChecked();
     await expect(page.getByRole("radio", { name: "Class A" })).toBeChecked();
     await expect(page.getByRole("radio", { name: "6 to 10" })).toBeChecked();
@@ -124,10 +125,9 @@ test.describe("driver profile", () => {
     const driverId = await startWithCompletedCard(page);
 
     await page.getByLabel("Full name").fill("Patricia Driver");
-    await page.getByLabel("City").fill("Austin");
-    await page.getByRole("combobox", { name: /State/ }).click();
-    await page.getByRole("option", { name: "Oklahoma" }).click();
-    await page.getByLabel("ZIP code").fill("73301");
+    // The ZIP alone; city and state follow from the dataset.
+    await page.getByLabel("ZIP code").fill("60601");
+    await expect(page.locator("[data-slot=zip-place]")).toContainText("Chicago, IL");
     await page.getByLabel("Service radius (miles)").fill("200");
     await page.getByText("Mechanic", { exact: true }).click();
     await page.getByText("Either works", { exact: true }).click();
@@ -157,9 +157,11 @@ test.describe("driver profile", () => {
     const { data } = await adminClient().from("drivers").select("*").eq("id", driverId).single();
     expect(data).toMatchObject({
       full_name: "Patricia Driver",
-      city: "Austin",
-      state: "OK",
-      zip: "73301",
+      city: "Chicago",
+      state: "IL",
+      zip: "60601",
+      lat: 41.8858,
+      lng: -87.6181,
       service_radius_miles: 200,
       operator_types: ["cdl_driver", "mechanic"],
       employment_type: "either",
@@ -185,7 +187,7 @@ test.describe("driver profile", () => {
 
     await page.reload();
     await expect(page.getByLabel("Full name")).toHaveValue("Patricia Driver");
-    await expect(page.getByRole("combobox", { name: /State/ })).toHaveText("Oklahoma");
+    await expect(page.locator("[data-slot=zip-place]")).toContainText("Chicago, IL");
     await expect(page.getByRole("radio", { name: "Class B" })).toBeChecked();
     await expect(page.getByRole("radio", { name: "10 or more" })).toBeChecked();
     await expect(page.getByRole("radio", { name: "Automatic only" })).toBeChecked();
@@ -217,6 +219,24 @@ test.describe("driver profile", () => {
       .eq("id", driverId)
       .single();
     expect(data).toEqual({ operator_types: ["mechanic"], cdl_class: "none", card_completed: true });
+  });
+
+  test("a ZIP the dataset does not know is rejected on the profile too", async ({ page }) => {
+    const driverId = await startWithCompletedCard(page);
+    const zip = page.getByLabel("ZIP code");
+    await zip.fill("99999");
+    await expect(page.getByText("We could not find that ZIP. Check the number.")).toBeVisible();
+    await expect(page.locator("[data-slot=zip-place]")).toHaveCount(0);
+    await page.getByRole("button", { name: "Save changes" }).click();
+    // The server says the same, so the card keeps its Houston ZIP.
+    await expect(page.getByText("We could not find that ZIP. Check the number.")).toBeVisible();
+    await expect(page.getByText("Profile saved")).toHaveCount(0);
+    const { data } = await adminClient()
+      .from("drivers")
+      .select("zip, city, state")
+      .eq("id", driverId)
+      .single();
+    expect(data).toEqual({ zip: PLACES.houston.zip, city: "Houston", state: "TX" });
   });
 
   test("invalid edits are rejected and nothing is saved", async ({ page }) => {

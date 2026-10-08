@@ -1,7 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import type { z } from "zod";
-import { MAX_UPLOAD_BYTES, US_STATE_CODES } from "@/lib/constants";
+import { MAX_UPLOAD_BYTES } from "@/lib/constants";
 import {
   confirmUploadSchema,
   documentIdSchema,
@@ -114,30 +114,17 @@ describe("phone schemas", () => {
 
 describe("driverBasicsSchema (step 1)", () => {
   it("accepts valid input and trims text", () => {
-    expect(
-      driverBasicsSchema.parse(validBasics({ fullName: "  Pat Driver  ", city: " Dallas " })),
-    ).toEqual({
+    expect(driverBasicsSchema.parse(validBasics({ fullName: "  Pat Driver  " }))).toEqual({
       fullName: "Pat Driver",
-      city: "Dallas",
-      state: "TX",
       zip: "75201",
       serviceRadiusMiles: 50,
     });
   });
 
-  it("accepts every US state code and uppercases input", () => {
-    for (const state of US_STATE_CODES) {
-      expect(driverBasicsSchema.parse(validBasics({ state })).state).toBe(state);
-    }
-    expect(US_STATE_CODES).toHaveLength(51);
-    expect(driverBasicsSchema.parse(validBasics({ state: "tx" })).state).toBe("TX");
-  });
-
-  it("city is optional and blank becomes null", () => {
-    expect(driverBasicsSchema.parse(validBasics({ city: "" })).city).toBeNull();
-    expect(driverBasicsSchema.parse(validBasics({ city: "   " })).city).toBeNull();
-    expect(driverBasicsSchema.parse(validBasics({ city: undefined })).city).toBeNull();
-    expect(driverBasicsSchema.parse(validBasics({ city: null })).city).toBeNull();
+  it("ignores a typed city and state: they come from the dataset for the ZIP", () => {
+    const parsed = driverBasicsSchema.parse(validBasics({ city: "Typed", state: "ZZ" }));
+    expect(parsed).not.toHaveProperty("city");
+    expect(parsed).not.toHaveProperty("state");
   });
 
   it("service radius defaults to 50 and accepts numeric strings from forms", () => {
@@ -160,11 +147,6 @@ describe("driverBasicsSchema (step 1)", () => {
     [{ fullName: " P " }, { fullName: "Enter your full name" }],
     [{ fullName: undefined }, { fullName: "Enter your full name" }],
     [{ fullName: "x".repeat(101) }, { fullName: "Name must be 100 characters or fewer" }],
-    [{ city: "x".repeat(81) }, { city: "City must be 80 characters or fewer" }],
-    [{ state: "" }, { state: "Select your state" }],
-    [{ state: undefined }, { state: "Select your state" }],
-    [{ state: "ZZ" }, { state: "Select your state" }],
-    [{ state: "Texas" }, { state: "Select your state" }],
     [{ zip: "" }, { zip: "Enter a 5-digit ZIP code" }],
     [{ zip: undefined }, { zip: "Enter your ZIP code" }],
     [{ zip: "7520" }, { zip: "Enter a 5-digit ZIP code" }],
@@ -188,11 +170,7 @@ describe("driverBasicsSchema (step 1)", () => {
   });
 
   it("reports every invalid field of an empty form", () => {
-    expect(Object.keys(errorsOf(driverBasicsSchema, {})).sort()).toEqual([
-      "fullName",
-      "state",
-      "zip",
-    ]);
+    expect(Object.keys(errorsOf(driverBasicsSchema, {})).sort()).toEqual(["fullName", "zip"]);
   });
 });
 
@@ -384,8 +362,6 @@ describe("driverCardSchema (profile edit)", () => {
   it("accepts a full card", () => {
     expect(driverCardSchema.parse(validCard())).toEqual({
       fullName: "Pat Driver",
-      city: "Dallas",
-      state: "TX",
       zip: "75201",
       serviceRadiusMiles: 50,
       operatorTypes: ["cdl_driver"],
