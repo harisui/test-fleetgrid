@@ -633,7 +633,7 @@ test.describe("driver onboarding, a mile per page on a wide screen", () => {
     });
   });
 
-  test("the Work and License miles show a scroll hint until the bottom is in view, and no other mile does", async ({
+  test("the Work, License and Papers miles show a scroll hint until the bottom is in view, and no other mile does", async ({
     page,
   }) => {
     // Short enough that the Work mile's questions do not fit.
@@ -652,15 +652,18 @@ test.describe("driver onboarding, a mile per page on a wide screen", () => {
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     await expect(hint).toHaveCount(0);
 
-    // The License mile has it too; About and Papers fit and do not.
+    // License and Papers have it too; About and Finish fit and do not.
     await resumeAt(page, 10);
     await expect(screenHeading(page)).toHaveText("License");
+    await expect(hint).toBeVisible();
+    await resumeAt(page, 14);
+    await expect(screenHeading(page)).toHaveText("Papers");
     await expect(hint).toBeVisible();
     await resumeAt(page, 2);
     await expect(screenHeading(page)).toHaveText("About");
     await expect(hint).toHaveCount(0);
-    await resumeAt(page, 14);
-    await expect(screenHeading(page)).toHaveText("Papers");
+    await resumeAt(page, 16);
+    await expect(screenHeading(page)).toHaveText("Finish");
     await expect(hint).toHaveCount(0);
   });
 

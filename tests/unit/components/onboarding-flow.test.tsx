@@ -100,6 +100,7 @@ describe("scroll hint", () => {
   it.each([
     ["workType", "Work"],
     ["cdlClass", "License"],
+    ["documents", "Papers"],
   ] as const)(
     "shows on the %s page on a wide screen, where the questions run past the fold",
     (stepId, mile) => {
@@ -111,15 +112,12 @@ describe("scroll hint", () => {
     },
   );
 
-  it.each(["name", "documents", "bio"] as const)(
-    "does not show on the %s page on a wide screen",
-    (stepId) => {
-      stubDesktop(true);
-      stubTallPage();
-      renderFlow(stepId, buildDriver({ onboardingStep: 18, cardCompleted: false }));
-      expect(hint()).not.toBeInTheDocument();
-    },
-  );
+  it.each(["name", "bio"] as const)("does not show on the %s page on a wide screen", (stepId) => {
+    stubDesktop(true);
+    stubTallPage();
+    renderFlow(stepId, buildDriver({ onboardingStep: 18, cardCompleted: false }));
+    expect(hint()).not.toBeInTheDocument();
+  });
 
   it("does not show on a phone, where each question has its own screen", () => {
     stubDesktop(false);

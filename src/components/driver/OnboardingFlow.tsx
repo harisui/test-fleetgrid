@@ -37,10 +37,11 @@ import type { DriverDocument, LocatedDriver } from "@/types/domain";
 
 const FORM_ID = "screen-form";
 /**
- * On a wide screen the Work and License miles run past the fold (six and four questions),
- * so those two pages show the scroll hint. The others fit, or nearly.
+ * On a wide screen the Work, License and Papers miles run past the fold (six questions,
+ * four, and the four upload tiles plus the record), so those pages show the scroll hint.
+ * About and Finish fit.
  */
-const SCROLL_HINT_MILES: readonly MileNumber[] = [2, 3];
+const SCROLL_HINT_MILES: readonly MileNumber[] = [2, 3, 4];
 
 interface OnboardingFlowProps {
   initialStepId: StepId;
