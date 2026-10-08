@@ -25,10 +25,18 @@ async function startWithCompletedCard(
       lng: place.lng,
       service_radius_miles: 50,
       operator_types: ["cdl_driver"],
+      employment_type: "w2",
       cdl_class: "A",
       endorsements: ["H"],
       years_experience: 8,
-      certifications: ["TWIC"],
+      certifications: ["OSHA 10"],
+      driving_styles: ["local_day_cab"],
+      transmission: "manual_ok",
+      equipment_types: ["dry_van"],
+      twic_active: true,
+      medical_card_active: true,
+      clearinghouse_registered: true,
+      mvr_clean_3_years: true,
       availability: ["full_time"],
       bio: "Reliable and on time.",
       sms_opt_in: true,
@@ -36,7 +44,7 @@ async function startWithCompletedCard(
       sms_opt_in_text: CONSENT_TEXT,
       sms_opted_out: options.optedOut ?? false,
       sms_opted_out_at: options.optedOut ? new Date().toISOString() : null,
-      onboarding_step: 13,
+      onboarding_step: 18,
       card_completed: true,
     })
     .select("id")
@@ -63,7 +71,17 @@ test.describe("driver profile", () => {
 
     await expect(page.getByLabel("Full name")).toHaveValue("Pat Driver");
     await expect(page.getByRole("combobox", { name: /State/ })).toHaveText("Texas");
+    await expect(page.getByRole("radio", { name: "W-2 employee" })).toBeChecked();
     await expect(page.getByRole("radio", { name: "Class A" })).toBeChecked();
+    await expect(page.getByRole("radio", { name: "6 to 10" })).toBeChecked();
+    await expect(page.getByRole("checkbox", { name: "Local day cab" })).toBeChecked();
+    await expect(page.getByRole("checkbox", { name: "Dry van" })).toBeChecked();
+    await expect(page.getByRole("radio", { name: "Automatic and manual" })).toBeChecked();
+    await expect(
+      page.getByRole("group", { name: "Do you have an active TWIC card?" }).getByRole("radio", {
+        name: "Yes",
+      }),
+    ).toBeChecked();
     await expect(page.getByRole("checkbox", { name: "Full time" })).toBeChecked();
     await expect(page.getByLabel("About you")).toHaveValue("Reliable and on time.");
   });
@@ -112,12 +130,24 @@ test.describe("driver profile", () => {
     await page.getByLabel("ZIP code").fill("73301");
     await page.getByLabel("Service radius (miles)").fill("200");
     await page.getByText("Mechanic", { exact: true }).click();
+    await page.getByText("Either works", { exact: true }).click();
     await page.getByText("Class B", { exact: true }).click();
     await page.getByText("T - Double/triple trailers").click();
-    await page.getByLabel("Years of experience").fill("15");
-    await page.getByRole("button", { name: "Remove TWIC" }).click();
+    await page.getByText("10 or more", { exact: true }).click();
+    await page.getByRole("button", { name: "Remove OSHA 10" }).click();
     await page.getByRole("textbox", { name: "Certifications" }).fill("Forklift");
     await page.getByRole("button", { name: "Add", exact: true }).click();
+    await page.getByText("OTR (over the road)", { exact: true }).click();
+    await page.getByText("Reefer", { exact: true }).click();
+    await page.getByText("Automatic only", { exact: true }).click();
+    await page
+      .getByRole("group", { name: "Do you have an active TWIC card?" })
+      .getByText("No", { exact: true })
+      .click();
+    await page
+      .getByRole("group", { name: "Any moving violations in the last 3 years?" })
+      .getByText("One or more", { exact: true })
+      .click();
     await page.getByText("Weekends", { exact: true }).click();
     await page.getByLabel("About you").fill("Fifteen years. Tanker and flatbed.");
     await page.getByRole("button", { name: "Save changes" }).click();
@@ -132,24 +162,61 @@ test.describe("driver profile", () => {
       zip: "73301",
       service_radius_miles: 200,
       operator_types: ["cdl_driver", "mechanic"],
+      employment_type: "either",
       cdl_class: "B",
       endorsements: ["H", "T"],
-      years_experience: 15,
+      years_experience: 10,
       certifications: ["Forklift"],
+      driving_styles: ["local_day_cab", "otr"],
+      transmission: "automatic_only",
+      equipment_types: ["dry_van", "reefer"],
+      twic_active: false,
+      medical_card_active: true,
+      clearinghouse_registered: true,
+      mvr_clean_3_years: false,
       availability: ["full_time", "weekends"],
       bio: "Fifteen years. Tanker and flatbed.",
       // Consent and completion are untouched by an edit.
       sms_opt_in: true,
       sms_opt_in_text: CONSENT_TEXT,
       card_completed: true,
-      onboarding_step: 13,
+      onboarding_step: 18,
     });
 
     await page.reload();
     await expect(page.getByLabel("Full name")).toHaveValue("Patricia Driver");
     await expect(page.getByRole("combobox", { name: /State/ })).toHaveText("Oklahoma");
     await expect(page.getByRole("radio", { name: "Class B" })).toBeChecked();
+    await expect(page.getByRole("radio", { name: "10 or more" })).toBeChecked();
+    await expect(page.getByRole("radio", { name: "Automatic only" })).toBeChecked();
     await expect(page.getByText("Forklift", { exact: true })).toBeVisible();
+  });
+
+  test("dropping CDL work hides the CDL questions, and a mechanic saves without them", async ({
+    page,
+  }) => {
+    const driverId = await startWithCompletedCard(page);
+    const driving = page.getByRole("group", { name: "What kind of driving do you do?" });
+    await expect(driving).toBeVisible();
+    await page.getByText("CDL driver", { exact: true }).click();
+    await page.getByText("Mechanic", { exact: true }).click();
+    await page.getByText("No CDL", { exact: true }).click();
+    await expect(driving).toHaveCount(0);
+    await expect(
+      page.getByRole("group", { name: "Are you registered in the FMCSA Clearinghouse?" }),
+    ).toHaveCount(0);
+    await expect(
+      page.getByRole("group", { name: "Do you have an active TWIC card?" }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect(page.getByText("Profile saved")).toBeVisible();
+
+    const { data } = await adminClient()
+      .from("drivers")
+      .select("operator_types, cdl_class, card_completed")
+      .eq("id", driverId)
+      .single();
+    expect(data).toEqual({ operator_types: ["mechanic"], cdl_class: "none", card_completed: true });
   });
 
   test("invalid edits are rejected and nothing is saved", async ({ page }) => {

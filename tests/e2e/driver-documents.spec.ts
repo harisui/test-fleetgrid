@@ -166,7 +166,7 @@ test.describe("driver documents", () => {
     await page.reload();
     await expect(documentList(page).getByRole("listitem")).toHaveCount(1);
 
-    // Screen 10 (Papers) shows the same file in its tile and takes new ones.
+    // Screen 14 (Papers) shows the same file in its tile and takes new ones.
     await adminClient()
       .from("drivers")
       .update({
@@ -176,7 +176,7 @@ test.describe("driver documents", () => {
         availability: ["on_call"],
         cdl_class: "none",
         certifications: [],
-        onboarding_step: 10,
+        onboarding_step: 14,
       })
       .eq("id", driverId);
     await page.goto("/driver/onboarding");
@@ -213,7 +213,7 @@ test.describe("driver documents", () => {
         availability: ["on_call"],
         cdl_class: "none",
         certifications: ["TWIC", "Forklift"],
-        onboarding_step: 10,
+        onboarding_step: 14,
       })
       .eq("id", driverId);
     await page.goto("/driver/onboarding");

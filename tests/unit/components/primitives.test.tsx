@@ -10,7 +10,7 @@ import { FormField } from "@/components/shared/FormField";
 import { InlineNote } from "@/components/shared/InlineNote";
 import { OptionGroup } from "@/components/shared/OptionGroup";
 import { StatusBadge } from "@/components/shared/StatusBadge";
-import { Stepper } from "@/components/shared/Stepper";
+import { YesNoChips } from "@/components/shared/YesNoChips";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -403,59 +403,45 @@ describe("ChipGroup", () => {
   });
 });
 
-function StepperHarness({ initial = null }: { initial?: number | null }) {
-  const [value, setValue] = useState<number | null>(initial);
+function YesNoHarness({ initial, yes, no }: { initial?: boolean; yes?: string; no?: string }) {
+  const [value, setValue] = useState<boolean | undefined>(initial);
   return (
-    <Stepper label="Exact years" value={value} onChange={setValue} min={0} max={60} unit="years" />
+    <YesNoChips
+      label="Do you have an active TWIC card?"
+      yes={yes}
+      no={no}
+      value={value}
+      onChange={setValue}
+    />
   );
 }
 
-describe("Stepper", () => {
-  it("has 56px buttons, a typed value and a unit", async () => {
-    render(<StepperHarness initial={4} />);
-    const less = screen.getByRole("button", { name: "One year less" });
-    const more = screen.getByRole("button", { name: "One year more" });
-    expect(less).toHaveClass("size-target-lg");
-    expect(more).toHaveClass("size-target-lg");
-    expect(screen.getByText("years")).toBeInTheDocument();
-    expect(screen.getByLabelText("Exact years")).toHaveValue("4");
+describe("YesNoChips", () => {
+  it("is two chips under the question, neither pressed until a tap", async () => {
+    render(<YesNoHarness />);
+    expect(
+      screen.getByRole("group", { name: "Do you have an active TWIC card?" }),
+    ).toBeInTheDocument();
+    const yes = screen.getByRole("button", { name: "Yes" });
+    const no = screen.getByRole("button", { name: "No" });
+    expect(yes).toHaveAttribute("aria-pressed", "false");
+    expect(no).toHaveAttribute("aria-pressed", "false");
 
-    await userEvent.click(more);
-    expect(screen.getByLabelText("Exact years")).toHaveValue("5");
-    await userEvent.click(less);
-    await userEvent.click(less);
-    expect(screen.getByLabelText("Exact years")).toHaveValue("3");
+    await userEvent.click(no);
+    expect(no).toHaveAttribute("aria-pressed", "true");
+    expect(yes).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(yes);
+    expect(yes).toHaveAttribute("aria-pressed", "true");
+    expect(no).toHaveAttribute("aria-pressed", "false");
   });
 
-  it("enforces and explains the limits", async () => {
-    render(<StepperHarness initial={59} />);
-    await userEvent.click(screen.getByRole("button", { name: "One year more" }));
-    expect(screen.getByLabelText("Exact years")).toHaveValue("60");
-    expect(screen.getByRole("button", { name: "One year more" })).toBeDisabled();
-    expect(screen.getByText("60 is the highest you can pick")).toBeInTheDocument();
-
-    const field = screen.getByLabelText("Exact years");
-    await userEvent.clear(field);
-    await userEvent.type(field, "99");
-    await userEvent.tab();
-    expect(field).toHaveValue("60");
-  });
-
-  it("starts empty, plus picks the minimum, typing letters is ignored and blank clears", async () => {
-    render(<StepperHarness />);
-    const field = screen.getByLabelText("Exact years");
-    expect(field).toHaveValue("");
-    await userEvent.click(screen.getByRole("button", { name: "One year more" }));
-    expect(field).toHaveValue("0");
-    expect(screen.getByRole("button", { name: "One year less" })).toBeDisabled();
-    expect(screen.getByText("0 is the lowest you can pick")).toBeInTheDocument();
-
-    await userEvent.clear(field);
-    await userEvent.type(field, "1a2");
-    expect(field).toHaveValue("12");
-    await userEvent.clear(field);
-    await userEvent.tab();
-    expect(field).toHaveValue("");
+  it("shows a saved answer and takes its own words for the two chips", () => {
+    render(<YesNoHarness initial={false} yes="Registered" no="Not yet" />);
+    expect(screen.getByRole("button", { name: "Not yet" })).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: "Registered" })).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
   });
 });
 

@@ -11,7 +11,27 @@ import {
   YEARS_EXPERIENCE_MAX,
 } from "@/lib/constants";
 import { normalizeEndorsements } from "@/lib/onboarding/options";
-import { AVAILABILITY_TYPES, CDL_CLASSES, ENDORSEMENTS, OPERATOR_TYPES } from "@/types/domain";
+import {
+  CLEARINGHOUSE_MESSAGE,
+  DRIVING_STYLE_MESSAGE,
+  EMPLOYMENT_MESSAGE,
+  EQUIPMENT_MESSAGE,
+  MEDICAL_CARD_MESSAGE,
+  MVR_MESSAGE,
+  TRANSMISSION_MESSAGE,
+  TWIC_MESSAGE,
+} from "@/lib/validation/onboarding.schema";
+import {
+  AVAILABILITY_TYPES,
+  CDL_CLASSES,
+  DRIVING_STYLES,
+  EMPLOYMENT_TYPES,
+  ENDORSEMENTS,
+  EQUIPMENT_TYPES,
+  isCdlDriver,
+  OPERATOR_TYPES,
+  TRANSMISSION_TYPES,
+} from "@/types/domain";
 
 /** Empty or whitespace-only strings become null. */
 const optionalText = (max: number, message: string) =>
@@ -45,6 +65,13 @@ const wholeNumber = (options: {
   );
 
 const unique = <T>(values: T[]) => [...new Set(values)];
+
+/** A yes-or-no answer that may be unanswered: only CDL drivers have to answer some of them. */
+const optionalYesNo = (message: string) =>
+  z
+    .boolean({ error: message })
+    .nullish()
+    .transform((value) => value ?? null);
 
 // ---------------------------------------------------------------------------
 // Step 1: basics
@@ -97,6 +124,7 @@ export const driverLicensesSchema = z
       .array(z.enum(OPERATOR_TYPES), { error: "Select at least one role" })
       .min(1, "Select at least one role")
       .transform(unique),
+    employmentType: z.enum(EMPLOYMENT_TYPES, { error: EMPLOYMENT_MESSAGE }),
     cdlClass: z.enum(CDL_CLASSES, { error: "Select your CDL class" }),
     // The same letter rules as onboarding: X brings H and N, S brings P.
     endorsements: z.array(z.enum(ENDORSEMENTS)).default([]).transform(normalizeEndorsements),
@@ -112,6 +140,39 @@ export const driverLicensesSchema = z
     ...value,
     endorsements: value.cdlClass === "none" ? [] : value.endorsements,
   }));
+
+// ---------------------------------------------------------------------------
+// Equipment and checks (added 2026-10-09). The CDL-only answers are required by
+// `requireCdlChecks` when the work includes CDL driving, and left alone otherwise.
+// ---------------------------------------------------------------------------
+export const driverChecksSchema = z.object({
+  drivingStyles: z.array(z.enum(DRIVING_STYLES)).default([]).transform(unique),
+  transmission: z
+    .enum(TRANSMISSION_TYPES, { error: TRANSMISSION_MESSAGE })
+    .nullish()
+    .transform((value) => value ?? null),
+  equipmentTypes: z.array(z.enum(EQUIPMENT_TYPES)).default([]).transform(unique),
+  twicActive: z.boolean({ error: TWIC_MESSAGE }),
+  medicalCardActive: z.boolean({ error: MEDICAL_CARD_MESSAGE }),
+  clearinghouseRegistered: optionalYesNo(CLEARINGHOUSE_MESSAGE),
+  mvrClean3Years: optionalYesNo(MVR_MESSAGE),
+});
+
+type ChecksOutput = z.infer<typeof driverChecksSchema> & { operatorTypes: readonly string[] };
+
+/** A CDL driver must answer driving style, transmission, equipment, Clearinghouse and MVR. */
+function requireCdlChecks(value: ChecksOutput, ctx: z.RefinementCtx): void {
+  if (!isCdlDriver(value.operatorTypes)) return;
+  const missing: [string, string][] = [];
+  if (value.drivingStyles.length === 0) missing.push(["drivingStyles", DRIVING_STYLE_MESSAGE]);
+  if (value.transmission === null) missing.push(["transmission", TRANSMISSION_MESSAGE]);
+  if (value.equipmentTypes.length === 0) missing.push(["equipmentTypes", EQUIPMENT_MESSAGE]);
+  if (value.clearinghouseRegistered === null) {
+    missing.push(["clearinghouseRegistered", CLEARINGHOUSE_MESSAGE]);
+  }
+  if (value.mvrClean3Years === null) missing.push(["mvrClean3Years", MVR_MESSAGE]);
+  for (const [path, message] of missing) ctx.addIssue({ code: "custom", path: [path], message });
+}
 
 // ---------------------------------------------------------------------------
 // Step 3: availability
@@ -138,8 +199,10 @@ export const driverCardSchema = z
   .object({
     ...driverBasicsSchema.shape,
     ...driverLicensesSchema.in.shape,
+    ...driverChecksSchema.shape,
     ...driverAvailabilitySchema.shape,
   })
+  .superRefine(requireCdlChecks)
   .transform((value) => ({
     ...value,
     endorsements: value.cdlClass === "none" ? [] : value.endorsements,
@@ -147,6 +210,7 @@ export const driverCardSchema = z
 
 export type DriverBasicsInput = z.infer<typeof driverBasicsSchema>;
 export type DriverLicensesInput = z.infer<typeof driverLicensesSchema>;
+export type DriverChecksInput = z.infer<typeof driverChecksSchema>;
 export type DriverAvailabilityInput = z.infer<typeof driverAvailabilitySchema>;
 export type SmsConsentInput = z.infer<typeof smsConsentSchema>;
 export type DriverCardInput = z.infer<typeof driverCardSchema>;

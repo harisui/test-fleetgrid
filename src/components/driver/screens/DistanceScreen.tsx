@@ -9,6 +9,7 @@ import type {
 } from "@/components/driver/screens/types";
 import { ChipGroup } from "@/components/shared/ChipGroup";
 import { DISTANCE_CHIPS } from "@/lib/onboarding/options";
+import { stepNumber } from "@/lib/onboarding/steps";
 import { distanceScreenSchema } from "@/lib/validation/onboarding.schema";
 
 function DistanceFields({ showQuestion, question, driver }: ScreenFieldsProps) {
@@ -48,7 +49,10 @@ export const distanceScreen: ScreenDefinition = {
   schema: () => distanceScreenSchema,
   defaults: (driver) => ({
     // A new card holds the database default; the driver must still pick.
-    serviceRadiusMiles: driver && driver.onboardingStep > 3 ? driver.serviceRadiusMiles : undefined,
+    serviceRadiusMiles:
+      driver && driver.onboardingStep > stepNumber("distance")
+        ? driver.serviceRadiusMiles
+        : undefined,
   }),
   Fields: DistanceFields,
 };

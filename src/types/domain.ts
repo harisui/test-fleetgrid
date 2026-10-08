@@ -14,6 +14,10 @@ export type AvailabilityType = Enums["availability_type"];
 export type DocumentType = Enums["document_type"];
 export type SmsConsentEvent = Enums["sms_consent_event"];
 export type SmsConsentSource = Enums["sms_consent_source"];
+export type EmploymentType = Enums["employment_type"];
+export type DrivingStyle = Enums["driving_style"];
+export type TransmissionType = Enums["transmission_type"];
+export type EquipmentType = Enums["equipment_type"];
 
 export const USER_ROLES = ["driver", "carrier", "admin"] as const satisfies readonly UserRole[];
 /** Roles a user can pick for themselves at sign-up. */
@@ -57,6 +61,39 @@ export const DOCUMENT_TYPES = [
   "certification",
   "other",
 ] as const satisfies readonly DocumentType[];
+
+export const EMPLOYMENT_TYPES = [
+  "w2",
+  "owner_operator_1099",
+  "either",
+] as const satisfies readonly EmploymentType[];
+
+export const DRIVING_STYLES = [
+  "local_day_cab",
+  "yard_spotter",
+  "regional",
+  "otr",
+] as const satisfies readonly DrivingStyle[];
+
+export const TRANSMISSION_TYPES = [
+  "automatic_only",
+  "manual_ok",
+] as const satisfies readonly TransmissionType[];
+
+export const EQUIPMENT_TYPES = [
+  "container_drayage",
+  "dry_van",
+  "flatbed",
+  "reefer",
+  "yard_mule",
+] as const satisfies readonly EquipmentType[];
+
+/** The work type whose drivers answer the CDL-only questions (driving style, equipment, record). */
+export const CDL_WORK_TYPE: OperatorType = "cdl_driver";
+
+export function isCdlDriver(operatorTypes: readonly string[]): boolean {
+  return operatorTypes.includes(CDL_WORK_TYPE);
+}
 
 export const OPERATOR_TYPE_LABELS: Record<OperatorType, string> = {
   cdl_driver: "CDL driver",
@@ -116,6 +153,19 @@ export interface Driver {
   availability: AvailabilityType[];
   certifications: string[];
   bio: string | null;
+  /** W-2, 1099 or either. Null until the employment screen is saved. */
+  employmentType: EmploymentType | null;
+  /** CDL drivers only. Empty or null for everyone else. */
+  drivingStyles: DrivingStyle[];
+  transmission: TransmissionType | null;
+  equipmentTypes: EquipmentType[];
+  /** Asked of everyone. Null until the cards screen is saved. */
+  twicActive: boolean | null;
+  medicalCardActive: boolean | null;
+  /** CDL drivers only. Null for everyone else. */
+  clearinghouseRegistered: boolean | null;
+  /** True when the driver reports no moving violations in the last 3 years. */
+  mvrClean3Years: boolean | null;
   smsOptIn: boolean;
   smsOptInAt: string | null;
   smsOptInText: string | null;

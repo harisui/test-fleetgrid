@@ -1,11 +1,14 @@
 import { SMS_CONSENT_TEXT, SMS_CONSENT_VERSION } from "@/lib/constants";
 import {
+  contextOf,
   DONE_STEP_NUMBER,
   FIRST_STEP_NUMBER,
   isSavableStepId,
   nextStepId,
+  stepApplies,
   stepByNumber,
   stepNumber,
+  type FlowContext,
   type SavableStepId,
   type StepId,
 } from "@/lib/onboarding/steps";
@@ -14,10 +17,15 @@ import {
   bioScreenSchema,
   cdlClassScreenSchemaFor,
   certificationsScreenSchema,
+  complianceScreenSchema,
   consentScreenSchema,
+  credentialsScreenSchema,
   distanceScreenSchema,
   documentsScreenSchema,
+  drivingStyleScreenSchema,
+  employmentTypeScreenSchema,
   endorsementsScreenSchema,
+  equipmentScreenSchema,
   experienceScreenSchema,
   hasCdlConflict,
   nameScreenSchema,
@@ -31,7 +39,7 @@ import type { IConsentLogRepository } from "@/server/repositories/ConsentLogRepo
 import type { DriverPatch, IDriverRepository } from "@/server/repositories/DriverRepository";
 import type { IProfileRepository } from "@/server/repositories/ProfileRepository";
 import type { IServiceAreaRepository } from "@/server/repositories/ServiceAreaRepository";
-import type { Driver, LocatedDriver, Profile } from "@/types/domain";
+import { isCdlDriver, type Driver, type LocatedDriver, type Profile } from "@/types/domain";
 
 export interface OnboardingState {
   /** The screen the driver should see next. "done" once the card is complete. */
@@ -40,21 +48,30 @@ export interface OnboardingState {
   driver: LocatedDriver | null;
 }
 
-/** Required card fields that are still missing, with the screen that collects them. */
+/**
+ * Required card fields that are still missing, with the screen that collects them, in flow
+ * order. Driving style, transmission, equipment, Clearinghouse and MVR are required of CDL
+ * drivers only; the database constraint `drivers_card_complete` says the same.
+ */
 export function missingCardFields(driver: Driver): { field: string; stepId: StepId }[] {
   const missing: { field: string; stepId: StepId }[] = [];
-  if (!driver.state || !driver.zip) missing.push({ field: "zip", stepId: "zip" });
-  if (driver.operatorTypes.length === 0)
-    missing.push({ field: "operatorTypes", stepId: "workType" });
-  if (driver.yearsExperience === null) {
-    missing.push({ field: "yearsExperience", stepId: "experience" });
-  }
-  if (driver.availability.length === 0) {
-    missing.push({ field: "availability", stepId: "availability" });
-  }
-  if (hasCdlConflict(driver.operatorTypes, driver.cdlClass)) {
-    missing.push({ field: "cdlClass", stepId: "cdlClass" });
-  }
+  const need = (isMissing: boolean, field: string, stepId: StepId) => {
+    if (isMissing) missing.push({ field, stepId });
+  };
+  const cdl = isCdlDriver(driver.operatorTypes);
+  need(!driver.state || !driver.zip, "zip", "zip");
+  need(driver.operatorTypes.length === 0, "operatorTypes", "workType");
+  need(driver.employmentType === null, "employmentType", "employmentType");
+  need(cdl && driver.drivingStyles.length === 0, "drivingStyles", "drivingStyle");
+  need(cdl && driver.equipmentTypes.length === 0, "equipmentTypes", "equipment");
+  need(cdl && driver.transmission === null, "transmission", "equipment");
+  need(driver.yearsExperience === null, "yearsExperience", "experience");
+  need(driver.availability.length === 0, "availability", "availability");
+  need(hasCdlConflict(driver.operatorTypes, driver.cdlClass), "cdlClass", "cdlClass");
+  need(driver.twicActive === null, "twicActive", "credentials");
+  need(driver.medicalCardActive === null, "medicalCardActive", "credentials");
+  need(cdl && driver.clearinghouseRegistered === null, "clearinghouseRegistered", "compliance");
+  need(cdl && driver.mvrClean3Years === null, "mvrClean3Years", "compliance");
   return missing;
 }
 
@@ -101,8 +118,12 @@ export class DriverService {
     if (!driver) {
       return { stepId: stepByNumber(FIRST_STEP_NUMBER).id, completed: false, driver: null };
     }
+    // Progress never moves backwards, so a driver who went back and dropped CDL work can be
+    // parked on a CDL-only screen. Resume on the next screen that applies to them instead.
+    const stored = stepByNumber(driver.onboardingStep).id;
+    const context = contextOf(driver);
     return {
-      stepId: stepByNumber(driver.onboardingStep).id,
+      stepId: stepApplies(stored, context) ? stored : nextStepId(stored, context),
       completed: driver.cardCompleted,
       driver,
     };
@@ -146,7 +167,7 @@ export class DriverService {
 
   private async saveName(userId: string, existing: Driver | null, input: unknown) {
     const data = parseInput(nameScreenSchema, input);
-    const next = stepNumber(nextStepId("name", { cdlClass: existing?.cdlClass ?? null }));
+    const next = stepNumber(nextStepId("name", contextOf(existing)));
     if (existing) {
       return this.drivers.update(userId, { ...data, ...this.advance(existing, next) });
     }
@@ -170,10 +191,12 @@ export class DriverService {
     stepId: Exclude<SavableStepId, "name">,
     input: unknown,
   ): Promise<Driver> {
-    const context = { cdlClass: existing.cdlClass };
-    const advanceTo = (patch: DriverPatch, cdlClass = existing.cdlClass) => ({
+    const context = contextOf(existing);
+    // The next screen depends on the answer just given when it changes what applies: the
+    // work type decides the CDL-only screens, the CDL class decides the endorsements screen.
+    const advanceTo = (patch: DriverPatch, changed: Partial<FlowContext> = {}) => ({
       ...patch,
-      ...this.advance(existing, stepNumber(nextStepId(stepId, { cdlClass }))),
+      ...this.advance(existing, stepNumber(nextStepId(stepId, { ...context, ...changed }))),
     });
 
     switch (stepId) {
@@ -186,8 +209,19 @@ export class DriverService {
       }
       case "distance":
         return this.drivers.update(userId, advanceTo(parseInput(distanceScreenSchema, input)));
-      case "workType":
-        return this.drivers.update(userId, advanceTo(parseInput(workTypeScreenSchema, input)));
+      case "workType": {
+        const data = parseInput(workTypeScreenSchema, input);
+        return this.drivers.update(userId, advanceTo(data, { operatorTypes: data.operatorTypes }));
+      }
+      case "employmentType":
+        return this.drivers.update(
+          userId,
+          advanceTo(parseInput(employmentTypeScreenSchema, input)),
+        );
+      case "drivingStyle":
+        return this.drivers.update(userId, advanceTo(parseInput(drivingStyleScreenSchema, input)));
+      case "equipment":
+        return this.drivers.update(userId, advanceTo(parseInput(equipmentScreenSchema, input)));
       case "experience":
         return this.drivers.update(userId, advanceTo(parseInput(experienceScreenSchema, input)));
       case "availability":
@@ -196,7 +230,7 @@ export class DriverService {
         const data = parseInput(cdlClassScreenSchemaFor(existing.operatorTypes), input);
         // Without a CDL there are no endorsements, and that screen is skipped.
         const patch: DriverPatch = data.cdlClass === "none" ? { ...data, endorsements: [] } : data;
-        return this.drivers.update(userId, advanceTo(patch, data.cdlClass));
+        return this.drivers.update(userId, advanceTo(patch, { cdlClass: data.cdlClass }));
       }
       case "endorsements": {
         const data = parseInput(endorsementsScreenSchema, input);
@@ -208,10 +242,14 @@ export class DriverService {
           userId,
           advanceTo(parseInput(certificationsScreenSchema, input)),
         );
+      case "credentials":
+        return this.drivers.update(userId, advanceTo(parseInput(credentialsScreenSchema, input)));
       case "documents":
         // Papers are saved by DocumentService as they are uploaded. This only records progress.
         parseInput(documentsScreenSchema, input ?? {});
         return this.drivers.update(userId, advanceTo({}));
+      case "compliance":
+        return this.drivers.update(userId, advanceTo(parseInput(complianceScreenSchema, input)));
       case "bio":
         return this.drivers.update(userId, advanceTo(parseInput(bioScreenSchema, input)));
       case "consent":

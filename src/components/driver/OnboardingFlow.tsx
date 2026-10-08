@@ -18,6 +18,7 @@ import { InlineNote } from "@/components/shared/InlineNote";
 import { ScrollingArrow } from "@/components/shared/ScrollingArrow";
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery";
 import {
+  contextOf,
   nextStepId,
   previousStepId,
   progressFor,
@@ -85,7 +86,7 @@ export function OnboardingFlow({
     window.scrollTo?.({ top: 0 });
   }, [stepId, isDesktop]);
 
-  const flowContext: FlowContext = { cdlClass: driver?.cdlClass ?? null };
+  const flowContext = contextOf(driver);
 
   if (stepId === "done" && driver) {
     return (
@@ -97,7 +98,8 @@ export function OnboardingFlow({
 
   const current = stepById(stepId);
   // A grouped page holds every screen of the mile; the page decides live which ones apply
-  // (the endorsements question appears as soon as a CDL class is picked).
+  // (the endorsements question appears as soon as a CDL class is picked, the CDL-only
+  // questions as soon as CDL driver is ticked).
   const pageSteps = isDesktop ? stepsOfMile(current.mile) : [current];
   const pageKey = `${isDesktop ? "mile" : "step"}:${pageSteps.map((step) => step.id).join("+")}`;
 
@@ -120,9 +122,7 @@ export function OnboardingFlow({
         }}
         onSaved={(saved, completed) => {
           setDriver(saved);
-          const next = nextStepId(pageSteps[pageSteps.length - 1].id, {
-            cdlClass: saved.cdlClass,
-          });
+          const next = nextStepId(pageSteps[pageSteps.length - 1].id, contextOf(saved));
           setStepId(next);
           // The profile page opens up once the card is complete.
           if (completed) router.refresh();
@@ -176,8 +176,13 @@ function ScreenPage({
   // one, otherwise from the saved card.
   const liveContext: FlowContext = {
     cdlClass: values.cdlClass ?? context.driver?.cdlClass ?? null,
+    operatorTypes: values.operatorTypes ?? context.driver?.operatorTypes ?? [],
   };
-  const activeSteps = pageSteps.filter((step) => stepApplies(step.id, liveContext));
+  // A phone shows the one screen the flow chose; a grouped page drops the screens that no
+  // longer apply to the answers on it.
+  const activeSteps = grouped
+    ? pageSteps.filter((step) => stepApplies(step.id, liveContext))
+    : pageSteps;
   const definitions = allDefinitions.filter((definition) =>
     activeSteps.some((step) => step.id === definition.id),
   );
@@ -206,10 +211,7 @@ function ScreenPage({
   const nextLabel = last.nextLabel?.(values, context) ?? "Next";
   const progress = progressFor(stepId);
   const saved = context.driver !== null && stepNumber(last.id) < context.driver.onboardingStep;
-  const hasBack =
-    previousStepId(pageSteps[0].id, {
-      cdlClass: context.driver?.cdlClass ?? null,
-    }) !== null;
+  const hasBack = previousStepId(pageSteps[0].id, contextOf(context.driver)) !== null;
 
   const submit = form.handleSubmit(async (parsed) => {
     setFormError(undefined);

@@ -67,6 +67,14 @@ describe("DriverRepository (local Supabase)", () => {
       availability: [],
       certifications: [],
       bio: null,
+      employmentType: null,
+      drivingStyles: [],
+      transmission: null,
+      equipmentTypes: [],
+      twicActive: null,
+      medicalCardActive: null,
+      clearinghouseRegistered: null,
+      mvrClean3Years: null,
       smsOptIn: false,
       smsOptInAt: null,
       smsOptInText: null,
@@ -123,6 +131,29 @@ describe("DriverRepository (local Supabase)", () => {
     expect(cleared.lng).toBeNull();
   });
 
+  it("update stores the employment, equipment and check answers and maps them back", async () => {
+    const updated = await repository.update(driver.id, {
+      employmentType: "owner_operator_1099",
+      drivingStyles: ["regional", "otr"],
+      transmission: "automatic_only",
+      equipmentTypes: ["container_drayage", "reefer"],
+      twicActive: true,
+      medicalCardActive: false,
+      clearinghouseRegistered: true,
+      mvrClean3Years: false,
+    });
+    expect(updated).toMatchObject({
+      employmentType: "owner_operator_1099",
+      drivingStyles: ["regional", "otr"],
+      transmission: "automatic_only",
+      equipmentTypes: ["container_drayage", "reefer"],
+      twicActive: true,
+      medicalCardActive: false,
+      clearinghouseRegistered: true,
+      mvrClean3Years: false,
+    });
+  });
+
   it("update can clear nullable fields and store consent with completion", async () => {
     await repository.update(driver.id, { availability: ["full_time"], bio: "Hello", city: null });
     const consentAt = "2026-10-05T15:30:00.000Z";
@@ -131,7 +162,7 @@ describe("DriverRepository (local Supabase)", () => {
       smsOptIn: true,
       smsOptInAt: consentAt,
       smsOptInText: SMS_CONSENT_TEXT,
-      onboardingStep: 6,
+      onboardingStep: 18,
       cardCompleted: true,
     });
     expect(updated.bio).toBeNull();
@@ -154,11 +185,24 @@ describe("DriverRepository (local Supabase)", () => {
       endorsements: ["H", "X"],
       years_experience: 12,
       availability: ["full_time"],
+      employment_type: "owner_operator_1099",
+      driving_styles: ["regional", "otr"],
+      transmission: "automatic_only",
+      equipment_types: ["container_drayage", "reefer"],
+      twic_active: true,
+      medical_card_active: false,
+      clearinghouse_registered: true,
+      mvr_clean_3_years: false,
       sms_opt_in: true,
       sms_opt_in_text: SMS_CONSENT_TEXT,
-      onboarding_step: 6,
+      onboarding_step: 18,
       card_completed: true,
     });
+  });
+
+  it("update maps a completed CDL driver card losing a check to VALIDATION", async () => {
+    const error = await expectAppError(repository.update(driver.id, { mvrClean3Years: null }));
+    expect(error.code).toBe("VALIDATION");
   });
 
   it("update maps a database check violation to VALIDATION without leaking it", async () => {

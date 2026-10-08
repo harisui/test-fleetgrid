@@ -112,10 +112,11 @@ E2E_WEBKIT=1 pnpm exec playwright test --project=mobile-safari-webkit   # real S
 
 Coverage thresholds (enforced in `vitest.config.ts`): services 95% lines and 90% branches, `src/lib` 95% lines, overall 85% lines. A task is done only when `pnpm test:all` is green.
 
-`pnpm design-review` writes `design-review/index.html` (ignored by git): each of the thirteen
+`pnpm design-review` writes `design-review/index.html` (ignored by git): each of the eighteen
 onboarding screens of the running app beside the approved prototype frame in
 `tests/design-review/workshop-prototype.html`, at 390×844 in light and dark, plus the grouped
-desktop pages. Open the file in a browser to compare.
+desktop pages. The five screens added on 2026-10-09 have no prototype frame and are marked so.
+Open the file in a browser to compare.
 
 ## Architecture
 

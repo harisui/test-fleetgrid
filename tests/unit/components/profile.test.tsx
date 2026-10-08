@@ -3,6 +3,14 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountStatusCard } from "@/components/driver/AccountStatusCard";
 import { ProfileEditor } from "@/components/driver/ProfileEditor";
+import { CARD_CHECKS } from "@/lib/onboarding/options";
+import {
+  CLEARINGHOUSE_MESSAGE,
+  DRIVING_STYLE_MESSAGE,
+  EQUIPMENT_MESSAGE,
+  MVR_MESSAGE,
+  TRANSMISSION_MESSAGE,
+} from "@/lib/validation/onboarding.schema";
 import type { Result } from "@/server/errors/AppError";
 import { buildDriver, buildProfile } from "../../setup/factories";
 
@@ -100,6 +108,9 @@ describe("AccountStatusCard", () => {
 
 describe("ProfileEditor", () => {
   const save = () => screen.getByRole("button", { name: "Save changes" });
+  const group = (name: string) => within(screen.getByRole("group", { name }));
+  const checkRadio = (question: string, name: string) =>
+    group(question).getByRole("radio", { name });
 
   it("is prefilled with every card field", () => {
     render(<ProfileEditor driver={buildDriver({ serviceRadiusMiles: 120 })} />);
@@ -109,10 +120,20 @@ describe("ProfileEditor", () => {
     expect(screen.getByLabelText(/ZIP code/)).toHaveValue("75201");
     expect(screen.getByLabelText(/Service radius/)).toHaveValue(120);
     expect(screen.getByRole("checkbox", { name: "CDL driver" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "W-2 employee" })).toBeChecked();
     expect(screen.getByRole("radio", { name: "Class A" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: /^H -/ })).toBeChecked();
-    expect(screen.getByLabelText(/Years of experience/)).toHaveValue(8);
-    expect(screen.getByText("TWIC")).toBeInTheDocument();
+    expect(screen.getByRole("radio", { name: "6 to 10" })).toBeChecked();
+    expect(screen.getByText("OSHA 10")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Local day cab" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Regional" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Dry van" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Flatbed" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Automatic and manual" })).toBeChecked();
+    expect(checkRadio(CARD_CHECKS.twicActive.question, "Yes")).toBeChecked();
+    expect(checkRadio(CARD_CHECKS.medicalCardActive.question, "Yes")).toBeChecked();
+    expect(checkRadio(CARD_CHECKS.clearinghouseRegistered.question, "Registered")).toBeChecked();
+    expect(checkRadio(CARD_CHECKS.mvrClean3Years.question, "None")).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Full time" })).toBeChecked();
     expect(screen.getByLabelText("About you")).toHaveValue("Reliable and on time.");
   });
@@ -130,9 +151,22 @@ describe("ProfileEditor", () => {
     expect(classC).toHaveAccessibleDescription("Passenger vans (16+) and small hazmat vehicles");
   });
 
-  it("groups the fields into three labelled sections", () => {
+  it("shows the years as the same five ranges as onboarding, no number field", () => {
+    render(<ProfileEditor driver={buildDriver({ yearsExperience: 9 })} />);
+    expect(screen.queryByLabelText(/Years of experience/)).not.toBeInTheDocument();
+    const years = screen.getByRole("group", { name: /Years of experience/ });
+    expect(
+      within(years)
+        .getAllByRole("radio")
+        .map((radio) => radio.getAttribute("value")),
+    ).toEqual(["0", "1", "3", "6", "10"]);
+    // A card saved under the old flow with an exact number shows its range.
+    expect(within(years).getByRole("radio", { name: "6 to 10" })).toBeChecked();
+  });
+
+  it("groups the fields into four labelled sections", () => {
     render(<ProfileEditor driver={buildDriver()} />);
-    for (const name of ["Basics", "Role and licenses", "Availability"]) {
+    for (const name of ["Basics", "Role and licenses", "Equipment and checks", "Availability"]) {
       expect(screen.getByRole("group", { name })).toBeInTheDocument();
     }
   });
@@ -151,9 +185,14 @@ describe("ProfileEditor", () => {
     await userEvent.clear(screen.getByLabelText("City"));
     await userEvent.type(screen.getByLabelText("City"), "Austin");
     await userEvent.click(screen.getByText("Mechanic"));
+    await userEvent.click(screen.getByText("Either works"));
     await userEvent.click(screen.getByText("Weekends"));
-    await userEvent.clear(screen.getByLabelText(/Years of experience/));
-    await userEvent.type(screen.getByLabelText(/Years of experience/), "12");
+    await userEvent.click(screen.getByText("10 or more"));
+    await userEvent.click(screen.getByText("OTR (over the road)"));
+    await userEvent.click(screen.getByText("Reefer"));
+    await userEvent.click(screen.getByText("Automatic only"));
+    await userEvent.click(checkRadio(CARD_CHECKS.twicActive.question, "No"));
+    await userEvent.click(checkRadio(CARD_CHECKS.mvrClean3Years.question, "One or more"));
     await userEvent.click(save());
 
     await waitFor(() =>
@@ -164,10 +203,18 @@ describe("ProfileEditor", () => {
         zip: "75201",
         serviceRadiusMiles: 50,
         operatorTypes: ["cdl_driver", "mechanic"],
+        employmentType: "either",
         cdlClass: "A",
         endorsements: ["H", "T"],
-        yearsExperience: 12,
-        certifications: ["TWIC"],
+        yearsExperience: 10,
+        certifications: ["OSHA 10"],
+        drivingStyles: ["local_day_cab", "regional", "otr"],
+        transmission: "automatic_only",
+        equipmentTypes: ["dry_van", "flatbed", "reefer"],
+        twicActive: false,
+        medicalCardActive: true,
+        clearinghouseRegistered: true,
+        mvrClean3Years: false,
         availability: ["full_time", "weekends"],
         bio: "Reliable and on time.",
       }),
@@ -187,6 +234,60 @@ describe("ProfileEditor", () => {
         expect.objectContaining({ cdlClass: "none", endorsements: [] }),
       ),
     );
+  });
+
+  it("hides the driving, equipment and record questions when the work has no CDL driving", async () => {
+    render(<ProfileEditor driver={buildDriver()} />);
+    const driving = () => screen.queryByRole("group", { name: /What kind of driving/ });
+    expect(driving()).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("checkbox", { name: "CDL driver" }));
+    await userEvent.click(screen.getByRole("checkbox", { name: "Mechanic" }));
+    expect(driving()).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: /What equipment/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: /Can you drive a manual/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: CARD_CHECKS.clearinghouseRegistered.question }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("group", { name: CARD_CHECKS.mvrClean3Years.question }),
+    ).not.toBeInTheDocument();
+    // Everyone answers TWIC and the medical card.
+    expect(
+      screen.getByRole("group", { name: CARD_CHECKS.twicActive.question }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: CARD_CHECKS.medicalCardActive.question }),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("checkbox", { name: "CDL driver" }));
+    expect(driving()).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Regional" })).toBeChecked();
+  });
+
+  it("requires the driving, equipment and record answers of a CDL driver", async () => {
+    render(
+      <ProfileEditor
+        driver={buildDriver({
+          drivingStyles: [],
+          transmission: null,
+          equipmentTypes: [],
+          clearinghouseRegistered: null,
+          mvrClean3Years: null,
+        })}
+      />,
+    );
+    await userEvent.click(save());
+    for (const message of [
+      DRIVING_STYLE_MESSAGE,
+      TRANSMISSION_MESSAGE,
+      EQUIPMENT_MESSAGE,
+      CLEARINGHOUSE_MESSAGE,
+      MVR_MESSAGE,
+    ]) {
+      expect(await screen.findByText(message)).toBeInTheDocument();
+    }
+    expect(actions.updateCardAction).not.toHaveBeenCalled();
   });
 
   it("validates before saving", async () => {

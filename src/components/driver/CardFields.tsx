@@ -7,7 +7,7 @@ import {
   type Path,
   type UseFormRegister,
 } from "react-hook-form";
-import { ChoiceGroup } from "@/components/shared/ChoiceGroup";
+import { ChoiceGroup, type ChoiceOption } from "@/components/shared/ChoiceGroup";
 import { FormField } from "@/components/shared/FormField";
 import { SelectInput } from "@/components/shared/SelectInput";
 import { TagInput } from "@/components/shared/TagInput";
@@ -20,9 +20,19 @@ import {
   SERVICE_RADIUS_MAX_MILES,
   SERVICE_RADIUS_MIN_MILES,
   US_STATE_OPTIONS,
-  YEARS_EXPERIENCE_MAX,
 } from "@/lib/constants";
-import { CDL_CLASS_OPTIONS } from "@/lib/onboarding/options";
+import {
+  CARD_CHECKS,
+  CDL_CLASS_OPTIONS,
+  DRIVING_STYLE_OPTIONS,
+  EMPLOYMENT_TYPE_OPTIONS,
+  EQUIPMENT_CHIPS,
+  EXPERIENCE_CHIPS,
+  experienceChipFor,
+  TRANSMISSION_OPTIONS,
+  TRANSMISSION_QUESTION,
+  type CardCheck,
+} from "@/lib/onboarding/options";
 import {
   AVAILABILITY_LABELS,
   AVAILABILITY_TYPES,
@@ -47,18 +57,35 @@ interface GroupProps<T extends FieldValues> {
 const options = <T extends string>(values: readonly T[], labels: Record<T, string>) =>
   values.map((value) => ({ value, label: labels[value] }));
 
+/** The same words as the onboarding cards, so the profile never describes a choice differently. */
+const choices = <T extends string>(
+  cards: readonly { value: T; label: string; description?: string }[],
+): ChoiceOption<T>[] =>
+  cards.map(({ value, label, description }) => ({ value, label, description }));
+
 const OPERATOR_OPTIONS = options(OPERATOR_TYPES, OPERATOR_TYPE_LABELS);
-// The same words as the onboarding cards, so the profile never describes a class differently.
-const CDL_OPTIONS = CDL_CLASS_OPTIONS.map(({ value, label, description }) => ({
-  value,
-  label,
-  description,
-}));
+const EMPLOYMENT_OPTIONS = choices(EMPLOYMENT_TYPE_OPTIONS);
+const CDL_OPTIONS = choices(CDL_CLASS_OPTIONS);
 const ENDORSEMENT_OPTIONS = options(ENDORSEMENTS, ENDORSEMENT_LABELS);
+const DRIVING_OPTIONS = choices(DRIVING_STYLE_OPTIONS);
+const TRANSMISSION_CHOICES = choices(TRANSMISSION_OPTIONS);
+const EQUIPMENT_OPTIONS = choices(EQUIPMENT_CHIPS);
 const AVAILABILITY_OPTIONS = options(AVAILABILITY_TYPES, AVAILABILITY_LABELS);
+/** Choice values are strings; the years chips store numbers. */
+const EXPERIENCE_OPTIONS = EXPERIENCE_CHIPS.map((chip) => ({
+  value: String(chip.value),
+  label: chip.label,
+}));
 
 // The generic field names are fixed by the driver schemas. Path<T> keeps react-hook-form typed.
 const field = <T extends FieldValues>(name: string) => name as Path<T>;
+
+/** The chip that holds a saved number of years, as a choice value. */
+function experienceChoice(value: unknown): string | undefined {
+  const years = typeof value === "number" ? value : Number(value);
+  const chip = experienceChipFor(value === "" || value == null ? null : years);
+  return chip === null ? undefined : String(chip);
+}
 
 export function BasicsFields<T extends FieldValues>({
   control,
@@ -127,7 +154,6 @@ export function BasicsFields<T extends FieldValues>({
 
 export function LicensesFields<T extends FieldValues>({
   control,
-  register,
   errorOf,
   disabled,
   cdlClass,
@@ -146,6 +172,22 @@ export function LicensesFields<T extends FieldValues>({
             value={input.value ?? []}
             onChange={input.onChange}
             error={errorOf("operatorTypes")}
+            disabled={disabled}
+            required
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name={field<T>("employmentType")}
+        render={({ field: input }) => (
+          <ChoiceGroup
+            label="W-2 or 1099?"
+            options={EMPLOYMENT_OPTIONS}
+            value={input.value}
+            onChange={input.onChange}
+            error={errorOf("employmentType")}
             disabled={disabled}
             required
           />
@@ -188,16 +230,22 @@ export function LicensesFields<T extends FieldValues>({
         />
       )}
 
-      <FormField label="Years of experience" error={errorOf("yearsExperience")} required>
-        <Input
-          {...register(field<T>("yearsExperience"))}
-          type="number"
-          inputMode="numeric"
-          min={0}
-          max={YEARS_EXPERIENCE_MAX}
-          disabled={disabled}
-        />
-      </FormField>
+      <Controller
+        control={control}
+        name={field<T>("yearsExperience")}
+        render={({ field: input }) => (
+          <ChoiceGroup
+            label="Years of experience"
+            options={EXPERIENCE_OPTIONS}
+            value={experienceChoice(input.value)}
+            onChange={(value) => input.onChange(Number(value))}
+            error={errorOf("yearsExperience")}
+            disabled={disabled}
+            columns={2}
+            required
+          />
+        )}
+      />
 
       <Controller
         control={control}
@@ -205,7 +253,7 @@ export function LicensesFields<T extends FieldValues>({
         render={({ field: input }) => (
           <TagInput
             label="Certifications"
-            description="Optional. For example TWIC, OSHA 10, Forklift."
+            description="Optional. For example OSHA 10, Forklift."
             placeholder="Type one and press Add"
             value={input.value ?? []}
             onChange={input.onChange}
@@ -216,6 +264,134 @@ export function LicensesFields<T extends FieldValues>({
           />
         )}
       />
+    </>
+  );
+}
+
+/** One yes-or-no check of the card as a pair of choice cards. */
+function CheckChoice<T extends FieldValues>({
+  control,
+  name,
+  errorOf,
+  disabled,
+}: Pick<GroupProps<T>, "control" | "errorOf" | "disabled"> & { name: CardCheck }) {
+  const check = CARD_CHECKS[name];
+  return (
+    <Controller
+      control={control}
+      name={field<T>(name)}
+      render={({ field: input }) => (
+        <ChoiceGroup
+          label={check.question}
+          options={[
+            { value: "yes", label: check.yes },
+            { value: "no", label: check.no },
+          ]}
+          value={input.value === true ? "yes" : input.value === false ? "no" : undefined}
+          onChange={(value) => input.onChange(value === "yes")}
+          error={errorOf(name as keyof T & string)}
+          disabled={disabled}
+          columns={2}
+          required
+        />
+      )}
+    />
+  );
+}
+
+/**
+ * Equipment and checks. Driving style, transmission, equipment, Clearinghouse and MVR are
+ * CDL-driver questions and only show when the work includes CDL driving.
+ */
+export function ChecksFields<T extends FieldValues>({
+  control,
+  errorOf,
+  disabled,
+  cdlDriver,
+}: GroupProps<T> & { /** Whether the work includes CDL driving. */ cdlDriver: boolean }) {
+  return (
+    <>
+      {cdlDriver && (
+        <>
+          <Controller
+            control={control}
+            name={field<T>("drivingStyles")}
+            render={({ field: input }) => (
+              <ChoiceGroup
+                multiple
+                label="What kind of driving do you do?"
+                description="Select all that apply."
+                options={DRIVING_OPTIONS}
+                value={input.value ?? []}
+                onChange={input.onChange}
+                error={errorOf("drivingStyles")}
+                disabled={disabled}
+                required
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name={field<T>("equipmentTypes")}
+            render={({ field: input }) => (
+              <ChoiceGroup
+                multiple
+                label="What equipment do you run?"
+                description="Select all that apply."
+                options={EQUIPMENT_OPTIONS}
+                value={input.value ?? []}
+                onChange={input.onChange}
+                error={errorOf("equipmentTypes")}
+                disabled={disabled}
+                columns={2}
+                required
+              />
+            )}
+          />
+
+          <Controller
+            control={control}
+            name={field<T>("transmission")}
+            render={({ field: input }) => (
+              <ChoiceGroup
+                label={TRANSMISSION_QUESTION}
+                options={TRANSMISSION_CHOICES}
+                value={input.value ?? undefined}
+                onChange={input.onChange}
+                error={errorOf("transmission")}
+                disabled={disabled}
+                required
+              />
+            )}
+          />
+        </>
+      )}
+
+      <CheckChoice control={control} name="twicActive" errorOf={errorOf} disabled={disabled} />
+      <CheckChoice
+        control={control}
+        name="medicalCardActive"
+        errorOf={errorOf}
+        disabled={disabled}
+      />
+
+      {cdlDriver && (
+        <>
+          <CheckChoice
+            control={control}
+            name="clearinghouseRegistered"
+            errorOf={errorOf}
+            disabled={disabled}
+          />
+          <CheckChoice
+            control={control}
+            name="mvrClean3Years"
+            errorOf={errorOf}
+            disabled={disabled}
+          />
+        </>
+      )}
     </>
   );
 }

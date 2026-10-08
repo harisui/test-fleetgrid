@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
@@ -37,9 +37,16 @@ const STATES: Partial<Record<string, (page: Page) => Promise<void>>> = {
   },
 };
 
-/** Desktop pages: one per mile, seeded at the screen whose prototype desktop frame exists. */
-const DESKTOP_STEPS = [2, 4, 7, 10, 11, 13];
+/** Desktop pages: one per mile (the first screen of the mile, or the one with a prototype frame). */
+const DESKTOP_STEPS = [2, 4, 10, 14, 16, 18];
 const PROTOTYPE_DESKTOP_FRAMES = ["zip", "cdlClass"];
+
+/**
+ * The prototype predates the screens added on 2026-10-09 (employment type, driving style,
+ * equipment, cards, record). Those are marked "no prototype frame" in the report.
+ */
+const hasPrototypeFrame = (stepId: string, theme: Theme) =>
+  existsSync(file("frames", `${stepId}-${theme}.png`));
 
 const file = (...parts: string[]) => resolve(OUT, ...parts);
 const rel = (...parts: string[]) => parts.join("/");
@@ -82,6 +89,7 @@ for (const theme of THEMES) {
     await prototypeTheme(page, theme);
     for (const step of STEPS) {
       const frame = page.locator(`.phone[data-step="${step.id}"]`);
+      if ((await frame.count()) === 0) continue;
       await frame.scrollIntoViewIfNeeded();
       await frame.screenshot({ path: file("frames", `${step.id}-${theme}.png`) });
     }
@@ -129,13 +137,17 @@ function report(): string {
   const phoneRows = STEPS.map((step, index) => {
     const cells = THEMES.map(
       (theme) => `
-        <figure>
+        ${
+          hasPrototypeFrame(step.id, theme)
+            ? `<figure>
           <img src="${rel("frames", `${step.id}-${theme}.png`)}" alt="Prototype, ${step.question}, ${theme}" loading="lazy">
           <figcaption>Prototype · ${theme}</figcaption>
-        </figure>
+        </figure>`
+            : ""
+        }
         <figure>
           <img src="${rel("app", `${step.id}-${theme}.png`)}" alt="App, ${step.question}, ${theme}" loading="lazy">
-          <figcaption>App · ${theme}</figcaption>
+          <figcaption>App · ${theme}${hasPrototypeFrame(step.id, theme) ? "" : " · no prototype frame (screen added 2026-10-09)"}</figcaption>
         </figure>`,
     ).join("");
     return `

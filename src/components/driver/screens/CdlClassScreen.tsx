@@ -9,6 +9,7 @@ import type {
 import { InlineNote } from "@/components/shared/InlineNote";
 import { OptionGroup } from "@/components/shared/OptionGroup";
 import { CDL_CLASS_OPTIONS } from "@/lib/onboarding/options";
+import { stepNumber } from "@/lib/onboarding/steps";
 import {
   CDL_CONFLICT_MESSAGE,
   cdlClassScreenSchemaFor,
@@ -56,7 +57,8 @@ export const cdlClassScreen: ScreenDefinition = {
   schema: ({ driver }) => cdlClassScreenSchemaFor(driver?.operatorTypes ?? []),
   defaults: (driver) => ({
     // "none" is the database default, not an answer. Nothing is selected until the driver picks.
-    cdlClass: driver && driver.onboardingStep > 7 ? driver.cdlClass : undefined,
+    cdlClass:
+      driver && driver.onboardingStep > stepNumber("cdlClass") ? driver.cdlClass : undefined,
   }),
   Fields: CdlClassFields,
   blocked: (values, { driver }) =>

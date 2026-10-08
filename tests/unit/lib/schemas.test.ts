@@ -14,9 +14,20 @@ import {
   driverAvailabilitySchema,
   driverBasicsSchema,
   driverCardSchema,
+  driverChecksSchema,
   driverLicensesSchema,
   smsConsentSchema,
 } from "@/lib/validation/driver.schema";
+import {
+  CLEARINGHOUSE_MESSAGE,
+  DRIVING_STYLE_MESSAGE,
+  EMPLOYMENT_MESSAGE,
+  EQUIPMENT_MESSAGE,
+  MEDICAL_CARD_MESSAGE,
+  MVR_MESSAGE,
+  TRANSMISSION_MESSAGE,
+  TWIC_MESSAGE,
+} from "@/lib/validation/onboarding.schema";
 import {
   chooseRoleSchema,
   otpCodeSchema,
@@ -29,6 +40,7 @@ import {
   validAvailability,
   validBasics,
   validCard,
+  validChecks,
   validLicenses,
 } from "../../setup/factories";
 
@@ -188,10 +200,11 @@ describe("driverLicensesSchema (step 2)", () => {
   it("accepts valid input", () => {
     expect(driverLicensesSchema.parse(validLicenses())).toEqual({
       operatorTypes: ["cdl_driver"],
+      employmentType: "w2",
       cdlClass: "A",
       endorsements: ["H", "T"],
       yearsExperience: 8,
-      certifications: ["TWIC"],
+      certifications: ["OSHA 10"],
     });
   });
 
@@ -245,6 +258,8 @@ describe("driverLicensesSchema (step 2)", () => {
     [{ operatorTypes: [] }, { operatorTypes: "Select at least one role" }],
     [{ operatorTypes: undefined }, { operatorTypes: "Select at least one role" }],
     [{ operatorTypes: ["pilot"] }, "operatorTypes.0"],
+    [{ employmentType: undefined }, { employmentType: EMPLOYMENT_MESSAGE }],
+    [{ employmentType: "contractor" }, { employmentType: EMPLOYMENT_MESSAGE }],
     [{ cdlClass: undefined }, { cdlClass: "Select your CDL class" }],
     [{ cdlClass: "D" }, { cdlClass: "Select your CDL class" }],
     [{ endorsements: ["Z"] }, "endorsements.0"],
@@ -315,6 +330,56 @@ describe("smsConsentSchema (step 5)", () => {
   });
 });
 
+describe("driverChecksSchema (equipment and checks)", () => {
+  it("accepts the answers of a CDL driver", () => {
+    expect(driverChecksSchema.parse(validChecks())).toEqual({
+      drivingStyles: ["local_day_cab", "regional"],
+      transmission: "manual_ok",
+      equipmentTypes: ["dry_van", "flatbed"],
+      twicActive: true,
+      medicalCardActive: true,
+      clearinghouseRegistered: true,
+      mvrClean3Years: true,
+    });
+  });
+
+  it("needs only the TWIC and medical card answers; the CDL-only ones default to empty", () => {
+    expect(driverChecksSchema.parse({ twicActive: false, medicalCardActive: true })).toEqual({
+      drivingStyles: [],
+      transmission: null,
+      equipmentTypes: [],
+      twicActive: false,
+      medicalCardActive: true,
+      clearinghouseRegistered: null,
+      mvrClean3Years: null,
+    });
+  });
+
+  it("removes duplicate driving styles and equipment", () => {
+    const parsed = driverChecksSchema.parse(
+      validChecks({ drivingStyles: ["otr", "otr"], equipmentTypes: ["reefer", "reefer"] }),
+    );
+    expect(parsed.drivingStyles).toEqual(["otr"]);
+    expect(parsed.equipmentTypes).toEqual(["reefer"]);
+  });
+
+  it.each([
+    [{ twicActive: undefined }, { twicActive: TWIC_MESSAGE }],
+    [{ twicActive: "yes" }, { twicActive: TWIC_MESSAGE }],
+    [{ twicActive: null }, { twicActive: TWIC_MESSAGE }],
+    [{ medicalCardActive: 1 }, { medicalCardActive: MEDICAL_CARD_MESSAGE }],
+    [{ clearinghouseRegistered: "true" }, { clearinghouseRegistered: CLEARINGHOUSE_MESSAGE }],
+    [{ mvrClean3Years: "none" }, { mvrClean3Years: MVR_MESSAGE }],
+    [{ transmission: "stick" }, { transmission: TRANSMISSION_MESSAGE }],
+    [{ drivingStyles: ["night"] }, "drivingStyles.0"],
+    [{ equipmentTypes: ["tanker"] }, "equipmentTypes.0"],
+  ])("rejects %j", (overrides, expected) => {
+    const errors = errorsOf(driverChecksSchema, validChecks(overrides));
+    if (typeof expected === "string") expect(Object.keys(errors)).toEqual([expected]);
+    else expect(errors).toEqual(expected);
+  });
+});
+
 describe("driverCardSchema (profile edit)", () => {
   it("accepts a full card", () => {
     expect(driverCardSchema.parse(validCard())).toEqual({
@@ -324,10 +389,18 @@ describe("driverCardSchema (profile edit)", () => {
       zip: "75201",
       serviceRadiusMiles: 50,
       operatorTypes: ["cdl_driver"],
+      employmentType: "w2",
       cdlClass: "A",
       endorsements: ["H", "T"],
       yearsExperience: 8,
-      certifications: ["TWIC"],
+      certifications: ["OSHA 10"],
+      drivingStyles: ["local_day_cab", "regional"],
+      transmission: "manual_ok",
+      equipmentTypes: ["dry_van", "flatbed"],
+      twicActive: true,
+      medicalCardActive: true,
+      clearinghouseRegistered: true,
+      mvrClean3Years: true,
       availability: ["full_time", "weekends"],
       bio: "Reliable and on time.",
     });
@@ -335,6 +408,54 @@ describe("driverCardSchema (profile edit)", () => {
 
   it("drops endorsements when the CDL class is none", () => {
     expect(driverCardSchema.parse(validCard({ cdlClass: "none" })).endorsements).toEqual([]);
+  });
+
+  it("requires driving style, transmission, equipment, Clearinghouse and MVR of a CDL driver", () => {
+    expect(
+      errorsOf(
+        driverCardSchema,
+        validCard({
+          drivingStyles: [],
+          transmission: null,
+          equipmentTypes: [],
+          clearinghouseRegistered: null,
+          mvrClean3Years: null,
+        }),
+      ),
+    ).toEqual({
+      drivingStyles: DRIVING_STYLE_MESSAGE,
+      transmission: TRANSMISSION_MESSAGE,
+      equipmentTypes: EQUIPMENT_MESSAGE,
+      clearinghouseRegistered: CLEARINGHOUSE_MESSAGE,
+      mvrClean3Years: MVR_MESSAGE,
+    });
+    expect(
+      errorsOf(driverCardSchema, validCard({ transmission: undefined, mvrClean3Years: undefined })),
+    ).toEqual({ transmission: TRANSMISSION_MESSAGE, mvrClean3Years: MVR_MESSAGE });
+  });
+
+  it("lets everyone else leave the CDL-only answers empty", () => {
+    const parsed = driverCardSchema.parse(
+      validCard({
+        operatorTypes: ["mechanic", "yard_spotter"],
+        cdlClass: "none",
+        endorsements: [],
+        drivingStyles: [],
+        transmission: null,
+        equipmentTypes: [],
+        clearinghouseRegistered: null,
+        mvrClean3Years: null,
+      }),
+    );
+    expect(parsed).toMatchObject({
+      drivingStyles: [],
+      transmission: null,
+      equipmentTypes: [],
+      twicActive: true,
+      medicalCardActive: true,
+      clearinghouseRegistered: null,
+      mvrClean3Years: null,
+    });
   });
 
   it("validates fields from every step at once", () => {

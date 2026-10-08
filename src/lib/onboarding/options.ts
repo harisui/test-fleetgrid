@@ -1,15 +1,23 @@
 import {
+  ArrowLeftRight,
+  Building2,
   Bus,
   CalendarDays,
   Car,
   CircleOff,
   Clock,
+  Cog,
   Cylinder,
   FlaskConical,
   Forklift,
+  Gauge,
+  Handshake,
+  House,
   Layers,
   Link2,
+  Map,
   Phone,
+  Route,
   Sun,
   Truck,
   Users,
@@ -21,8 +29,12 @@ import type {
   AvailabilityType,
   CdlClass,
   DocumentType,
+  DrivingStyle,
+  EmploymentType,
   Endorsement,
+  EquipmentType,
   OperatorType,
+  TransmissionType,
 } from "@/types/domain";
 
 /**
@@ -51,6 +63,66 @@ export const WORK_TYPE_OPTIONS: readonly CardOption<OperatorType>[] = [
     icon: Forklift,
   },
   { value: "mechanic", label: "Mechanic", description: "Repair and service trucks", icon: Wrench },
+];
+
+export const EMPLOYMENT_HELPER =
+  "W-2 means you are on a company's payroll. 1099 means you contract or run your own truck.";
+
+export const EMPLOYMENT_TYPE_OPTIONS: readonly CardOption<EmploymentType>[] = [
+  {
+    value: "w2",
+    label: "W-2 employee",
+    description: "On the carrier's payroll",
+    icon: Building2,
+  },
+  {
+    value: "owner_operator_1099",
+    label: "1099 owner-operator",
+    description: "Your own truck or a contract",
+    icon: Handshake,
+  },
+  {
+    value: "either",
+    label: "Either works",
+    description: "Open to both",
+    icon: ArrowLeftRight,
+  },
+];
+
+/** CDL drivers only. */
+export const DRIVING_STYLE_OPTIONS: readonly CardOption<DrivingStyle>[] = [
+  {
+    value: "local_day_cab",
+    label: "Local day cab",
+    description: "Home every night",
+    icon: House,
+  },
+  {
+    value: "yard_spotter",
+    label: "Yard spotter",
+    description: "Trailers around a yard or port",
+    icon: Forklift,
+  },
+  { value: "regional", label: "Regional", description: "Out a few nights a week", icon: Map },
+  { value: "otr", label: "OTR (over the road)", description: "Long hauls, weeks out", icon: Route },
+];
+
+export const TRANSMISSION_QUESTION = "Can you drive a manual?";
+
+/** CDL drivers only. Shares the equipment screen. */
+export const TRANSMISSION_OPTIONS: readonly CardOption<TransmissionType>[] = [
+  {
+    value: "automatic_only",
+    label: "Automatic only",
+    description: "No manual gearbox",
+    icon: Gauge,
+  },
+  {
+    value: "manual_ok",
+    label: "Automatic and manual",
+    description: "I can shift gears",
+    icon: Cog,
+  },
 ];
 
 export const AVAILABILITY_OPTIONS: readonly CardOption<AvailabilityType>[] = [
@@ -135,7 +207,19 @@ export const DISTANCE_CHIPS: readonly ChipOption<number>[] = [
   { value: 250, label: "250 miles or more" },
 ];
 
-/** Experience ranges. The stored number is the lower bound unless the driver types an exact one. */
+/** CDL drivers only. Chips, pick all that apply. */
+export const EQUIPMENT_CHIPS: readonly ChipOption<EquipmentType>[] = [
+  { value: "container_drayage", label: "Container drayage" },
+  { value: "dry_van", label: "Dry van" },
+  { value: "flatbed", label: "Flatbed" },
+  { value: "reefer", label: "Reefer" },
+  { value: "yard_mule", label: "Yard mule" },
+];
+
+/**
+ * Experience ranges. The stored number is the lower bound of the chip. A card saved under the
+ * old flow may hold an exact number; it shows as the chip that contains it.
+ */
 export const EXPERIENCE_CHIPS: readonly (ChipOption<number> & { max: number })[] = [
   { value: 0, max: 0, label: "Under 1" },
   { value: 1, max: 2, label: "1 to 2" },
@@ -153,7 +237,50 @@ export function experienceChipFor(years: number | null | undefined): number | nu
   return chip ? chip.value : null;
 }
 
-export const CERTIFICATION_SUGGESTIONS = ["Forklift", "TWIC", "OSHA 10", "ASE"] as const;
+/** TWIC has its own question on the cards screen, so it is not a certification chip. */
+export const CERTIFICATION_SUGGESTIONS = ["Forklift", "OSHA 10", "ASE"] as const;
+
+/** A yes-or-no answer on the card: the question and the words on its two chips. */
+export interface CheckOption {
+  question: string;
+  yes: string;
+  no: string;
+  /** How the answer reads on the summary card and the profile. */
+  summary: { yes: string; no: string };
+}
+
+/** The four yes-or-no checks. TWIC and medical card are asked of everyone; the rest of CDL drivers. */
+export const CARD_CHECKS = {
+  twicActive: {
+    question: "Do you have an active TWIC card?",
+    yes: "Yes",
+    no: "No",
+    summary: { yes: "TWIC", no: "No TWIC" },
+  },
+  medicalCardActive: {
+    question: "Is your DOT medical card current?",
+    yes: "Yes",
+    no: "No",
+    summary: { yes: "medical card current", no: "medical card not current" },
+  },
+  clearinghouseRegistered: {
+    question: "Are you registered in the FMCSA Clearinghouse?",
+    yes: "Registered",
+    no: "Not yet",
+    summary: { yes: "In the Clearinghouse", no: "Not in the Clearinghouse" },
+  },
+  mvrClean3Years: {
+    question: "Any moving violations in the last 3 years?",
+    yes: "None",
+    no: "One or more",
+    summary: { yes: "no violations in 3 years", no: "violations in the last 3 years" },
+  },
+} as const satisfies Record<string, CheckOption>;
+
+export type CardCheck = keyof typeof CARD_CHECKS;
+
+export const CREDENTIALS_HELPER = "Carriers ask for both. You can update these any time.";
+export const COMPLIANCE_HELPER = "Carriers check both before booking a shift.";
 
 export interface DocumentTile {
   type: DocumentType;

@@ -1,8 +1,10 @@
 /**
- * The single source of truth for the driver onboarding flow: the five miles, the thirteen
+ * The single source of truth for the driver onboarding flow: the five miles, the eighteen
  * screens in order, and the progress shown for each. Every screen, the sign header, the lane
  * progress bar and the server read from here. Nothing about the flow is defined anywhere else.
  */
+
+import { isCdlDriver } from "@/types/domain";
 
 export const MILES = [
   { mile: 1, label: "About" },
@@ -18,17 +20,24 @@ export type MileNumber = Mile["mile"];
 /** One line per stage for the Help sheet: what the questions in it are about. */
 export const MILE_SUMMARIES: Record<MileNumber, string> = {
   1: "Your name, your ZIP code and how far you will travel.",
-  2: "The work you do, your years of experience and when you can work.",
-  3: "Your CDL class, the letters on it and any certifications.",
-  4: "Photos of your CDL, medical card and other papers. You can skip this.",
+  2: "The work you do, W-2 or 1099, what you drive, your years of experience and when you can work.",
+  3: "Your CDL class, the letters on it, any certifications, and your TWIC and medical cards.",
+  4: "Photos of your CDL, medical card and other papers (you can skip this), and your driving record.",
   5: "A few words about you, and your OK to receive shift offers by text.",
 };
 
+/**
+ * `cdlOnly` screens are asked of drivers whose work type includes CDL driver and skipped for
+ * everyone else. The endorsements screen has its own rule: it needs a CDL class.
+ */
 export const STEPS = [
   { id: "name", mile: 1, question: "What is your name?" },
   { id: "zip", mile: 1, question: "What is your ZIP code?" },
   { id: "distance", mile: 1, question: "How far will you travel for work?" },
   { id: "workType", mile: 2, question: "What work do you do?" },
+  { id: "employmentType", mile: 2, question: "Do you work W-2 or 1099?" },
+  { id: "drivingStyle", mile: 2, question: "What kind of driving do you do?", cdlOnly: true },
+  { id: "equipment", mile: 2, question: "What equipment do you run?", cdlOnly: true },
   { id: "experience", mile: 2, question: "How many years have you done this work?" },
   { id: "availability", mile: 2, question: "When can you work?" },
   { id: "cdlClass", mile: 3, question: "What class is your CDL?" },
@@ -39,7 +48,9 @@ export const STEPS = [
     helper: "These are called endorsements. They're printed next to END on the front.",
   },
   { id: "certifications", mile: 3, question: "Do you have any certifications?", optional: true },
+  { id: "credentials", mile: 3, question: "Do you have these cards?" },
   { id: "documents", mile: 4, question: "Do you want to add your papers now?", optional: true },
+  { id: "compliance", mile: 4, question: "How is your driving record?", cdlOnly: true },
   { id: "bio", mile: 5, question: "Anything carriers should know?", optional: true },
   { id: "consent", mile: 5, question: "Can we text you about shifts?" },
   { id: "done", mile: 5, question: "You are listed." },
@@ -53,6 +64,11 @@ export const SAVABLE_STEP_IDS = STEPS.filter((step) => step.id !== "done").map(
   (step) => step.id,
 ) as Exclude<StepId, "done">[];
 export type SavableStepId = (typeof SAVABLE_STEP_IDS)[number];
+
+/** Screens asked of CDL drivers only. */
+export const CDL_ONLY_STEP_IDS = STEPS.filter((step) => "cdlOnly" in step && step.cdlOnly).map(
+  (step) => step.id,
+);
 
 /** 1-based step numbers. `drivers.onboarding_step` stores the number of the next screen to show. */
 export const FIRST_STEP_NUMBER = 1;
@@ -121,11 +137,24 @@ export function progressFor(id: StepId): StepProgress {
 /** What the screens need to know about the saved card to decide what applies. */
 export interface FlowContext {
   cdlClass: string | null;
+  operatorTypes: readonly string[];
 }
 
-/** The endorsements screen only applies to drivers with a CDL. Everything else always applies. */
+/** The flow context of a saved card, or of no card at all. */
+export function contextOf(
+  driver: { cdlClass: string | null; operatorTypes: readonly string[] } | null | undefined,
+): FlowContext {
+  return { cdlClass: driver?.cdlClass ?? null, operatorTypes: driver?.operatorTypes ?? [] };
+}
+
+/**
+ * The endorsements screen only applies to drivers with a CDL. The CDL-only screens apply to
+ * drivers whose work includes CDL driving. Everything else always applies.
+ */
 export function stepApplies(id: StepId, context: FlowContext): boolean {
   if (id === "endorsements") return context.cdlClass !== null && context.cdlClass !== "none";
+  const step = stepById(id);
+  if ("cdlOnly" in step && step.cdlOnly) return isCdlDriver(context.operatorTypes);
   return true;
 }
 

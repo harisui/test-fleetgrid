@@ -14,8 +14,12 @@ import type { SavableStepId } from "@/lib/onboarding/steps";
 import {
   AVAILABILITY_TYPES,
   CDL_CLASSES,
+  DRIVING_STYLES,
+  EMPLOYMENT_TYPES,
   ENDORSEMENTS,
+  EQUIPMENT_TYPES,
   OPERATOR_TYPES,
+  TRANSMISSION_TYPES,
   type CdlClass,
   type OperatorType,
 } from "@/types/domain";
@@ -92,6 +96,47 @@ export const workTypeScreenSchema = z.object({
     .array(z.enum(OPERATOR_TYPES), { error: "Pick at least one kind of work" })
     .min(1, "Pick at least one kind of work")
     .transform(unique),
+});
+
+export const EMPLOYMENT_MESSAGE = "Pick W-2, 1099 or either";
+export const DRIVING_STYLE_MESSAGE = "Pick at least one kind of driving";
+export const TRANSMISSION_MESSAGE = "Pick automatic only, or automatic and manual";
+export const EQUIPMENT_MESSAGE = "Pick at least one kind of equipment";
+export const TWIC_MESSAGE = "Tap Yes or No for the TWIC card";
+export const MEDICAL_CARD_MESSAGE = "Tap Yes or No for the medical card";
+export const CLEARINGHOUSE_MESSAGE = "Tap Registered or Not yet";
+export const MVR_MESSAGE = "Tap None or One or more";
+
+/** A yes-or-no chip answer. Only a real boolean counts; "true" or 1 is not a tap. */
+const yesNo = (message: string) => z.boolean({ error: message });
+
+export const employmentTypeScreenSchema = z.object({
+  employmentType: z.enum(EMPLOYMENT_TYPES, { error: EMPLOYMENT_MESSAGE }),
+});
+
+export const drivingStyleScreenSchema = z.object({
+  drivingStyles: z
+    .array(z.enum(DRIVING_STYLES), { error: DRIVING_STYLE_MESSAGE })
+    .min(1, DRIVING_STYLE_MESSAGE)
+    .transform(unique),
+});
+
+export const equipmentScreenSchema = z.object({
+  transmission: z.enum(TRANSMISSION_TYPES, { error: TRANSMISSION_MESSAGE }),
+  equipmentTypes: z
+    .array(z.enum(EQUIPMENT_TYPES), { error: EQUIPMENT_MESSAGE })
+    .min(1, EQUIPMENT_MESSAGE)
+    .transform(unique),
+});
+
+export const credentialsScreenSchema = z.object({
+  twicActive: yesNo(TWIC_MESSAGE),
+  medicalCardActive: yesNo(MEDICAL_CARD_MESSAGE),
+});
+
+export const complianceScreenSchema = z.object({
+  clearinghouseRegistered: yesNo(CLEARINGHOUSE_MESSAGE),
+  mvrClean3Years: yesNo(MVR_MESSAGE),
 });
 
 export const experienceScreenSchema = z.object({
@@ -180,12 +225,17 @@ export const SCREEN_SCHEMAS = {
   zip: zipScreenSchema,
   distance: distanceScreenSchema,
   workType: workTypeScreenSchema,
+  employmentType: employmentTypeScreenSchema,
+  drivingStyle: drivingStyleScreenSchema,
+  equipment: equipmentScreenSchema,
   experience: experienceScreenSchema,
   availability: availabilityScreenSchema,
   cdlClass: cdlClassScreenSchema,
   endorsements: endorsementsScreenSchema,
   certifications: certificationsScreenSchema,
+  credentials: credentialsScreenSchema,
   documents: documentsScreenSchema,
+  compliance: complianceScreenSchema,
   bio: bioScreenSchema,
   consent: consentScreenSchema,
 } as const satisfies Record<SavableStepId, z.ZodType>;
@@ -194,6 +244,11 @@ export type NameScreenInput = z.infer<typeof nameScreenSchema>;
 export type ZipScreenInput = z.infer<typeof zipScreenSchema>;
 export type DistanceScreenInput = z.infer<typeof distanceScreenSchema>;
 export type WorkTypeScreenInput = z.infer<typeof workTypeScreenSchema>;
+export type EmploymentTypeScreenInput = z.infer<typeof employmentTypeScreenSchema>;
+export type DrivingStyleScreenInput = z.infer<typeof drivingStyleScreenSchema>;
+export type EquipmentScreenInput = z.infer<typeof equipmentScreenSchema>;
+export type CredentialsScreenInput = z.infer<typeof credentialsScreenSchema>;
+export type ComplianceScreenInput = z.infer<typeof complianceScreenSchema>;
 export type ExperienceScreenInput = z.infer<typeof experienceScreenSchema>;
 export type AvailabilityScreenInput = z.infer<typeof availabilityScreenSchema>;
 export type CdlClassScreenInput = z.infer<typeof cdlClassScreenSchema>;

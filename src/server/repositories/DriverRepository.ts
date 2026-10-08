@@ -1,6 +1,16 @@
 import { BaseRepository } from "@/server/repositories/BaseRepository";
 import type { Database } from "@/types/database.types";
-import type { AvailabilityType, CdlClass, Driver, Endorsement, OperatorType } from "@/types/domain";
+import type {
+  AvailabilityType,
+  CdlClass,
+  Driver,
+  DrivingStyle,
+  EmploymentType,
+  Endorsement,
+  EquipmentType,
+  OperatorType,
+  TransmissionType,
+} from "@/types/domain";
 
 type DriverRow = Database["public"]["Tables"]["drivers"]["Row"];
 type DriverUpdate = Database["public"]["Tables"]["drivers"]["Update"];
@@ -31,6 +41,14 @@ export interface DriverPatch {
   certifications?: string[];
   availability?: AvailabilityType[];
   bio?: string | null;
+  employmentType?: EmploymentType | null;
+  drivingStyles?: DrivingStyle[];
+  transmission?: TransmissionType | null;
+  equipmentTypes?: EquipmentType[];
+  twicActive?: boolean | null;
+  medicalCardActive?: boolean | null;
+  clearinghouseRegistered?: boolean | null;
+  mvrClean3Years?: boolean | null;
   smsOptIn?: boolean;
   smsOptInAt?: string;
   smsOptInText?: string;
@@ -62,6 +80,14 @@ export function mapDriver(row: DriverRow): Driver {
     availability: row.availability,
     certifications: row.certifications,
     bio: row.bio,
+    employmentType: row.employment_type,
+    drivingStyles: row.driving_styles,
+    transmission: row.transmission,
+    equipmentTypes: row.equipment_types,
+    twicActive: row.twic_active,
+    medicalCardActive: row.medical_card_active,
+    clearinghouseRegistered: row.clearinghouse_registered,
+    mvrClean3Years: row.mvr_clean_3_years,
     smsOptIn: row.sms_opt_in,
     smsOptInAt: row.sms_opt_in_at,
     smsOptInText: row.sms_opt_in_text,
@@ -91,6 +117,14 @@ export function toDriverUpdate(patch: DriverPatch): DriverUpdate {
     certifications: "certifications",
     availability: "availability",
     bio: "bio",
+    employmentType: "employment_type",
+    drivingStyles: "driving_styles",
+    transmission: "transmission",
+    equipmentTypes: "equipment_types",
+    twicActive: "twic_active",
+    medicalCardActive: "medical_card_active",
+    clearinghouseRegistered: "clearinghouse_registered",
+    mvrClean3Years: "mvr_clean_3_years",
     smsOptIn: "sms_opt_in",
     smsOptInAt: "sms_opt_in_at",
     smsOptInText: "sms_opt_in_text",

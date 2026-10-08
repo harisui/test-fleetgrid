@@ -104,18 +104,35 @@ for (const colorScheme of ["light", "dark"] as const) {
 
       await seedDriverAtStep(PHONES.driver, 7);
       await openOnboarding(page, PHONES.driver);
+      await page.getByRole("button", { name: "Dry van", exact: true }).click();
+      await page.getByRole("radio", { name: /Automatic only/ }).click();
+      await expectNoAccessibilityViolations(page, "equipment selected");
+
+      await seedDriverAtStep(PHONES.driver, 10);
+      await openOnboarding(page, PHONES.driver);
       await page.getByRole("radio", { name: /No CDL/ }).click();
       await expect(formAlert(page)).toBeVisible();
       await expectNoAccessibilityViolations(page, "CDL conflict");
       await page.getByRole("radio", { name: /Class A/ }).click();
       await expectNoAccessibilityViolations(page, "CDL class selected");
 
-      await seedDriverAtStep(PHONES.driver, 8);
+      await seedDriverAtStep(PHONES.driver, 11);
       await openOnboarding(page, PHONES.driver);
       await page.getByRole("checkbox", { name: /^X\b/ }).click();
       await expectNoAccessibilityViolations(page, "endorsements with X");
 
-      await seedDriverAtStep(PHONES.driver, 12);
+      await seedDriverAtStep(PHONES.driver, 13);
+      await openOnboarding(page, PHONES.driver);
+      await nextButton(page).click();
+      await expect(formAlert(page).first()).toBeVisible();
+      await expectNoAccessibilityViolations(page, "cards with errors");
+      await page
+        .getByRole("group", { name: "Do you have an active TWIC card?" })
+        .getByRole("button", { name: "Yes", exact: true })
+        .click();
+      await expectNoAccessibilityViolations(page, "cards answered");
+
+      await seedDriverAtStep(PHONES.driver, 17);
       await openOnboarding(page, PHONES.driver);
       await nextButton(page, "Agree and finish").click();
       await expect(formAlert(page)).toBeVisible();
@@ -126,7 +143,7 @@ for (const colorScheme of ["light", "dark"] as const) {
 
     test("profile and documents", async ({ page }) => {
       // Opted out and outside the launch area: both notes and both badges on one page.
-      const { driverId } = await seedDriverAtStep(PHONES.driver, 13, {
+      const { driverId } = await seedDriverAtStep(PHONES.driver, 18, {
         sms_opted_out: true,
         sms_opted_out_at: new Date().toISOString(),
         ...PLACES.dallas,

@@ -9,15 +9,28 @@ import {
   cdlClassScreenSchema,
   cdlClassScreenSchemaFor,
   certificationsScreenSchema,
+  CLEARINGHOUSE_MESSAGE,
+  complianceScreenSchema,
   consentScreenSchema,
+  credentialsScreenSchema,
   distanceScreenSchema,
   documentsScreenSchema,
+  DRIVING_STYLE_MESSAGE,
+  drivingStyleScreenSchema,
+  EMPLOYMENT_MESSAGE,
+  employmentTypeScreenSchema,
   endorsementsScreenSchema,
+  EQUIPMENT_MESSAGE,
+  equipmentScreenSchema,
   experienceScreenSchema,
   hasCdlConflict,
+  MEDICAL_CARD_MESSAGE,
+  MVR_MESSAGE,
   nameScreenSchema,
   normalizeZip,
   SCREEN_SCHEMAS,
+  TRANSMISSION_MESSAGE,
+  TWIC_MESSAGE,
   workTypeScreenSchema,
   zipScreenSchema,
 } from "@/lib/validation/onboarding.schema";
@@ -157,6 +170,90 @@ describe("work type, experience, availability", () => {
     expect(errorsOf(availabilityScreenSchema, { availability: [] })).toEqual({
       availability: "Pick at least one option",
     });
+  });
+});
+
+describe("employment type, driving style, equipment", () => {
+  it("employment type is one of three", () => {
+    for (const employmentType of ["w2", "owner_operator_1099", "either"]) {
+      expect(employmentTypeScreenSchema.parse({ employmentType })).toEqual({ employmentType });
+    }
+    expect(errorsOf(employmentTypeScreenSchema, {})).toEqual({
+      employmentType: EMPLOYMENT_MESSAGE,
+    });
+    expect(errorsOf(employmentTypeScreenSchema, { employmentType: "contractor" })).toEqual({
+      employmentType: EMPLOYMENT_MESSAGE,
+    });
+  });
+
+  it("driving style needs one or more kinds, without duplicates", () => {
+    expect(drivingStyleScreenSchema.parse({ drivingStyles: ["otr", "otr", "regional"] })).toEqual({
+      drivingStyles: ["otr", "regional"],
+    });
+    expect(errorsOf(drivingStyleScreenSchema, { drivingStyles: [] })).toEqual({
+      drivingStyles: DRIVING_STYLE_MESSAGE,
+    });
+    expect(errorsOf(drivingStyleScreenSchema, {})).toEqual({
+      drivingStyles: DRIVING_STYLE_MESSAGE,
+    });
+    expect(Object.keys(errorsOf(drivingStyleScreenSchema, { drivingStyles: ["night"] }))).toEqual([
+      "drivingStyles.0",
+    ]);
+  });
+
+  it("equipment needs one or more kinds and a transmission answer", () => {
+    expect(
+      equipmentScreenSchema.parse({
+        transmission: "automatic_only",
+        equipmentTypes: ["reefer", "reefer", "flatbed"],
+      }),
+    ).toEqual({ transmission: "automatic_only", equipmentTypes: ["reefer", "flatbed"] });
+    expect(errorsOf(equipmentScreenSchema, { equipmentTypes: ["dry_van"] })).toEqual({
+      transmission: TRANSMISSION_MESSAGE,
+    });
+    expect(
+      errorsOf(equipmentScreenSchema, { transmission: "manual_ok", equipmentTypes: [] }),
+    ).toEqual({ equipmentTypes: EQUIPMENT_MESSAGE });
+    expect(errorsOf(equipmentScreenSchema, {})).toEqual({
+      transmission: TRANSMISSION_MESSAGE,
+      equipmentTypes: EQUIPMENT_MESSAGE,
+    });
+    expect(
+      Object.keys(
+        errorsOf(equipmentScreenSchema, { transmission: "stick", equipmentTypes: ["tank"] }),
+      ),
+    ).toEqual(["transmission", "equipmentTypes.0"]);
+  });
+});
+
+describe("cards and record", () => {
+  it("the cards screen takes two real yes-or-no answers", () => {
+    expect(credentialsScreenSchema.parse({ twicActive: true, medicalCardActive: false })).toEqual({
+      twicActive: true,
+      medicalCardActive: false,
+    });
+    expect(errorsOf(credentialsScreenSchema, {})).toEqual({
+      twicActive: TWIC_MESSAGE,
+      medicalCardActive: MEDICAL_CARD_MESSAGE,
+    });
+    for (const twicActive of ["true", 1, null, "yes"]) {
+      expect(errorsOf(credentialsScreenSchema, { twicActive, medicalCardActive: true })).toEqual({
+        twicActive: TWIC_MESSAGE,
+      });
+    }
+  });
+
+  it("the record screen takes two real yes-or-no answers", () => {
+    expect(
+      complianceScreenSchema.parse({ clearinghouseRegistered: false, mvrClean3Years: true }),
+    ).toEqual({ clearinghouseRegistered: false, mvrClean3Years: true });
+    expect(errorsOf(complianceScreenSchema, {})).toEqual({
+      clearinghouseRegistered: CLEARINGHOUSE_MESSAGE,
+      mvrClean3Years: MVR_MESSAGE,
+    });
+    expect(
+      errorsOf(complianceScreenSchema, { clearinghouseRegistered: true, mvrClean3Years: "none" }),
+    ).toEqual({ mvrClean3Years: MVR_MESSAGE });
   });
 });
 

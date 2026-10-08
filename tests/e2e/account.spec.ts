@@ -35,7 +35,7 @@ test.describe("delete my account", () => {
   test("a driver's files, card, profile and sign-in go, and the number can sign up again", async ({
     page,
   }) => {
-    const { userId, driverId } = await seedDriverAtStep(PHONES.driver, 13);
+    const { userId, driverId } = await seedDriverAtStep(PHONES.driver, 18);
     const admin = adminClient();
     const path = `${driverId}/00000000-0000-4000-8000-000000000001.png`;
     await admin.storage

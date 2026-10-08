@@ -3,7 +3,18 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OnboardingFlow } from "@/components/driver/OnboardingFlow";
 import { SMS_CONSENT_TEXT } from "@/lib/constants";
+import { CARD_CHECKS, EMPLOYMENT_HELPER } from "@/lib/onboarding/options";
 import { SAVABLE_STEP_IDS, STEPS, type StepId } from "@/lib/onboarding/steps";
+import {
+  CLEARINGHOUSE_MESSAGE,
+  DRIVING_STYLE_MESSAGE,
+  EMPLOYMENT_MESSAGE,
+  EQUIPMENT_MESSAGE,
+  MEDICAL_CARD_MESSAGE,
+  MVR_MESSAGE,
+  TRANSMISSION_MESSAGE,
+  TWIC_MESSAGE,
+} from "@/lib/validation/onboarding.schema";
 import type { Result } from "@/server/errors/AppError";
 import type { LocatedDriver } from "@/types/domain";
 import { buildDriver, buildPartialDriver } from "../../setup/factories";
@@ -33,6 +44,13 @@ const failure = (message: string, fieldErrors?: Record<string, string>): Result<
 
 const next = () => screen.getByRole("button", { name: "Next" });
 const heading = () => screen.getByRole("heading", { level: 1 });
+const chip = (name: string) => screen.getByRole("button", { name });
+/** The chip of one yes-or-no question, found through the question's group. */
+const checkChip = (question: string, name: string) =>
+  within(screen.getByRole("group", { name: question })).getByRole("button", { name });
+/** A CDL driver part-way through the flow. */
+const cdlDriverAt = (onboardingStep: number, overrides: Partial<LocatedDriver> = {}) =>
+  buildPartialDriver({ onboardingStep, operatorTypes: ["cdl_driver"], ...overrides });
 
 function renderFlow(stepId: StepId, driver: LocatedDriver | null = buildPartialDriver()) {
   return render(
@@ -90,7 +108,7 @@ describe("scroll hint", () => {
     (stepId) => {
       stubDesktop(true);
       stubTallPage();
-      renderFlow(stepId, buildDriver({ onboardingStep: 13, cardCompleted: false }));
+      renderFlow(stepId, buildDriver({ onboardingStep: 18, cardCompleted: false }));
       expect(hint()).not.toBeInTheDocument();
     },
   );
@@ -106,7 +124,7 @@ describe("scroll hint", () => {
 describe("first load", () => {
   it.each(SAVABLE_STEP_IDS)("%s shows the question, no error and no app navigation", (stepId) => {
     const driver =
-      stepId === "name" ? null : buildPartialDriver({ onboardingStep: 13, cdlClass: "A" });
+      stepId === "name" ? null : buildPartialDriver({ onboardingStep: 18, cdlClass: "A" });
     renderFlow(stepId, driver);
     const step = STEPS.find((candidate) => candidate.id === stepId)!;
     expect(heading()).toHaveTextContent(step.question);
@@ -240,7 +258,7 @@ describe("work screens", () => {
     await userEvent.click(next());
     expect(await screen.findByRole("alert")).toHaveTextContent("Pick how far you will travel");
 
-    await userEvent.click(screen.getByRole("button", { name: "100 miles" }));
+    await userEvent.click(chip("100 miles"));
     await userEvent.click(next());
     await waitFor(() =>
       expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("distance", {
@@ -266,28 +284,82 @@ describe("work screens", () => {
     );
   });
 
-  it("experience chips store the lower bound and the stepper refines it", async () => {
-    actions.saveOnboardingScreenAction.mockResolvedValue(
-      ok(buildPartialDriver({ onboardingStep: 6 })),
+  it("employment type is one card of three, required, with a line explaining W-2 and 1099", async () => {
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(cdlDriverAt(6)));
+    renderFlow("employmentType", cdlDriverAt(5));
+    expect(screen.getByText(EMPLOYMENT_HELPER)).toBeInTheDocument();
+    expect(screen.getAllByRole("radio")).toHaveLength(3);
+    await userEvent.click(next());
+    expect(await screen.findByRole("alert")).toHaveTextContent(EMPLOYMENT_MESSAGE);
+    expect(actions.saveOnboardingScreenAction).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("radio", { name: /1099 owner-operator/ }));
+    await userEvent.click(screen.getByRole("radio", { name: /Either works/ }));
+    await userEvent.click(next());
+    await waitFor(() =>
+      expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("employmentType", {
+        employmentType: "either",
+      }),
     );
-    renderFlow("experience", buildPartialDriver({ onboardingStep: 5 }));
-    await userEvent.click(screen.getByRole("button", { name: "3 to 5" }));
-    expect(screen.getByLabelText("Exact number (optional)")).toHaveValue("3");
-    await userEvent.click(screen.getByRole("button", { name: "One year more" }));
-    expect(screen.getByRole("button", { name: "3 to 5" })).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("driving style cards are checkboxes and at least one is required", async () => {
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(cdlDriverAt(7)));
+    renderFlow("drivingStyle", cdlDriverAt(6));
+    await userEvent.click(next());
+    expect(await screen.findByRole("alert")).toHaveTextContent(DRIVING_STYLE_MESSAGE);
+
+    await userEvent.click(screen.getByRole("checkbox", { name: /Local day cab/ }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /OTR/ }));
+    await userEvent.click(next());
+    await waitFor(() =>
+      expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("drivingStyle", {
+        drivingStyles: ["local_day_cab", "otr"],
+      }),
+    );
+  });
+
+  it("equipment chips and the transmission cards share a screen, both required", async () => {
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(cdlDriverAt(8)));
+    renderFlow("equipment", cdlDriverAt(7));
+    expect(screen.getByText("Can you drive a manual?")).toBeInTheDocument();
+    await userEvent.click(next());
+    const alerts = await screen.findAllByRole("alert");
+    expect(alerts.map((alert) => alert.textContent)).toEqual([
+      EQUIPMENT_MESSAGE,
+      TRANSMISSION_MESSAGE,
+    ]);
+
+    await userEvent.click(chip("Dry van"));
+    await userEvent.click(chip("Reefer"));
+    await userEvent.click(screen.getByRole("radio", { name: /Automatic only/ }));
+    await userEvent.click(next());
+    await waitFor(() =>
+      expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("equipment", {
+        equipmentTypes: ["dry_van", "reefer"],
+        transmission: "automatic_only",
+      }),
+    );
+  });
+
+  it("experience chips store the lower bound of the range, with no exact-number field", async () => {
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(cdlDriverAt(9)));
+    renderFlow("experience", cdlDriverAt(8));
+    expect(screen.queryByLabelText("Exact number (optional)")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "One year more" })).not.toBeInTheDocument();
+    await userEvent.click(chip("3 to 5"));
+    expect(chip("3 to 5")).toHaveAttribute("aria-pressed", "true");
     await userEvent.click(next());
     await waitFor(() =>
       expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("experience", {
-        yearsExperience: 4,
+        yearsExperience: 3,
       }),
     );
   });
 
   it("availability saves the picked cards", async () => {
-    actions.saveOnboardingScreenAction.mockResolvedValue(
-      ok(buildPartialDriver({ onboardingStep: 7 })),
-    );
-    renderFlow("availability", buildPartialDriver({ onboardingStep: 6 }));
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(cdlDriverAt(10)));
+    renderFlow("availability", cdlDriverAt(9));
     await userEvent.click(screen.getByRole("checkbox", { name: /On call/ }));
     await userEvent.click(next());
     await waitFor(() =>
@@ -300,13 +372,8 @@ describe("work screens", () => {
 
 describe("license screens", () => {
   it("a CDL driver who picks No CDL sees the warning and cannot continue", async () => {
-    actions.saveOnboardingScreenAction.mockResolvedValue(
-      ok(buildPartialDriver({ onboardingStep: 8, cdlClass: "A" })),
-    );
-    renderFlow(
-      "cdlClass",
-      buildPartialDriver({ onboardingStep: 7, operatorTypes: ["cdl_driver"] }),
-    );
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(cdlDriverAt(11, { cdlClass: "A" })));
+    renderFlow("cdlClass", cdlDriverAt(10));
     expect(next()).toBeEnabled();
     await userEvent.click(screen.getByRole("radio", { name: /No CDL/ }));
     const warning = screen.getByRole("alert");
@@ -331,7 +398,7 @@ describe("license screens", () => {
     actions.saveOnboardingScreenAction.mockResolvedValue(
       ok(
         buildPartialDriver({
-          onboardingStep: 9,
+          onboardingStep: 12,
           operatorTypes: ["yard_spotter"],
           cdlClass: "none",
         }),
@@ -339,7 +406,7 @@ describe("license screens", () => {
     );
     renderFlow(
       "cdlClass",
-      buildPartialDriver({ onboardingStep: 7, operatorTypes: ["yard_spotter"] }),
+      buildPartialDriver({ onboardingStep: 10, operatorTypes: ["yard_spotter"] }),
     );
     await userEvent.click(screen.getByRole("radio", { name: /No CDL/ }));
     expect(next()).toBeEnabled();
@@ -348,10 +415,8 @@ describe("license screens", () => {
   });
 
   it("X picks H and N with a note, dropping N drops X, and None clears everything", async () => {
-    actions.saveOnboardingScreenAction.mockResolvedValue(
-      ok(buildPartialDriver({ onboardingStep: 9, cdlClass: "A" })),
-    );
-    renderFlow("endorsements", buildPartialDriver({ onboardingStep: 8, cdlClass: "A" }));
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(cdlDriverAt(12, { cdlClass: "A" })));
+    renderFlow("endorsements", cdlDriverAt(11, { cdlClass: "A" }));
     expect(screen.getByRole("img", { name: /front of a CDL/ })).toBeInTheDocument();
     expect(screen.getByText(/These are called endorsements/)).toBeInTheDocument();
 
@@ -394,29 +459,63 @@ describe("license screens", () => {
     );
   });
 
-  it("certifications are chips plus a typed entry", async () => {
-    actions.saveOnboardingScreenAction.mockResolvedValue(
-      ok(buildPartialDriver({ onboardingStep: 10 })),
-    );
-    renderFlow("certifications", buildPartialDriver({ onboardingStep: 9, cdlClass: "A" }));
-    await userEvent.click(screen.getByRole("button", { name: "TWIC" }));
-    await userEvent.click(screen.getByRole("button", { name: "Add another" }));
+  it("certifications are chips plus a typed entry, without a TWIC chip", async () => {
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(cdlDriverAt(13)));
+    renderFlow("certifications", cdlDriverAt(12, { cdlClass: "A" }));
+    expect(screen.queryByRole("button", { name: "TWIC" })).not.toBeInTheDocument();
+    await userEvent.click(chip("Forklift"));
+    await userEvent.click(chip("Add another"));
     await userEvent.type(screen.getByLabelText("Other certification"), "Hazmat awareness{Enter}");
     await userEvent.click(next());
     await waitFor(() =>
       expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("certifications", {
-        certifications: ["TWIC", "Hazmat awareness"],
+        certifications: ["Forklift", "Hazmat awareness"],
       }),
     );
   });
+
+  it("the cards screen asks TWIC and medical card as two yes-or-no questions, both required", async () => {
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(cdlDriverAt(14)));
+    renderFlow("credentials", cdlDriverAt(13));
+    const twic = CARD_CHECKS.twicActive.question;
+    const medical = CARD_CHECKS.medicalCardActive.question;
+    expect(screen.getByRole("group", { name: twic })).toBeInTheDocument();
+    expect(screen.getByRole("group", { name: medical })).toBeInTheDocument();
+    await userEvent.click(next());
+    const alerts = await screen.findAllByRole("alert");
+    expect(alerts.map((alert) => alert.textContent)).toEqual([TWIC_MESSAGE, MEDICAL_CARD_MESSAGE]);
+
+    await userEvent.click(checkChip(twic, "Yes"));
+    await userEvent.click(checkChip(medical, "No"));
+    expect(checkChip(twic, "Yes")).toHaveAttribute("aria-pressed", "true");
+    expect(checkChip(medical, "No")).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(next());
+    await waitFor(() =>
+      expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("credentials", {
+        twicActive: true,
+        medicalCardActive: false,
+      }),
+    );
+  });
+
+  it("the cards screen shows saved answers as pressed chips", () => {
+    renderFlow("credentials", cdlDriverAt(14, { twicActive: false, medicalCardActive: true }));
+    expect(checkChip(CARD_CHECKS.twicActive.question, "No")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(checkChip(CARD_CHECKS.medicalCardActive.question, "Yes")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByText("Saved")).toBeInTheDocument();
+  });
 });
 
-describe("papers, about you, consent, done", () => {
+describe("papers, record, about you, consent, done", () => {
   it("papers can be skipped and shows the four tiles", async () => {
-    actions.saveOnboardingScreenAction.mockResolvedValue(
-      ok(buildPartialDriver({ onboardingStep: 11 })),
-    );
-    renderFlow("documents", buildPartialDriver({ onboardingStep: 10, cdlClass: "A" }));
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(cdlDriverAt(15)));
+    renderFlow("documents", cdlDriverAt(14, { cdlClass: "A" }));
     expect(screen.getByText("Front of your CDL")).toBeInTheDocument();
     expect(screen.getByText("Back of your CDL")).toBeInTheDocument();
     expect(screen.getByText("Medical card")).toBeInTheDocument();
@@ -429,11 +528,30 @@ describe("papers, about you, consent, done", () => {
     );
   });
 
-  it("about you counts characters and saves blank as nothing", async () => {
-    actions.saveOnboardingScreenAction.mockResolvedValue(
-      ok(buildPartialDriver({ onboardingStep: 12 })),
+  it("the record screen asks Clearinghouse and MVR with their own chip words", async () => {
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(cdlDriverAt(16)));
+    renderFlow("compliance", cdlDriverAt(15));
+    const clearinghouse = CARD_CHECKS.clearinghouseRegistered.question;
+    const mvr = CARD_CHECKS.mvrClean3Years.question;
+    expect(screen.getByText("Carriers check both before booking a shift.")).toBeInTheDocument();
+    await userEvent.click(next());
+    const alerts = await screen.findAllByRole("alert");
+    expect(alerts.map((alert) => alert.textContent)).toEqual([CLEARINGHOUSE_MESSAGE, MVR_MESSAGE]);
+
+    await userEvent.click(checkChip(clearinghouse, "Not yet"));
+    await userEvent.click(checkChip(mvr, "None"));
+    await userEvent.click(next());
+    await waitFor(() =>
+      expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("compliance", {
+        clearinghouseRegistered: false,
+        mvrClean3Years: true,
+      }),
     );
-    renderFlow("bio", buildPartialDriver({ onboardingStep: 11 }));
+  });
+
+  it("about you counts characters and saves blank as nothing", async () => {
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(cdlDriverAt(17)));
+    renderFlow("bio", cdlDriverAt(16));
     expect(screen.getByText("0 / 500")).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText("About you"), "Hello");
     expect(screen.getByText("5 / 500")).toBeInTheDocument();
@@ -444,9 +562,9 @@ describe("papers, about you, consent, done", () => {
   });
 
   it("consent must be ticked, then finishing shows the done screen and refreshes", async () => {
-    const complete = buildDriver({ onboardingStep: 13, cardCompleted: true });
+    const complete = buildDriver({ onboardingStep: 18, cardCompleted: true });
     actions.saveOnboardingScreenAction.mockResolvedValue(ok(complete));
-    renderFlow("consent", buildPartialDriver({ onboardingStep: 12 }));
+    renderFlow("consent", cdlDriverAt(17));
     expect(
       screen.getByText(/Shift offers come by text to \(\*\*\*\) \*\*\*-0100/),
     ).toBeInTheDocument();
@@ -479,6 +597,11 @@ describe("papers, about you, consent, done", () => {
     const summary = within(document.querySelector("[data-slot=summary-card]") as HTMLElement);
     expect(summary.getByText("Class A")).toBeInTheDocument();
     expect(summary.getByText("H, T")).toBeInTheDocument();
+    expect(summary.getByText("W-2 employee")).toBeInTheDocument();
+    expect(summary.getByText("Local day cab, Regional")).toBeInTheDocument();
+    expect(summary.getByText("Dry van, Flatbed · Automatic and manual")).toBeInTheDocument();
+    expect(summary.getByText("TWIC, medical card current")).toBeInTheDocument();
+    expect(summary.getByText("In the Clearinghouse, no violations in 3 years")).toBeInTheDocument();
     expect(document.body.innerHTML).not.toMatch(/animate-/);
 
     await userEvent.click(summary.getByRole("button", { name: "Edit availability" }));
@@ -489,9 +612,19 @@ describe("papers, about you, consent, done", () => {
     );
   });
 
+  it("the summary can send the driver back to the record screen", async () => {
+    renderFlow("done", buildDriver({ onboardingStep: 18, cardCompleted: true }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit record" }));
+    expect(heading()).toHaveTextContent("How is your driving record?");
+    expect(checkChip(CARD_CHECKS.clearinghouseRegistered.question, "Registered")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
   it("shows a server error without a matching field as a note", async () => {
     actions.saveOnboardingScreenAction.mockResolvedValue(failure("Finish the earlier steps first"));
-    renderFlow("bio", buildPartialDriver({ onboardingStep: 11 }));
+    renderFlow("bio", cdlDriverAt(16));
     await userEvent.click(next());
     expect(await screen.findByRole("alert")).toHaveTextContent("Finish the earlier steps first");
     expect(heading()).toHaveTextContent("Anything carriers should know?");
@@ -510,60 +643,83 @@ describe("papers, about you, consent, done", () => {
 describe("desktop grouping", () => {
   it("shows a whole mile under one sign and saves each screen in order", async () => {
     stubDesktop(true);
+    const mechanic = (overrides: Partial<LocatedDriver>) =>
+      ok(buildPartialDriver({ operatorTypes: ["mechanic"], ...overrides }));
     actions.saveOnboardingScreenAction
+      .mockResolvedValueOnce(mechanic({ onboardingStep: 5 }))
+      .mockResolvedValueOnce(mechanic({ onboardingStep: 8, employmentType: "either" }))
       .mockResolvedValueOnce(
-        ok(buildPartialDriver({ onboardingStep: 5, operatorTypes: ["mechanic"] })),
+        mechanic({ onboardingStep: 9, employmentType: "either", yearsExperience: 1 }),
       )
       .mockResolvedValueOnce(
-        ok(
-          buildPartialDriver({
-            onboardingStep: 6,
-            operatorTypes: ["mechanic"],
-            yearsExperience: 1,
-          }),
-        ),
-      )
-      .mockResolvedValueOnce(
-        ok(
-          buildPartialDriver({
-            onboardingStep: 7,
-            operatorTypes: ["mechanic"],
-            yearsExperience: 1,
-            availability: ["weekends"],
-          }),
-        ),
+        mechanic({
+          onboardingStep: 10,
+          employmentType: "either",
+          yearsExperience: 1,
+          availability: ["weekends"],
+        }),
       );
     renderFlow("workType", buildPartialDriver({ onboardingStep: 4 }));
     expect(heading()).toHaveTextContent("Work");
     expect(screen.getByText("Mile 2 of 5")).toBeInTheDocument();
     for (const question of [
       "What work do you do?",
+      "Do you work W-2 or 1099?",
       "How many years have you done this work?",
       "When can you work?",
     ]) {
       expect(screen.getByText(question)).not.toHaveClass("sr-only");
     }
+    // No CDL driving ticked, so the driving and equipment questions stay out of the way.
+    expect(screen.queryByText("What kind of driving do you do?")).not.toBeInTheDocument();
+    expect(screen.queryByText("What equipment do you run?")).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole("checkbox", { name: /Mechanic/ }));
-    await userEvent.click(screen.getByRole("button", { name: "1 to 2" }));
+    await userEvent.click(screen.getByRole("radio", { name: /Either works/ }));
+    await userEvent.click(chip("1 to 2"));
     await userEvent.click(screen.getByRole("checkbox", { name: /Weekends/ }));
     await userEvent.click(next());
 
-    await waitFor(() => expect(actions.saveOnboardingScreenAction).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(actions.saveOnboardingScreenAction).toHaveBeenCalledTimes(4));
     expect(actions.saveOnboardingScreenAction.mock.calls.map((call) => call[0])).toEqual([
       "workType",
+      "employmentType",
       "experience",
       "availability",
     ]);
     await waitFor(() => expect(heading()).toHaveTextContent("License"));
   });
 
+  it("shows the driving and equipment questions as soon as CDL driver is ticked", async () => {
+    stubDesktop(true);
+    renderFlow("workType", buildPartialDriver({ onboardingStep: 4 }));
+    const driving = () => screen.queryByText("What kind of driving do you do?");
+    expect(driving()).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("checkbox", { name: /CDL driver/ }));
+    expect(driving()).toBeInTheDocument();
+    expect(screen.getByText("What equipment do you run?")).toBeInTheDocument();
+    expect(screen.getByText("Can you drive a manual?")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("checkbox", { name: /Regional/ }));
+
+    await userEvent.click(screen.getByRole("checkbox", { name: /CDL driver/ }));
+    expect(driving()).not.toBeInTheDocument();
+    expect(screen.queryByText("Can you drive a manual?")).not.toBeInTheDocument();
+
+    // The answer survives the round trip.
+    await userEvent.click(screen.getByRole("checkbox", { name: /CDL driver/ }));
+    expect(screen.getByRole("checkbox", { name: /Regional/ })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+  });
+
   it("shows the endorsements question as soon as a CDL class is picked, and hides it for No CDL", async () => {
     stubDesktop(true);
     actions.saveOnboardingScreenAction.mockImplementation(async () =>
-      ok(buildPartialDriver({ onboardingStep: 10, cdlClass: "A", endorsements: ["H"] })),
+      ok(buildPartialDriver({ onboardingStep: 14, cdlClass: "A", endorsements: ["H"] })),
     );
-    renderFlow("cdlClass", buildPartialDriver({ onboardingStep: 7, operatorTypes: ["mechanic"] }));
+    renderFlow("cdlClass", buildPartialDriver({ onboardingStep: 10, operatorTypes: ["mechanic"] }));
     expect(heading()).toHaveTextContent("License");
     expect(screen.queryByText("Any extra letters on your CDL?")).not.toBeInTheDocument();
 
@@ -576,38 +732,82 @@ describe("desktop grouping", () => {
 
     await userEvent.click(screen.getByRole("radio", { name: /Class A/ }));
     expect(screen.getByRole("checkbox", { name: /^H\b/ })).toHaveAttribute("aria-checked", "true");
+    await userEvent.click(checkChip(CARD_CHECKS.twicActive.question, "Yes"));
+    await userEvent.click(checkChip(CARD_CHECKS.medicalCardActive.question, "Yes"));
     await userEvent.click(next());
 
-    await waitFor(() => expect(actions.saveOnboardingScreenAction).toHaveBeenCalledTimes(3));
+    await waitFor(() => expect(actions.saveOnboardingScreenAction).toHaveBeenCalledTimes(4));
     expect(actions.saveOnboardingScreenAction.mock.calls.map((call) => call[0])).toEqual([
       "cdlClass",
       "endorsements",
       "certifications",
+      "credentials",
     ]);
     expect(actions.saveOnboardingScreenAction.mock.calls[1][1]).toEqual({ endorsements: ["H"] });
+    expect(actions.saveOnboardingScreenAction.mock.calls[3][1]).toEqual({
+      twicActive: true,
+      medicalCardActive: true,
+    });
   });
 
   it("saves no endorsements for No CDL on a wide screen", async () => {
     stubDesktop(true);
     actions.saveOnboardingScreenAction.mockImplementation(async () =>
-      ok(buildPartialDriver({ onboardingStep: 10, cdlClass: "none" })),
+      ok(buildPartialDriver({ onboardingStep: 14, cdlClass: "none" })),
     );
-    renderFlow("cdlClass", buildPartialDriver({ onboardingStep: 7, operatorTypes: ["mechanic"] }));
+    renderFlow("cdlClass", buildPartialDriver({ onboardingStep: 10, operatorTypes: ["mechanic"] }));
     await userEvent.click(screen.getByRole("radio", { name: /No CDL/ }));
+    await userEvent.click(checkChip(CARD_CHECKS.twicActive.question, "No"));
+    await userEvent.click(checkChip(CARD_CHECKS.medicalCardActive.question, "No"));
     await userEvent.click(next());
-    await waitFor(() => expect(actions.saveOnboardingScreenAction).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(actions.saveOnboardingScreenAction).toHaveBeenCalledTimes(3));
     expect(actions.saveOnboardingScreenAction.mock.calls.map((call) => call[0])).toEqual([
       "cdlClass",
       "certifications",
+      "credentials",
     ]);
+  });
+
+  it("the Papers page of a CDL driver carries the record questions, and its button says Next", async () => {
+    stubDesktop(true);
+    actions.saveOnboardingScreenAction.mockImplementation(async () =>
+      ok(cdlDriverAt(16, { cdlClass: "A" })),
+    );
+    renderFlow("documents", cdlDriverAt(14, { cdlClass: "A" }));
+    expect(heading()).toHaveTextContent("Papers");
+    expect(screen.getByText("How is your driving record?")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Skip for now" })).not.toBeInTheDocument();
+    await userEvent.click(checkChip(CARD_CHECKS.clearinghouseRegistered.question, "Registered"));
+    await userEvent.click(checkChip(CARD_CHECKS.mvrClean3Years.question, "One or more"));
+    await userEvent.click(next());
+    await waitFor(() => expect(actions.saveOnboardingScreenAction).toHaveBeenCalledTimes(2));
+    expect(actions.saveOnboardingScreenAction.mock.calls.map((call) => call[0])).toEqual([
+      "documents",
+      "compliance",
+    ]);
+    expect(actions.saveOnboardingScreenAction.mock.calls[1][1]).toEqual({
+      clearinghouseRegistered: true,
+      mvrClean3Years: false,
+    });
+  });
+
+  it("the Papers page of a mechanic has no record questions and can be skipped", () => {
+    stubDesktop(true);
+    renderFlow(
+      "documents",
+      buildPartialDriver({ onboardingStep: 14, operatorTypes: ["mechanic"], cdlClass: "none" }),
+    );
+    expect(screen.queryByText("How is your driving record?")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Skip for now" })).toBeInTheDocument();
   });
 
   it("stops at the first screen with an error", async () => {
     stubDesktop(true);
     renderFlow("workType", buildPartialDriver({ onboardingStep: 4 }));
-    await userEvent.click(screen.getByRole("button", { name: "Under 1" }));
+    await userEvent.click(chip("Under 1"));
     await userEvent.click(next());
     expect(await screen.findByText("Pick at least one kind of work")).toBeInTheDocument();
+    expect(screen.getByText(EMPLOYMENT_MESSAGE)).toBeInTheDocument();
     expect(screen.getByText("Pick at least one option")).toBeInTheDocument();
     expect(actions.saveOnboardingScreenAction).not.toHaveBeenCalled();
   });
@@ -629,17 +829,16 @@ describe("the road", () => {
 
     expect(container.querySelector("[data-slot=lane-fill]")).toBe(fill);
     expect(container.querySelector("[data-slot=lane-truck]")).toBe(truck);
-    expect(fill.style.width).toBe("8%");
-    expect(truck.style.left).toBe("8%");
+    expect(fill.style.width).toBe("6%");
+    expect(truck.style.left).toBe("6%");
   });
 });
 
 describe("resume", () => {
   it("opens on the step the server reports with the saved answers", async () => {
-    renderFlow("experience", buildPartialDriver({ onboardingStep: 5, yearsExperience: 8 }));
+    renderFlow("experience", cdlDriverAt(8, { yearsExperience: 8 }));
     expect(heading()).toHaveTextContent("How many years have you done this work?");
-    expect(screen.getByRole("button", { name: "6 to 10" })).toHaveAttribute("aria-pressed", "true");
-    expect(screen.getByLabelText("Exact number (optional)")).toHaveValue("8");
+    expect(chip("6 to 10")).toHaveAttribute("aria-pressed", "true");
     await act(async () => undefined);
   });
 });

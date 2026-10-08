@@ -88,7 +88,7 @@ test.describe("Workshop rules", () => {
     await resetUser(PHONES.driver);
   });
 
-  for (const stepNumber of [1, 4, 7, 8, 10, 12, 13]) {
+  for (const stepNumber of [1, 4, 5, 7, 10, 11, 13, 14, 15, 17, 18]) {
     test(`orange is only the primary fill, progress fill, sign stripe and check badge on step ${stepNumber}`, async ({
       page,
     }) => {
@@ -156,7 +156,10 @@ test.describe("Workshop rules", () => {
     await expect(page.getByRole("button", { name: "Toggle dark mode" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Profile" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Documents" })).toHaveCount(0);
-    await expect(page.getByText("Set up your profile")).toHaveCount(0);
+    // The page title is "Set up your profile"; the route announcer may repeat it for screen
+    // readers after a client-side redirect. Only the visible chrome must not show it.
+    await expect(page.getByRole("banner").getByText("Set up your profile")).toHaveCount(0);
+    await expect(page.getByRole("main").getByText("Set up your profile")).toHaveCount(0);
     await expect(page.getByRole("banner").getByRole("img", { name: "FleetGrid" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Help" })).toBeVisible();
   });
@@ -245,7 +248,7 @@ test.describe("Workshop rules", () => {
   });
 
   test("light is the default and dark mode keeps every rule", async ({ page }) => {
-    await openStep(page, 7);
+    await openStep(page, 10);
     await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
     await page.evaluate(() => document.documentElement.classList.add("dark"));
     const card = page.getByRole("radio", { name: /Class A/ });

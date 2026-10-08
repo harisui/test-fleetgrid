@@ -2,6 +2,7 @@ import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, test, type Page } from "@playwright/test";
 import { SMS_CONSENT_TEXT } from "../../src/lib/constants";
+import { stepNumber } from "../../src/lib/onboarding/steps";
 import {
   expectScreen,
   login,
@@ -20,8 +21,7 @@ import {
 const OUT = resolve("screenshots", "opt-in");
 const PHONE = { width: 390, height: 844 };
 const CONSENT_QUESTION = "Can we text you about shifts?";
-/** The consent screen is number 12 of 13 (src/lib/onboarding/steps.ts). */
-const CONSENT_STEP = 12;
+const CONSENT_STEP = stepNumber("consent");
 
 test.use({
   viewport: PHONE,

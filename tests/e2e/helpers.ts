@@ -163,17 +163,25 @@ export const CARD_ANSWERS = {
   lng: PLACES.houston.lng,
   service_radius_miles: 50,
   operator_types: ["cdl_driver"] as const,
+  employment_type: "w2" as const,
+  driving_styles: ["local_day_cab", "regional"] as const,
+  transmission: "manual_ok" as const,
+  equipment_types: ["dry_van", "flatbed"] as const,
   years_experience: 8,
   availability: ["full_time"] as const,
   cdl_class: "A" as const,
   endorsements: ["H", "T"] as const,
-  certifications: ["TWIC"],
+  certifications: ["OSHA 10"],
+  twic_active: true,
+  medical_card_active: true,
+  clearinghouse_registered: true,
+  mvr_clean_3_years: true,
   bio: "Reliable and on time.",
 };
 
 /**
- * Creates a driver who has answered every screen before `stepNumber` (1 to 13 from
- * src/lib/onboarding/steps.ts) and is about to see that screen. Step 13 is a completed card.
+ * Creates a driver who has answered every screen before `stepNumber` (1 to 18 from
+ * src/lib/onboarding/steps.ts) and is about to see that screen. Step 18 is a completed card.
  */
 export async function seedDriverAtStep(
   phone: string,
@@ -207,7 +215,7 @@ export async function moveDriverToStep(
 /** The card columns of a driver who is about to see screen `stepNumber`. Unanswered ones are null. */
 function driverRowAtStep(stepNumber: number) {
   const answered = (screen: number) => stepNumber > screen;
-  const complete = stepNumber >= 13;
+  const complete = stepNumber >= 18;
   const or = <T>(condition: boolean, value: T) => (condition ? value : null);
   return {
     full_name: CARD_ANSWERS.full_name,
@@ -218,17 +226,25 @@ function driverRowAtStep(stepNumber: number) {
     lng: or(answered(2), CARD_ANSWERS.lng),
     ...(answered(3) && { service_radius_miles: CARD_ANSWERS.service_radius_miles }),
     operator_types: answered(4) ? [...CARD_ANSWERS.operator_types] : [],
-    years_experience: or(answered(5), CARD_ANSWERS.years_experience),
-    availability: answered(6) ? [...CARD_ANSWERS.availability] : [],
-    cdl_class: answered(7) ? CARD_ANSWERS.cdl_class : ("none" as const),
-    endorsements: answered(8) ? [...CARD_ANSWERS.endorsements] : [],
-    certifications: answered(9) ? CARD_ANSWERS.certifications : [],
-    bio: or(answered(11), CARD_ANSWERS.bio),
+    employment_type: or(answered(5), CARD_ANSWERS.employment_type),
+    driving_styles: answered(6) ? [...CARD_ANSWERS.driving_styles] : [],
+    transmission: or(answered(7), CARD_ANSWERS.transmission),
+    equipment_types: answered(7) ? [...CARD_ANSWERS.equipment_types] : [],
+    years_experience: or(answered(8), CARD_ANSWERS.years_experience),
+    availability: answered(9) ? [...CARD_ANSWERS.availability] : [],
+    cdl_class: answered(10) ? CARD_ANSWERS.cdl_class : ("none" as const),
+    endorsements: answered(11) ? [...CARD_ANSWERS.endorsements] : [],
+    certifications: answered(12) ? CARD_ANSWERS.certifications : [],
+    twic_active: or(answered(13), CARD_ANSWERS.twic_active),
+    medical_card_active: or(answered(13), CARD_ANSWERS.medical_card_active),
+    clearinghouse_registered: or(answered(15), CARD_ANSWERS.clearinghouse_registered),
+    mvr_clean_3_years: or(answered(15), CARD_ANSWERS.mvr_clean_3_years),
+    bio: or(answered(16), CARD_ANSWERS.bio),
     sms_opt_in: complete,
     sms_opt_in_at: or(complete, new Date().toISOString()),
     sms_opt_in_text: or(complete, CONSENT_TEXT),
     card_completed: complete,
-    onboarding_step: Math.min(stepNumber, 13),
+    onboarding_step: Math.min(stepNumber, 18),
   };
 }
 

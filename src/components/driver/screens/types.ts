@@ -6,8 +6,12 @@ import type {
   CdlClass,
   Driver,
   DriverDocument,
+  DrivingStyle,
+  EmploymentType,
   Endorsement,
+  EquipmentType,
   OperatorType,
+  TransmissionType,
 } from "@/types/domain";
 
 /** Every field any onboarding screen can hold. One form, one set of keys. */
@@ -18,11 +22,19 @@ export interface OnboardingFormValues {
   state?: string;
   serviceRadiusMiles?: number;
   operatorTypes?: OperatorType[];
+  employmentType?: EmploymentType;
+  drivingStyles?: DrivingStyle[];
+  transmission?: TransmissionType;
+  equipmentTypes?: EquipmentType[];
   yearsExperience?: number | null;
   availability?: AvailabilityType[];
   cdlClass?: CdlClass;
   endorsements?: Endorsement[];
   certifications?: string[];
+  twicActive?: boolean;
+  medicalCardActive?: boolean;
+  clearinghouseRegistered?: boolean;
+  mvrClean3Years?: boolean;
   bio?: string;
   consent?: boolean;
 }
