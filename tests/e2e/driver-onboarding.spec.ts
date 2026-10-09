@@ -196,7 +196,7 @@ test.describe("driver onboarding, one question per screen", () => {
       twic_active: true,
       medical_card_active: true,
       clearinghouse_registered: true,
-      mvr_clean_3_years: true,
+      mvr_status: "clean",
       availability: ["full_time", "weekends"],
       bio: "Nine years of regional haul. Clean record.",
       sms_opt_in: true,
@@ -283,7 +283,7 @@ test.describe("driver onboarding, one question per screen", () => {
       twic_active: false,
       medical_card_active: true,
       clearinghouse_registered: null,
-      mvr_clean_3_years: null,
+      mvr_status: null,
       onboarding_step: 16,
     });
   });
@@ -455,12 +455,12 @@ test.describe("driver onboarding, one question per screen", () => {
     await nextButton(page).click();
     await expect(formAlert(page)).toHaveCount(2);
     await checkChip(page, CLEARINGHOUSE_QUESTION, "Not yet").click();
-    await checkChip(page, MVR_QUESTION, "One or more").click();
+    await checkChip(page, MVR_QUESTION, "3 or more, or a major one").click();
     await nextButton(page).click();
     await expect(screenHeading(page)).toHaveText("Anything carriers should know?");
     expect(await driverRow()).toMatchObject({
       clearinghouse_registered: false,
-      mvr_clean_3_years: false,
+      mvr_status: "major_3_plus",
     });
   });
 
@@ -625,7 +625,7 @@ test.describe("driver onboarding, a mile per page on a wide screen", () => {
       twic_active: true,
       medical_card_active: false,
       clearinghouse_registered: true,
-      mvr_clean_3_years: true,
+      mvr_status: "clean",
       bio: "Regional haul.",
       sms_opt_in: true,
       onboarding_step: 18,

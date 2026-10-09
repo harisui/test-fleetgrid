@@ -235,17 +235,22 @@ describe("cards and record", () => {
     }
   });
 
-  it("the record screen takes two real yes-or-no answers", () => {
-    expect(
-      complianceScreenSchema.parse({ clearinghouseRegistered: false, mvrClean3Years: true }),
-    ).toEqual({ clearinghouseRegistered: false, mvrClean3Years: true });
+  it("the record screen takes a real yes-or-no answer and one of the three MVR levels", () => {
+    for (const mvrStatus of ["clean", "minor_1_2", "major_3_plus"]) {
+      expect(complianceScreenSchema.parse({ clearinghouseRegistered: false, mvrStatus })).toEqual({
+        clearinghouseRegistered: false,
+        mvrStatus,
+      });
+    }
     expect(errorsOf(complianceScreenSchema, {})).toEqual({
       clearinghouseRegistered: CLEARINGHOUSE_MESSAGE,
-      mvrClean3Years: MVR_MESSAGE,
+      mvrStatus: MVR_MESSAGE,
     });
-    expect(
-      errorsOf(complianceScreenSchema, { clearinghouseRegistered: true, mvrClean3Years: "none" }),
-    ).toEqual({ mvrClean3Years: MVR_MESSAGE });
+    for (const mvrStatus of [true, "none", "dirty", null]) {
+      expect(
+        errorsOf(complianceScreenSchema, { clearinghouseRegistered: true, mvrStatus }),
+      ).toEqual({ mvrStatus: MVR_MESSAGE });
+    }
   });
 });
 

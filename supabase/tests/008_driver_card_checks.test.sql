@@ -1,5 +1,5 @@
--- The driver card answers added by migration 0011 (T1.14): enums, columns, the 18-screen
--- step range and the completion rule for CDL drivers and everyone else.
+-- The driver card answers added by migration 0011 (T1.14) and the MVR levels of 0012: enums,
+-- columns, the 18-screen step range and the completion rule for CDL drivers and everyone else.
 begin;
 select no_plan();
 
@@ -10,6 +10,7 @@ select enum_has_labels('public', 'employment_type', array['w2', 'owner_operator_
 select enum_has_labels('public', 'driving_style', array['local_day_cab', 'yard_spotter', 'regional', 'otr']);
 select enum_has_labels('public', 'transmission_type', array['automatic_only', 'manual_ok']);
 select enum_has_labels('public', 'equipment_type', array['container_drayage', 'dry_van', 'flatbed', 'reefer', 'yard_mule']);
+select enum_has_labels('public', 'mvr_status', array['clean', 'minor_1_2', 'major_3_plus']);
 
 select col_type_is('drivers', 'employment_type', 'employment_type');
 select col_is_null('drivers', 'employment_type', 'employment_type is null until answered');
@@ -27,8 +28,9 @@ select col_type_is('drivers', 'medical_card_active', 'boolean');
 select col_is_null('drivers', 'medical_card_active');
 select col_type_is('drivers', 'clearinghouse_registered', 'boolean');
 select col_is_null('drivers', 'clearinghouse_registered');
-select col_type_is('drivers', 'mvr_clean_3_years', 'boolean');
-select col_is_null('drivers', 'mvr_clean_3_years');
+select col_type_is('drivers', 'mvr_status', 'mvr_status');
+select col_is_null('drivers', 'mvr_status');
+select hasnt_column('drivers', 'mvr_clean_3_years', 'the yes-or-no MVR column is gone (0012)');
 
 select has_index('public', 'drivers', 'drivers_driving_styles_idx', array['driving_styles']);
 select has_index('public', 'drivers', 'drivers_equipment_types_idx', array['equipment_types']);
@@ -52,7 +54,7 @@ $$;
 
 select results_eq(
   $$select employment_type is null, driving_styles::text, transmission is null, equipment_types::text,
-           twic_active is null, medical_card_active is null, clearinghouse_registered is null, mvr_clean_3_years is null
+           twic_active is null, medical_card_active is null, clearinghouse_registered is null, mvr_status is null
       from public.drivers where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'$$,
   $$values (true, '{}', true, '{}', true, true, true, true)$$,
   'the new answers start empty'
@@ -71,6 +73,8 @@ select lives_ok(pg_temp.update_driver($$equipment_types = '{dry_van,reefer,flatb
 select throws_ok(pg_temp.update_driver($$equipment_types = '{tanker}'$$), '22P02', null, 'unknown equipment rejected');
 select throws_ok(pg_temp.update_driver($$driving_styles = null$$), '23502', null, 'driving styles cannot be null');
 select throws_ok(pg_temp.update_driver($$equipment_types = null$$), '23502', null, 'equipment cannot be null');
+select lives_ok(pg_temp.update_driver($$mvr_status = 'minor_1_2'$$), 'an MVR level accepted');
+select throws_ok(pg_temp.update_driver($$mvr_status = 'dirty'$$), '22P02', null, 'unknown MVR level rejected');
 
 -- The flow has 18 screens; 18 is the done screen.
 select lives_ok(pg_temp.update_driver($$onboarding_step = 18$$), 'onboarding step 18 (done) accepted');
@@ -82,7 +86,7 @@ select lives_ok(pg_temp.update_driver($$onboarding_step = 5$$), 'onboarding step
 -- ---------------------------------------------------------------------------
 select lives_ok(
   pg_temp.update_driver($$employment_type = null, twic_active = null, medical_card_active = null,
-    driving_styles = '{}', transmission = null, equipment_types = '{}'$$),
+    driving_styles = '{}', transmission = null, equipment_types = '{}', mvr_status = null$$),
   'reset'
 );
 select throws_ok(pg_temp.update_driver($$card_completed = true$$), '23514', null,
@@ -96,7 +100,7 @@ select lives_ok(
   'a yard spotter completes with employment type, TWIC and medical card; the CDL checks are not needed'
 );
 select results_eq(
-  $$select driving_styles::text, transmission is null, equipment_types::text, clearinghouse_registered is null, mvr_clean_3_years is null
+  $$select driving_styles::text, transmission is null, equipment_types::text, clearinghouse_registered is null, mvr_status is null
       from public.drivers where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'$$,
   $$values ('{}', true, '{}', true, true)$$,
   'the CDL-only answers stay empty on a completed non-CDL card'
@@ -117,35 +121,35 @@ select throws_ok(
 );
 select throws_ok(
   pg_temp.update_driver($$operator_types = '{cdl_driver}', cdl_class = 'A', driving_styles = '{regional}',
-    transmission = 'manual_ok', equipment_types = '{dry_van}', mvr_clean_3_years = true$$),
+    transmission = 'manual_ok', equipment_types = '{dry_van}', mvr_status = 'clean'$$),
   '23514', null, 'a CDL driver cannot complete without the Clearinghouse answer'
 );
 select throws_ok(
   pg_temp.update_driver($$operator_types = '{cdl_driver}', cdl_class = 'A', driving_styles = '{}',
-    transmission = 'manual_ok', equipment_types = '{dry_van}', clearinghouse_registered = true, mvr_clean_3_years = true$$),
+    transmission = 'manual_ok', equipment_types = '{dry_van}', clearinghouse_registered = true, mvr_status = 'clean'$$),
   '23514', null, 'a CDL driver cannot complete without a driving style'
 );
 select throws_ok(
   pg_temp.update_driver($$operator_types = '{cdl_driver}', cdl_class = 'A', driving_styles = '{regional}',
-    transmission = null, equipment_types = '{dry_van}', clearinghouse_registered = true, mvr_clean_3_years = true$$),
+    transmission = null, equipment_types = '{dry_van}', clearinghouse_registered = true, mvr_status = 'clean'$$),
   '23514', null, 'a CDL driver cannot complete without a transmission answer'
 );
 select throws_ok(
   pg_temp.update_driver($$operator_types = '{cdl_driver}', cdl_class = 'A', driving_styles = '{regional}',
-    transmission = 'manual_ok', equipment_types = '{}', clearinghouse_registered = true, mvr_clean_3_years = true$$),
+    transmission = 'manual_ok', equipment_types = '{}', clearinghouse_registered = true, mvr_status = 'clean'$$),
   '23514', null, 'a CDL driver cannot complete without equipment'
 );
 select lives_ok(
   pg_temp.update_driver($$operator_types = '{cdl_driver,yard_spotter}', cdl_class = 'A', driving_styles = '{local_day_cab,regional}',
-    transmission = 'manual_ok', equipment_types = '{container_drayage,dry_van}', clearinghouse_registered = true, mvr_clean_3_years = false$$),
+    transmission = 'manual_ok', equipment_types = '{container_drayage,dry_van}', clearinghouse_registered = true, mvr_status = 'major_3_plus'$$),
   'a CDL driver completes with every check answered, whatever the answers are'
 );
 select throws_ok(
-  pg_temp.update_driver($$mvr_clean_3_years = null$$),
+  pg_temp.update_driver($$mvr_status = null$$),
   '23514', null, 'a completed CDL driver card cannot drop a check'
 );
 select lives_ok(
-  pg_temp.update_driver($$operator_types = '{mechanic}', cdl_class = 'none', endorsements = '{}', mvr_clean_3_years = null$$),
+  pg_temp.update_driver($$operator_types = '{mechanic}', cdl_class = 'none', endorsements = '{}', mvr_status = null$$),
   'leaving CDL work makes the CDL checks optional again'
 );
 

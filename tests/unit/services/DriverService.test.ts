@@ -45,13 +45,13 @@ const NOW = new Date("2026-10-05T15:30:00.000Z");
 /** The CDL-only answers, unanswered. */
 const NO_CDL_CHECKS: Pick<
   LocatedDriver,
-  "drivingStyles" | "transmission" | "equipmentTypes" | "clearinghouseRegistered" | "mvrClean3Years"
+  "drivingStyles" | "transmission" | "equipmentTypes" | "clearinghouseRegistered" | "mvrStatus"
 > = {
   drivingStyles: [],
   transmission: null,
   equipmentTypes: [],
   clearinghouseRegistered: null,
-  mvrClean3Years: null,
+  mvrStatus: null,
 };
 
 describe("DriverService", () => {
@@ -550,10 +550,10 @@ describe("DriverService", () => {
       await service.saveScreen(USER_ID, "documents", {});
       const driver = await service.saveScreen(USER_ID, "compliance", {
         clearinghouseRegistered: false,
-        mvrClean3Years: false,
+        mvrStatus: "major_3_plus",
       });
       expect(driver.clearinghouseRegistered).toBe(false);
-      expect(driver.mvrClean3Years).toBe(false);
+      expect(driver.mvrStatus).toBe("major_3_plus");
       expect(driver.onboardingStep).toBe(stepNumber("bio"));
     });
 
@@ -562,11 +562,18 @@ describe("DriverService", () => {
       const error = await expectAppError(
         service.saveScreen(USER_ID, "compliance", { clearinghouseRegistered: true }),
       );
-      expect(error.fieldErrors).toEqual({ mvrClean3Years: MVR_MESSAGE });
+      expect(error.fieldErrors).toEqual({ mvrStatus: MVR_MESSAGE });
+      const level = await expectAppError(
+        service.saveScreen(USER_ID, "compliance", {
+          clearinghouseRegistered: true,
+          mvrStatus: true,
+        }),
+      );
+      expect(level.fieldErrors).toEqual({ mvrStatus: MVR_MESSAGE });
       const both = await expectAppError(service.saveScreen(USER_ID, "compliance", null));
       expect(both.fieldErrors).toEqual({
         clearinghouseRegistered: CLEARINGHOUSE_MESSAGE,
-        mvrClean3Years: MVR_MESSAGE,
+        mvrStatus: MVR_MESSAGE,
       });
     });
 
@@ -695,7 +702,7 @@ describe("DriverService", () => {
         equipmentTypes: "Required",
         transmission: "Required",
         clearinghouseRegistered: "Required",
-        mvrClean3Years: "Required",
+        mvrStatus: "Required",
       });
     });
 
@@ -767,7 +774,7 @@ describe("DriverService", () => {
           twicActive: false,
           medicalCardActive: false,
           clearinghouseRegistered: false,
-          mvrClean3Years: false,
+          mvrStatus: "minor_1_2",
           availability: ["on_call"],
           bio: "",
         }),
@@ -793,7 +800,7 @@ describe("DriverService", () => {
         twicActive: false,
         medicalCardActive: false,
         clearinghouseRegistered: false,
-        mvrClean3Years: false,
+        mvrStatus: "minor_1_2",
         availability: ["on_call"],
         bio: null,
         smsOptIn: true,
@@ -829,7 +836,7 @@ describe("DriverService", () => {
         "clearinghouseRegistered",
         "drivingStyles",
         "equipmentTypes",
-        "mvrClean3Years",
+        "mvrStatus",
         "transmission",
       ]);
       expect(drivers.rows.get(USER_ID)).toEqual(before);
@@ -903,7 +910,7 @@ describe("DriverService", () => {
         { field: "equipmentTypes", stepId: "equipment" },
         { field: "transmission", stepId: "equipment" },
         { field: "clearinghouseRegistered", stepId: "compliance" },
-        { field: "mvrClean3Years", stepId: "compliance" },
+        { field: "mvrStatus", stepId: "compliance" },
       ]);
       expect(
         missingCardFields(
@@ -917,14 +924,14 @@ describe("DriverService", () => {
       ).toEqual([]);
     });
 
-    it("a false answer to a check counts as answered", () => {
+    it("a false answer to a check, or a bad record, counts as answered", () => {
       expect(
         missingCardFields(
           buildDriver({
             twicActive: false,
             medicalCardActive: false,
             clearinghouseRegistered: false,
-            mvrClean3Years: false,
+            mvrStatus: "major_3_plus",
           }),
         ),
       ).toEqual([]);

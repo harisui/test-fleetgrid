@@ -45,7 +45,7 @@ export function ProfileEditor({ driver }: ProfileEditorProps) {
       twicActive: driver.twicActive ?? undefined,
       medicalCardActive: driver.medicalCardActive ?? undefined,
       clearinghouseRegistered: driver.clearinghouseRegistered ?? undefined,
-      mvrClean3Years: driver.mvrClean3Years ?? undefined,
+      mvrStatus: driver.mvrStatus ?? undefined,
       availability: driver.availability,
       bio: driver.bio ?? "",
     },

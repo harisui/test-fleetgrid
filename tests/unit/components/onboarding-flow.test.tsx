@@ -3,7 +3,12 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OnboardingFlow } from "@/components/driver/OnboardingFlow";
 import { SMS_CONSENT_TEXT } from "@/lib/constants";
-import { CARD_CHECKS, EMPLOYMENT_HELPER } from "@/lib/onboarding/options";
+import {
+  CARD_CHECKS,
+  EMPLOYMENT_HELPER,
+  MVR_HELPER,
+  MVR_QUESTION,
+} from "@/lib/onboarding/options";
 import { SAVABLE_STEP_IDS, STEPS, type StepId } from "@/lib/onboarding/steps";
 import {
   CLEARINGHOUSE_MESSAGE,
@@ -572,23 +577,32 @@ describe("papers, record, about you, consent, done", () => {
     );
   });
 
-  it("the record screen asks Clearinghouse and MVR with their own chip words", async () => {
+  it("the record screen asks Clearinghouse and the MVR in three levels, with major spelled out", async () => {
     actions.saveOnboardingScreenAction.mockResolvedValue(ok(cdlDriverAt(16)));
     renderFlow("compliance", cdlDriverAt(15));
     const clearinghouse = CARD_CHECKS.clearinghouseRegistered.question;
-    const mvr = CARD_CHECKS.mvrClean3Years.question;
     expect(screen.getByText("Carriers check both before booking a shift.")).toBeInTheDocument();
+    expect(screen.getByText(MVR_HELPER)).toBeInTheDocument();
+    expect(
+      within(screen.getByRole("group", { name: MVR_QUESTION }))
+        .getAllByRole("button")
+        .map((chip) => chip.textContent),
+    ).toEqual(["None", "1 or 2 minor", "3 or more, or a major one"]);
     await userEvent.click(next());
     const alerts = await screen.findAllByRole("alert");
     expect(alerts.map((alert) => alert.textContent)).toEqual([CLEARINGHOUSE_MESSAGE, MVR_MESSAGE]);
 
     await userEvent.click(checkChip(clearinghouse, "Not yet"));
-    await userEvent.click(checkChip(mvr, "None"));
+    await userEvent.click(checkChip(MVR_QUESTION, "1 or 2 minor"));
+    // One level at a time: picking another replaces it.
+    await userEvent.click(checkChip(MVR_QUESTION, "None"));
+    expect(checkChip(MVR_QUESTION, "1 or 2 minor")).toHaveAttribute("aria-pressed", "false");
+    expect(checkChip(MVR_QUESTION, "None")).toHaveAttribute("aria-pressed", "true");
     await userEvent.click(next());
     await waitFor(() =>
       expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("compliance", {
         clearinghouseRegistered: false,
-        mvrClean3Years: true,
+        mvrStatus: "clean",
       }),
     );
   });
@@ -822,7 +836,7 @@ describe("desktop grouping", () => {
     expect(screen.getByText("How is your driving record?")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Skip for now" })).not.toBeInTheDocument();
     await userEvent.click(checkChip(CARD_CHECKS.clearinghouseRegistered.question, "Registered"));
-    await userEvent.click(checkChip(CARD_CHECKS.mvrClean3Years.question, "One or more"));
+    await userEvent.click(checkChip(MVR_QUESTION, "3 or more, or a major one"));
     await userEvent.click(next());
     await waitFor(() => expect(actions.saveOnboardingScreenAction).toHaveBeenCalledTimes(2));
     expect(actions.saveOnboardingScreenAction.mock.calls.map((call) => call[0])).toEqual([
@@ -831,7 +845,7 @@ describe("desktop grouping", () => {
     ]);
     expect(actions.saveOnboardingScreenAction.mock.calls[1][1]).toEqual({
       clearinghouseRegistered: true,
-      mvrClean3Years: false,
+      mvrStatus: "major_3_plus",
     });
   });
 

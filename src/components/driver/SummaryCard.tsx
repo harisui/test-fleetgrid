@@ -6,11 +6,12 @@ import {
   DRIVING_STYLE_OPTIONS,
   EMPLOYMENT_TYPE_OPTIONS,
   EQUIPMENT_CHIPS,
+  MVR_SUMMARY,
   TRANSMISSION_OPTIONS,
   WORK_TYPE_OPTIONS,
   type CardCheck,
 } from "@/lib/onboarding/options";
-import { isCdlDriver, type Driver } from "@/types/domain";
+import { isCdlDriver, type Driver, type MvrStatus } from "@/types/domain";
 
 interface SummaryCardProps {
   driver: Driver;
@@ -38,6 +39,11 @@ const labelsOf = <T extends string>(
 export function checkSummary(check: CardCheck, value: boolean | null): string {
   if (value === null) return NOT_ANSWERED;
   return CARD_CHECKS[check].summary[value ? "yes" : "no"];
+}
+
+/** How the MVR level reads in a sentence, for example "no violations in 3 years". */
+export function mvrSummary(status: MvrStatus | null): string {
+  return status === null ? NOT_ANSWERED : MVR_SUMMARY[status];
 }
 
 /** The answers that matter most, each with a way back to change it. */
@@ -91,7 +97,7 @@ export function SummaryCard({ driver, onEdit }: SummaryCardProps) {
       ? [
           {
             label: "Record",
-            value: `${checkSummary("clearinghouseRegistered", driver.clearinghouseRegistered)}, ${checkSummary("mvrClean3Years", driver.mvrClean3Years)}`,
+            value: `${checkSummary("clearinghouseRegistered", driver.clearinghouseRegistered)}, ${mvrSummary(driver.mvrStatus)}`,
             stepId: "compliance" as const,
           },
         ]

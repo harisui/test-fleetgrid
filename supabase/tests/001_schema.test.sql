@@ -29,7 +29,7 @@ select columns_are('public', 'drivers', array[
   'certifications', 'bio', 'sms_opt_in', 'sms_opt_in_at', 'sms_opt_in_text', 'sms_opted_out',
   'sms_opted_out_at', 'onboarding_step', 'card_completed', 'created_at', 'updated_at',
   'employment_type', 'driving_styles', 'transmission', 'equipment_types', 'twic_active',
-  'medical_card_active', 'clearinghouse_registered', 'mvr_clean_3_years']);
+  'medical_card_active', 'clearinghouse_registered', 'mvr_status']);
 select columns_are('public', 'driver_documents', array[
   'id', 'driver_id', 'type', 'storage_path', 'file_name', 'mime_type', 'size_bytes',
   'created_at', 'updated_at']);
@@ -319,7 +319,7 @@ select throws_ok(
   pg_temp.update_driver($$card_completed = true, state = 'TX', zip = '75201', cdl_class = 'none', operator_types = '{cdl_driver}',
     availability = '{full_time}', years_experience = 5, sms_opt_in = true, sms_opt_in_at = now(), sms_opt_in_text = 'I agree',
     employment_type = 'w2', twic_active = true, medical_card_active = true, driving_styles = '{regional}',
-    transmission = 'manual_ok', equipment_types = '{dry_van}', clearinghouse_registered = true, mvr_clean_3_years = true$$),
+    transmission = 'manual_ok', equipment_types = '{dry_van}', clearinghouse_registered = true, mvr_status = 'clean'$$),
   '23514', null, 'a CDL driver cannot complete the card without a CDL class'
 );
 -- The answers added in 0011 (employment type, TWIC, medical card, and the CDL checks) are
@@ -333,7 +333,7 @@ select lives_ok(
 );
 select lives_ok(
   pg_temp.update_driver($$cdl_class = 'A', operator_types = '{cdl_driver}', driving_styles = '{regional}',
-    transmission = 'manual_ok', equipment_types = '{dry_van}', clearinghouse_registered = true, mvr_clean_3_years = true$$),
+    transmission = 'manual_ok', equipment_types = '{dry_van}', clearinghouse_registered = true, mvr_status = 'clean'$$),
   'a full card can be completed'
 );
 select throws_ok(

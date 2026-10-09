@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountStatusCard } from "@/components/driver/AccountStatusCard";
 import { ProfileEditor } from "@/components/driver/ProfileEditor";
-import { CARD_CHECKS } from "@/lib/onboarding/options";
+import { CARD_CHECKS, MVR_QUESTION } from "@/lib/onboarding/options";
 import {
   CLEARINGHOUSE_MESSAGE,
   DRIVING_STYLE_MESSAGE,
@@ -145,7 +145,7 @@ describe("ProfileEditor", () => {
     expect(checkRadio(CARD_CHECKS.twicActive.question, "Yes")).toBeChecked();
     expect(checkRadio(CARD_CHECKS.medicalCardActive.question, "Yes")).toBeChecked();
     expect(checkRadio(CARD_CHECKS.clearinghouseRegistered.question, "Registered")).toBeChecked();
-    expect(checkRadio(CARD_CHECKS.mvrClean3Years.question, "None")).toBeChecked();
+    expect(checkRadio(MVR_QUESTION, "None")).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Full time" })).toBeChecked();
     expect(screen.getByLabelText("About you")).toHaveValue("Reliable and on time.");
   });
@@ -221,7 +221,7 @@ describe("ProfileEditor", () => {
     await userEvent.click(screen.getByText("Reefer"));
     await userEvent.click(screen.getByText("Automatic only"));
     await userEvent.click(checkRadio(CARD_CHECKS.twicActive.question, "No"));
-    await userEvent.click(checkRadio(CARD_CHECKS.mvrClean3Years.question, "One or more"));
+    await userEvent.click(checkRadio(MVR_QUESTION, "3 or more, or a major one"));
     await userEvent.click(save());
 
     await waitFor(() =>
@@ -241,7 +241,7 @@ describe("ProfileEditor", () => {
         twicActive: false,
         medicalCardActive: true,
         clearinghouseRegistered: true,
-        mvrClean3Years: false,
+        mvrStatus: "major_3_plus",
         availability: ["full_time", "weekends"],
         bio: "Reliable and on time.",
       }),
@@ -276,9 +276,7 @@ describe("ProfileEditor", () => {
     expect(
       screen.queryByRole("group", { name: CARD_CHECKS.clearinghouseRegistered.question }),
     ).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("group", { name: CARD_CHECKS.mvrClean3Years.question }),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole("group", { name: MVR_QUESTION })).not.toBeInTheDocument();
     // Everyone answers TWIC and the medical card.
     expect(
       screen.getByRole("group", { name: CARD_CHECKS.twicActive.question }),
@@ -300,7 +298,7 @@ describe("ProfileEditor", () => {
           transmission: null,
           equipmentTypes: [],
           clearinghouseRegistered: null,
-          mvrClean3Years: null,
+          mvrStatus: null,
         })}
       />,
     );

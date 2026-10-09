@@ -99,7 +99,7 @@ export function buildDriver(overrides: Partial<LocatedDriver> = {}): LocatedDriv
       twicActive: true,
       medicalCardActive: true,
       clearinghouseRegistered: true,
-      mvrClean3Years: true,
+      mvrStatus: "clean",
       smsOptIn: true,
       smsOptInAt: TIMESTAMP,
       smsOptInText: SMS_CONSENT_TEXT,
@@ -137,7 +137,7 @@ export function buildPartialDriver(overrides: Partial<LocatedDriver> = {}): Loca
     twicActive: null,
     medicalCardActive: null,
     clearinghouseRegistered: null,
-    mvrClean3Years: null,
+    mvrStatus: null,
     smsOptIn: false,
     smsOptInAt: null,
     smsOptInText: null,
@@ -164,7 +164,7 @@ export const SCREEN_INPUTS = {
   certifications: { certifications: ["OSHA 10"] },
   credentials: { twicActive: true, medicalCardActive: true },
   documents: {},
-  compliance: { clearinghouseRegistered: true, mvrClean3Years: true },
+  compliance: { clearinghouseRegistered: true, mvrStatus: "clean" },
   bio: { bio: "Reliable and on time." },
   consent: { consent: true },
 } as const;
@@ -211,7 +211,7 @@ export const validChecks = (overrides: Record<string, unknown> = {}) => ({
   twicActive: true,
   medicalCardActive: true,
   clearinghouseRegistered: true,
-  mvrClean3Years: true,
+  mvrStatus: "clean",
   ...overrides,
 });
 

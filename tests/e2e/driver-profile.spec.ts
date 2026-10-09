@@ -36,7 +36,7 @@ async function startWithCompletedCard(
       twic_active: true,
       medical_card_active: true,
       clearinghouse_registered: true,
-      mvr_clean_3_years: true,
+      mvr_status: "clean",
       availability: ["full_time"],
       bio: "Reliable and on time.",
       sms_opt_in: true,
@@ -146,7 +146,7 @@ test.describe("driver profile", () => {
       .click();
     await page
       .getByRole("group", { name: "Any moving violations in the last 3 years?" })
-      .getByText("One or more", { exact: true })
+      .getByText("1 or 2 minor", { exact: true })
       .click();
     await page.getByText("Weekends", { exact: true }).click();
     await page.getByLabel("About you").fill("Fifteen years. Tanker and flatbed.");
@@ -175,7 +175,7 @@ test.describe("driver profile", () => {
       twic_active: false,
       medical_card_active: true,
       clearinghouse_registered: true,
-      mvr_clean_3_years: false,
+      mvr_status: "minor_1_2",
       availability: ["full_time", "weekends"],
       bio: "Fifteen years. Tanker and flatbed.",
       // Consent and completion are untouched by an edit.

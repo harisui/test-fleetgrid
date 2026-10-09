@@ -18,6 +18,7 @@ export type EmploymentType = Enums["employment_type"];
 export type DrivingStyle = Enums["driving_style"];
 export type TransmissionType = Enums["transmission_type"];
 export type EquipmentType = Enums["equipment_type"];
+export type MvrStatus = Enums["mvr_status"];
 
 export const USER_ROLES = ["driver", "carrier", "admin"] as const satisfies readonly UserRole[];
 /** Roles a user can pick for themselves at sign-up. */
@@ -87,6 +88,13 @@ export const EQUIPMENT_TYPES = [
   "reefer",
   "yard_mule",
 ] as const satisfies readonly EquipmentType[];
+
+/** Moving violations in the last 3 years: none, 1 to 2 minor, or 3 or more or a major one. */
+export const MVR_STATUSES = [
+  "clean",
+  "minor_1_2",
+  "major_3_plus",
+] as const satisfies readonly MvrStatus[];
 
 /** The work type whose drivers answer the CDL-only questions (driving style, equipment, record). */
 export const CDL_WORK_TYPE: OperatorType = "cdl_driver";
@@ -164,8 +172,8 @@ export interface Driver {
   medicalCardActive: boolean | null;
   /** CDL drivers only. Null for everyone else. */
   clearinghouseRegistered: boolean | null;
-  /** True when the driver reports no moving violations in the last 3 years. */
-  mvrClean3Years: boolean | null;
+  /** Moving violations in the last 3 years, in three levels. */
+  mvrStatus: MvrStatus | null;
   smsOptIn: boolean;
   smsOptInAt: string | null;
   smsOptInText: string | null;

@@ -28,6 +28,7 @@ import {
   ENDORSEMENTS,
   EQUIPMENT_TYPES,
   isCdlDriver,
+  MVR_STATUSES,
   OPERATOR_TYPES,
   TRANSMISSION_TYPES,
 } from "@/types/domain";
@@ -149,7 +150,10 @@ export const driverChecksSchema = z.object({
   twicActive: z.boolean({ error: TWIC_MESSAGE }),
   medicalCardActive: z.boolean({ error: MEDICAL_CARD_MESSAGE }),
   clearinghouseRegistered: optionalYesNo(CLEARINGHOUSE_MESSAGE),
-  mvrClean3Years: optionalYesNo(MVR_MESSAGE),
+  mvrStatus: z
+    .enum(MVR_STATUSES, { error: MVR_MESSAGE })
+    .nullish()
+    .transform((value) => value ?? null),
 });
 
 type ChecksOutput = z.infer<typeof driverChecksSchema> & { operatorTypes: readonly string[] };
@@ -164,7 +168,7 @@ function requireCdlChecks(value: ChecksOutput, ctx: z.RefinementCtx): void {
   if (value.clearinghouseRegistered === null) {
     missing.push(["clearinghouseRegistered", CLEARINGHOUSE_MESSAGE]);
   }
-  if (value.mvrClean3Years === null) missing.push(["mvrClean3Years", MVR_MESSAGE]);
+  if (value.mvrStatus === null) missing.push(["mvrStatus", MVR_MESSAGE]);
   for (const [path, message] of missing) ctx.addIssue({ code: "custom", path: [path], message });
 }
 

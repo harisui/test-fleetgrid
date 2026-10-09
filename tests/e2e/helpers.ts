@@ -175,7 +175,7 @@ export const CARD_ANSWERS = {
   twic_active: true,
   medical_card_active: true,
   clearinghouse_registered: true,
-  mvr_clean_3_years: true,
+  mvr_status: "clean" as const,
   bio: "Reliable and on time.",
 };
 
@@ -238,7 +238,7 @@ function driverRowAtStep(stepNumber: number) {
     twic_active: or(answered(13), CARD_ANSWERS.twic_active),
     medical_card_active: or(answered(13), CARD_ANSWERS.medical_card_active),
     clearinghouse_registered: or(answered(15), CARD_ANSWERS.clearinghouse_registered),
-    mvr_clean_3_years: or(answered(15), CARD_ANSWERS.mvr_clean_3_years),
+    mvr_status: or(answered(15), CARD_ANSWERS.mvr_status),
     bio: or(answered(16), CARD_ANSWERS.bio),
     sms_opt_in: complete,
     sms_opt_in_at: or(complete, new Date().toISOString()),

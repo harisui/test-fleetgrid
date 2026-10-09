@@ -74,7 +74,7 @@ describe("DriverRepository (local Supabase)", () => {
       twicActive: null,
       medicalCardActive: null,
       clearinghouseRegistered: null,
-      mvrClean3Years: null,
+      mvrStatus: null,
       smsOptIn: false,
       smsOptInAt: null,
       smsOptInText: null,
@@ -140,7 +140,7 @@ describe("DriverRepository (local Supabase)", () => {
       twicActive: true,
       medicalCardActive: false,
       clearinghouseRegistered: true,
-      mvrClean3Years: false,
+      mvrStatus: "minor_1_2",
     });
     expect(updated).toMatchObject({
       employmentType: "owner_operator_1099",
@@ -150,7 +150,7 @@ describe("DriverRepository (local Supabase)", () => {
       twicActive: true,
       medicalCardActive: false,
       clearinghouseRegistered: true,
-      mvrClean3Years: false,
+      mvrStatus: "minor_1_2",
     });
   });
 
@@ -192,7 +192,7 @@ describe("DriverRepository (local Supabase)", () => {
       twic_active: true,
       medical_card_active: false,
       clearinghouse_registered: true,
-      mvr_clean_3_years: false,
+      mvr_status: "minor_1_2",
       sms_opt_in: true,
       sms_opt_in_text: SMS_CONSENT_TEXT,
       onboarding_step: 18,
@@ -201,7 +201,7 @@ describe("DriverRepository (local Supabase)", () => {
   });
 
   it("update maps a completed CDL driver card losing a check to VALIDATION", async () => {
-    const error = await expectAppError(repository.update(driver.id, { mvrClean3Years: null }));
+    const error = await expectAppError(repository.update(driver.id, { mvrStatus: null }));
     expect(error.code).toBe("VALIDATION");
   });
 

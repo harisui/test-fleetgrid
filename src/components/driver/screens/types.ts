@@ -10,6 +10,7 @@ import type {
   EmploymentType,
   Endorsement,
   EquipmentType,
+  MvrStatus,
   OperatorType,
   TransmissionType,
 } from "@/types/domain";
@@ -34,7 +35,7 @@ export interface OnboardingFormValues {
   twicActive?: boolean;
   medicalCardActive?: boolean;
   clearinghouseRegistered?: boolean;
-  mvrClean3Years?: boolean;
+  mvrStatus?: MvrStatus;
   bio?: string;
   consent?: boolean;
 }

@@ -9,6 +9,10 @@ import {
   ENDORSEMENT_OPTIONS,
   EQUIPMENT_CHIPS,
   EXPERIENCE_CHIPS,
+  MVR_CHIPS,
+  MVR_HELPER,
+  MVR_QUESTION,
+  MVR_SUMMARY,
   experienceChipFor,
   normalizeEndorsements,
   ONBOARDING_DOCUMENT_TILES,
@@ -324,7 +328,7 @@ describe("options", () => {
     ]);
   });
 
-  it("asks the four checks in the client's words, with two chips each", () => {
+  it("asks the three checks in the client's words, with two chips each", () => {
     expect(
       Object.entries(CARD_CHECKS).map(([key, check]) => [key, check.question, check.yes, check.no]),
     ).toEqual([
@@ -336,8 +340,20 @@ describe("options", () => {
         "Registered",
         "Not yet",
       ],
-      ["mvrClean3Years", "Any moving violations in the last 3 years?", "None", "One or more"],
     ]);
+  });
+
+  it("asks the MVR in the client's three levels, with major spelled out", () => {
+    expect(MVR_QUESTION).toBe("Any moving violations in the last 3 years?");
+    expect(MVR_CHIPS.map((chip) => [chip.value, chip.label])).toEqual([
+      ["clean", "None"],
+      ["minor_1_2", "1 or 2 minor"],
+      ["major_3_plus", "3 or more, or a major one"],
+    ]);
+    expect(MVR_HELPER).toBe(
+      "Major means a DUI, reckless driving, leaving the scene or a suspended license.",
+    );
+    expect(Object.keys(MVR_SUMMARY)).toEqual(MVR_CHIPS.map((chip) => chip.value));
   });
 
   it("gives every endorsement its own icon", () => {

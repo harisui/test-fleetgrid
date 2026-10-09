@@ -7,11 +7,18 @@ import type {
   ScreenDefinition,
   ScreenFieldsProps,
 } from "@/components/driver/screens/types";
+import { ChipGroup } from "@/components/shared/ChipGroup";
 import { YesNoChips } from "@/components/shared/YesNoChips";
-import { CARD_CHECKS, COMPLIANCE_HELPER } from "@/lib/onboarding/options";
+import {
+  CARD_CHECKS,
+  COMPLIANCE_HELPER,
+  MVR_CHIPS,
+  MVR_HELPER,
+  MVR_QUESTION,
+} from "@/lib/onboarding/options";
 import { complianceScreenSchema } from "@/lib/validation/onboarding.schema";
 
-/** CDL drivers only: FMCSA Clearinghouse registration and a clean MVR. */
+/** CDL drivers only: FMCSA Clearinghouse registration and the MVR in three levels. */
 function ComplianceFields({ showQuestion, question }: ScreenFieldsProps) {
   const {
     control,
@@ -37,15 +44,15 @@ function ComplianceFields({ showQuestion, question }: ScreenFieldsProps) {
       />
       <Controller
         control={control}
-        name="mvrClean3Years"
+        name="mvrStatus"
         render={({ field }) => (
-          <YesNoChips
-            label={CARD_CHECKS.mvrClean3Years.question}
-            yes={CARD_CHECKS.mvrClean3Years.yes}
-            no={CARD_CHECKS.mvrClean3Years.no}
+          <ChipGroup
+            label={MVR_QUESTION}
+            description={MVR_HELPER}
+            options={MVR_CHIPS}
             value={field.value}
             onChange={field.onChange}
-            error={errors.mvrClean3Years?.message}
+            error={errors.mvrStatus?.message}
           />
         )}
       />
@@ -55,11 +62,11 @@ function ComplianceFields({ showQuestion, question }: ScreenFieldsProps) {
 
 export const complianceScreen: ScreenDefinition = {
   id: "compliance",
-  fields: ["clearinghouseRegistered", "mvrClean3Years"],
+  fields: ["clearinghouseRegistered", "mvrStatus"],
   schema: () => complianceScreenSchema,
   defaults: (driver) => ({
     clearinghouseRegistered: driver?.clearinghouseRegistered ?? undefined,
-    mvrClean3Years: driver?.mvrClean3Years ?? undefined,
+    mvrStatus: driver?.mvrStatus ?? undefined,
   }),
   Fields: ComplianceFields,
 };

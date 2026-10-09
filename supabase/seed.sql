@@ -127,7 +127,7 @@ begin
       profile_id, full_name, operator_types, cdl_class, endorsements, years_experience,
       city, state, zip, lat, lng, service_radius_miles, availability, certifications, bio,
       employment_type, driving_styles, transmission, equipment_types,
-      twic_active, medical_card_active, clearinghouse_registered, mvr_clean_3_years,
+      twic_active, medical_card_active, clearinghouse_registered, mvr_status,
       sms_opt_in, sms_opt_in_at, sms_opt_in_text, sms_opted_out, sms_opted_out_at,
       onboarding_step, card_completed
     ) values (
@@ -151,7 +151,10 @@ begin
            else array['yard_mule', 'dry_van'] end::public.equipment_type[],
       (i % 2 = 0), (i % 7 <> 0),
       case when v_cdl_driver then (i % 4 <> 3) end,
-      case when v_cdl_driver then (i % 5 <> 4) end,
+      case when not v_cdl_driver then null
+           when i % 5 = 4 then 'major_3_plus'
+           when i % 5 = 2 then 'minor_1_2'
+           else 'clean' end::public.mvr_status,
       true, now() - make_interval(days => i),
       'I agree to receive text messages from FleetGrid about available shifts at this number. Message frequency varies. Message and data rates may apply. Reply STOP to opt out, HELP for help.',
       v_opted_out, case when v_opted_out then now() - interval '1 day' end,

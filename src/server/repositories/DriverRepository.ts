@@ -8,6 +8,7 @@ import type {
   EmploymentType,
   Endorsement,
   EquipmentType,
+  MvrStatus,
   OperatorType,
   TransmissionType,
 } from "@/types/domain";
@@ -48,7 +49,7 @@ export interface DriverPatch {
   twicActive?: boolean | null;
   medicalCardActive?: boolean | null;
   clearinghouseRegistered?: boolean | null;
-  mvrClean3Years?: boolean | null;
+  mvrStatus?: MvrStatus | null;
   smsOptIn?: boolean;
   smsOptInAt?: string;
   smsOptInText?: string;
@@ -87,7 +88,7 @@ export function mapDriver(row: DriverRow): Driver {
     twicActive: row.twic_active,
     medicalCardActive: row.medical_card_active,
     clearinghouseRegistered: row.clearinghouse_registered,
-    mvrClean3Years: row.mvr_clean_3_years,
+    mvrStatus: row.mvr_status,
     smsOptIn: row.sms_opt_in,
     smsOptInAt: row.sms_opt_in_at,
     smsOptInText: row.sms_opt_in_text,
@@ -124,7 +125,7 @@ export function toDriverUpdate(patch: DriverPatch): DriverUpdate {
     twicActive: "twic_active",
     medicalCardActive: "medical_card_active",
     clearinghouseRegistered: "clearinghouse_registered",
-    mvrClean3Years: "mvr_clean_3_years",
+    mvrStatus: "mvr_status",
     smsOptIn: "sms_opt_in",
     smsOptInAt: "sms_opt_in_at",
     smsOptInText: "sms_opt_in_text",

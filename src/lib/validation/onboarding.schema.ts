@@ -17,6 +17,7 @@ import {
   EMPLOYMENT_TYPES,
   ENDORSEMENTS,
   EQUIPMENT_TYPES,
+  MVR_STATUSES,
   OPERATOR_TYPES,
   TRANSMISSION_TYPES,
   type CdlClass,
@@ -100,7 +101,7 @@ export const EQUIPMENT_MESSAGE = "Pick at least one kind of equipment";
 export const TWIC_MESSAGE = "Tap Yes or No for the TWIC card";
 export const MEDICAL_CARD_MESSAGE = "Tap Yes or No for the medical card";
 export const CLEARINGHOUSE_MESSAGE = "Tap Registered or Not yet";
-export const MVR_MESSAGE = "Tap None or One or more";
+export const MVR_MESSAGE = "Pick None, 1 or 2 minor, or 3 or more";
 
 /** A yes-or-no chip answer. Only a real boolean counts; "true" or 1 is not a tap. */
 const yesNo = (message: string) => z.boolean({ error: message });
@@ -131,7 +132,7 @@ export const credentialsScreenSchema = z.object({
 
 export const complianceScreenSchema = z.object({
   clearinghouseRegistered: yesNo(CLEARINGHOUSE_MESSAGE),
-  mvrClean3Years: yesNo(MVR_MESSAGE),
+  mvrStatus: z.enum(MVR_STATUSES, { error: MVR_MESSAGE }),
 });
 
 export const experienceScreenSchema = z.object({

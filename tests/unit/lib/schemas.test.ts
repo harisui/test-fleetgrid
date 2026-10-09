@@ -317,7 +317,7 @@ describe("driverChecksSchema (equipment and checks)", () => {
       twicActive: true,
       medicalCardActive: true,
       clearinghouseRegistered: true,
-      mvrClean3Years: true,
+      mvrStatus: "clean",
     });
   });
 
@@ -329,7 +329,7 @@ describe("driverChecksSchema (equipment and checks)", () => {
       twicActive: false,
       medicalCardActive: true,
       clearinghouseRegistered: null,
-      mvrClean3Years: null,
+      mvrStatus: null,
     });
   });
 
@@ -347,7 +347,8 @@ describe("driverChecksSchema (equipment and checks)", () => {
     [{ twicActive: null }, { twicActive: TWIC_MESSAGE }],
     [{ medicalCardActive: 1 }, { medicalCardActive: MEDICAL_CARD_MESSAGE }],
     [{ clearinghouseRegistered: "true" }, { clearinghouseRegistered: CLEARINGHOUSE_MESSAGE }],
-    [{ mvrClean3Years: "none" }, { mvrClean3Years: MVR_MESSAGE }],
+    [{ mvrStatus: "none" }, { mvrStatus: MVR_MESSAGE }],
+    [{ mvrStatus: true }, { mvrStatus: MVR_MESSAGE }],
     [{ transmission: "stick" }, { transmission: TRANSMISSION_MESSAGE }],
     [{ drivingStyles: ["night"] }, "drivingStyles.0"],
     [{ equipmentTypes: ["tanker"] }, "equipmentTypes.0"],
@@ -376,7 +377,7 @@ describe("driverCardSchema (profile edit)", () => {
       twicActive: true,
       medicalCardActive: true,
       clearinghouseRegistered: true,
-      mvrClean3Years: true,
+      mvrStatus: "clean",
       availability: ["full_time", "weekends"],
       bio: "Reliable and on time.",
     });
@@ -395,7 +396,7 @@ describe("driverCardSchema (profile edit)", () => {
           transmission: null,
           equipmentTypes: [],
           clearinghouseRegistered: null,
-          mvrClean3Years: null,
+          mvrStatus: null,
         }),
       ),
     ).toEqual({
@@ -403,11 +404,11 @@ describe("driverCardSchema (profile edit)", () => {
       transmission: TRANSMISSION_MESSAGE,
       equipmentTypes: EQUIPMENT_MESSAGE,
       clearinghouseRegistered: CLEARINGHOUSE_MESSAGE,
-      mvrClean3Years: MVR_MESSAGE,
+      mvrStatus: MVR_MESSAGE,
     });
     expect(
-      errorsOf(driverCardSchema, validCard({ transmission: undefined, mvrClean3Years: undefined })),
-    ).toEqual({ transmission: TRANSMISSION_MESSAGE, mvrClean3Years: MVR_MESSAGE });
+      errorsOf(driverCardSchema, validCard({ transmission: undefined, mvrStatus: undefined })),
+    ).toEqual({ transmission: TRANSMISSION_MESSAGE, mvrStatus: MVR_MESSAGE });
   });
 
   it("lets everyone else leave the CDL-only answers empty", () => {
@@ -420,7 +421,7 @@ describe("driverCardSchema (profile edit)", () => {
         transmission: null,
         equipmentTypes: [],
         clearinghouseRegistered: null,
-        mvrClean3Years: null,
+        mvrStatus: null,
       }),
     );
     expect(parsed).toMatchObject({
@@ -430,7 +431,7 @@ describe("driverCardSchema (profile edit)", () => {
       twicActive: true,
       medicalCardActive: true,
       clearinghouseRegistered: null,
-      mvrClean3Years: null,
+      mvrStatus: null,
     });
   });
 

@@ -33,6 +33,7 @@ import type {
   EmploymentType,
   Endorsement,
   EquipmentType,
+  MvrStatus,
   OperatorType,
   TransmissionType,
 } from "@/types/domain";
@@ -249,7 +250,7 @@ export interface CheckOption {
   summary: { yes: string; no: string };
 }
 
-/** The four yes-or-no checks. TWIC and medical card are asked of everyone; the rest of CDL drivers. */
+/** The three yes-or-no checks. TWIC and medical card are asked of everyone; the Clearinghouse of CDL drivers. */
 export const CARD_CHECKS = {
   twicActive: {
     question: "Do you have an active TWIC card?",
@@ -269,15 +270,30 @@ export const CARD_CHECKS = {
     no: "Not yet",
     summary: { yes: "In the Clearinghouse", no: "Not in the Clearinghouse" },
   },
-  mvrClean3Years: {
-    question: "Any moving violations in the last 3 years?",
-    yes: "None",
-    no: "One or more",
-    summary: { yes: "no violations in 3 years", no: "violations in the last 3 years" },
-  },
 } as const satisfies Record<string, CheckOption>;
 
 export type CardCheck = keyof typeof CARD_CHECKS;
+
+/**
+ * The MVR in three levels (client decision of 2026-10-09). CDL drivers only; shares the
+ * record screen with the Clearinghouse question.
+ */
+export const MVR_QUESTION = "Any moving violations in the last 3 years?";
+export const MVR_HELPER =
+  "Major means a DUI, reckless driving, leaving the scene or a suspended license.";
+
+export const MVR_CHIPS: readonly ChipOption<MvrStatus>[] = [
+  { value: "clean", label: "None" },
+  { value: "minor_1_2", label: "1 or 2 minor" },
+  { value: "major_3_plus", label: "3 or more, or a major one" },
+];
+
+/** How each level reads on the summary card and the profile, after "In the Clearinghouse, ". */
+export const MVR_SUMMARY: Record<MvrStatus, string> = {
+  clean: "no violations in 3 years",
+  minor_1_2: "1 or 2 minor violations in 3 years",
+  major_3_plus: "3 or more or a major violation in 3 years",
+};
 
 export const CREDENTIALS_HELPER = "Carriers ask for both. You can update these any time.";
 export const COMPLIANCE_HELPER = "Carriers check both before booking a shift.";

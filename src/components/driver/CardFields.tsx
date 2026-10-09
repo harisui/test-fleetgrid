@@ -30,6 +30,9 @@ import {
   EQUIPMENT_CHIPS,
   EXPERIENCE_CHIPS,
   experienceChipFor,
+  MVR_CHIPS,
+  MVR_HELPER,
+  MVR_QUESTION,
   TRANSMISSION_OPTIONS,
   TRANSMISSION_QUESTION,
   type CardCheck,
@@ -71,6 +74,7 @@ const ENDORSEMENT_OPTIONS = options(ENDORSEMENTS, ENDORSEMENT_LABELS);
 const DRIVING_OPTIONS = choices(DRIVING_STYLE_OPTIONS);
 const TRANSMISSION_CHOICES = choices(TRANSMISSION_OPTIONS);
 const EQUIPMENT_OPTIONS = choices(EQUIPMENT_CHIPS);
+const MVR_OPTIONS = choices(MVR_CHIPS);
 const AVAILABILITY_OPTIONS = options(AVAILABILITY_TYPES, AVAILABILITY_LABELS);
 /** Choice values are strings; the years chips store numbers. */
 const EXPERIENCE_OPTIONS = EXPERIENCE_CHIPS.map((chip) => ({
@@ -363,11 +367,21 @@ export function ChecksFields<T extends FieldValues>({
             errorOf={errorOf}
             disabled={disabled}
           />
-          <CheckChoice
+          <Controller
             control={control}
-            name="mvrClean3Years"
-            errorOf={errorOf}
-            disabled={disabled}
+            name={field<T>("mvrStatus")}
+            render={({ field: input }) => (
+              <ChoiceGroup
+                label={MVR_QUESTION}
+                description={MVR_HELPER}
+                options={MVR_OPTIONS}
+                value={input.value ?? undefined}
+                onChange={input.onChange}
+                error={errorOf("mvrStatus")}
+                disabled={disabled}
+                required
+              />
+            )}
           />
         </>
       )}

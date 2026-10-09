@@ -72,7 +72,7 @@ export function missingCardFields(driver: Driver): { field: string; stepId: Step
   need(driver.twicActive === null, "twicActive", "credentials");
   need(driver.medicalCardActive === null, "medicalCardActive", "credentials");
   need(cdl && driver.clearinghouseRegistered === null, "clearinghouseRegistered", "compliance");
-  need(cdl && driver.mvrClean3Years === null, "mvrClean3Years", "compliance");
+  need(cdl && driver.mvrStatus === null, "mvrStatus", "compliance");
   return missing;
 }
 

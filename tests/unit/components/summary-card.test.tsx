@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { checkSummary, SummaryCard } from "@/components/driver/SummaryCard";
+import { checkSummary, mvrSummary, SummaryCard } from "@/components/driver/SummaryCard";
 import { buildDriver } from "../../setup/factories";
 
 const rows = () =>
@@ -41,7 +41,7 @@ describe("SummaryCard", () => {
           twicActive: false,
           medicalCardActive: false,
           clearinghouseRegistered: null,
-          mvrClean3Years: null,
+          mvrStatus: null,
         })}
         onEdit={vi.fn()}
       />,
@@ -75,6 +75,21 @@ describe("SummaryCard", () => {
   it("reads an unanswered check as such", () => {
     expect(checkSummary("twicActive", null)).toBe("Not answered");
     expect(checkSummary("twicActive", true)).toBe("TWIC");
-    expect(checkSummary("mvrClean3Years", false)).toBe("violations in the last 3 years");
+    expect(checkSummary("clearinghouseRegistered", false)).toBe("Not in the Clearinghouse");
+  });
+
+  it("reads each MVR level in a sentence", () => {
+    expect(mvrSummary(null)).toBe("Not answered");
+    expect(mvrSummary("clean")).toBe("no violations in 3 years");
+    expect(mvrSummary("minor_1_2")).toBe("1 or 2 minor violations in 3 years");
+    expect(mvrSummary("major_3_plus")).toBe("3 or more or a major violation in 3 years");
+  });
+
+  it("shows the MVR level on the record row", () => {
+    render(<SummaryCard driver={buildDriver({ mvrStatus: "major_3_plus" })} onEdit={vi.fn()} />);
+    expect(rows()).toContainEqual([
+      "Record",
+      "In the Clearinghouse, 3 or more or a major violation in 3 years",
+    ]);
   });
 });

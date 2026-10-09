@@ -55,7 +55,7 @@ export class FakeDriverRepository implements IDriverRepository {
       twicActive: null,
       medicalCardActive: null,
       clearinghouseRegistered: null,
-      mvrClean3Years: null,
+      mvrStatus: null,
       smsOptIn: false,
       smsOptInAt: null,
       smsOptInText: null,
