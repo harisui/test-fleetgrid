@@ -1,6 +1,6 @@
 # FleetGrid
 
-A confidential B2B directory that connects local freight carriers with certified transport operators (CDL drivers, yard spotters, mechanics).
+A confidential B2B directory that connects local freight carriers with certified transport operators. At launch every driver is a CDL driver (client decision of 2026-10-09); yard spotters and mechanics come later.
 
 **Status:** Milestone 1 (foundation and driver side).
 
@@ -112,11 +112,21 @@ E2E_WEBKIT=1 pnpm exec playwright test --project=mobile-safari-webkit   # real S
 
 Coverage thresholds (enforced in `vitest.config.ts`): services 95% lines and 90% branches, `src/lib` 95% lines, overall 85% lines. A task is done only when `pnpm test:all` is green.
 
-`pnpm design-review` writes `design-review/index.html` (ignored by git): each of the eighteen
-onboarding screens of the running app beside the approved prototype frame in
-`tests/design-review/workshop-prototype.html`, at 390×844 in light and dark, plus the grouped
-desktop pages. The five screens added on 2026-10-09 have no prototype frame and are marked so.
-Open the file in a browser to compare.
+`pnpm design-review` writes `design-review/index.html` (ignored by git): each of the six
+sign-up pages (one per mile, the same on every device) and the done screen of the running app
+beside the approved prototype frame in `tests/design-review/workshop-prototype.html` where one
+exists, at 390 wide in light and dark and at 1280 wide. Pages the prototype predates are marked
+so. Open the file in a browser to compare.
+
+### The sign-up
+
+Twelve screens in six miles, a mile per page (`src/lib/onboarding/steps.ts`): About (name, ZIP,
+distance), CDL (class, years, MVR level), Cards (TWIC, DOT medical card), Letters (endorsements,
+transmission), Equipment, Finish (SMS consent, then "Find local shifts"). Every page is saved on
+Next, so a driver can leave and resume on the same page. The answers sign-up no longer asks
+(W-2 or 1099, driving style, the Clearinghouse, availability, certifications, papers, about you)
+are optional on the profile page, and the CDL photos are asked for when a shift comes up
+(Milestone 3).
 
 ## Architecture
 

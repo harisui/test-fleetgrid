@@ -1,7 +1,10 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import { MILES } from "../../src/lib/onboarding/steps";
-import { isGrouped, openOnboarding, PHONES, resetUser, seedDriverAtStep } from "./helpers";
+import { openOnboarding, PHONES, resetUser, seedDriverAtStep } from "./helpers";
+
+/** The Help surface is a popover from 768px up and a bottom sheet below. */
+const isWide = (page: Page) => (page.viewportSize()?.width ?? 0) >= 768;
 
 /**
  * The Help sheet: a bottom sheet on phones, a popover on wider screens, with the sign-in
@@ -58,7 +61,7 @@ test("on the login screen: opens, shows the help, closes, in the layout for this
   await expectHelpContent(page);
 
   const surface = helpSurface(page);
-  if (isGrouped(page)) {
+  if (isWide(page)) {
     await expect(surface).toHaveAttribute("data-slot", "help-popover");
     // Anchored under the button, not pinned to the bottom edge.
     const button = await helpButton(page).boundingBox();

@@ -3,10 +3,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { SMS_CONSENT_TEXT } from "@/lib/constants";
 import { SAVABLE_STEP_IDS, stepNumber, type SavableStepId } from "@/lib/onboarding/steps";
 import {
-  CDL_CONFLICT_MESSAGE,
-  CLEARINGHOUSE_MESSAGE,
-  DRIVING_STYLE_MESSAGE,
-  EMPLOYMENT_MESSAGE,
+  CDL_CLASS_MESSAGE,
   EQUIPMENT_MESSAGE,
   MEDICAL_CARD_MESSAGE,
   MVR_MESSAGE,
@@ -42,16 +39,22 @@ async function expectAppError(promise: Promise<unknown>): Promise<AppError> {
 
 const NOW = new Date("2026-10-05T15:30:00.000Z");
 
-/** The CDL-only answers, unanswered. */
-const NO_CDL_CHECKS: Pick<
+/** The answers sign-up no longer asks, left empty, as a card straight out of sign-up has them. */
+const PROFILE_ONLY_EMPTY: Pick<
   LocatedDriver,
-  "drivingStyles" | "transmission" | "equipmentTypes" | "clearinghouseRegistered" | "mvrStatus"
+  | "employmentType"
+  | "drivingStyles"
+  | "clearinghouseRegistered"
+  | "availability"
+  | "certifications"
+  | "bio"
 > = {
+  employmentType: null,
   drivingStyles: [],
-  transmission: null,
-  equipmentTypes: [],
   clearinghouseRegistered: null,
-  mvrStatus: null,
+  availability: [],
+  certifications: [],
+  bio: null,
 };
 
 describe("DriverService", () => {
@@ -86,7 +89,7 @@ describe("DriverService", () => {
     );
   });
 
-  /** Saves every screen up to and including `upTo` with valid input (a CDL driver). */
+  /** Saves every screen up to and including `upTo` with valid input. */
   async function completeThrough(upTo: SavableStepId) {
     for (const stepId of SAVABLE_STEP_IDS) {
       await service.saveScreen(USER_ID, stepId, SCREEN_INPUTS[stepId]);
@@ -151,7 +154,7 @@ describe("DriverService", () => {
     });
 
     it.each(SAVABLE_STEP_IDS.slice(0, -1).map((id, index) => [id, SAVABLE_STEP_IDS[index + 1]]))(
-      "after saving %s a CDL driver resumes on %s",
+      "after saving %s the driver resumes on %s",
       async (saved, next) => {
         await completeThrough(saved);
         const state = await service.getOnboardingState(USER_ID);
@@ -170,7 +173,7 @@ describe("DriverService", () => {
   });
 
   describe("name screen", () => {
-    it("creates a card with only the name and moves to the ZIP screen", async () => {
+    it("creates a CDL driver's card with only the name and moves to the ZIP screen", async () => {
       const driver = await service.saveScreen(USER_ID, "name", { fullName: "  Pat Driver " });
       expect(driver).toMatchObject({
         profileId: USER_ID,
@@ -180,13 +183,16 @@ describe("DriverService", () => {
         zip: null,
         onboardingStep: stepNumber("zip"),
         cardCompleted: false,
-        operatorTypes: [],
-        employmentType: null,
-        availability: [],
+        // CDL drivers only at launch: the work type is set, not asked.
+        operatorTypes: ["cdl_driver"],
+        cdlClass: "none",
         yearsExperience: null,
+        mvrStatus: null,
         twicActive: null,
         medicalCardActive: null,
-        ...NO_CDL_CHECKS,
+        transmission: null,
+        equipmentTypes: [],
+        ...PROFILE_ONLY_EMPTY,
         smsOptIn: false,
       });
     });
@@ -204,11 +210,12 @@ describe("DriverService", () => {
     });
 
     it("saving the name again keeps later answers and progress", async () => {
-      await completeThrough("availability");
+      await completeThrough("experience");
       const driver = await service.saveScreen(USER_ID, "name", { fullName: "Patricia Driver" });
       expect(driver.fullName).toBe("Patricia Driver");
-      expect(driver.onboardingStep).toBe(stepNumber("cdlClass"));
-      expect(driver.operatorTypes).toEqual(["cdl_driver"]);
+      expect(driver.onboardingStep).toBe(stepNumber("record"));
+      expect(driver.cdlClass).toBe("A");
+      expect(driver.yearsExperience).toBe(8);
     });
 
     it("a double submit that loses the insert race still saves", async () => {
@@ -250,13 +257,7 @@ describe("DriverService", () => {
 
     it("a screen cannot be skipped to", async () => {
       await completeThrough("zip");
-      for (const stepId of [
-        "workType",
-        "equipment",
-        "cdlClass",
-        "credentials",
-        "consent",
-      ] as const) {
+      for (const stepId of ["cdlClass", "record", "credentials", "equipment", "consent"] as const) {
         const error = await expectAppError(
           service.saveScreen(USER_ID, stepId, SCREEN_INPUTS[stepId]),
         );
@@ -265,11 +266,14 @@ describe("DriverService", () => {
       expect(card().onboardingStep).toBe(stepNumber("distance"));
     });
 
-    it.each(["done", "basics", 1, "", null, undefined])("rejects unknown step %j", async (step) => {
-      const error = await expectAppError(service.saveScreen(USER_ID, step, SCREEN_INPUTS.name));
-      expect(error.code).toBe("VALIDATION");
-      expect(error.message).toBe("Unknown onboarding step");
-    });
+    it.each(["done", "workType", "compliance", 1, "", null, undefined])(
+      "rejects unknown step %j",
+      async (step) => {
+        const error = await expectAppError(service.saveScreen(USER_ID, step, SCREEN_INPUTS.name));
+        expect(error.code).toBe("VALIDATION");
+        expect(error.message).toBe("Unknown onboarding step");
+      },
+    );
   });
 
   describe("about screens", () => {
@@ -311,214 +315,80 @@ describe("DriverService", () => {
       expect(card().zip).toBeNull();
     });
 
-    it("saves the travel distance", async () => {
+    it("saves the travel distance and moves to the CDL page", async () => {
       await service.saveScreen(USER_ID, "zip", SCREEN_INPUTS.zip);
       const driver = await service.saveScreen(USER_ID, "distance", { serviceRadiusMiles: "250" });
       expect(driver.serviceRadiusMiles).toBe(250);
-      expect(driver.onboardingStep).toBe(stepNumber("workType"));
-    });
-  });
-
-  describe("work screens", () => {
-    beforeEach(() => completeThrough("distance"));
-
-    it("saves work types without duplicates and moves to employment type", async () => {
-      const driver = await service.saveScreen(USER_ID, "workType", {
-        operatorTypes: ["mechanic", "cdl_driver", "mechanic"],
-      });
-      expect(driver.operatorTypes).toEqual(["mechanic", "cdl_driver"]);
-      expect(driver.onboardingStep).toBe(stepNumber("employmentType"));
-    });
-
-    it("requires at least one work type", async () => {
-      const error = await expectAppError(
-        service.saveScreen(USER_ID, "workType", { operatorTypes: [] }),
-      );
-      expect(error.fieldErrors).toEqual({ operatorTypes: "Pick at least one kind of work" });
-    });
-
-    it("saves the employment type and sends a CDL driver to the driving-style screen", async () => {
-      await service.saveScreen(USER_ID, "workType", SCREEN_INPUTS.workType);
-      for (const employmentType of ["w2", "owner_operator_1099", "either"] as const) {
-        const driver = await service.saveScreen(USER_ID, "employmentType", { employmentType });
-        expect(driver.employmentType).toBe(employmentType);
-      }
-      expect(card().onboardingStep).toBe(stepNumber("drivingStyle"));
-    });
-
-    it("rejects an unknown employment type", async () => {
-      await service.saveScreen(USER_ID, "workType", SCREEN_INPUTS.workType);
-      const error = await expectAppError(
-        service.saveScreen(USER_ID, "employmentType", { employmentType: "contractor" }),
-      );
-      expect(error.fieldErrors).toEqual({ employmentType: EMPLOYMENT_MESSAGE });
-      expect(card().employmentType).toBeNull();
-    });
-
-    it("skips the driving-style and equipment screens for work without CDL driving", async () => {
-      await service.saveScreen(USER_ID, "workType", {
-        operatorTypes: ["mechanic", "yard_spotter"],
-      });
-      const driver = await service.saveScreen(USER_ID, "employmentType", {
-        employmentType: "either",
-      });
-      expect(driver.onboardingStep).toBe(stepNumber("experience"));
-      await expect(service.getOnboardingState(USER_ID)).resolves.toMatchObject({
-        stepId: "experience",
-      });
-      expect(driver).toMatchObject(NO_CDL_CHECKS);
-    });
-
-    it("resumes past a CDL-only screen a driver was parked on before dropping CDL work", async () => {
-      await completeThrough("employmentType");
-      expect(card().onboardingStep).toBe(stepNumber("drivingStyle"));
-      // Back to the work type, CDL driving dropped: progress stays, the screen no longer applies.
-      await service.saveScreen(USER_ID, "workType", { operatorTypes: ["mechanic"] });
-      expect(card().onboardingStep).toBe(stepNumber("drivingStyle"));
-      await expect(service.getOnboardingState(USER_ID)).resolves.toMatchObject({
-        stepId: "experience",
-      });
-      // The record screen likewise, once the papers are done.
-      await completeThrough("credentials");
-      await service.saveScreen(USER_ID, "documents", {});
-      await service.saveScreen(USER_ID, "workType", { operatorTypes: ["yard_spotter"] });
-      await service.saveScreen(USER_ID, "cdlClass", { cdlClass: "none" });
-      await expect(service.getOnboardingState(USER_ID)).resolves.toMatchObject({ stepId: "bio" });
-    });
-
-    it("saves driving styles without duplicates", async () => {
-      await completeThrough("employmentType");
-      const driver = await service.saveScreen(USER_ID, "drivingStyle", {
-        drivingStyles: ["otr", "regional", "otr"],
-      });
-      expect(driver.drivingStyles).toEqual(["otr", "regional"]);
-      expect(driver.onboardingStep).toBe(stepNumber("equipment"));
-    });
-
-    it("requires at least one driving style", async () => {
-      await completeThrough("employmentType");
-      const error = await expectAppError(
-        service.saveScreen(USER_ID, "drivingStyle", { drivingStyles: [] }),
-      );
-      expect(error.fieldErrors).toEqual({ drivingStyles: DRIVING_STYLE_MESSAGE });
-    });
-
-    it("saves the equipment and the transmission answer together", async () => {
-      await completeThrough("drivingStyle");
-      const driver = await service.saveScreen(USER_ID, "equipment", {
-        transmission: "automatic_only",
-        equipmentTypes: ["reefer", "reefer", "container_drayage"],
-      });
-      expect(driver.transmission).toBe("automatic_only");
-      expect(driver.equipmentTypes).toEqual(["reefer", "container_drayage"]);
-      expect(driver.onboardingStep).toBe(stepNumber("experience"));
-    });
-
-    it("requires both the equipment and the transmission answer", async () => {
-      await completeThrough("drivingStyle");
-      const error = await expectAppError(service.saveScreen(USER_ID, "equipment", {}));
-      expect(error.fieldErrors).toEqual({
-        transmission: TRANSMISSION_MESSAGE,
-        equipmentTypes: EQUIPMENT_MESSAGE,
-      });
-    });
-
-    it("saves experience, including zero", async () => {
-      await completeThrough("equipment");
-      const driver = await service.saveScreen(USER_ID, "experience", { yearsExperience: 0 });
-      expect(driver.yearsExperience).toBe(0);
-    });
-
-    it("rejects a blank experience", async () => {
-      await completeThrough("equipment");
-      const error = await expectAppError(
-        service.saveScreen(USER_ID, "experience", { yearsExperience: "" }),
-      );
-      expect(error.fieldErrors).toEqual({
-        yearsExperience: "Pick how many years you have done this work",
-      });
-    });
-
-    it("saves availability", async () => {
-      await completeThrough("experience");
-      const driver = await service.saveScreen(USER_ID, "availability", {
-        availability: ["on_call", "on_call"],
-      });
-      expect(driver.availability).toEqual(["on_call"]);
       expect(driver.onboardingStep).toBe(stepNumber("cdlClass"));
     });
   });
 
-  describe("license screens", () => {
-    beforeEach(() => completeThrough("availability"));
+  describe("CDL screens", () => {
+    beforeEach(() => completeThrough("distance"));
 
-    it("saves a CDL class and moves to endorsements", async () => {
+    it("saves a CDL class and moves to experience", async () => {
       const driver = await service.saveScreen(USER_ID, "cdlClass", { cdlClass: "B" });
       expect(driver.cdlClass).toBe("B");
-      expect(driver.onboardingStep).toBe(stepNumber("endorsements"));
+      expect(driver.onboardingStep).toBe(stepNumber("experience"));
     });
 
-    it("a CDL driver cannot pick No CDL", async () => {
-      const error = await expectAppError(
-        service.saveScreen(USER_ID, "cdlClass", { cdlClass: "none" }),
-      );
+    it.each(["none", "D", undefined])("rejects %j as a class: a CDL driver holds one", async (cdlClass) => {
+      const error = await expectAppError(service.saveScreen(USER_ID, "cdlClass", { cdlClass }));
       expect(error.code).toBe("VALIDATION");
-      expect(error.fieldErrors).toEqual({ cdlClass: CDL_CONFLICT_MESSAGE });
+      expect(error.fieldErrors).toEqual({ cdlClass: CDL_CLASS_MESSAGE });
       expect(card().cdlClass).toBe("none");
       expect(card().onboardingStep).toBe(stepNumber("cdlClass"));
     });
 
-    it("No CDL skips the endorsements screen and clears endorsements", async () => {
-      await service.saveScreen(USER_ID, "workType", { operatorTypes: ["yard_spotter"] });
-      await service.saveScreen(USER_ID, "cdlClass", { cdlClass: "A" });
-      await service.saveScreen(USER_ID, "endorsements", { endorsements: ["H"] });
-      const driver = await service.saveScreen(USER_ID, "cdlClass", { cdlClass: "none" });
-      expect(driver.endorsements).toEqual([]);
-      expect(driver.onboardingStep).toBe(stepNumber("certifications"));
-      await expect(service.getOnboardingState(USER_ID)).resolves.toMatchObject({
-        stepId: "certifications",
-      });
-    });
-
-    it("X always brings H and N, in display order", async () => {
-      await service.saveScreen(USER_ID, "cdlClass", { cdlClass: "A" });
-      const driver = await service.saveScreen(USER_ID, "endorsements", {
-        endorsements: ["T", "X"],
-      });
-      expect(driver.endorsements).toEqual(["X", "H", "N", "T"]);
-      expect(driver.onboardingStep).toBe(stepNumber("certifications"));
-    });
-
-    it("endorsements saved for a driver without a CDL are dropped", async () => {
-      await service.saveScreen(USER_ID, "workType", { operatorTypes: ["mechanic"] });
-      await service.saveScreen(USER_ID, "cdlClass", { cdlClass: "none" });
-      const driver = await service.saveScreen(USER_ID, "endorsements", { endorsements: ["H"] });
-      expect(driver.endorsements).toEqual([]);
-    });
-
-    it("saves certifications without case-insensitive duplicates and moves to the cards", async () => {
+    it("saves experience, including zero, and moves to the record", async () => {
       await service.saveScreen(USER_ID, "cdlClass", SCREEN_INPUTS.cdlClass);
-      await service.saveScreen(USER_ID, "endorsements", SCREEN_INPUTS.endorsements);
-      const driver = await service.saveScreen(USER_ID, "certifications", {
-        certifications: ["TWIC", "twic", " Forklift "],
+      const driver = await service.saveScreen(USER_ID, "experience", { yearsExperience: 0 });
+      expect(driver.yearsExperience).toBe(0);
+      expect(driver.onboardingStep).toBe(stepNumber("record"));
+    });
+
+    it("rejects a blank experience", async () => {
+      await service.saveScreen(USER_ID, "cdlClass", SCREEN_INPUTS.cdlClass);
+      const error = await expectAppError(
+        service.saveScreen(USER_ID, "experience", { yearsExperience: "" }),
+      );
+      expect(error.fieldErrors).toEqual({
+        yearsExperience: "Pick how many years you have driven",
       });
-      expect(driver.certifications).toEqual(["TWIC", "Forklift"]);
+    });
+
+    it("saves the MVR level, whatever it is, and moves to the cards", async () => {
+      await completeThrough("experience");
+      const driver = await service.saveScreen(USER_ID, "record", { mvrStatus: "major_3_plus" });
+      expect(driver.mvrStatus).toBe("major_3_plus");
       expect(driver.onboardingStep).toBe(stepNumber("credentials"));
     });
 
-    it("saves the TWIC and medical card answers, whatever they are", async () => {
-      await completeThrough("certifications");
+    it.each([{}, { mvrStatus: true }, { mvrStatus: "none" }, null])(
+      "needs one of the three MVR levels (%j)",
+      async (input) => {
+        await completeThrough("experience");
+        const error = await expectAppError(service.saveScreen(USER_ID, "record", input));
+        expect(error.fieldErrors).toEqual({ mvrStatus: MVR_MESSAGE });
+        expect(card().mvrStatus).toBeNull();
+      },
+    );
+  });
+
+  describe("cards screen", () => {
+    beforeEach(() => completeThrough("record"));
+
+    it("saves the TWIC and medical card answers, whatever they are, and moves to the letters", async () => {
       const driver = await service.saveScreen(USER_ID, "credentials", {
         twicActive: false,
         medicalCardActive: true,
       });
       expect(driver.twicActive).toBe(false);
       expect(driver.medicalCardActive).toBe(true);
-      expect(driver.onboardingStep).toBe(stepNumber("documents"));
+      expect(driver.onboardingStep).toBe(stepNumber("endorsements"));
     });
 
     it("needs a real yes or no for both cards", async () => {
-      await completeThrough("certifications");
       const error = await expectAppError(
         service.saveScreen(USER_ID, "credentials", { twicActive: "true" }),
       );
@@ -530,70 +400,61 @@ describe("DriverService", () => {
     });
   });
 
-  describe("papers and finish screens", () => {
+  describe("letters and equipment screens", () => {
     beforeEach(() => completeThrough("credentials"));
 
-    it("papers can be skipped with no input, and a CDL driver goes on to the record", async () => {
-      const driver = await service.saveScreen(USER_ID, "documents", undefined);
-      expect(driver.onboardingStep).toBe(stepNumber("compliance"));
-      expect(driver.cardCompleted).toBe(false);
-    });
-
-    it("after the papers, work without CDL driving goes straight to about you", async () => {
-      await service.saveScreen(USER_ID, "workType", { operatorTypes: ["yard_spotter"] });
-      await service.saveScreen(USER_ID, "cdlClass", { cdlClass: "none" });
-      const driver = await service.saveScreen(USER_ID, "documents", {});
-      expect(driver.onboardingStep).toBe(stepNumber("bio"));
-    });
-
-    it("saves the Clearinghouse and MVR answers, whatever they are", async () => {
-      await service.saveScreen(USER_ID, "documents", {});
-      const driver = await service.saveScreen(USER_ID, "compliance", {
-        clearinghouseRegistered: false,
-        mvrStatus: "major_3_plus",
+    it("X always brings H and N, in display order, then the transmission question follows", async () => {
+      const driver = await service.saveScreen(USER_ID, "endorsements", {
+        endorsements: ["T", "X"],
       });
-      expect(driver.clearinghouseRegistered).toBe(false);
-      expect(driver.mvrStatus).toBe("major_3_plus");
-      expect(driver.onboardingStep).toBe(stepNumber("bio"));
+      expect(driver.endorsements).toEqual(["X", "H", "N", "T"]);
+      expect(driver.onboardingStep).toBe(stepNumber("transmission"));
     });
 
-    it("needs a real answer for both record questions", async () => {
-      await service.saveScreen(USER_ID, "documents", {});
-      const error = await expectAppError(
-        service.saveScreen(USER_ID, "compliance", { clearinghouseRegistered: true }),
-      );
-      expect(error.fieldErrors).toEqual({ mvrStatus: MVR_MESSAGE });
-      const level = await expectAppError(
-        service.saveScreen(USER_ID, "compliance", {
-          clearinghouseRegistered: true,
-          mvrStatus: true,
-        }),
-      );
-      expect(level.fieldErrors).toEqual({ mvrStatus: MVR_MESSAGE });
-      const both = await expectAppError(service.saveScreen(USER_ID, "compliance", null));
-      expect(both.fieldErrors).toEqual({
-        clearinghouseRegistered: CLEARINGHOUSE_MESSAGE,
-        mvrStatus: MVR_MESSAGE,
+    it("no endorsements is a valid answer", async () => {
+      const driver = await service.saveScreen(USER_ID, "endorsements", { endorsements: [] });
+      expect(driver.endorsements).toEqual([]);
+      expect(driver.onboardingStep).toBe(stepNumber("transmission"));
+    });
+
+    it("saves the transmission answer and moves to the equipment", async () => {
+      await service.saveScreen(USER_ID, "endorsements", SCREEN_INPUTS.endorsements);
+      const driver = await service.saveScreen(USER_ID, "transmission", {
+        transmission: "automatic_only",
       });
+      expect(driver.transmission).toBe("automatic_only");
+      expect(driver.onboardingStep).toBe(stepNumber("equipment"));
     });
 
-    it("saves the bio, and blank as null", async () => {
-      await completeThrough("compliance");
-      expect((await service.saveScreen(USER_ID, "bio", { bio: "  Hi  " })).bio).toBe("Hi");
-      expect((await service.saveScreen(USER_ID, "bio", { bio: "" })).bio).toBeNull();
-    });
-
-    it("rejects a bio over 500 characters", async () => {
-      await completeThrough("compliance");
+    it("needs a transmission answer", async () => {
+      await service.saveScreen(USER_ID, "endorsements", SCREEN_INPUTS.endorsements);
       const error = await expectAppError(
-        service.saveScreen(USER_ID, "bio", { bio: "x".repeat(501) }),
+        service.saveScreen(USER_ID, "transmission", { transmission: "stick" }),
       );
-      expect(error.fieldErrors).toEqual({ bio: "Keep it to 500 characters or fewer" });
+      expect(error.fieldErrors).toEqual({ transmission: TRANSMISSION_MESSAGE });
+      expect(card().transmission).toBeNull();
+    });
+
+    it("saves the equipment without duplicates and moves to consent", async () => {
+      await completeThrough("transmission");
+      const driver = await service.saveScreen(USER_ID, "equipment", {
+        equipmentTypes: ["reefer", "reefer", "container_drayage"],
+      });
+      expect(driver.equipmentTypes).toEqual(["reefer", "container_drayage"]);
+      expect(driver.onboardingStep).toBe(stepNumber("consent"));
+    });
+
+    it("requires at least one kind of equipment", async () => {
+      await completeThrough("transmission");
+      const error = await expectAppError(
+        service.saveScreen(USER_ID, "equipment", { equipmentTypes: [] }),
+      );
+      expect(error.fieldErrors).toEqual({ equipmentTypes: EQUIPMENT_MESSAGE });
     });
   });
 
   describe("consent screen", () => {
-    beforeEach(() => completeThrough("bio"));
+    beforeEach(() => completeThrough("equipment"));
 
     it("stores the exact consent text with a timestamp and completes the card", async () => {
       const driver = await service.saveScreen(USER_ID, "consent", { consent: true });
@@ -601,7 +462,9 @@ describe("DriverService", () => {
       expect(driver.smsOptInText).toBe(SMS_CONSENT_TEXT);
       expect(driver.smsOptInAt).toBe("2026-10-05T15:30:00.000Z");
       expect(driver.cardCompleted).toBe(true);
-      expect(driver.onboardingStep).toBe(18);
+      expect(driver.onboardingStep).toBe(12);
+      // Nothing from the profile page is needed to finish.
+      expect(driver).toMatchObject(PROFILE_ONLY_EMPTY);
     });
 
     it.each([{ consent: false }, {}, { consent: "true" }, undefined])(
@@ -661,17 +524,18 @@ describe("DriverService", () => {
       const error = await expectAppError(service.saveScreen(USER_ID, "consent", { consent: true }));
       expect(error.code).toBe("VALIDATION");
       expect(error.fieldErrors).toEqual({
-        operatorTypes: "Required",
-        employmentType: "Required",
+        cdlClass: "Required",
         yearsExperience: "Required",
-        availability: "Required",
+        mvrStatus: "Required",
         twicActive: "Required",
         medicalCardActive: "Required",
+        transmission: "Required",
+        equipmentTypes: "Required",
       });
       expect(card().cardCompleted).toBe(false);
     });
 
-    it("refuses to complete a CDL driver without a CDL class", async () => {
+    it("refuses to complete a card without a CDL class", async () => {
       drivers.rows.set(
         USER_ID,
         buildDriver({
@@ -685,43 +549,6 @@ describe("DriverService", () => {
       const error = await expectAppError(service.saveScreen(USER_ID, "consent", { consent: true }));
       expect(error.fieldErrors).toEqual({ cdlClass: "Required" });
     });
-
-    it("refuses to complete a CDL driver without the driving, equipment and record answers", async () => {
-      drivers.rows.set(
-        USER_ID,
-        buildDriver({
-          onboardingStep: stepNumber("consent"),
-          cardCompleted: false,
-          smsOptIn: false,
-          ...NO_CDL_CHECKS,
-        }),
-      );
-      const error = await expectAppError(service.saveScreen(USER_ID, "consent", { consent: true }));
-      expect(error.fieldErrors).toEqual({
-        drivingStyles: "Required",
-        equipmentTypes: "Required",
-        transmission: "Required",
-        clearinghouseRegistered: "Required",
-        mvrStatus: "Required",
-      });
-    });
-
-    it("completes a yard spotter without the CDL-only answers", async () => {
-      drivers.rows.set(
-        USER_ID,
-        buildDriver({
-          onboardingStep: stepNumber("consent"),
-          cardCompleted: false,
-          smsOptIn: false,
-          operatorTypes: ["yard_spotter"],
-          cdlClass: "none",
-          endorsements: [],
-          ...NO_CDL_CHECKS,
-        }),
-      );
-      const driver = await service.saveScreen(USER_ID, "consent", { consent: true });
-      expect(driver.cardCompleted).toBe(true);
-    });
   });
 
   describe("going back", () => {
@@ -729,22 +556,16 @@ describe("DriverService", () => {
       await completeThrough("consent");
       const driver = await service.saveScreen(USER_ID, "experience", { yearsExperience: 12 });
       expect(driver.yearsExperience).toBe(12);
-      expect(driver.onboardingStep).toBe(18);
+      expect(driver.onboardingStep).toBe(12);
       expect(driver.cardCompleted).toBe(true);
       expect(driver.smsOptIn).toBe(true);
     });
 
-    it("re-saving papers never moves progress backwards", async () => {
-      await completeThrough("consent");
-      const driver = await service.saveScreen(USER_ID, "documents", undefined);
-      expect(driver.onboardingStep).toBe(18);
-    });
-
-    it("dropping CDL driving later keeps the answers already given", async () => {
-      await completeThrough("consent");
-      const driver = await service.saveScreen(USER_ID, "workType", { operatorTypes: ["mechanic"] });
-      expect(driver.drivingStyles).toEqual(["local_day_cab", "regional"]);
-      expect(driver.onboardingStep).toBe(18);
+    it("re-saving the ZIP never moves progress backwards", async () => {
+      await completeThrough("record");
+      const driver = await service.saveScreen(USER_ID, "zip", { zip: "60601" });
+      expect(driver.city).toBe("Chicago");
+      expect(driver.onboardingStep).toBe(stepNumber("credentials"));
     });
   });
 
@@ -762,7 +583,6 @@ describe("DriverService", () => {
           fullName: "Patricia Driver",
           zip: "60601",
           serviceRadiusMiles: 120,
-          operatorTypes: ["cdl_driver", "mechanic"],
           employmentType: "either",
           cdlClass: "B",
           endorsements: ["P"],
@@ -788,7 +608,7 @@ describe("DriverService", () => {
         lat: 41.8858,
         lng: -87.6181,
         serviceRadiusMiles: 120,
-        operatorTypes: ["cdl_driver", "mechanic"],
+        operatorTypes: ["cdl_driver"],
         employmentType: "either",
         cdlClass: "B",
         endorsements: ["P"],
@@ -805,36 +625,55 @@ describe("DriverService", () => {
         bio: null,
         smsOptIn: true,
         cardCompleted: true,
-        onboardingStep: 18,
+        onboardingStep: 12,
       });
+    });
+
+    it("saves a card straight out of sign-up, with the profile-only answers left empty", async () => {
+      await completeThrough("consent");
+      const driver = await service.updateCard(
+        USER_ID,
+        validCard({
+          employmentType: undefined,
+          drivingStyles: undefined,
+          clearinghouseRegistered: undefined,
+          availability: undefined,
+          certifications: undefined,
+          bio: undefined,
+        }),
+      );
+      expect(driver).toMatchObject(PROFILE_ONLY_EMPTY);
     });
 
     it("rejects invalid input and changes nothing", async () => {
       await completeThrough("consent");
       const before = drivers.rows.get(USER_ID);
       const error = await expectAppError(
-        service.updateCard(USER_ID, validCard({ availability: [], zip: "x" })),
+        service.updateCard(USER_ID, validCard({ serviceRadiusMiles: 1, zip: "x" })),
       );
       expect(error.code).toBe("VALIDATION");
-      expect(Object.keys(error.fieldErrors ?? {}).sort()).toEqual(["availability", "zip"]);
+      expect(Object.keys(error.fieldErrors ?? {}).sort()).toEqual(["serviceRadiusMiles", "zip"]);
       expect(drivers.rows.get(USER_ID)).toEqual(before);
     });
 
-    it("rejects a CDL driver without a CDL", async () => {
+    it("rejects No CDL on the profile too", async () => {
       await completeThrough("consent");
       const error = await expectAppError(
         service.updateCard(USER_ID, validCard({ cdlClass: "none", endorsements: [] })),
       );
-      expect(error.fieldErrors).toEqual({ cdlClass: "CDL driver work needs a CDL" });
+      expect(error.fieldErrors).toEqual({ cdlClass: CDL_CLASS_MESSAGE });
     });
 
-    it("rejects a CDL driver without the driving, equipment and record answers", async () => {
+    it("rejects a card without the record, transmission and equipment answers", async () => {
       await completeThrough("consent");
       const before = drivers.rows.get(USER_ID);
-      const error = await expectAppError(service.updateCard(USER_ID, validCard(NO_CDL_CHECKS)));
+      const error = await expectAppError(
+        service.updateCard(
+          USER_ID,
+          validCard({ transmission: null, equipmentTypes: [], mvrStatus: null }),
+        ),
+      );
       expect(Object.keys(error.fieldErrors ?? {}).sort()).toEqual([
-        "clearinghouseRegistered",
-        "drivingStyles",
         "equipmentTypes",
         "mvrStatus",
         "transmission",
@@ -842,29 +681,16 @@ describe("DriverService", () => {
       expect(drivers.rows.get(USER_ID)).toEqual(before);
     });
 
-    it("lets a mechanic save without the CDL-only answers", async () => {
-      await completeThrough("consent");
-      const driver = await service.updateCard(
-        USER_ID,
-        validCard({
-          operatorTypes: ["mechanic"],
-          cdlClass: "none",
-          endorsements: [],
-          ...NO_CDL_CHECKS,
-        }),
-      );
-      expect(driver).toMatchObject({ operatorTypes: ["mechanic"], ...NO_CDL_CHECKS });
-    });
-
     it("ignores attempts to set protected fields", async () => {
-      await completeThrough("availability");
+      await completeThrough("experience");
       const driver = await service.updateCard(
         USER_ID,
         validCard({
           cardCompleted: true,
           smsOptIn: true,
           smsOptedOut: true,
-          onboardingStep: 18,
+          onboardingStep: 12,
+          operatorTypes: ["mechanic"],
           profileId: OTHER_USER_ID,
           status: "approved",
         }),
@@ -872,7 +698,8 @@ describe("DriverService", () => {
       expect(driver.cardCompleted).toBe(false);
       expect(driver.smsOptIn).toBe(false);
       expect(driver.smsOptedOut).toBe(false);
-      expect(driver.onboardingStep).toBe(stepNumber("cdlClass"));
+      expect(driver.onboardingStep).toBe(stepNumber("record"));
+      expect(driver.operatorTypes).toEqual(["cdl_driver"]);
       expect(driver.profileId).toBe(USER_ID);
     });
   });
@@ -882,57 +709,31 @@ describe("DriverService", () => {
       expect(missingCardFields(buildDriver())).toEqual([]);
     });
 
-    it("lists each missing field with the screen that collects it, in flow order", () => {
+    it("lists each missing sign-up answer with the screen that collects it, in flow order", () => {
       expect(missingCardFields(buildPartialDriver())).toEqual([
         { field: "zip", stepId: "zip" },
-        { field: "operatorTypes", stepId: "workType" },
-        { field: "employmentType", stepId: "employmentType" },
+        { field: "cdlClass", stepId: "cdlClass" },
         { field: "yearsExperience", stepId: "experience" },
-        { field: "availability", stepId: "availability" },
+        { field: "mvrStatus", stepId: "record" },
         { field: "twicActive", stepId: "credentials" },
         { field: "medicalCardActive", stepId: "credentials" },
+        { field: "transmission", stepId: "transmission" },
+        { field: "equipmentTypes", stepId: "equipment" },
       ]);
+    });
+
+    it("asks nothing from the profile page", () => {
+      expect(missingCardFields(buildDriver(PROFILE_ONLY_EMPTY))).toEqual([]);
     });
 
     it("treats zero years of experience as provided", () => {
       expect(missingCardFields(buildDriver({ yearsExperience: 0 }))).toEqual([]);
     });
 
-    it("flags a CDL driver without a class", () => {
-      expect(missingCardFields(buildDriver({ cdlClass: "none", endorsements: [] }))).toEqual([
-        { field: "cdlClass", stepId: "cdlClass" },
-      ]);
-    });
-
-    it("requires the driving, equipment and record answers of CDL drivers only", () => {
-      expect(missingCardFields(buildDriver(NO_CDL_CHECKS))).toEqual([
-        { field: "drivingStyles", stepId: "drivingStyle" },
-        { field: "equipmentTypes", stepId: "equipment" },
-        { field: "transmission", stepId: "equipment" },
-        { field: "clearinghouseRegistered", stepId: "compliance" },
-        { field: "mvrStatus", stepId: "compliance" },
-      ]);
-      expect(
-        missingCardFields(
-          buildDriver({
-            operatorTypes: ["mechanic"],
-            cdlClass: "none",
-            endorsements: [],
-            ...NO_CDL_CHECKS,
-          }),
-        ),
-      ).toEqual([]);
-    });
-
     it("a false answer to a check, or a bad record, counts as answered", () => {
       expect(
         missingCardFields(
-          buildDriver({
-            twicActive: false,
-            medicalCardActive: false,
-            clearinghouseRegistered: false,
-            mvrStatus: "major_3_plus",
-          }),
+          buildDriver({ twicActive: false, medicalCardActive: false, mvrStatus: "major_3_plus" }),
         ),
       ).toEqual([]);
     });
@@ -969,7 +770,7 @@ describe("DriverService", () => {
       const afterDistance = await service.saveScreen(USER_ID, "distance", SCREEN_INPUTS.distance);
       expect(afterDistance.inServiceArea).toBe(true);
 
-      await completeThrough("bio");
+      await completeThrough("equipment");
       const edited = await service.updateCard(USER_ID, { ...validCard(), zip: "60601" });
       expect(edited.inServiceArea).toBe(false);
       expect(areas.calls.at(-1)).toEqual({ lat: 41.8858, lng: -87.6181 });
@@ -996,7 +797,7 @@ describe("DriverService", () => {
 
   it("uses the real clock by default", async () => {
     const realClock = new DriverService(drivers, profiles, zips, areas, () => consentLog);
-    await completeThrough("bio");
+    await completeThrough("equipment");
     const before = Date.now();
     const driver = await realClock.saveScreen(USER_ID, "consent", { consent: true });
     expect(new Date(driver.smsOptInAt!).getTime()).toBeGreaterThanOrEqual(before);

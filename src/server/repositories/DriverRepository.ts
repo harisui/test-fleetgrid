@@ -20,6 +20,7 @@ type DriverUpdate = Database["public"]["Tables"]["drivers"]["Update"];
 export interface CreateDriverInput {
   fullName: string;
   onboardingStep: number;
+  operatorTypes?: OperatorType[];
   city?: string | null;
   state?: string | null;
   zip?: string | null;
@@ -159,6 +160,7 @@ export class DriverRepository extends BaseRepository implements IDriverRepositor
         profile_id: profileId,
         full_name: input.fullName,
         onboarding_step: input.onboardingStep,
+        ...(input.operatorTypes !== undefined && { operator_types: input.operatorTypes }),
         ...(input.city !== undefined && { city: input.city }),
         ...(input.state !== undefined && { state: input.state }),
         ...(input.zip !== undefined && { zip: input.zip }),

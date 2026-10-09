@@ -2,16 +2,11 @@ import type { ComponentType } from "react";
 import type { z } from "zod";
 import type { SavableStepId } from "@/lib/onboarding/steps";
 import type {
-  AvailabilityType,
   CdlClass,
   Driver,
-  DriverDocument,
-  DrivingStyle,
-  EmploymentType,
   Endorsement,
   EquipmentType,
   MvrStatus,
-  OperatorType,
   TransmissionType,
 } from "@/types/domain";
 
@@ -22,21 +17,14 @@ export interface OnboardingFormValues {
   city?: string;
   state?: string;
   serviceRadiusMiles?: number;
-  operatorTypes?: OperatorType[];
-  employmentType?: EmploymentType;
-  drivingStyles?: DrivingStyle[];
-  transmission?: TransmissionType;
-  equipmentTypes?: EquipmentType[];
-  yearsExperience?: number | null;
-  availability?: AvailabilityType[];
   cdlClass?: CdlClass;
-  endorsements?: Endorsement[];
-  certifications?: string[];
+  yearsExperience?: number | null;
+  mvrStatus?: MvrStatus;
   twicActive?: boolean;
   medicalCardActive?: boolean;
-  clearinghouseRegistered?: boolean;
-  mvrStatus?: MvrStatus;
-  bio?: string;
+  endorsements?: Endorsement[];
+  transmission?: TransmissionType;
+  equipmentTypes?: EquipmentType[];
   consent?: boolean;
 }
 
@@ -46,16 +34,12 @@ export interface ScreenContext {
   driver: Driver | null;
   /** The signed-in driver's E.164 phone, for the consent and done screens. */
   phone: string;
-  /** Papers uploaded so far, for the Papers screen. */
-  documents: DriverDocument[];
 }
 
+/** Each screen shows its question as a label: a page holds every screen of its mile. */
 export interface ScreenFieldsProps extends ScreenContext {
-  /** On wide screens a mile's questions share one page, so each one shows its question. */
-  showQuestion: boolean;
   question: string;
   helper?: string;
-  onDocumentsChange: (documents: DriverDocument[]) => void;
 }
 
 /** What the flow needs to know about one screen. The fields live in the component. */

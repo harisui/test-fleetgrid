@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { expect, test, type Page } from "@playwright/test";
-import { STEPS } from "../../src/lib/onboarding/steps";
+import { MILES, STEPS, stepsOfMile } from "../../src/lib/onboarding/steps";
 import {
   expectScreen,
   login,
@@ -14,10 +14,10 @@ import {
 } from "../e2e/helpers";
 
 /**
- * The design review: every onboarding screen of the running app photographed next to the
- * approved Workshop prototype frame, at phone size in light and dark, plus the grouped
- * desktop pages. Writes design-review/index.html and the images it shows.
- * Run with `pnpm design-review` against the local dev server.
+ * The design review: every page of the onboarding (one per mile, the same on every device)
+ * photographed at phone size in light and dark and at desktop size, next to the approved
+ * Workshop prototype frame where one exists. Writes design-review/index.html and the images
+ * it shows. Run with `pnpm design-review` against the local dev server.
  */
 
 const OUT = resolve("design-review");
@@ -25,25 +25,28 @@ const PROTOTYPE_URL = pathToFileURL(resolve("tests/design-review/workshop-protot
 const THEMES = ["light", "dark"] as const;
 type Theme = (typeof THEMES)[number];
 const PHONE = { width: 390, height: 844 };
-/** Tall enough for a grouped mile, so the sticky action bar sits where a person sees it. */
+/** Tall enough for a whole mile, so the sticky action bar sits where a person sees it. */
 const DESKTOP = { width: 1280, height: 1200 };
 
 /** The prototype draws these states; the app is put in the same state before the shot. */
 const STATES: Partial<Record<string, (page: Page) => Promise<void>>> = {
-  zip: async (page) => {
+  name: async (page) => {
     await page.getByLabel("ZIP code", { exact: true }).fill("6060");
     await nextButton(page).click();
     await expect(page.getByText("Enter a 5-digit ZIP code, like 60601")).toBeVisible();
   },
 };
 
-/** Desktop pages: one per mile (the first screen of the mile, or the one with a prototype frame). */
-const DESKTOP_STEPS = [2, 4, 10, 14, 16, 18];
+/** The pages: the first screen of each mile, plus the done screen. */
+const PAGES = [
+  ...MILES.map((mile) => stepsOfMile(mile.mile)[0]),
+  STEPS[STEPS.length - 1],
+] as const;
 const PROTOTYPE_DESKTOP_FRAMES = ["zip", "cdlClass"];
 
 /**
- * The prototype predates the screens added on 2026-10-09 (employment type, driving style,
- * equipment, cards, record). Those are marked "no prototype frame" in the report.
+ * The prototype predates the short flow of 2026-10-09 (one page per mile, the MVR and the
+ * cards). A page without a frame is marked "no prototype frame" in the report.
  */
 const hasPrototypeFrame = (stepId: string, theme: Theme) =>
   existsSync(file("frames", `${stepId}-${theme}.png`));
@@ -100,7 +103,7 @@ for (const theme of THEMES) {
     }
   });
 
-  test(`app screens (${theme})`, async ({ page }) => {
+  test(`app pages (${theme})`, async ({ page }) => {
     await page
       .context()
       .addCookies([{ name: "fleetgrid-theme", value: theme, url: "http://localhost:3000" }]);
@@ -108,22 +111,20 @@ for (const theme of THEMES) {
     await page.setViewportSize(PHONE);
     await login(page, PHONES.driver);
 
-    for (const step of STEPS) {
+    for (const step of PAGES) {
       const stepNumber = STEPS.indexOf(step) + 1;
       await moveDriverToStep(PHONES.driver, stepNumber);
-      await page.setViewportSize(PHONE);
-      await page.goto("/driver/onboarding");
-      await expectScreen(page, step.question);
-      await STATES[step.id]?.(page);
-      await settle(page);
-      await page.screenshot({ path: file("app", `${step.id}-${theme}.png`) });
-
-      if (DESKTOP_STEPS.includes(stepNumber)) {
-        await page.setViewportSize(DESKTOP);
+      for (const [size, suffix] of [
+        [PHONE, ""],
+        [DESKTOP, "-desktop"],
+      ] as const) {
+        await page.setViewportSize(size);
         await page.goto("/driver/onboarding");
         await expectScreen(page, step.question);
+        await STATES[step.id]?.(page);
         await settle(page);
-        await page.screenshot({ path: file("app", `${step.id}-${theme}-desktop.png`) });
+        // The viewport, not the full page: a sticky action bar painted mid-page misleads.
+        await page.screenshot({ path: file("app", `${step.id}-${theme}${suffix}.png`) });
       }
     }
   });
@@ -134,7 +135,10 @@ test("report", () => {
 });
 
 function report(): string {
-  const phoneRows = STEPS.map((step, index) => {
+  const title = (step: (typeof PAGES)[number]) =>
+    step.id === "done" ? step.question : `${MILES[step.mile - 1].label}: ${step.question}`;
+
+  const phoneRows = PAGES.map((step, index) => {
     const cells = THEMES.map(
       (theme) => `
         ${
@@ -146,19 +150,18 @@ function report(): string {
             : ""
         }
         <figure>
-          <img src="${rel("app", `${step.id}-${theme}.png`)}" alt="App, ${step.question}, ${theme}" loading="lazy">
-          <figcaption>App · ${theme}${hasPrototypeFrame(step.id, theme) ? "" : " · no prototype frame (screen added 2026-10-09)"}</figcaption>
+          <img src="${rel("app", `${step.id}-${theme}.png`)}" alt="App, ${title(step)}, ${theme}" loading="lazy">
+          <figcaption>App · ${theme}${hasPrototypeFrame(step.id, theme) ? "" : " · no prototype frame (page of the 2026-10-09 flow)"}</figcaption>
         </figure>`,
     ).join("");
     return `
       <section class="screen" id="screen-${index + 1}">
-        <h2><span class="num">${index + 1}</span> ${step.question}</h2>
+        <h2><span class="num">${index + 1}</span> ${title(step)}</h2>
         <div class="row phones">${cells}</div>
       </section>`;
   }).join("");
 
-  const desktopRows = DESKTOP_STEPS.map((stepNumber) => {
-    const step = STEPS[stepNumber - 1];
+  const desktopRows = PAGES.map((step, index) => {
     const prototype = PROTOTYPE_DESKTOP_FRAMES.includes(step.id);
     const cells = THEMES.map(
       (theme) => `
@@ -171,20 +174,20 @@ function report(): string {
             : ""
         }
         <figure>
-          <img src="${rel("app", `${step.id}-${theme}-desktop.png`)}" alt="App desktop, ${step.question}, ${theme}" loading="lazy">
-          <figcaption>App · ${theme}${prototype ? "" : " · no prototype frame for this mile"}</figcaption>
+          <img src="${rel("app", `${step.id}-${theme}-desktop.png`)}" alt="App desktop, ${title(step)}, ${theme}" loading="lazy">
+          <figcaption>App · ${theme}${prototype ? "" : " · no prototype frame for this page"}</figcaption>
         </figure>`,
     ).join("");
     return `
       <section class="screen">
-        <h2><span class="num">${stepNumber}</span> ${step.question} <small>desktop, mile grouped</small></h2>
+        <h2><span class="num">${index + 1}</span> ${title(step)} <small>desktop</small></h2>
         <div class="row desktops">${cells}</div>
       </section>`;
   }).join("");
 
   return `<title>Workshop Design Review</title>
 <style>
-  /* Layout: a review board. One section per screen, prototype frame beside the app shot, light then dark. */
+  /* Layout: a review board. One section per page, prototype frame beside the app shot, light then dark. */
   :root {
     --bg: #ececec; --surface: #ffffff; --fg: #1b1e22; --muted: #5d636a; --line: #c9ccd0; --accent: #b84a00;
     --font-body: "Geist", "Segoe UI", system-ui, sans-serif;
@@ -219,8 +222,8 @@ function report(): string {
 <div class="wrap">
   <header>
     <h1>Workshop design review</h1>
-    <p>Each onboarding screen of the running app next to the approved Workshop prototype frame. Phones at 390×844 in light and dark; the grouped desktop pages at 1280 wide. Prototype frames are 390×800 with the phone bezel; app shots are the real viewport. Captured ${new Date().toISOString().slice(0, 10)}.</p>
-    <nav aria-label="Screens">${STEPS.map((step, index) => `<a href="#screen-${index + 1}">${index + 1} ${step.id}</a>`).join("")}</nav>
+    <p>Each page of the sign-up (one per mile, the same on every device) next to the approved Workshop prototype frame where one exists. Phones at 390×844 in light and dark; desktop at 1280 wide. Prototype frames are 390×800 with the phone bezel; app shots are the real viewport, so a page longer than the screen is cut where the screen ends. Captured ${new Date().toISOString().slice(0, 10)}.</p>
+    <nav aria-label="Pages">${PAGES.map((step, index) => `<a href="#screen-${index + 1}">${index + 1} ${step.id === "done" ? "done" : MILES[step.mile - 1].label}</a>`).join("")}</nav>
   </header>
   ${phoneRows}
   <section class="screen"><h2>Desktop</h2></section>

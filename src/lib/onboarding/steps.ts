@@ -1,17 +1,21 @@
 /**
- * The single source of truth for the driver onboarding flow: the five miles, the eighteen
+ * The single source of truth for the driver onboarding flow: the six miles, the twelve
  * screens in order, and the progress shown for each. Every screen, the sign header, the lane
  * progress bar and the server read from here. Nothing about the flow is defined anywhere else.
+ *
+ * A mile is one page on every device (client decision of 2026-10-09: the shortest sign-up
+ * that still lets a carrier book on the answers; CDL drivers only at launch). The answers
+ * the flow no longer asks (W-2 or 1099, driving style, availability, certifications, papers,
+ * Clearinghouse, about you) stay on the profile page, filled in later or never.
  */
-
-import { isCdlDriver } from "@/types/domain";
 
 export const MILES = [
   { mile: 1, label: "About" },
-  { mile: 2, label: "Work" },
-  { mile: 3, label: "License" },
-  { mile: 4, label: "Papers" },
-  { mile: 5, label: "Finish" },
+  { mile: 2, label: "CDL" },
+  { mile: 3, label: "Cards" },
+  { mile: 4, label: "Letters" },
+  { mile: 5, label: "Equipment" },
+  { mile: 6, label: "Finish" },
 ] as const;
 
 export type Mile = (typeof MILES)[number];
@@ -20,40 +24,31 @@ export type MileNumber = Mile["mile"];
 /** One line per stage for the Help sheet: what the questions in it are about. */
 export const MILE_SUMMARIES: Record<MileNumber, string> = {
   1: "Your name, your ZIP code and how far you will travel.",
-  2: "The work you do, W-2 or 1099, what you drive, your years of experience and when you can work.",
-  3: "Your CDL class, the letters on it, any certifications, and your TWIC and medical cards.",
-  4: "Photos of your CDL, medical card and other papers (you can skip this), and your driving record.",
-  5: "A few words about you, and your OK to receive shift offers by text.",
+  2: "Your CDL class, your years of driving and your record.",
+  3: "Your TWIC card and your DOT medical card.",
+  4: "The extra letters on your CDL, and whether you can drive a manual.",
+  5: "The equipment you run.",
+  6: "Your OK to receive shift offers by text, then you are listed.",
 };
 
-/**
- * `cdlOnly` screens are asked of drivers whose work type includes CDL driver and skipped for
- * everyone else. The endorsements screen has its own rule: it needs a CDL class.
- */
 export const STEPS = [
   { id: "name", mile: 1, question: "What is your name?" },
   { id: "zip", mile: 1, question: "What is your ZIP code?" },
   { id: "distance", mile: 1, question: "How far will you travel for work?" },
-  { id: "workType", mile: 2, question: "What work do you do?" },
-  { id: "employmentType", mile: 2, question: "Do you work W-2 or 1099?" },
-  { id: "drivingStyle", mile: 2, question: "What kind of driving do you do?", cdlOnly: true },
-  { id: "equipment", mile: 2, question: "What equipment do you run?", cdlOnly: true },
-  { id: "experience", mile: 2, question: "How many years have you done this work?" },
-  { id: "availability", mile: 2, question: "When can you work?" },
-  { id: "cdlClass", mile: 3, question: "What class is your CDL?" },
+  { id: "cdlClass", mile: 2, question: "What class is your CDL?" },
+  { id: "experience", mile: 2, question: "How many years have you driven with a CDL?" },
+  { id: "record", mile: 2, question: "Any moving violations in the last 3 years?" },
+  { id: "credentials", mile: 3, question: "Do you have these cards?" },
   {
     id: "endorsements",
-    mile: 3,
+    mile: 4,
     question: "Any extra letters on your CDL?",
     helper: "These are called endorsements. They're printed next to END on the front.",
   },
-  { id: "certifications", mile: 3, question: "Do you have any certifications?", optional: true },
-  { id: "credentials", mile: 3, question: "Do you have these cards?" },
-  { id: "documents", mile: 4, question: "Do you want to add your papers now?", optional: true },
-  { id: "compliance", mile: 4, question: "How is your driving record?", cdlOnly: true },
-  { id: "bio", mile: 5, question: "Anything carriers should know?", optional: true },
-  { id: "consent", mile: 5, question: "Can we text you about shifts?" },
-  { id: "done", mile: 5, question: "You are listed." },
+  { id: "transmission", mile: 4, question: "Can you drive a manual?" },
+  { id: "equipment", mile: 5, question: "What equipment do you run?" },
+  { id: "consent", mile: 6, question: "Can we text you about shifts?" },
+  { id: "done", mile: 6, question: "You are listed." },
 ] as const;
 
 export type Step = (typeof STEPS)[number];
@@ -64,11 +59,6 @@ export const SAVABLE_STEP_IDS = STEPS.filter((step) => step.id !== "done").map(
   (step) => step.id,
 ) as Exclude<StepId, "done">[];
 export type SavableStepId = (typeof SAVABLE_STEP_IDS)[number];
-
-/** Screens asked of CDL drivers only. */
-export const CDL_ONLY_STEP_IDS = STEPS.filter((step) => "cdlOnly" in step && step.cdlOnly).map(
-  (step) => step.id,
-);
 
 /** 1-based step numbers. `drivers.onboarding_step` stores the number of the next screen to show. */
 export const FIRST_STEP_NUMBER = 1;
@@ -109,9 +99,9 @@ export interface StepProgress {
   mile: Mile;
   /** 0 on the first screen, 100 on the done screen. Drives the lane fill and the truck. */
   percent: number;
-  /** Shown in the sign header, for example "Mile 2 of 5 · Work". */
+  /** Shown in the sign header, for example "Mile 2 of 6". */
   eyebrow: string;
-  /** Read by screen readers instead of the mile metaphor, for example "Step 2 of 5: Work". */
+  /** Read by screen readers instead of the mile metaphor, for example "Step 2 of 6: CDL". */
   srLabel: string;
   /** Mile numbers already completed. */
   completedMiles: MileNumber[];
@@ -126,7 +116,7 @@ export function progressFor(id: StepId): StepProgress {
     number,
     mile,
     percent: Math.round(((number - 1) / (STEPS.length - 1)) * 100),
-    eyebrow: `Mile ${mile.mile} of ${MILES.length} · ${mile.label}`,
+    eyebrow: `Mile ${mile.mile} of ${MILES.length}`,
     srLabel: `Step ${mile.mile} of ${MILES.length}: ${mile.label}`,
     completedMiles: MILES.filter((candidate) => candidate.mile < mile.mile).map(
       (candidate) => candidate.mile,
@@ -134,53 +124,18 @@ export function progressFor(id: StepId): StepProgress {
   };
 }
 
-/** What the screens need to know about the saved card to decide what applies. */
-export interface FlowContext {
-  cdlClass: string | null;
-  operatorTypes: readonly string[];
+/** The next screen after `id`, or the done screen. */
+export function nextStepId(id: StepId): StepId {
+  return stepByNumber(Math.min(stepNumber(id) + 1, DONE_STEP_NUMBER)).id;
 }
 
-/** The flow context of a saved card, or of no card at all. */
-export function contextOf(
-  driver: { cdlClass: string | null; operatorTypes: readonly string[] } | null | undefined,
-): FlowContext {
-  return { cdlClass: driver?.cdlClass ?? null, operatorTypes: driver?.operatorTypes ?? [] };
-}
-
-/**
- * The endorsements screen only applies to drivers with a CDL. The CDL-only screens apply to
- * drivers whose work includes CDL driving. Everything else always applies.
- */
-export function stepApplies(id: StepId, context: FlowContext): boolean {
-  if (id === "endorsements") return context.cdlClass !== null && context.cdlClass !== "none";
-  const step = stepById(id);
-  if ("cdlOnly" in step && step.cdlOnly) return isCdlDriver(context.operatorTypes);
-  return true;
-}
-
-/** The next screen after `id` that applies, or the done screen. */
-export function nextStepId(id: StepId, context: FlowContext): StepId {
-  let number = stepNumber(id) + 1;
-  while (number < DONE_STEP_NUMBER && !stepApplies(stepByNumber(number).id, context)) number += 1;
-  return stepByNumber(Math.min(number, DONE_STEP_NUMBER)).id;
-}
-
-/** The previous screen before `id` that applies, or null on the first screen. */
-export function previousStepId(id: StepId, context: FlowContext): StepId | null {
-  let number = stepNumber(id) - 1;
-  while (number >= FIRST_STEP_NUMBER && !stepApplies(stepByNumber(number).id, context)) {
-    number -= 1;
-  }
+/** The screen before `id`, or null on the first screen. */
+export function previousStepId(id: StepId): StepId | null {
+  const number = stepNumber(id) - 1;
   return number >= FIRST_STEP_NUMBER ? stepByNumber(number).id : null;
 }
 
-/**
- * The screens of one mile, in order. With a context, only the ones that apply; without one,
- * every screen of the mile, for a page that decides live which of them to show.
- */
-export function stepsOfMile(mile: MileNumber, context?: FlowContext): Step[] {
-  return STEPS.filter(
-    (step) =>
-      step.mile === mile && step.id !== "done" && (!context || stepApplies(step.id, context)),
-  );
+/** The screens of one mile, in order: one page. Never the done screen. */
+export function stepsOfMile(mile: MileNumber): Step[] {
+  return STEPS.filter((step) => step.mile === mile && step.id !== "done");
 }

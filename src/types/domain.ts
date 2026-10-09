@@ -39,6 +39,9 @@ export const OPERATOR_TYPES = [
 
 export const CDL_CLASSES = ["A", "B", "C", "none"] as const satisfies readonly CdlClass[];
 
+/** The classes a driver can hold. "none" is the database default before the class is picked. */
+export const CDL_HELD_CLASSES = ["A", "B", "C"] as const satisfies readonly CdlClass[];
+
 export const ENDORSEMENTS = [
   "H",
   "N",
@@ -96,12 +99,8 @@ export const MVR_STATUSES = [
   "major_3_plus",
 ] as const satisfies readonly MvrStatus[];
 
-/** The work type whose drivers answer the CDL-only questions (driving style, equipment, record). */
+/** The one work type at launch (client decision of 2026-10-09). Set on every new card. */
 export const CDL_WORK_TYPE: OperatorType = "cdl_driver";
-
-export function isCdlDriver(operatorTypes: readonly string[]): boolean {
-  return operatorTypes.includes(CDL_WORK_TYPE);
-}
 
 export const OPERATOR_TYPE_LABELS: Record<OperatorType, string> = {
   cdl_driver: "CDL driver",

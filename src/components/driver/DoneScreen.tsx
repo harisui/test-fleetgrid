@@ -5,7 +5,7 @@ import { OnboardingContent } from "@/components/onboarding/OnboardingShell";
 import { SignHeader } from "@/components/onboarding/SignHeader";
 import { ROLE_HOME } from "@/lib/auth/routes";
 import { OUT_OF_AREA_DONE_TEXT, OUT_OF_AREA_DONE_TITLE } from "@/lib/launch";
-import type { StepId } from "@/lib/onboarding/steps";
+import { MILES, type StepId } from "@/lib/onboarding/steps";
 import { maskPhone } from "@/lib/phone";
 import type { LocatedDriver } from "@/types/domain";
 
@@ -52,7 +52,7 @@ export function DoneScreen({ driver, phone, onEdit }: DoneScreenProps) {
           <SignHeader
             eyebrow="Profile complete"
             title={outOfArea ? OUT_OF_AREA_DONE_TITLE : "You are listed."}
-            srText="Step 5 of 5: Finish. Profile complete."
+            srText={`Step ${MILES.length} of ${MILES.length}: Finish. Profile complete.`}
           />
           {outOfArea ? (
             <p>{OUT_OF_AREA_DONE_TEXT}</p>

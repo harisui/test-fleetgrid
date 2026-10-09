@@ -162,7 +162,7 @@ describe("DriverRepository (local Supabase)", () => {
       smsOptIn: true,
       smsOptInAt: consentAt,
       smsOptInText: SMS_CONSENT_TEXT,
-      onboardingStep: 18,
+      onboardingStep: 12,
       cardCompleted: true,
     });
     expect(updated.bio).toBeNull();
@@ -195,7 +195,7 @@ describe("DriverRepository (local Supabase)", () => {
       mvr_status: "minor_1_2",
       sms_opt_in: true,
       sms_opt_in_text: SMS_CONSENT_TEXT,
-      onboarding_step: 18,
+      onboarding_step: 12,
       card_completed: true,
     });
   });

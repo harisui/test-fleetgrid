@@ -11,17 +11,17 @@ import {
   validateUploadFile,
 } from "@/lib/validation/document.schema";
 import {
+  CLEARINGHOUSE_MESSAGE,
   driverAvailabilitySchema,
   driverBasicsSchema,
   driverCardSchema,
   driverChecksSchema,
   driverLicensesSchema,
+  EMPLOYMENT_MESSAGE,
   smsConsentSchema,
 } from "@/lib/validation/driver.schema";
 import {
-  CLEARINGHOUSE_MESSAGE,
-  DRIVING_STYLE_MESSAGE,
-  EMPLOYMENT_MESSAGE,
+  CDL_CLASS_MESSAGE,
   EQUIPMENT_MESSAGE,
   MEDICAL_CARD_MESSAGE,
   MVR_MESSAGE,
@@ -174,10 +174,9 @@ describe("driverBasicsSchema (step 1)", () => {
   });
 });
 
-describe("driverLicensesSchema (step 2)", () => {
+describe("driverLicensesSchema (CDL and licenses)", () => {
   it("accepts valid input", () => {
     expect(driverLicensesSchema.parse(validLicenses())).toEqual({
-      operatorTypes: ["cdl_driver"],
       employmentType: "w2",
       cdlClass: "A",
       endorsements: ["H", "T"],
@@ -186,15 +185,13 @@ describe("driverLicensesSchema (step 2)", () => {
     });
   });
 
-  it("accepts several operator types and removes duplicates", () => {
+  it("removes duplicates and applies the letter rules", () => {
     const parsed = driverLicensesSchema.parse(
       validLicenses({
-        operatorTypes: ["cdl_driver", "mechanic", "cdl_driver"],
         endorsements: ["H", "H", "X"],
         certifications: ["TWIC", " TWIC ", "OSHA 10"],
       }),
     );
-    expect(parsed.operatorTypes).toEqual(["cdl_driver", "mechanic"]);
     // The letter rules apply on the profile too: X brings H and N, in display order.
     expect(parsed.endorsements).toEqual(["X", "H", "N"]);
     expect(parsed.certifications).toEqual(["TWIC", "OSHA 10"]);
@@ -205,19 +202,19 @@ describe("driverLicensesSchema (step 2)", () => {
     expect(parsed.endorsements).toEqual(["P", "S"]);
   });
 
-  it("drops endorsements when there is no CDL", () => {
-    const parsed = driverLicensesSchema.parse(
-      validLicenses({ operatorTypes: ["mechanic"], cdlClass: "none", endorsements: ["H"] }),
-    );
-    expect(parsed.endorsements).toEqual([]);
+  it("has no work type: every card is a CDL driver at launch", () => {
+    const parsed = driverLicensesSchema.parse(validLicenses({ operatorTypes: ["mechanic"] }));
+    expect(parsed).not.toHaveProperty("operatorTypes");
   });
 
-  it("endorsements and certifications default to empty", () => {
+  it("W-2 or 1099 is optional (profile page only); endorsements and certifications default to empty", () => {
     const parsed = driverLicensesSchema.parse(
-      validLicenses({ endorsements: undefined, certifications: undefined }),
+      validLicenses({ employmentType: undefined, endorsements: undefined, certifications: undefined }),
     );
+    expect(parsed.employmentType).toBeNull();
     expect(parsed.endorsements).toEqual([]);
     expect(parsed.certifications).toEqual([]);
+    expect(driverLicensesSchema.parse(validLicenses({ employmentType: null })).employmentType).toBeNull();
   });
 
   it("accepts experience from 0 to 60, including form strings", () => {
@@ -233,13 +230,10 @@ describe("driverLicensesSchema (step 2)", () => {
   });
 
   it.each([
-    [{ operatorTypes: [] }, { operatorTypes: "Select at least one role" }],
-    [{ operatorTypes: undefined }, { operatorTypes: "Select at least one role" }],
-    [{ operatorTypes: ["pilot"] }, "operatorTypes.0"],
-    [{ employmentType: undefined }, { employmentType: EMPLOYMENT_MESSAGE }],
     [{ employmentType: "contractor" }, { employmentType: EMPLOYMENT_MESSAGE }],
-    [{ cdlClass: undefined }, { cdlClass: "Select your CDL class" }],
-    [{ cdlClass: "D" }, { cdlClass: "Select your CDL class" }],
+    [{ cdlClass: undefined }, { cdlClass: CDL_CLASS_MESSAGE }],
+    [{ cdlClass: "none" }, { cdlClass: CDL_CLASS_MESSAGE }],
+    [{ cdlClass: "D" }, { cdlClass: CDL_CLASS_MESSAGE }],
     [{ endorsements: ["Z"] }, "endorsements.0"],
     [{ yearsExperience: -1 }, { yearsExperience: "Experience cannot be negative" }],
     [{ yearsExperience: 61 }, { yearsExperience: "Experience must be 60 years or less" }],
@@ -264,7 +258,7 @@ describe("driverLicensesSchema (step 2)", () => {
   });
 });
 
-describe("driverAvailabilitySchema (step 3)", () => {
+describe("driverAvailabilitySchema (profile page only)", () => {
   it("accepts valid input and removes duplicates", () => {
     expect(
       driverAvailabilitySchema.parse(
@@ -284,9 +278,16 @@ describe("driverAvailabilitySchema (step 3)", () => {
     expect(driverAvailabilitySchema.parse(validAvailability({ bio })).bio).toBe(bio);
   });
 
+  it("availability is optional: sign-up no longer asks it", () => {
+    expect(driverAvailabilitySchema.parse(validAvailability({ availability: [] })).availability).toEqual(
+      [],
+    );
+    expect(
+      driverAvailabilitySchema.parse(validAvailability({ availability: undefined })).availability,
+    ).toEqual([]);
+  });
+
   it.each([
-    [{ availability: [] }, { availability: "Select at least one option" }],
-    [{ availability: undefined }, { availability: "Select at least one option" }],
     [{ availability: ["nights"] }, "availability.0"],
     [{ bio: "x".repeat(501) }, { bio: "Bio must be 500 characters or fewer" }],
   ])("rejects %j", (overrides, expected) => {
@@ -309,7 +310,7 @@ describe("smsConsentSchema (step 5)", () => {
 });
 
 describe("driverChecksSchema (equipment and checks)", () => {
-  it("accepts the answers of a CDL driver", () => {
+  it("accepts the answers", () => {
     expect(driverChecksSchema.parse(validChecks())).toEqual({
       drivingStyles: ["local_day_cab", "regional"],
       transmission: "manual_ok",
@@ -321,15 +322,23 @@ describe("driverChecksSchema (equipment and checks)", () => {
     });
   });
 
-  it("needs only the TWIC and medical card answers; the CDL-only ones default to empty", () => {
-    expect(driverChecksSchema.parse({ twicActive: false, medicalCardActive: true })).toEqual({
-      drivingStyles: [],
-      transmission: null,
-      equipmentTypes: [],
-      twicActive: false,
-      medicalCardActive: true,
-      clearinghouseRegistered: null,
-      mvrStatus: null,
+  it("driving style and the Clearinghouse are optional (profile page only); the rest is required", () => {
+    expect(
+      driverChecksSchema.parse(
+        validChecks({ drivingStyles: undefined, clearinghouseRegistered: undefined }),
+      ),
+    ).toMatchObject({ drivingStyles: [], clearinghouseRegistered: null });
+    expect(
+      errorsOf(driverChecksSchema, {
+        drivingStyles: [],
+        clearinghouseRegistered: null,
+        twicActive: false,
+        medicalCardActive: true,
+      }),
+    ).toEqual({
+      transmission: TRANSMISSION_MESSAGE,
+      equipmentTypes: EQUIPMENT_MESSAGE,
+      mvrStatus: MVR_MESSAGE,
     });
   });
 
@@ -349,7 +358,10 @@ describe("driverChecksSchema (equipment and checks)", () => {
     [{ clearinghouseRegistered: "true" }, { clearinghouseRegistered: CLEARINGHOUSE_MESSAGE }],
     [{ mvrStatus: "none" }, { mvrStatus: MVR_MESSAGE }],
     [{ mvrStatus: true }, { mvrStatus: MVR_MESSAGE }],
+    [{ mvrStatus: null }, { mvrStatus: MVR_MESSAGE }],
     [{ transmission: "stick" }, { transmission: TRANSMISSION_MESSAGE }],
+    [{ transmission: null }, { transmission: TRANSMISSION_MESSAGE }],
+    [{ equipmentTypes: [] }, { equipmentTypes: EQUIPMENT_MESSAGE }],
     [{ drivingStyles: ["night"] }, "drivingStyles.0"],
     [{ equipmentTypes: ["tanker"] }, "equipmentTypes.0"],
   ])("rejects %j", (overrides, expected) => {
@@ -365,7 +377,6 @@ describe("driverCardSchema (profile edit)", () => {
       fullName: "Pat Driver",
       zip: "75201",
       serviceRadiusMiles: 50,
-      operatorTypes: ["cdl_driver"],
       employmentType: "w2",
       cdlClass: "A",
       endorsements: ["H", "T"],
@@ -383,27 +394,21 @@ describe("driverCardSchema (profile edit)", () => {
     });
   });
 
-  it("drops endorsements when the CDL class is none", () => {
-    expect(driverCardSchema.parse(validCard({ cdlClass: "none" })).endorsements).toEqual([]);
+  it("rejects No CDL: every card is a CDL driver at launch", () => {
+    expect(errorsOf(driverCardSchema, validCard({ cdlClass: "none" }))).toEqual({
+      cdlClass: CDL_CLASS_MESSAGE,
+    });
   });
 
-  it("requires driving style, transmission, equipment, Clearinghouse and MVR of a CDL driver", () => {
+  it("requires the sign-up answers: transmission, equipment and the MVR", () => {
     expect(
       errorsOf(
         driverCardSchema,
-        validCard({
-          drivingStyles: [],
-          transmission: null,
-          equipmentTypes: [],
-          clearinghouseRegistered: null,
-          mvrStatus: null,
-        }),
+        validCard({ transmission: null, equipmentTypes: [], mvrStatus: null }),
       ),
     ).toEqual({
-      drivingStyles: DRIVING_STYLE_MESSAGE,
       transmission: TRANSMISSION_MESSAGE,
       equipmentTypes: EQUIPMENT_MESSAGE,
-      clearinghouseRegistered: CLEARINGHOUSE_MESSAGE,
       mvrStatus: MVR_MESSAGE,
     });
     expect(
@@ -411,36 +416,35 @@ describe("driverCardSchema (profile edit)", () => {
     ).toEqual({ transmission: TRANSMISSION_MESSAGE, mvrStatus: MVR_MESSAGE });
   });
 
-  it("lets everyone else leave the CDL-only answers empty", () => {
+  it("lets the profile-only answers stay empty, as a card straight out of sign-up has them", () => {
     const parsed = driverCardSchema.parse(
       validCard({
-        operatorTypes: ["mechanic", "yard_spotter"],
-        cdlClass: "none",
-        endorsements: [],
+        employmentType: null,
         drivingStyles: [],
-        transmission: null,
-        equipmentTypes: [],
         clearinghouseRegistered: null,
-        mvrStatus: null,
+        availability: [],
+        certifications: [],
+        bio: "",
       }),
     );
     expect(parsed).toMatchObject({
+      employmentType: null,
       drivingStyles: [],
-      transmission: null,
-      equipmentTypes: [],
+      clearinghouseRegistered: null,
+      availability: [],
+      certifications: [],
+      bio: null,
       twicActive: true,
       medicalCardActive: true,
-      clearinghouseRegistered: null,
-      mvrStatus: null,
     });
   });
 
-  it("validates fields from every step at once", () => {
+  it("validates fields from every section at once", () => {
     const errors = errorsOf(
       driverCardSchema,
-      validCard({ zip: "1", operatorTypes: [], availability: [] }),
+      validCard({ zip: "1", cdlClass: "none", equipmentTypes: [] }),
     );
-    expect(Object.keys(errors).sort()).toEqual(["availability", "operatorTypes", "zip"]);
+    expect(Object.keys(errors).sort()).toEqual(["cdlClass", "equipmentTypes", "zip"]);
   });
 });
 

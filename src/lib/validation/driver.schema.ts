@@ -11,9 +11,7 @@ import {
 } from "@/lib/constants";
 import { normalizeEndorsements } from "@/lib/onboarding/options";
 import {
-  CLEARINGHOUSE_MESSAGE,
-  DRIVING_STYLE_MESSAGE,
-  EMPLOYMENT_MESSAGE,
+  CDL_CLASS_MESSAGE,
   EQUIPMENT_MESSAGE,
   MEDICAL_CARD_MESSAGE,
   MVR_MESSAGE,
@@ -22,16 +20,20 @@ import {
 } from "@/lib/validation/onboarding.schema";
 import {
   AVAILABILITY_TYPES,
-  CDL_CLASSES,
+  CDL_HELD_CLASSES,
   DRIVING_STYLES,
   EMPLOYMENT_TYPES,
   ENDORSEMENTS,
   EQUIPMENT_TYPES,
-  isCdlDriver,
   MVR_STATUSES,
-  OPERATOR_TYPES,
   TRANSMISSION_TYPES,
 } from "@/types/domain";
+
+/**
+ * The profile page edits the whole card. The answers sign-up asks are required here too; the
+ * ones sign-up no longer asks (W-2 or 1099, driving style, Clearinghouse, availability,
+ * certifications, about you) are optional, so a card straight out of sign-up saves as it is.
+ */
 
 /** Empty or whitespace-only strings become null. */
 const optionalText = (max: number, message: string) =>
@@ -66,7 +68,10 @@ const wholeNumber = (options: {
 
 const unique = <T>(values: T[]) => [...new Set(values)];
 
-/** A yes-or-no answer that may be unanswered: only CDL drivers have to answer some of them. */
+export const EMPLOYMENT_MESSAGE = "Pick W-2, 1099 or either";
+export const CLEARINGHOUSE_MESSAGE = "Tap Registered or Not yet";
+
+/** A yes-or-no answer that may be left unanswered. */
 const optionalYesNo = (message: string) =>
   z
     .boolean({ error: message })
@@ -74,8 +79,8 @@ const optionalYesNo = (message: string) =>
     .transform((value) => value ?? null);
 
 // ---------------------------------------------------------------------------
-// Step 1: basics. City, state and coordinates come from the dataset for the ZIP, never
-// from the form (client decision of 2026-10-09).
+// Basics. City, state and coordinates come from the dataset for the ZIP, never from the
+// form (client decision of 2026-10-09).
 // ---------------------------------------------------------------------------
 export const driverBasicsSchema = z.object({
   fullName: z
@@ -96,7 +101,7 @@ export const driverBasicsSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
-// Step 2: role and licenses
+// CDL and licenses
 // ---------------------------------------------------------------------------
 const certificationsSchema = z
   .array(
@@ -113,78 +118,48 @@ const certificationsSchema = z
   .default([])
   .transform(unique);
 
-export const driverLicensesSchema = z
-  .object({
-    operatorTypes: z
-      .array(z.enum(OPERATOR_TYPES), { error: "Select at least one role" })
-      .min(1, "Select at least one role")
-      .transform(unique),
-    employmentType: z.enum(EMPLOYMENT_TYPES, { error: EMPLOYMENT_MESSAGE }),
-    cdlClass: z.enum(CDL_CLASSES, { error: "Select your CDL class" }),
-    // The same letter rules as onboarding: X brings H and N, S brings P.
-    endorsements: z.array(z.enum(ENDORSEMENTS)).default([]).transform(normalizeEndorsements),
-    yearsExperience: wholeNumber({
-      required: "Enter your years of experience",
-      min: [0, "Experience cannot be negative"],
-      max: [YEARS_EXPERIENCE_MAX, `Experience must be ${YEARS_EXPERIENCE_MAX} years or less`],
-    }),
-    certifications: certificationsSchema,
-  })
-  // Endorsements only apply to a CDL. Without one they are dropped, not rejected.
-  .transform((value) => ({
-    ...value,
-    endorsements: value.cdlClass === "none" ? [] : value.endorsements,
-  }));
+export const driverLicensesSchema = z.object({
+  cdlClass: z.enum(CDL_HELD_CLASSES, { error: CDL_CLASS_MESSAGE }),
+  // The same letter rules as onboarding: X brings H and N, S brings P.
+  endorsements: z.array(z.enum(ENDORSEMENTS)).default([]).transform(normalizeEndorsements),
+  yearsExperience: wholeNumber({
+    required: "Enter your years of experience",
+    min: [0, "Experience cannot be negative"],
+    max: [YEARS_EXPERIENCE_MAX, `Experience must be ${YEARS_EXPERIENCE_MAX} years or less`],
+  }),
+  employmentType: z
+    .enum(EMPLOYMENT_TYPES, { error: EMPLOYMENT_MESSAGE })
+    .nullish()
+    .transform((value) => value ?? null),
+  certifications: certificationsSchema,
+});
 
 // ---------------------------------------------------------------------------
-// Equipment and checks (added 2026-10-09). The CDL-only answers are required by
-// `requireCdlChecks` when the work includes CDL driving, and left alone otherwise.
+// Equipment and checks
 // ---------------------------------------------------------------------------
 export const driverChecksSchema = z.object({
   drivingStyles: z.array(z.enum(DRIVING_STYLES)).default([]).transform(unique),
-  transmission: z
-    .enum(TRANSMISSION_TYPES, { error: TRANSMISSION_MESSAGE })
-    .nullish()
-    .transform((value) => value ?? null),
-  equipmentTypes: z.array(z.enum(EQUIPMENT_TYPES)).default([]).transform(unique),
+  transmission: z.enum(TRANSMISSION_TYPES, { error: TRANSMISSION_MESSAGE }),
+  equipmentTypes: z
+    .array(z.enum(EQUIPMENT_TYPES), { error: EQUIPMENT_MESSAGE })
+    .min(1, EQUIPMENT_MESSAGE)
+    .transform(unique),
   twicActive: z.boolean({ error: TWIC_MESSAGE }),
   medicalCardActive: z.boolean({ error: MEDICAL_CARD_MESSAGE }),
   clearinghouseRegistered: optionalYesNo(CLEARINGHOUSE_MESSAGE),
-  mvrStatus: z
-    .enum(MVR_STATUSES, { error: MVR_MESSAGE })
-    .nullish()
-    .transform((value) => value ?? null),
+  mvrStatus: z.enum(MVR_STATUSES, { error: MVR_MESSAGE }),
 });
 
-type ChecksOutput = z.infer<typeof driverChecksSchema> & { operatorTypes: readonly string[] };
-
-/** A CDL driver must answer driving style, transmission, equipment, Clearinghouse and MVR. */
-function requireCdlChecks(value: ChecksOutput, ctx: z.RefinementCtx): void {
-  if (!isCdlDriver(value.operatorTypes)) return;
-  const missing: [string, string][] = [];
-  if (value.drivingStyles.length === 0) missing.push(["drivingStyles", DRIVING_STYLE_MESSAGE]);
-  if (value.transmission === null) missing.push(["transmission", TRANSMISSION_MESSAGE]);
-  if (value.equipmentTypes.length === 0) missing.push(["equipmentTypes", EQUIPMENT_MESSAGE]);
-  if (value.clearinghouseRegistered === null) {
-    missing.push(["clearinghouseRegistered", CLEARINGHOUSE_MESSAGE]);
-  }
-  if (value.mvrStatus === null) missing.push(["mvrStatus", MVR_MESSAGE]);
-  for (const [path, message] of missing) ctx.addIssue({ code: "custom", path: [path], message });
-}
-
 // ---------------------------------------------------------------------------
-// Step 3: availability
+// Availability and about you
 // ---------------------------------------------------------------------------
 export const driverAvailabilitySchema = z.object({
-  availability: z
-    .array(z.enum(AVAILABILITY_TYPES), { error: "Select at least one option" })
-    .min(1, "Select at least one option")
-    .transform(unique),
+  availability: z.array(z.enum(AVAILABILITY_TYPES)).default([]).transform(unique),
   bio: optionalText(BIO_MAX_LENGTH, `Bio must be ${BIO_MAX_LENGTH} characters or fewer`),
 });
 
 // ---------------------------------------------------------------------------
-// Step 5: SMS consent (required)
+// SMS consent (required)
 // ---------------------------------------------------------------------------
 export const smsConsentSchema = z.object({
   consent: z.literal(true, { error: "You must agree to receive text messages to continue" }),
@@ -193,18 +168,12 @@ export const smsConsentSchema = z.object({
 // ---------------------------------------------------------------------------
 // Full card edit (profile page, after onboarding)
 // ---------------------------------------------------------------------------
-export const driverCardSchema = z
-  .object({
-    ...driverBasicsSchema.shape,
-    ...driverLicensesSchema.in.shape,
-    ...driverChecksSchema.shape,
-    ...driverAvailabilitySchema.shape,
-  })
-  .superRefine(requireCdlChecks)
-  .transform((value) => ({
-    ...value,
-    endorsements: value.cdlClass === "none" ? [] : value.endorsements,
-  }));
+export const driverCardSchema = z.object({
+  ...driverBasicsSchema.shape,
+  ...driverLicensesSchema.shape,
+  ...driverChecksSchema.shape,
+  ...driverAvailabilitySchema.shape,
+});
 
 export type DriverBasicsInput = z.infer<typeof driverBasicsSchema>;
 export type DriverLicensesInput = z.infer<typeof driverLicensesSchema>;

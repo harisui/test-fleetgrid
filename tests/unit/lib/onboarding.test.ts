@@ -3,7 +3,6 @@ import { describe, expect, it } from "vitest";
 import {
   CARD_CHECKS,
   CDL_CLASS_OPTIONS,
-  CERTIFICATION_SUGGESTIONS,
   DRIVING_STYLE_OPTIONS,
   EMPLOYMENT_TYPE_OPTIONS,
   ENDORSEMENT_OPTIONS,
@@ -18,22 +17,19 @@ import {
   ONBOARDING_DOCUMENT_TILES,
   toggleEndorsement,
   TRANSMISSION_OPTIONS,
-  WORK_TYPE_OPTIONS,
   AVAILABILITY_OPTIONS,
   DISTANCE_CHIPS,
 } from "@/lib/onboarding/options";
 import {
-  CDL_ONLY_STEP_IDS,
-  contextOf,
   DONE_STEP_NUMBER,
   isSavableStepId,
   isStepId,
+  MILE_SUMMARIES,
   MILES,
   nextStepId,
   previousStepId,
   progressFor,
   SAVABLE_STEP_IDS,
-  stepApplies,
   stepById,
   stepByNumber,
   stepNumber,
@@ -41,53 +37,62 @@ import {
   stepsOfMile,
 } from "@/lib/onboarding/steps";
 import {
-  CDL_CLASSES,
+  CDL_HELD_CLASSES,
   DRIVING_STYLES,
   EMPLOYMENT_TYPES,
   ENDORSEMENTS,
   EQUIPMENT_TYPES,
+  MVR_STATUSES,
   TRANSMISSION_TYPES,
 } from "@/types/domain";
 
 describe("steps config", () => {
-  it("has five miles labelled About, Work, License, Papers, Finish", () => {
+  it("has six miles labelled About, CDL, Cards, Letters, Equipment, Finish", () => {
     expect(MILES.map((mile) => `${mile.mile} ${mile.label}`)).toEqual([
       "1 About",
-      "2 Work",
-      "3 License",
-      "4 Papers",
-      "5 Finish",
+      "2 CDL",
+      "3 Cards",
+      "4 Letters",
+      "5 Equipment",
+      "6 Finish",
     ]);
+    expect(Object.keys(MILE_SUMMARIES).map(Number)).toEqual(MILES.map((mile) => mile.mile));
   });
 
-  it("has eighteen screens in the approved order and mile map", () => {
+  it("has twelve screens in the client's order (2026-10-09) and mile map", () => {
     expect(STEPS.map((step) => `${step.mile}:${step.id}`)).toEqual([
       "1:name",
       "1:zip",
       "1:distance",
-      "2:workType",
-      "2:employmentType",
-      "2:drivingStyle",
-      "2:equipment",
+      "2:cdlClass",
       "2:experience",
-      "2:availability",
-      "3:cdlClass",
-      "3:endorsements",
-      "3:certifications",
+      "2:record",
       "3:credentials",
-      "4:documents",
-      "4:compliance",
-      "5:bio",
-      "5:consent",
-      "5:done",
+      "4:endorsements",
+      "4:transmission",
+      "5:equipment",
+      "6:consent",
+      "6:done",
     ]);
-    expect(DONE_STEP_NUMBER).toBe(18);
-    expect(SAVABLE_STEP_IDS).toHaveLength(17);
+    expect(DONE_STEP_NUMBER).toBe(12);
+    expect(SAVABLE_STEP_IDS).toHaveLength(11);
     expect(SAVABLE_STEP_IDS).not.toContain("done");
   });
 
-  it("asks driving style, equipment and the record of CDL drivers only", () => {
-    expect(CDL_ONLY_STEP_IDS).toEqual(["drivingStyle", "equipment", "compliance"]);
+  it("no longer asks work type, W-2 or 1099, driving style, availability, certifications, papers, the Clearinghouse or about you", () => {
+    const ids = STEPS.map((step) => step.id as string);
+    for (const gone of [
+      "workType",
+      "employmentType",
+      "drivingStyle",
+      "availability",
+      "certifications",
+      "documents",
+      "compliance",
+      "bio",
+    ]) {
+      expect(ids, gone).not.toContain(gone);
+    }
   });
 
   it("every sign header is a question, except the done screen", () => {
@@ -104,27 +109,20 @@ describe("steps config", () => {
     });
     expect(stepById("consent").question).toBe("Can we text you about shifts?");
     expect(stepById("name").question).toBe("What is your name?");
-    expect(stepById("employmentType").question).toBe("Do you work W-2 or 1099?");
-    expect(stepById("drivingStyle").question).toBe("What kind of driving do you do?");
-    expect(stepById("equipment").question).toBe("What equipment do you run?");
+    expect(stepById("cdlClass").question).toBe("What class is your CDL?");
+    expect(stepById("experience").question).toBe("How many years have you driven with a CDL?");
+    expect(stepById("record").question).toBe(MVR_QUESTION);
     expect(stepById("credentials").question).toBe("Do you have these cards?");
-    expect(stepById("compliance").question).toBe("How is your driving record?");
-  });
-
-  it("marks only certifications, papers and about-you as optional", () => {
-    expect(STEPS.filter((step) => "optional" in step && step.optional).map((s) => s.id)).toEqual([
-      "certifications",
-      "documents",
-      "bio",
-    ]);
+    expect(stepById("transmission").question).toBe("Can you drive a manual?");
+    expect(stepById("equipment").question).toBe("What equipment do you run?");
   });
 
   it("numbers steps from 1 and looks them up both ways", () => {
     expect(stepNumber("name")).toBe(1);
-    expect(stepNumber("done")).toBe(18);
-    expect(stepByNumber(10).id).toBe("cdlClass");
+    expect(stepNumber("done")).toBe(12);
+    expect(stepByNumber(4).id).toBe("cdlClass");
     expect(() => stepByNumber(0)).toThrow(/Unknown onboarding step/);
-    expect(() => stepByNumber(19)).toThrow(/Unknown onboarding step/);
+    expect(() => stepByNumber(13)).toThrow(/Unknown onboarding step/);
     expect(() => stepByNumber(1.5)).toThrow(/Unknown onboarding step/);
     expect(() => stepById("nope" as never)).toThrow(/Unknown onboarding step/);
   });
@@ -132,26 +130,26 @@ describe("steps config", () => {
   it("recognises step ids", () => {
     expect(isStepId("zip")).toBe(true);
     expect(isStepId("done")).toBe(true);
-    expect(isStepId("basics")).toBe(false);
+    expect(isStepId("workType")).toBe(false);
     expect(isStepId(1)).toBe(false);
     expect(isSavableStepId("done")).toBe(false);
     expect(isSavableStepId("consent")).toBe(true);
-    expect(isSavableStepId("compliance")).toBe(true);
+    expect(isSavableStepId("record")).toBe(true);
   });
 });
 
 describe("progressFor", () => {
   it("derives the eyebrow, screen-reader label and truck position from the config", () => {
-    expect(progressFor("workType")).toMatchObject({
+    expect(progressFor("cdlClass")).toMatchObject({
       number: 4,
-      mile: { mile: 2, label: "Work" },
-      percent: 18,
-      eyebrow: "Mile 2 of 5 · Work",
-      srLabel: "Step 2 of 5: Work",
+      mile: { mile: 2, label: "CDL" },
+      percent: 27,
+      eyebrow: "Mile 2 of 6",
+      srLabel: "Step 2 of 6: CDL",
       completedMiles: [1],
     });
     expect(progressFor("name")).toMatchObject({ percent: 0, completedMiles: [] });
-    expect(progressFor("done")).toMatchObject({ percent: 100, completedMiles: [1, 2, 3, 4] });
+    expect(progressFor("done")).toMatchObject({ percent: 100, completedMiles: [1, 2, 3, 4, 5] });
   });
 
   it("moves the truck forward on every screen", () => {
@@ -163,115 +161,36 @@ describe("progressFor", () => {
 });
 
 describe("flow navigation", () => {
-  const withCdl = { cdlClass: "A", operatorTypes: ["cdl_driver"] };
-  const noCdl = { cdlClass: "none", operatorTypes: ["yard_spotter"] };
-  const mechanic = { cdlClass: "A", operatorTypes: ["mechanic"] };
-  const unknown = { cdlClass: null, operatorTypes: [] };
-
-  it("reads the context off a saved card, or none", () => {
-    expect(contextOf(null)).toEqual(unknown);
-    expect(contextOf(undefined)).toEqual(unknown);
-    expect(contextOf({ cdlClass: "B", operatorTypes: ["cdl_driver", "mechanic"] })).toEqual({
-      cdlClass: "B",
-      operatorTypes: ["cdl_driver", "mechanic"],
-    });
-  });
-
-  it("endorsements only apply to drivers with a CDL", () => {
-    expect(stepApplies("endorsements", withCdl)).toBe(true);
-    expect(stepApplies("endorsements", noCdl)).toBe(false);
-    expect(stepApplies("endorsements", unknown)).toBe(false);
-    expect(stepApplies("cdlClass", noCdl)).toBe(true);
-  });
-
-  it("the CDL-only screens apply when the work includes CDL driving, whatever the class", () => {
-    for (const id of CDL_ONLY_STEP_IDS) {
-      expect(stepApplies(id, withCdl), id).toBe(true);
-      expect(stepApplies(id, { cdlClass: null, operatorTypes: ["cdl_driver"] }), id).toBe(true);
-      expect(stepApplies(id, mechanic), id).toBe(false);
-      expect(stepApplies(id, noCdl), id).toBe(false);
-      expect(stepApplies(id, unknown), id).toBe(false);
-    }
-    expect(stepApplies("employmentType", mechanic)).toBe(true);
-    expect(stepApplies("credentials", mechanic)).toBe(true);
-  });
-
-  it("skips endorsements after No CDL, forwards and backwards", () => {
-    expect(nextStepId("cdlClass", withCdl)).toBe("endorsements");
-    expect(nextStepId("cdlClass", noCdl)).toBe("certifications");
-    expect(previousStepId("certifications", withCdl)).toBe("endorsements");
-    expect(previousStepId("certifications", noCdl)).toBe("cdlClass");
-  });
-
-  it("skips the CDL-only screens for work without CDL driving, forwards and backwards", () => {
-    expect(nextStepId("workType", withCdl)).toBe("employmentType");
-    expect(nextStepId("employmentType", withCdl)).toBe("drivingStyle");
-    expect(nextStepId("drivingStyle", withCdl)).toBe("equipment");
-    expect(nextStepId("equipment", withCdl)).toBe("experience");
-    expect(nextStepId("employmentType", mechanic)).toBe("experience");
-    expect(previousStepId("experience", withCdl)).toBe("equipment");
-    expect(previousStepId("experience", mechanic)).toBe("employmentType");
-
-    expect(nextStepId("certifications", withCdl)).toBe("credentials");
-    expect(nextStepId("credentials", mechanic)).toBe("documents");
-    expect(nextStepId("documents", withCdl)).toBe("compliance");
-    expect(nextStepId("documents", mechanic)).toBe("bio");
-    expect(previousStepId("bio", withCdl)).toBe("compliance");
-    expect(previousStepId("bio", mechanic)).toBe("documents");
+  it("walks the screens in order, forwards and backwards", () => {
+    expect(nextStepId("name")).toBe("zip");
+    expect(nextStepId("distance")).toBe("cdlClass");
+    expect(nextStepId("record")).toBe("credentials");
+    expect(nextStepId("credentials")).toBe("endorsements");
+    expect(nextStepId("transmission")).toBe("equipment");
+    expect(nextStepId("equipment")).toBe("consent");
+    expect(previousStepId("cdlClass")).toBe("distance");
+    expect(previousStepId("endorsements")).toBe("credentials");
   });
 
   it("stops at the ends", () => {
-    expect(nextStepId("consent", withCdl)).toBe("done");
-    expect(nextStepId("done", withCdl)).toBe("done");
-    expect(previousStepId("name", withCdl)).toBeNull();
+    expect(nextStepId("consent")).toBe("done");
+    expect(nextStepId("done")).toBe("done");
+    expect(previousStepId("name")).toBeNull();
   });
 
-  it("groups a mile's applicable screens for desktop", () => {
-    expect(stepsOfMile(2, withCdl).map((step) => step.id)).toEqual([
-      "workType",
-      "employmentType",
-      "drivingStyle",
-      "equipment",
-      "experience",
-      "availability",
-    ]);
-    expect(stepsOfMile(2, mechanic).map((step) => step.id)).toEqual([
-      "workType",
-      "employmentType",
-      "experience",
-      "availability",
-    ]);
-    expect(stepsOfMile(3, withCdl).map((step) => step.id)).toEqual([
-      "cdlClass",
-      "endorsements",
-      "certifications",
-      "credentials",
-    ]);
-    expect(stepsOfMile(3, noCdl).map((step) => step.id)).toEqual([
-      "cdlClass",
-      "certifications",
-      "credentials",
-    ]);
-    expect(stepsOfMile(4, withCdl).map((step) => step.id)).toEqual(["documents", "compliance"]);
-    expect(stepsOfMile(4, mechanic).map((step) => step.id)).toEqual(["documents"]);
-    expect(stepsOfMile(5, withCdl).map((step) => step.id)).toEqual(["bio", "consent"]);
-  });
-
-  it("lists every screen of a mile when no context is given, never the done screen", () => {
-    expect(stepsOfMile(3).map((step) => step.id)).toEqual([
-      "cdlClass",
-      "endorsements",
-      "certifications",
-      "credentials",
-    ]);
-    expect(stepsOfMile(4).map((step) => step.id)).toEqual(["documents", "compliance"]);
-    expect(stepsOfMile(5).map((step) => step.id)).toEqual(["bio", "consent"]);
+  it("groups a mile's screens as one page, never the done screen", () => {
+    expect(stepsOfMile(1).map((step) => step.id)).toEqual(["name", "zip", "distance"]);
+    expect(stepsOfMile(2).map((step) => step.id)).toEqual(["cdlClass", "experience", "record"]);
+    expect(stepsOfMile(3).map((step) => step.id)).toEqual(["credentials"]);
+    expect(stepsOfMile(4).map((step) => step.id)).toEqual(["endorsements", "transmission"]);
+    expect(stepsOfMile(5).map((step) => step.id)).toEqual(["equipment"]);
+    expect(stepsOfMile(6).map((step) => step.id)).toEqual(["consent"]);
   });
 });
 
 describe("options", () => {
   it("covers every enum value with a label, a description and an icon", () => {
-    expect(CDL_CLASS_OPTIONS.map((option) => option.value)).toEqual([...CDL_CLASSES]);
+    expect(CDL_CLASS_OPTIONS.map((option) => option.value)).toEqual([...CDL_HELD_CLASSES]);
     expect(ENDORSEMENT_OPTIONS.map((option) => option.value).sort()).toEqual(
       [...ENDORSEMENTS].sort(),
     );
@@ -279,8 +198,8 @@ describe("options", () => {
     expect(DRIVING_STYLE_OPTIONS.map((option) => option.value)).toEqual([...DRIVING_STYLES]);
     expect(TRANSMISSION_OPTIONS.map((option) => option.value)).toEqual([...TRANSMISSION_TYPES]);
     expect(EQUIPMENT_CHIPS.map((option) => option.value)).toEqual([...EQUIPMENT_TYPES]);
+    expect(MVR_CHIPS.map((option) => option.value)).toEqual([...MVR_STATUSES]);
     for (const option of [
-      ...WORK_TYPE_OPTIONS,
       ...AVAILABILITY_OPTIONS,
       ...CDL_CLASS_OPTIONS,
       ...ENDORSEMENT_OPTIONS,
@@ -294,12 +213,11 @@ describe("options", () => {
     }
   });
 
-  it("uses the approved CDL class descriptions", () => {
+  it("offers the three CDL classes with the approved descriptions, and no No CDL card", () => {
     expect(CDL_CLASS_OPTIONS.map((option) => `${option.label}: ${option.description}`)).toEqual([
       "Class A: Tractor-trailers and big rigs",
       "Class B: Straight trucks, buses, dump trucks",
       "Class C: Passenger vans (16+) and small hazmat vehicles",
-      "No CDL: Fine for yard and shop work",
     ]);
   });
 
@@ -353,7 +271,11 @@ describe("options", () => {
     expect(MVR_HELPER).toBe(
       "Major means a DUI, reckless driving, leaving the scene or a suspended license.",
     );
-    expect(Object.keys(MVR_SUMMARY)).toEqual(MVR_CHIPS.map((chip) => chip.value));
+    expect(MVR_SUMMARY).toEqual({
+      clean: "No violations in 3 years",
+      minor_1_2: "1 or 2 minor violations in 3 years",
+      major_3_plus: "3 or more or a major violation in 3 years",
+    });
   });
 
   it("gives every endorsement its own icon", () => {
@@ -391,11 +313,7 @@ describe("options", () => {
     expect(experienceChipFor(99)).toBeNull();
   });
 
-  it("suggests certifications without TWIC, which has its own question", () => {
-    expect(CERTIFICATION_SUGGESTIONS).toEqual(["Forklift", "OSHA 10", "ASE"]);
-  });
-
-  it("asks for the front and back of the CDL, the medical card and other papers", () => {
+  it("the Documents page asks for the front and back of the CDL, the medical card and other papers", () => {
     expect(ONBOARDING_DOCUMENT_TILES.map((tile) => [tile.type, tile.max])).toEqual([
       ["cdl_front", 1],
       ["cdl_back", 1],

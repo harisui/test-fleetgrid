@@ -1,8 +1,13 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
-import { checkSummary, mvrSummary, SummaryCard } from "@/components/driver/SummaryCard";
-import { buildDriver } from "../../setup/factories";
+import {
+  checkSummary,
+  experienceSummary,
+  mvrSummary,
+  SummaryCard,
+} from "@/components/driver/SummaryCard";
+import { buildDriver, buildPartialDriver } from "../../setup/factories";
 
 const rows = () =>
   Array.from(document.querySelectorAll("[data-slot=summary-card] dt")).map((dt) => [
@@ -11,85 +16,74 @@ const rows = () =>
   ]);
 
 describe("SummaryCard", () => {
-  it("lists every answer of a CDL driver, each with an Edit button", () => {
+  it("lists every sign-up answer in flow order, each with an Edit button", () => {
     render(<SummaryCard driver={buildDriver()} onEdit={vi.fn()} />);
     expect(rows()).toEqual([
-      ["Work type", "CDL driver"],
-      ["Pay", "W-2 employee"],
-      ["Driving", "Local day cab, Regional"],
-      ["Equipment", "Dry van, Flatbed · Automatic and manual"],
       ["CDL class", "Class A"],
-      ["Endorsements", "H, T"],
+      ["Experience", "6 to 10 years"],
+      ["Record", "No violations in 3 years"],
       ["Cards", "TWIC, medical card current"],
-      ["Record", "In the Clearinghouse, no violations in 3 years"],
-      ["Availability", "Full time"],
+      ["Endorsements", "H, T"],
+      ["Transmission", "Automatic and manual"],
+      ["Equipment", "Dry van, Flatbed"],
     ]);
-    expect(screen.getAllByRole("button", { name: /^Edit / })).toHaveLength(9);
+    expect(screen.getAllByRole("button", { name: /^Edit / })).toHaveLength(7);
   });
 
-  it("leaves out the driving, equipment and record rows for work without CDL driving", () => {
-    render(
-      <SummaryCard
-        driver={buildDriver({
-          operatorTypes: ["yard_spotter", "mechanic"],
-          cdlClass: "none",
-          endorsements: [],
-          employmentType: "either",
-          drivingStyles: [],
-          transmission: null,
-          equipmentTypes: [],
-          twicActive: false,
-          medicalCardActive: false,
-          clearinghouseRegistered: null,
-          mvrStatus: null,
-        })}
-        onEdit={vi.fn()}
-      />,
-    );
+  it("leaves the profile-only answers out: W-2 or 1099, driving style, the Clearinghouse, availability", () => {
+    render(<SummaryCard driver={buildDriver()} onEdit={vi.fn()} />);
+    const text = document.querySelector("[data-slot=summary-card]")?.textContent ?? "";
+    for (const absent of ["W-2", "Local day cab", "Clearinghouse", "Full time", "Work type"]) {
+      expect(text, absent).not.toContain(absent);
+    }
+  });
+
+  it("reads unanswered rows as such, and no endorsements as None", () => {
+    render(<SummaryCard driver={buildPartialDriver()} onEdit={vi.fn()} />);
     expect(rows()).toEqual([
-      ["Work type", "Yard spotter, Mechanic"],
-      ["Pay", "Either works"],
-      ["CDL class", "No CDL"],
+      ["CDL class", "Not answered"],
+      ["Experience", "Not answered"],
+      ["Record", "Not answered"],
+      ["Cards", "Not answered, Not answered"],
       ["Endorsements", "None"],
-      ["Cards", "No TWIC, medical card not current"],
-      ["Availability", "Full time"],
+      ["Transmission", "Not answered"],
+      ["Equipment", "Not answered"],
     ]);
   });
 
-  it("sends Edit to the screen that collects the row", async () => {
+  it("sends Edit to the page that collects the row", async () => {
     const onEdit = vi.fn();
     render(<SummaryCard driver={buildDriver()} onEdit={onEdit} />);
     const card = within(document.querySelector("[data-slot=summary-card]") as HTMLElement);
-    await userEvent.click(card.getByRole("button", { name: "Edit pay" }));
-    await userEvent.click(card.getByRole("button", { name: "Edit equipment" }));
-    await userEvent.click(card.getByRole("button", { name: "Edit cards" }));
+    await userEvent.click(card.getByRole("button", { name: "Edit experience" }));
     await userEvent.click(card.getByRole("button", { name: "Edit record" }));
+    await userEvent.click(card.getByRole("button", { name: "Edit cards" }));
+    await userEvent.click(card.getByRole("button", { name: "Edit transmission" }));
+    await userEvent.click(card.getByRole("button", { name: "Edit equipment" }));
     expect(onEdit.mock.calls.map((call) => call[0])).toEqual([
-      "employmentType",
-      "equipment",
+      "experience",
+      "record",
       "credentials",
-      "compliance",
+      "transmission",
+      "equipment",
     ]);
   });
 
-  it("reads an unanswered check as such", () => {
+  it("reads each answer in a sentence", () => {
     expect(checkSummary("twicActive", null)).toBe("Not answered");
     expect(checkSummary("twicActive", true)).toBe("TWIC");
-    expect(checkSummary("clearinghouseRegistered", false)).toBe("Not in the Clearinghouse");
-  });
-
-  it("reads each MVR level in a sentence", () => {
+    expect(checkSummary("medicalCardActive", false)).toBe("medical card not current");
     expect(mvrSummary(null)).toBe("Not answered");
-    expect(mvrSummary("clean")).toBe("no violations in 3 years");
+    expect(mvrSummary("clean")).toBe("No violations in 3 years");
     expect(mvrSummary("minor_1_2")).toBe("1 or 2 minor violations in 3 years");
     expect(mvrSummary("major_3_plus")).toBe("3 or more or a major violation in 3 years");
+    expect(experienceSummary(null)).toBe("Not answered");
+    expect(experienceSummary(0)).toBe("Under 1 years");
+    expect(experienceSummary(25)).toBe("10 or more years");
   });
 
   it("shows the MVR level on the record row", () => {
     render(<SummaryCard driver={buildDriver({ mvrStatus: "major_3_plus" })} onEdit={vi.fn()} />);
-    expect(rows()).toContainEqual([
-      "Record",
-      "In the Clearinghouse, 3 or more or a major violation in 3 years",
-    ]);
+    expect(rows()).toContainEqual(["Record", "3 or more or a major violation in 3 years"]);
   });
 });

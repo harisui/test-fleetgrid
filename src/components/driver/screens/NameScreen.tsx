@@ -8,14 +8,14 @@ import { Input } from "@/components/ui/input";
 import { nameScreenSchema } from "@/lib/validation/onboarding.schema";
 import type { OnboardingFormValues } from "@/components/driver/screens/types";
 
-function NameFields({ showQuestion, question }: ScreenFieldsProps) {
+function NameFields({ question }: ScreenFieldsProps) {
   const {
     register,
     formState: { errors },
   } = useFormContext<OnboardingFormValues>();
   return (
     <>
-      <ScreenQuestion show={showQuestion}>{question}</ScreenQuestion>
+      <ScreenQuestion>{question}</ScreenQuestion>
       <FormField
         label="Full name"
         description="As it appears on your license."

@@ -12,7 +12,7 @@ import { DISTANCE_CHIPS } from "@/lib/onboarding/options";
 import { stepNumber } from "@/lib/onboarding/steps";
 import { distanceScreenSchema } from "@/lib/validation/onboarding.schema";
 
-function DistanceFields({ showQuestion, question, driver }: ScreenFieldsProps) {
+function DistanceFields({ question, driver }: ScreenFieldsProps) {
   const {
     control,
     formState: { errors },
@@ -23,15 +23,12 @@ function DistanceFields({ showQuestion, question, driver }: ScreenFieldsProps) {
       : "";
   return (
     <>
-      {/* Shifts are matched by state (Milestone 3); this answer is information for carriers. */}
-      <ScreenHelper>{from}Tells carriers how far you&apos;re willing to go for work.</ScreenHelper>
       <Controller
         control={control}
         name="serviceRadiusMiles"
         render={({ field }) => (
           <ChipGroup
             label={question}
-            labelHidden={!showQuestion}
             options={DISTANCE_CHIPS}
             value={field.value}
             onChange={field.onChange}
@@ -39,6 +36,8 @@ function DistanceFields({ showQuestion, question, driver }: ScreenFieldsProps) {
           />
         )}
       />
+      {/* Shift matching uses this distance (Milestone 3); for now it is information for carriers. */}
+      <ScreenHelper>{from}Tells carriers how far you&apos;re willing to go for work.</ScreenHelper>
     </>
   );
 }

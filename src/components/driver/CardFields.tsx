@@ -26,6 +26,7 @@ import {
   CARD_CHECKS,
   CDL_CLASS_OPTIONS,
   DRIVING_STYLE_OPTIONS,
+  EMPLOYMENT_HELPER,
   EMPLOYMENT_TYPE_OPTIONS,
   EQUIPMENT_CHIPS,
   EXPERIENCE_CHIPS,
@@ -42,13 +43,12 @@ import {
   AVAILABILITY_TYPES,
   ENDORSEMENT_LABELS,
   ENDORSEMENTS,
-  OPERATOR_TYPE_LABELS,
-  OPERATOR_TYPES,
 } from "@/types/domain";
 
 /**
- * Field groups of the qualification card. The onboarding steps and the profile editor both
- * render these, so a field looks and validates the same everywhere.
+ * Field groups of the qualification card on the profile page. The answers sign-up asks are
+ * required here too; the ones sign-up no longer asks (W-2 or 1099, driving style, the
+ * Clearinghouse, availability, certifications, about you) are optional.
  */
 
 interface GroupProps<T extends FieldValues> {
@@ -67,7 +67,6 @@ const choices = <T extends string>(
 ): ChoiceOption<T>[] =>
   cards.map(({ value, label, description }) => ({ value, label, description }));
 
-const OPERATOR_OPTIONS = options(OPERATOR_TYPES, OPERATOR_TYPE_LABELS);
 const EMPLOYMENT_OPTIONS = choices(EMPLOYMENT_TYPE_OPTIONS);
 const CDL_OPTIONS = choices(CDL_CLASS_OPTIONS);
 const ENDORSEMENT_OPTIONS = options(ENDORSEMENTS, ENDORSEMENT_LABELS);
@@ -135,48 +134,9 @@ export function BasicsFields<T extends FieldValues>({
   );
 }
 
-export function LicensesFields<T extends FieldValues>({
-  control,
-  errorOf,
-  disabled,
-  cdlClass,
-}: GroupProps<T> & { /** Current CDL class, to show or hide endorsements. */ cdlClass: string }) {
+export function LicensesFields<T extends FieldValues>({ control, errorOf, disabled }: GroupProps<T>) {
   return (
     <>
-      <Controller
-        control={control}
-        name={field<T>("operatorTypes")}
-        render={({ field: input }) => (
-          <ChoiceGroup
-            multiple
-            label="What work do you do?"
-            description="Select all that apply."
-            options={OPERATOR_OPTIONS}
-            value={input.value ?? []}
-            onChange={input.onChange}
-            error={errorOf("operatorTypes")}
-            disabled={disabled}
-            required
-          />
-        )}
-      />
-
-      <Controller
-        control={control}
-        name={field<T>("employmentType")}
-        render={({ field: input }) => (
-          <ChoiceGroup
-            label="W-2 or 1099?"
-            options={EMPLOYMENT_OPTIONS}
-            value={input.value}
-            onChange={input.onChange}
-            error={errorOf("employmentType")}
-            disabled={disabled}
-            required
-          />
-        )}
-      />
-
       <Controller
         control={control}
         name={field<T>("cdlClass")}
@@ -184,7 +144,7 @@ export function LicensesFields<T extends FieldValues>({
           <ChoiceGroup
             label="CDL class"
             options={CDL_OPTIONS}
-            value={input.value}
+            value={input.value === "none" ? undefined : input.value}
             onChange={input.onChange}
             error={errorOf("cdlClass")}
             disabled={disabled}
@@ -194,24 +154,22 @@ export function LicensesFields<T extends FieldValues>({
         )}
       />
 
-      {cdlClass !== "none" && (
-        <Controller
-          control={control}
-          name={field<T>("endorsements")}
-          render={({ field: input }) => (
-            <ChoiceGroup
-              multiple
-              label="Endorsements"
-              description="Optional. Select all you hold."
-              options={ENDORSEMENT_OPTIONS}
-              value={input.value ?? []}
-              onChange={input.onChange}
-              error={errorOf("endorsements")}
-              disabled={disabled}
-            />
-          )}
-        />
-      )}
+      <Controller
+        control={control}
+        name={field<T>("endorsements")}
+        render={({ field: input }) => (
+          <ChoiceGroup
+            multiple
+            label="Endorsements"
+            description="Optional. Select all you hold."
+            options={ENDORSEMENT_OPTIONS}
+            value={input.value ?? []}
+            onChange={input.onChange}
+            error={errorOf("endorsements")}
+            disabled={disabled}
+          />
+        )}
+      />
 
       <Controller
         control={control}
@@ -226,6 +184,22 @@ export function LicensesFields<T extends FieldValues>({
             disabled={disabled}
             columns={2}
             required
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name={field<T>("employmentType")}
+        render={({ field: input }) => (
+          <ChoiceGroup
+            label="W-2 or 1099?"
+            description={`Optional. ${EMPLOYMENT_HELPER}`}
+            options={EMPLOYMENT_OPTIONS}
+            value={input.value ?? undefined}
+            onChange={input.onChange}
+            error={errorOf("employmentType")}
+            disabled={disabled}
           />
         )}
       />
@@ -257,7 +231,13 @@ function CheckChoice<T extends FieldValues>({
   name,
   errorOf,
   disabled,
-}: Pick<GroupProps<T>, "control" | "errorOf" | "disabled"> & { name: CardCheck }) {
+  required = true,
+  description,
+}: Pick<GroupProps<T>, "control" | "errorOf" | "disabled"> & {
+  name: CardCheck;
+  required?: boolean;
+  description?: string;
+}) {
   const check = CARD_CHECKS[name];
   return (
     <Controller
@@ -266,6 +246,7 @@ function CheckChoice<T extends FieldValues>({
       render={({ field: input }) => (
         <ChoiceGroup
           label={check.question}
+          description={description}
           options={[
             { value: "yes", label: check.yes },
             { value: "no", label: check.no },
@@ -275,81 +256,37 @@ function CheckChoice<T extends FieldValues>({
           error={errorOf(name as keyof T & string)}
           disabled={disabled}
           columns={2}
-          required
+          required={required}
         />
       )}
     />
   );
 }
 
-/**
- * Equipment and checks. Driving style, transmission, equipment, Clearinghouse and MVR are
- * CDL-driver questions and only show when the work includes CDL driving.
- */
+/** Equipment and checks, in the order sign-up asks them, then the profile-only ones. */
 export function ChecksFields<T extends FieldValues>({
   control,
   errorOf,
   disabled,
-  cdlDriver,
-}: GroupProps<T> & { /** Whether the work includes CDL driving. */ cdlDriver: boolean }) {
+}: GroupProps<T>) {
   return (
     <>
-      {cdlDriver && (
-        <>
-          <Controller
-            control={control}
-            name={field<T>("drivingStyles")}
-            render={({ field: input }) => (
-              <ChoiceGroup
-                multiple
-                label="What kind of driving do you do?"
-                description="Select all that apply."
-                options={DRIVING_OPTIONS}
-                value={input.value ?? []}
-                onChange={input.onChange}
-                error={errorOf("drivingStyles")}
-                disabled={disabled}
-                required
-              />
-            )}
+      <Controller
+        control={control}
+        name={field<T>("mvrStatus")}
+        render={({ field: input }) => (
+          <ChoiceGroup
+            label={MVR_QUESTION}
+            description={MVR_HELPER}
+            options={MVR_OPTIONS}
+            value={input.value ?? undefined}
+            onChange={input.onChange}
+            error={errorOf("mvrStatus")}
+            disabled={disabled}
+            required
           />
-
-          <Controller
-            control={control}
-            name={field<T>("equipmentTypes")}
-            render={({ field: input }) => (
-              <ChoiceGroup
-                multiple
-                label="What equipment do you run?"
-                description="Select all that apply."
-                options={EQUIPMENT_OPTIONS}
-                value={input.value ?? []}
-                onChange={input.onChange}
-                error={errorOf("equipmentTypes")}
-                disabled={disabled}
-                columns={2}
-                required
-              />
-            )}
-          />
-
-          <Controller
-            control={control}
-            name={field<T>("transmission")}
-            render={({ field: input }) => (
-              <ChoiceGroup
-                label={TRANSMISSION_QUESTION}
-                options={TRANSMISSION_CHOICES}
-                value={input.value ?? undefined}
-                onChange={input.onChange}
-                error={errorOf("transmission")}
-                disabled={disabled}
-                required
-              />
-            )}
-          />
-        </>
-      )}
+        )}
+      />
 
       <CheckChoice control={control} name="twicActive" errorOf={errorOf} disabled={disabled} />
       <CheckChoice
@@ -359,32 +296,66 @@ export function ChecksFields<T extends FieldValues>({
         disabled={disabled}
       />
 
-      {cdlDriver && (
-        <>
-          <CheckChoice
-            control={control}
-            name="clearinghouseRegistered"
-            errorOf={errorOf}
+      <Controller
+        control={control}
+        name={field<T>("transmission")}
+        render={({ field: input }) => (
+          <ChoiceGroup
+            label={TRANSMISSION_QUESTION}
+            options={TRANSMISSION_CHOICES}
+            value={input.value ?? undefined}
+            onChange={input.onChange}
+            error={errorOf("transmission")}
+            disabled={disabled}
+            required
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name={field<T>("equipmentTypes")}
+        render={({ field: input }) => (
+          <ChoiceGroup
+            multiple
+            label="What equipment do you run?"
+            description="Select all that apply."
+            options={EQUIPMENT_OPTIONS}
+            value={input.value ?? []}
+            onChange={input.onChange}
+            error={errorOf("equipmentTypes")}
+            disabled={disabled}
+            columns={2}
+            required
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name={field<T>("drivingStyles")}
+        render={({ field: input }) => (
+          <ChoiceGroup
+            multiple
+            label="What kind of driving do you do?"
+            description="Optional. Select all that apply."
+            options={DRIVING_OPTIONS}
+            value={input.value ?? []}
+            onChange={input.onChange}
+            error={errorOf("drivingStyles")}
             disabled={disabled}
           />
-          <Controller
-            control={control}
-            name={field<T>("mvrStatus")}
-            render={({ field: input }) => (
-              <ChoiceGroup
-                label={MVR_QUESTION}
-                description={MVR_HELPER}
-                options={MVR_OPTIONS}
-                value={input.value ?? undefined}
-                onChange={input.onChange}
-                error={errorOf("mvrStatus")}
-                disabled={disabled}
-                required
-              />
-            )}
-          />
-        </>
-      )}
+        )}
+      />
+
+      <CheckChoice
+        control={control}
+        name="clearinghouseRegistered"
+        description="Optional."
+        errorOf={errorOf}
+        disabled={disabled}
+        required={false}
+      />
     </>
   );
 }
@@ -405,14 +376,13 @@ export function AvailabilityFields<T extends FieldValues>({
           <ChoiceGroup
             multiple
             label="When can you work?"
-            description="Select all that apply."
+            description="Optional. Select all that apply."
             options={AVAILABILITY_OPTIONS}
             value={input.value ?? []}
             onChange={input.onChange}
             error={errorOf("availability")}
             disabled={disabled}
             columns={2}
-            required
           />
         )}
       />

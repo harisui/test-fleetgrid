@@ -52,7 +52,7 @@ function HelpBody({ support, headingId }: { support?: SupportContact; headingId:
         <ol className="flex flex-col gap-2" aria-label="Stages">
           {MILES.map((mile) => (
             <li key={mile.mile} className="flex gap-3 text-helper leading-helper">
-              <span className="w-16 shrink-0 font-semibold text-foreground">{mile.label}</span>
+              <span className="w-20 shrink-0 font-semibold text-foreground">{mile.label}</span>
               <span className="text-muted-foreground">{MILE_SUMMARIES[mile.mile]}</span>
             </li>
           ))}

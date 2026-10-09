@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Truck, Wrench } from "lucide-react";
+import { Forklift, Truck, Wrench } from "lucide-react";
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { CheckBadge } from "@/components/shared/CheckBadge";
@@ -15,7 +15,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { WORK_TYPE_OPTIONS } from "@/lib/onboarding/options";
+import type { CardOption } from "@/lib/onboarding/options";
+
+/** Three cards for the option primitives: the roles sign-up asked before 2026-10-09. */
+const WORK_TYPE_OPTIONS: readonly CardOption<"cdl_driver" | "yard_spotter" | "mechanic">[] = [
+  { value: "cdl_driver", label: "CDL driver", description: "Drive trucks that need a CDL", icon: Truck },
+  { value: "yard_spotter", label: "Yard spotter", description: "Move trailers around a yard", icon: Forklift },
+  { value: "mechanic", label: "Mechanic", description: "Repair and service trucks", icon: Wrench },
+];
 
 const SELECTED = ["border-selection", "bg-selection-tint", "ring-selection"];
 const UNSELECTED = ["border-border-strong"];

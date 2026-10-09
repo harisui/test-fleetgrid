@@ -158,66 +158,29 @@ test.describe("driver documents", () => {
     expect(await storedFiles(driverId)).toHaveLength(0);
   });
 
-  test("documents survive a reload and can be added from the Papers screen", async ({ page }) => {
+  test("documents survive a reload, and sign-up never asks for them", async ({ page }) => {
     const driverId = await startWithCard(page);
     await fileChooser(page).setInputFiles({ name: "cdl.png", mimeType: "image/png", buffer: PNG });
     await expect(documentList(page).getByRole("listitem")).toHaveCount(1);
 
     await page.reload();
     await expect(documentList(page).getByRole("listitem")).toHaveCount(1);
+    expect(await documentRows(driverId)).toHaveLength(1);
 
-    // Screen 14 (Papers) shows the same file in its tile and takes new ones.
+    // Papers left the sign-up (2026-10-09): no page of it has an upload tile or a camera button.
     await adminClient()
       .from("drivers")
-      .update({
-        service_radius_miles: 50,
-        operator_types: ["mechanic"],
-        years_experience: 3,
-        availability: ["on_call"],
-        cdl_class: "none",
-        certifications: [],
-        onboarding_step: 14,
-      })
+      .update({ service_radius_miles: 50, onboarding_step: 4 })
       .eq("id", driverId);
     await page.goto("/driver/onboarding");
-    // Phones show the question as the sign title; wide screens group the mile under "Papers".
-    await expectScreen(page, "Do you want to add your papers now?");
-    const front = page.locator("[data-slot=upload-tile]").filter({ hasText: "Front of your CDL" });
-    await expect(front).toHaveAttribute("data-state", "done");
-    await expect(front).toContainText("cdl.png");
-
-    await page
-      .getByLabel("Choose a file for medical card")
-      .setInputFiles({ name: "medical.pdf", mimeType: "application/pdf", buffer: PDF });
-    const medical = page.locator("[data-slot=upload-tile]").filter({ hasText: "Medical card" });
-    await expect(medical).toHaveAttribute("data-state", "done");
-    await expect(medical).toContainText("medical.pdf");
-    await expect(page.getByRole("button", { name: "Next", exact: true })).toBeVisible();
-    expect(await documentRows(driverId)).toHaveLength(2);
-
-    // Remove takes the file away again.
-    await medical.getByRole("button", { name: "Remove" }).click();
-    await expect(medical).toHaveAttribute("data-state", "empty");
-    expect(await documentRows(driverId)).toHaveLength(1);
-    expect(await storedFiles(driverId)).toHaveLength(1);
+    await expectScreen(page, "What class is your CDL?");
+    await expect(page.locator("[data-slot=upload-tile]")).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Take a photo" })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Skip for now" })).toHaveCount(0);
   });
 
   test("Other papers hold several files, up to five", async ({ page }) => {
     const driverId = await startWithCard(page);
-    await adminClient()
-      .from("drivers")
-      .update({
-        service_radius_miles: 50,
-        operator_types: ["mechanic"],
-        years_experience: 3,
-        availability: ["on_call"],
-        cdl_class: "none",
-        certifications: ["TWIC", "Forklift"],
-        onboarding_step: 14,
-      })
-      .eq("id", driverId);
-    await page.goto("/driver/onboarding");
-    await expectScreen(page, "Do you want to add your papers now?");
     const tile = page.locator("[data-slot=multi-upload-tile]");
     await expect(tile).toContainText("TWIC card, forklift card, other certificates");
     await expect(tile).toHaveAttribute("data-count", "0");

@@ -3,35 +3,24 @@ import { describe, expect, it } from "vitest";
 import type { z } from "zod";
 import { SAVABLE_STEP_IDS } from "@/lib/onboarding/steps";
 import {
-  availabilityScreenSchema,
-  bioScreenSchema,
-  CDL_CONFLICT_MESSAGE,
+  CDL_CLASS_MESSAGE,
   cdlClassScreenSchema,
-  cdlClassScreenSchemaFor,
-  certificationsScreenSchema,
-  CLEARINGHOUSE_MESSAGE,
-  complianceScreenSchema,
   consentScreenSchema,
   credentialsScreenSchema,
   distanceScreenSchema,
-  documentsScreenSchema,
-  DRIVING_STYLE_MESSAGE,
-  drivingStyleScreenSchema,
-  EMPLOYMENT_MESSAGE,
-  employmentTypeScreenSchema,
   endorsementsScreenSchema,
   EQUIPMENT_MESSAGE,
   equipmentScreenSchema,
   experienceScreenSchema,
-  hasCdlConflict,
   MEDICAL_CARD_MESSAGE,
   MVR_MESSAGE,
   nameScreenSchema,
   normalizeZip,
+  recordScreenSchema,
   SCREEN_SCHEMAS,
   TRANSMISSION_MESSAGE,
+  transmissionScreenSchema,
   TWIC_MESSAGE,
-  workTypeScreenSchema,
   zipScreenSchema,
 } from "@/lib/validation/onboarding.schema";
 import { SCREEN_INPUTS } from "../../setup/factories";
@@ -120,20 +109,15 @@ describe("distance", () => {
   });
 });
 
-describe("work type, experience, availability", () => {
-  it("work type needs one or more kinds of work, without duplicates", () => {
-    expect(workTypeScreenSchema.parse({ operatorTypes: ["mechanic", "mechanic"] })).toEqual({
-      operatorTypes: ["mechanic"],
-    });
-    expect(errorsOf(workTypeScreenSchema, { operatorTypes: [] })).toEqual({
-      operatorTypes: "Pick at least one kind of work",
-    });
-    expect(errorsOf(workTypeScreenSchema, {})).toEqual({
-      operatorTypes: "Pick at least one kind of work",
-    });
-    expect(Object.keys(errorsOf(workTypeScreenSchema, { operatorTypes: ["pilot"] }))).toEqual([
-      "operatorTypes.0",
-    ]);
+describe("CDL class, experience, record", () => {
+  it("the class is A, B or C: no No CDL, since FleetGrid lists CDL drivers only", () => {
+    for (const cdlClass of ["A", "B", "C"]) {
+      expect(cdlClassScreenSchema.parse({ cdlClass })).toEqual({ cdlClass });
+    }
+    for (const cdlClass of ["none", "D", null, undefined]) {
+      expect(errorsOf(cdlClassScreenSchema, { cdlClass })).toEqual({ cdlClass: CDL_CLASS_MESSAGE });
+    }
+    expect(CDL_CLASS_MESSAGE).toBe("Pick your CDL class");
   });
 
   it("experience is a whole number from 0 to 60; blank is missing", () => {
@@ -142,7 +126,7 @@ describe("work type, experience, availability", () => {
       yearsExperience: 12,
     });
     expect(errorsOf(experienceScreenSchema, { yearsExperience: "" })).toEqual({
-      yearsExperience: "Pick how many years you have done this work",
+      yearsExperience: "Pick how many years you have driven",
     });
     expect(errorsOf(experienceScreenSchema, { yearsExperience: -1 })).toEqual({
       yearsExperience: "Years cannot be negative",
@@ -155,70 +139,18 @@ describe("work type, experience, availability", () => {
     });
   });
 
-  it("availability needs one or more options", () => {
-    expect(availabilityScreenSchema.parse({ availability: ["on_call", "on_call"] })).toEqual({
-      availability: ["on_call"],
-    });
-    expect(errorsOf(availabilityScreenSchema, { availability: [] })).toEqual({
-      availability: "Pick at least one option",
-    });
-  });
-});
-
-describe("employment type, driving style, equipment", () => {
-  it("employment type is one of three", () => {
-    for (const employmentType of ["w2", "owner_operator_1099", "either"]) {
-      expect(employmentTypeScreenSchema.parse({ employmentType })).toEqual({ employmentType });
+  it("the record is one of the three MVR levels", () => {
+    for (const mvrStatus of ["clean", "minor_1_2", "major_3_plus"]) {
+      expect(recordScreenSchema.parse({ mvrStatus })).toEqual({ mvrStatus });
     }
-    expect(errorsOf(employmentTypeScreenSchema, {})).toEqual({
-      employmentType: EMPLOYMENT_MESSAGE,
-    });
-    expect(errorsOf(employmentTypeScreenSchema, { employmentType: "contractor" })).toEqual({
-      employmentType: EMPLOYMENT_MESSAGE,
-    });
-  });
-
-  it("driving style needs one or more kinds, without duplicates", () => {
-    expect(drivingStyleScreenSchema.parse({ drivingStyles: ["otr", "otr", "regional"] })).toEqual({
-      drivingStyles: ["otr", "regional"],
-    });
-    expect(errorsOf(drivingStyleScreenSchema, { drivingStyles: [] })).toEqual({
-      drivingStyles: DRIVING_STYLE_MESSAGE,
-    });
-    expect(errorsOf(drivingStyleScreenSchema, {})).toEqual({
-      drivingStyles: DRIVING_STYLE_MESSAGE,
-    });
-    expect(Object.keys(errorsOf(drivingStyleScreenSchema, { drivingStyles: ["night"] }))).toEqual([
-      "drivingStyles.0",
-    ]);
-  });
-
-  it("equipment needs one or more kinds and a transmission answer", () => {
-    expect(
-      equipmentScreenSchema.parse({
-        transmission: "automatic_only",
-        equipmentTypes: ["reefer", "reefer", "flatbed"],
-      }),
-    ).toEqual({ transmission: "automatic_only", equipmentTypes: ["reefer", "flatbed"] });
-    expect(errorsOf(equipmentScreenSchema, { equipmentTypes: ["dry_van"] })).toEqual({
-      transmission: TRANSMISSION_MESSAGE,
-    });
-    expect(
-      errorsOf(equipmentScreenSchema, { transmission: "manual_ok", equipmentTypes: [] }),
-    ).toEqual({ equipmentTypes: EQUIPMENT_MESSAGE });
-    expect(errorsOf(equipmentScreenSchema, {})).toEqual({
-      transmission: TRANSMISSION_MESSAGE,
-      equipmentTypes: EQUIPMENT_MESSAGE,
-    });
-    expect(
-      Object.keys(
-        errorsOf(equipmentScreenSchema, { transmission: "stick", equipmentTypes: ["tank"] }),
-      ),
-    ).toEqual(["transmission", "equipmentTypes.0"]);
+    expect(errorsOf(recordScreenSchema, {})).toEqual({ mvrStatus: MVR_MESSAGE });
+    for (const mvrStatus of [true, "none", "dirty", null]) {
+      expect(errorsOf(recordScreenSchema, { mvrStatus })).toEqual({ mvrStatus: MVR_MESSAGE });
+    }
   });
 });
 
-describe("cards and record", () => {
+describe("cards", () => {
   it("the cards screen takes two real yes-or-no answers", () => {
     expect(credentialsScreenSchema.parse({ twicActive: true, medicalCardActive: false })).toEqual({
       twicActive: true,
@@ -234,57 +166,9 @@ describe("cards and record", () => {
       });
     }
   });
-
-  it("the record screen takes a real yes-or-no answer and one of the three MVR levels", () => {
-    for (const mvrStatus of ["clean", "minor_1_2", "major_3_plus"]) {
-      expect(complianceScreenSchema.parse({ clearinghouseRegistered: false, mvrStatus })).toEqual({
-        clearinghouseRegistered: false,
-        mvrStatus,
-      });
-    }
-    expect(errorsOf(complianceScreenSchema, {})).toEqual({
-      clearinghouseRegistered: CLEARINGHOUSE_MESSAGE,
-      mvrStatus: MVR_MESSAGE,
-    });
-    for (const mvrStatus of [true, "none", "dirty", null]) {
-      expect(
-        errorsOf(complianceScreenSchema, { clearinghouseRegistered: true, mvrStatus }),
-      ).toEqual({ mvrStatus: MVR_MESSAGE });
-    }
-  });
 });
 
-describe("CDL class and the conflict rule", () => {
-  it("accepts any class", () => {
-    for (const cdlClass of ["A", "B", "C", "none"]) {
-      expect(cdlClassScreenSchema.parse({ cdlClass })).toEqual({ cdlClass });
-    }
-    expect(errorsOf(cdlClassScreenSchema, { cdlClass: "D" })).toEqual({
-      cdlClass: "Pick your CDL class",
-    });
-    expect(errorsOf(cdlClassScreenSchema, {})).toEqual({ cdlClass: "Pick your CDL class" });
-  });
-
-  it("hasCdlConflict only for CDL driver work with No CDL", () => {
-    expect(hasCdlConflict(["cdl_driver"], "none")).toBe(true);
-    expect(hasCdlConflict(["cdl_driver", "mechanic"], "none")).toBe(true);
-    expect(hasCdlConflict(["cdl_driver"], "A")).toBe(false);
-    expect(hasCdlConflict(["mechanic"], "none")).toBe(false);
-    expect(hasCdlConflict(["cdl_driver"], null)).toBe(false);
-    expect(hasCdlConflict(["cdl_driver"], undefined)).toBe(false);
-  });
-
-  it("the screen schema blocks the conflict with the approved message", () => {
-    const schema = cdlClassScreenSchemaFor(["cdl_driver"]);
-    expect(errorsOf(schema, { cdlClass: "none" })).toEqual({ cdlClass: CDL_CONFLICT_MESSAGE });
-    expect(schema.parse({ cdlClass: "B" })).toEqual({ cdlClass: "B" });
-    expect(cdlClassScreenSchemaFor(["yard_spotter"]).parse({ cdlClass: "none" })).toEqual({
-      cdlClass: "none",
-    });
-  });
-});
-
-describe("endorsements and certifications", () => {
+describe("letters: endorsements and transmission", () => {
   it("endorsements apply the X rule and default to empty", () => {
     expect(endorsementsScreenSchema.parse({ endorsements: ["X"] })).toEqual({
       endorsements: ["X", "H", "N"],
@@ -299,40 +183,34 @@ describe("endorsements and certifications", () => {
     ]);
   });
 
-  it("certifications trim, drop duplicates and cap at 20", () => {
-    expect(
-      certificationsScreenSchema.parse({ certifications: [" TWIC ", "twic", "OSHA 10"] }),
-    ).toEqual({ certifications: ["TWIC", "OSHA 10"] });
-    expect(certificationsScreenSchema.parse({})).toEqual({ certifications: [] });
-    expect(errorsOf(certificationsScreenSchema, { certifications: [" "] })).toEqual({
-      "certifications.0": "A certification cannot be blank",
+  it("transmission is automatic only, or automatic and manual", () => {
+    for (const transmission of ["automatic_only", "manual_ok"]) {
+      expect(transmissionScreenSchema.parse({ transmission })).toEqual({ transmission });
+    }
+    expect(errorsOf(transmissionScreenSchema, {})).toEqual({ transmission: TRANSMISSION_MESSAGE });
+    expect(errorsOf(transmissionScreenSchema, { transmission: "stick" })).toEqual({
+      transmission: TRANSMISSION_MESSAGE,
     });
-    expect(errorsOf(certificationsScreenSchema, { certifications: ["x".repeat(61)] })).toEqual({
-      "certifications.0": "Each certification must be 60 characters or fewer",
-    });
-    expect(
-      errorsOf(certificationsScreenSchema, {
-        certifications: Array.from({ length: 21 }, (_, i) => `Cert ${i}`),
-      }),
-    ).toEqual({ certifications: "Add up to 20 certifications" });
   });
 });
 
-describe("papers, bio and consent", () => {
-  it("papers take no input", () => {
-    expect(documentsScreenSchema.parse({})).toEqual({});
-  });
-
-  it("bio is optional, trimmed and capped at 500", () => {
-    expect(bioScreenSchema.parse({ bio: "  hi " })).toEqual({ bio: "hi" });
-    expect(bioScreenSchema.parse({ bio: "" })).toEqual({ bio: null });
-    expect(bioScreenSchema.parse({})).toEqual({ bio: null });
-    expect(errorsOf(bioScreenSchema, { bio: "x".repeat(501) })).toEqual({
-      bio: "Keep it to 500 characters or fewer",
+describe("equipment", () => {
+  it("needs one or more kinds, without duplicates", () => {
+    expect(equipmentScreenSchema.parse({ equipmentTypes: ["reefer", "reefer", "flatbed"] })).toEqual(
+      { equipmentTypes: ["reefer", "flatbed"] },
+    );
+    expect(errorsOf(equipmentScreenSchema, { equipmentTypes: [] })).toEqual({
+      equipmentTypes: EQUIPMENT_MESSAGE,
     });
+    expect(errorsOf(equipmentScreenSchema, {})).toEqual({ equipmentTypes: EQUIPMENT_MESSAGE });
+    expect(Object.keys(errorsOf(equipmentScreenSchema, { equipmentTypes: ["tank"] }))).toEqual([
+      "equipmentTypes.0",
+    ]);
   });
+});
 
-  it("consent accepts only an explicit true", () => {
+describe("consent", () => {
+  it("accepts only an explicit true", () => {
     expect(consentScreenSchema.parse({ consent: true })).toEqual({ consent: true });
     for (const consent of [false, undefined, null, "true", "on", 1]) {
       expect(errorsOf(consentScreenSchema, { consent })).toEqual({

@@ -58,7 +58,7 @@ describe("LaneProgress", () => {
   );
 
   it("moves only through a transition on the fill and truck, with no idle animation", () => {
-    const { container } = render(<LaneProgress stepId="workType" />);
+    const { container } = render(<LaneProgress stepId="cdlClass" />);
     const fill = container.querySelector("[data-slot=lane-fill]")!;
     const truck = container.querySelector("[data-slot=lane-truck]")!;
     expect(fill.getAttribute("class")).toContain("duration-(--dur-move)");
@@ -66,14 +66,15 @@ describe("LaneProgress", () => {
     expect(container.innerHTML).not.toMatch(/animate-/);
   });
 
-  it("labels the stages About, Work, License, Papers, Finish", () => {
+  it("labels the stages About, CDL, Cards, Letters, Equipment, Finish", () => {
     render(<LaneProgress stepId="name" />);
     const stages = within(screen.getByRole("list", { name: "Stages" })).getAllByRole("listitem");
     expect(stages.map((item) => item.textContent?.replace(/Stage \d:/, "").trim())).toEqual([
       "About",
-      "Work",
-      "License",
-      "Papers",
+      "CDL",
+      "Cards",
+      "Letters",
+      "Equipment",
       "Finish",
     ]);
     // No visible numbers: the prototype shows the labels alone.
@@ -85,20 +86,14 @@ describe("LaneProgress", () => {
 
 describe("SignHeader", () => {
   it("renders the eyebrow for sighted users and the step text for screen readers", () => {
-    render(
-      <SignHeader
-        eyebrow="Mile 2 of 5 · Work"
-        title="What work do you do?"
-        srText="Step 2 of 5: Work"
-      />,
-    );
-    const heading = screen.getByRole("heading", { level: 1, name: "What work do you do?" });
+    render(<SignHeader eyebrow="Mile 2 of 6" title="CDL" srText="Step 2 of 6: CDL" />);
+    const heading = screen.getByRole("heading", { level: 1, name: "CDL" });
     expect(heading).toHaveClass("font-heading", "text-h1", "font-bold");
     expect(heading).toHaveAttribute("tabindex", "-1");
-    const eyebrow = screen.getByText("Mile 2 of 5 · Work");
+    const eyebrow = screen.getByText("Mile 2 of 6");
     expect(eyebrow).toHaveAttribute("aria-hidden", "true");
     expect(eyebrow).toHaveClass("uppercase", "tracking-eyebrow", "text-sign-panel-muted");
-    expect(screen.getByText("Step 2 of 5: Work")).toHaveClass("sr-only");
+    expect(screen.getByText("Step 2 of 6: CDL")).toHaveClass("sr-only");
   });
 
   it("is a graphite panel with the orange stripe on top", () => {
@@ -158,8 +153,8 @@ describe("ActionBar", () => {
     expect(indicator).toHaveAttribute("aria-live", "polite");
     expect(indicator.querySelector("svg")).toHaveClass("text-success");
 
-    rerender(<ActionBar formId="f" nextDisabled nextLabel="Agree and finish" />);
-    expect(screen.getByRole("button", { name: "Agree and finish" })).toBeDisabled();
+    rerender(<ActionBar formId="f" nextDisabled nextLabel="Find local shifts" />);
+    expect(screen.getByRole("button", { name: "Find local shifts" })).toBeDisabled();
     expect(screen.queryByText("Saved")).not.toBeInTheDocument();
 
     rerender(<ActionBar formId="f" pending onBack={vi.fn()} />);

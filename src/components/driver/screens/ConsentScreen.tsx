@@ -13,14 +13,14 @@ import { SMS_CONSENT_TEXT } from "@/lib/constants";
 import { maskPhone } from "@/lib/phone";
 import { consentScreenSchema } from "@/lib/validation/onboarding.schema";
 
-function ConsentFields({ showQuestion, question, phone }: ScreenFieldsProps) {
+function ConsentFields({ question, phone }: ScreenFieldsProps) {
   const {
     control,
     formState: { errors },
   } = useFormContext<OnboardingFormValues>();
   return (
     <>
-      <ScreenQuestion show={showQuestion}>{question}</ScreenQuestion>
+      <ScreenQuestion>{question}</ScreenQuestion>
       <ScreenHelper>
         Shift offers come by text to {maskPhone(phone)}. You reply YES to claim one.
       </ScreenHelper>
@@ -64,5 +64,6 @@ export const consentScreen: ScreenDefinition = {
   // Always starts unchecked unless consent is already on record.
   defaults: (driver) => ({ consent: driver?.smsOptIn === true }),
   Fields: ConsentFields,
-  nextLabel: () => "Agree and finish",
+  // The client's words for the last button (2026-10-09). The box above it is the agreement.
+  nextLabel: () => "Find local shifts",
 };

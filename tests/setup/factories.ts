@@ -105,7 +105,7 @@ export function buildDriver(overrides: Partial<LocatedDriver> = {}): LocatedDriv
       smsOptInText: SMS_CONSENT_TEXT,
       smsOptedOut: false,
       smsOptedOutAt: null,
-      onboardingStep: 18,
+      onboardingStep: 12,
       cardCompleted: true,
       inServiceArea: true,
       createdAt: TIMESTAMP,
@@ -115,10 +115,10 @@ export function buildDriver(overrides: Partial<LocatedDriver> = {}): LocatedDriv
   );
 }
 
-/** The card as it looks right after the name screen is saved. */
+/** The card as it looks right after the name screen is saved: a CDL driver with a name. */
 export function buildPartialDriver(overrides: Partial<LocatedDriver> = {}): LocatedDriver {
   return buildDriver({
-    operatorTypes: [],
+    operatorTypes: ["cdl_driver"],
     cdlClass: "none",
     endorsements: [],
     yearsExperience: null,
@@ -153,19 +153,13 @@ export const SCREEN_INPUTS = {
   name: { fullName: "Pat Driver" },
   zip: { zip: "75201" },
   distance: { serviceRadiusMiles: 50 },
-  workType: { operatorTypes: ["cdl_driver"] },
-  employmentType: { employmentType: "w2" },
-  drivingStyle: { drivingStyles: ["local_day_cab", "regional"] },
-  equipment: { transmission: "manual_ok", equipmentTypes: ["dry_van", "flatbed"] },
-  experience: { yearsExperience: 8 },
-  availability: { availability: ["full_time", "weekends"] },
   cdlClass: { cdlClass: "A" },
-  endorsements: { endorsements: ["H", "T"] },
-  certifications: { certifications: ["OSHA 10"] },
+  experience: { yearsExperience: 8 },
+  record: { mvrStatus: "clean" },
   credentials: { twicActive: true, medicalCardActive: true },
-  documents: {},
-  compliance: { clearinghouseRegistered: true, mvrStatus: "clean" },
-  bio: { bio: "Reliable and on time." },
+  endorsements: { endorsements: ["H", "T"] },
+  transmission: { transmission: "manual_ok" },
+  equipment: { equipmentTypes: ["dry_van", "flatbed"] },
   consent: { consent: true },
 } as const;
 
@@ -194,7 +188,6 @@ export const validBasics = (overrides: Record<string, unknown> = {}) => ({
 });
 
 export const validLicenses = (overrides: Record<string, unknown> = {}) => ({
-  operatorTypes: ["cdl_driver"],
   employmentType: "w2",
   cdlClass: "A",
   endorsements: ["H", "T"],
@@ -203,7 +196,7 @@ export const validLicenses = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-/** The equipment and record answers of a CDL driver. */
+/** The equipment and record answers. */
 export const validChecks = (overrides: Record<string, unknown> = {}) => ({
   drivingStyles: ["local_day_cab", "regional"],
   transmission: "manual_ok",

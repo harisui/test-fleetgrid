@@ -25,7 +25,7 @@ function savedPlace(driver: Driver | null): ZipPlace | null {
  * The ZIP alone is typed. City and state come from the dataset and show as one read-only
  * line; a ZIP the dataset does not know is an error and holds Next.
  */
-function ZipFields({ showQuestion, question, driver }: ScreenFieldsProps) {
+function ZipFields({ question, driver }: ScreenFieldsProps) {
   const {
     register,
     setValue,
@@ -50,7 +50,7 @@ function ZipFields({ showQuestion, question, driver }: ScreenFieldsProps) {
 
   return (
     <>
-      <ScreenQuestion show={showQuestion}>{question}</ScreenQuestion>
+      <ScreenQuestion>{question}</ScreenQuestion>
       {outOfArea && (
         <InlineNote variant="info" data-slot="launch-area-note">
           {OUT_OF_AREA_NOTE}

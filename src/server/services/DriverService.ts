@@ -1,36 +1,26 @@
 import { SMS_CONSENT_TEXT, SMS_CONSENT_VERSION } from "@/lib/constants";
 import {
-  contextOf,
   DONE_STEP_NUMBER,
   FIRST_STEP_NUMBER,
   isSavableStepId,
   nextStepId,
-  stepApplies,
   stepByNumber,
   stepNumber,
-  type FlowContext,
   type SavableStepId,
   type StepId,
 } from "@/lib/onboarding/steps";
 import { driverCardSchema } from "@/lib/validation/driver.schema";
 import {
-  bioScreenSchema,
-  cdlClassScreenSchemaFor,
-  certificationsScreenSchema,
-  complianceScreenSchema,
+  cdlClassScreenSchema,
   consentScreenSchema,
   credentialsScreenSchema,
   distanceScreenSchema,
-  documentsScreenSchema,
-  drivingStyleScreenSchema,
-  employmentTypeScreenSchema,
   endorsementsScreenSchema,
   equipmentScreenSchema,
   experienceScreenSchema,
-  hasCdlConflict,
   nameScreenSchema,
-  workTypeScreenSchema,
-  availabilityScreenSchema,
+  recordScreenSchema,
+  transmissionScreenSchema,
   ZIP_UNKNOWN_MESSAGE,
   zipScreenSchema,
 } from "@/lib/validation/onboarding.schema";
@@ -40,7 +30,7 @@ import type { IConsentLogRepository } from "@/server/repositories/ConsentLogRepo
 import type { DriverPatch, IDriverRepository } from "@/server/repositories/DriverRepository";
 import type { IProfileRepository } from "@/server/repositories/ProfileRepository";
 import type { IServiceAreaRepository } from "@/server/repositories/ServiceAreaRepository";
-import { isCdlDriver, type Driver, type LocatedDriver, type Profile } from "@/types/domain";
+import { CDL_WORK_TYPE, type Driver, type LocatedDriver, type Profile } from "@/types/domain";
 
 export interface OnboardingState {
   /** The screen the driver should see next. "done" once the card is complete. */
@@ -51,28 +41,21 @@ export interface OnboardingState {
 
 /**
  * Required card fields that are still missing, with the screen that collects them, in flow
- * order. Driving style, transmission, equipment, Clearinghouse and MVR are required of CDL
- * drivers only; the database constraint `drivers_card_complete` says the same.
+ * order. The database constraint `drivers_card_complete` says the same.
  */
 export function missingCardFields(driver: Driver): { field: string; stepId: StepId }[] {
   const missing: { field: string; stepId: StepId }[] = [];
   const need = (isMissing: boolean, field: string, stepId: StepId) => {
     if (isMissing) missing.push({ field, stepId });
   };
-  const cdl = isCdlDriver(driver.operatorTypes);
   need(!driver.state || !driver.zip, "zip", "zip");
-  need(driver.operatorTypes.length === 0, "operatorTypes", "workType");
-  need(driver.employmentType === null, "employmentType", "employmentType");
-  need(cdl && driver.drivingStyles.length === 0, "drivingStyles", "drivingStyle");
-  need(cdl && driver.equipmentTypes.length === 0, "equipmentTypes", "equipment");
-  need(cdl && driver.transmission === null, "transmission", "equipment");
+  need(driver.cdlClass === "none", "cdlClass", "cdlClass");
   need(driver.yearsExperience === null, "yearsExperience", "experience");
-  need(driver.availability.length === 0, "availability", "availability");
-  need(hasCdlConflict(driver.operatorTypes, driver.cdlClass), "cdlClass", "cdlClass");
+  need(driver.mvrStatus === null, "mvrStatus", "record");
   need(driver.twicActive === null, "twicActive", "credentials");
   need(driver.medicalCardActive === null, "medicalCardActive", "credentials");
-  need(cdl && driver.clearinghouseRegistered === null, "clearinghouseRegistered", "compliance");
-  need(cdl && driver.mvrStatus === null, "mvrStatus", "compliance");
+  need(driver.transmission === null, "transmission", "transmission");
+  need(driver.equipmentTypes.length === 0, "equipmentTypes", "equipment");
   return missing;
 }
 
@@ -120,12 +103,8 @@ export class DriverService {
     if (!driver) {
       return { stepId: stepByNumber(FIRST_STEP_NUMBER).id, completed: false, driver: null };
     }
-    // Progress never moves backwards, so a driver who went back and dropped CDL work can be
-    // parked on a CDL-only screen. Resume on the next screen that applies to them instead.
-    const stored = stepByNumber(driver.onboardingStep).id;
-    const context = contextOf(driver);
     return {
-      stepId: stepApplies(stored, context) ? stored : nextStepId(stored, context),
+      stepId: stepByNumber(driver.onboardingStep).id,
       completed: driver.cardCompleted,
       driver,
     };
@@ -133,7 +112,7 @@ export class DriverService {
 
   /**
    * Saves one onboarding screen. Each screen is validated and stored on its own, so the driver
-   * can leave after any question and resume there. Screens cannot be skipped ahead. Going back
+   * can leave after any page and resume there. Screens cannot be skipped ahead. Going back
    * and saving an earlier screen again is allowed and never moves progress backwards.
    */
   async saveScreen(userId: string, stepId: unknown, input: unknown): Promise<LocatedDriver> {
@@ -159,20 +138,23 @@ export class DriverService {
     if (!existing) throw AppError.notFound("Complete onboarding first");
 
     const data = parseInput(driverCardSchema, input);
-    if (hasCdlConflict(data.operatorTypes, data.cdlClass)) {
-      throw AppError.validation("Check the form", { cdlClass: "CDL driver work needs a CDL" });
-    }
     return this.locate(await this.drivers.update(userId, { ...data, ...this.placeFor(data.zip) }));
   }
 
   private async saveName(userId: string, existing: Driver | null, input: unknown) {
     const data = parseInput(nameScreenSchema, input);
-    const next = stepNumber(nextStepId("name", contextOf(existing)));
+    const next = stepNumber(nextStepId("name"));
     if (existing) {
       return this.drivers.update(userId, { ...data, ...this.advance(existing, next) });
     }
     try {
-      return await this.drivers.create(userId, { ...data, onboardingStep: next });
+      // FleetGrid lists CDL drivers only at launch (client decision of 2026-10-09), so the
+      // work type is set here, not asked.
+      return await this.drivers.create(userId, {
+        ...data,
+        operatorTypes: [CDL_WORK_TYPE],
+        onboardingStep: next,
+      });
     } catch (error) {
       // A double submit created the card a moment ago. Save over it instead of failing.
       if (error instanceof AppError && error.code === "CONFLICT") {
@@ -191,12 +173,9 @@ export class DriverService {
     stepId: Exclude<SavableStepId, "name">,
     input: unknown,
   ): Promise<Driver> {
-    const context = contextOf(existing);
-    // The next screen depends on the answer just given when it changes what applies: the
-    // work type decides the CDL-only screens, the CDL class decides the endorsements screen.
-    const advanceTo = (patch: DriverPatch, changed: Partial<FlowContext> = {}) => ({
+    const advanceTo = (patch: DriverPatch) => ({
       ...patch,
-      ...this.advance(existing, stepNumber(nextStepId(stepId, { ...context, ...changed }))),
+      ...this.advance(existing, stepNumber(nextStepId(stepId))),
     });
 
     switch (stepId) {
@@ -206,49 +185,23 @@ export class DriverService {
       }
       case "distance":
         return this.drivers.update(userId, advanceTo(parseInput(distanceScreenSchema, input)));
-      case "workType": {
-        const data = parseInput(workTypeScreenSchema, input);
-        return this.drivers.update(userId, advanceTo(data, { operatorTypes: data.operatorTypes }));
-      }
-      case "employmentType":
-        return this.drivers.update(
-          userId,
-          advanceTo(parseInput(employmentTypeScreenSchema, input)),
-        );
-      case "drivingStyle":
-        return this.drivers.update(userId, advanceTo(parseInput(drivingStyleScreenSchema, input)));
-      case "equipment":
-        return this.drivers.update(userId, advanceTo(parseInput(equipmentScreenSchema, input)));
+      case "cdlClass":
+        return this.drivers.update(userId, advanceTo(parseInput(cdlClassScreenSchema, input)));
       case "experience":
         return this.drivers.update(userId, advanceTo(parseInput(experienceScreenSchema, input)));
-      case "availability":
-        return this.drivers.update(userId, advanceTo(parseInput(availabilityScreenSchema, input)));
-      case "cdlClass": {
-        const data = parseInput(cdlClassScreenSchemaFor(existing.operatorTypes), input);
-        // Without a CDL there are no endorsements, and that screen is skipped.
-        const patch: DriverPatch = data.cdlClass === "none" ? { ...data, endorsements: [] } : data;
-        return this.drivers.update(userId, advanceTo(patch, { cdlClass: data.cdlClass }));
-      }
-      case "endorsements": {
-        const data = parseInput(endorsementsScreenSchema, input);
-        const endorsements = context.cdlClass === "none" ? [] : data.endorsements;
-        return this.drivers.update(userId, advanceTo({ endorsements }));
-      }
-      case "certifications":
-        return this.drivers.update(
-          userId,
-          advanceTo(parseInput(certificationsScreenSchema, input)),
-        );
+      case "record":
+        return this.drivers.update(userId, advanceTo(parseInput(recordScreenSchema, input)));
       case "credentials":
         return this.drivers.update(userId, advanceTo(parseInput(credentialsScreenSchema, input)));
-      case "documents":
-        // Papers are saved by DocumentService as they are uploaded. This only records progress.
-        parseInput(documentsScreenSchema, input ?? {});
-        return this.drivers.update(userId, advanceTo({}));
-      case "compliance":
-        return this.drivers.update(userId, advanceTo(parseInput(complianceScreenSchema, input)));
-      case "bio":
-        return this.drivers.update(userId, advanceTo(parseInput(bioScreenSchema, input)));
+      case "endorsements":
+        return this.drivers.update(userId, advanceTo(parseInput(endorsementsScreenSchema, input)));
+      case "transmission":
+        return this.drivers.update(
+          userId,
+          advanceTo(parseInput(transmissionScreenSchema, input)),
+        );
+      case "equipment":
+        return this.drivers.update(userId, advanceTo(parseInput(equipmentScreenSchema, input)));
       case "consent":
         return this.saveConsent(userId, existing, input);
     }

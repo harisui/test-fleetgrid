@@ -3,7 +3,6 @@ import { progressFor, STEPS } from "../../src/lib/onboarding/steps";
 import {
   expectScreen,
   formAlert,
-  isGrouped,
   login,
   openOnboarding,
   PHONES,
@@ -12,15 +11,15 @@ import {
 } from "./helpers";
 
 /**
- * The Workshop design contract, checked on the live app in both layouts (one question per
- * screen on phones, a mile per page on wider screens):
+ * The Workshop design contract, checked on the live app (a mile's questions share one page on
+ * every device):
  * - orange (--primary) appears only as the primary button fill, the progress fill, the sign
  *   stripe and the check badge;
  * - a selected option card uses the graphite selection border and tint, carries
  *   aria-checked="true" and shows the check badge;
- * - no error is visible when a screen first loads;
+ * - no error is visible when a page first loads;
  * - onboarding routes render no app navigation, log out or theme toggle;
- * - every screen's eyebrow, stage highlight and truck position come from steps.ts;
+ * - every page's eyebrow, stage highlight and truck position come from steps.ts;
  * - every control is at least 48px, the main action 56px;
  * - reduced motion turns the transitions off.
  */
@@ -88,14 +87,14 @@ test.describe("Workshop rules", () => {
     await resetUser(PHONES.driver);
   });
 
-  for (const stepNumber of [1, 4, 5, 7, 10, 11, 13, 14, 15, 17, 18]) {
+  for (const stepNumber of [1, 4, 7, 8, 10, 11, 12]) {
     test(`orange is only the primary fill, progress fill, sign stripe and check badge on step ${stepNumber}`, async ({
       page,
     }) => {
       await openStep(page, stepNumber);
       expect(await orangeViolations(page)).toEqual([]);
       if (stepNumber === 4) {
-        const card = page.getByRole("checkbox", { name: /CDL driver/ });
+        const card = page.getByRole("radio", { name: /Class A/ });
         await card.click();
         await expect(card).toHaveAttribute("aria-checked", "true");
         expect(await orangeViolations(page)).toEqual([]);
@@ -122,7 +121,7 @@ test.describe("Workshop rules", () => {
     const selection = await tokenRgb(page, "--selection");
     const tint = await tokenRgb(page, "--selection-tint");
     const strong = await tokenRgb(page, "--border-strong");
-    const card = page.getByRole("checkbox", { name: /Mechanic/ });
+    const card = page.getByRole("radio", { name: /Class B/ });
 
     await expect(card).toHaveAttribute("aria-checked", "false");
     await expect(card.locator("[data-slot=check-badge]")).toHaveCount(0);
@@ -164,19 +163,16 @@ test.describe("Workshop rules", () => {
     await expect(page.getByRole("button", { name: "Help" })).toBeVisible();
   });
 
-  for (const stepNumber of [1, 5, 8, 13]) {
+  for (const stepNumber of [1, 5, 8, 11, 12]) {
     test(`eyebrow, stage highlight and truck position on step ${stepNumber} come from steps.ts`, async ({
       page,
     }) => {
       const expected = progressFor(STEPS[stepNumber - 1].id);
       await openStep(page, stepNumber);
-      if (stepNumber !== 13) {
-        // A grouped page is one mile, so its eyebrow drops the mile label.
-        const eyebrow = isGrouped(page) ? expected.eyebrow.replace(/ · .*$/, "") : expected.eyebrow;
-        await expect(page.locator("[data-slot=sign-eyebrow]")).toHaveText(eyebrow);
-        await expect(page.locator("[data-slot=sign-title]")).toHaveText(
-          isGrouped(page) ? expected.mile.label : expected.step.question,
-        );
+      if (stepNumber !== 12) {
+        // A page is one mile: its eyebrow is the mile count and its title the mile label.
+        await expect(page.locator("[data-slot=sign-eyebrow]")).toHaveText(expected.eyebrow);
+        await expect(page.locator("[data-slot=sign-title]")).toHaveText(expected.mile.label);
       }
       await expect(page.getByRole("progressbar", { name: "Progress" })).toHaveAttribute(
         "aria-valuetext",
@@ -198,7 +194,7 @@ test.describe("Workshop rules", () => {
     });
   }
 
-  for (const stepNumber of [2, 5, 7, 10, 12]) {
+  for (const stepNumber of [2, 5, 7, 9, 11]) {
     test(`every control on step ${stepNumber} is at least 48px, the main action 56px`, async ({
       page,
     }) => {
@@ -213,8 +209,8 @@ test.describe("Workshop rules", () => {
           const rect = el.getBoundingClientRect();
           const style = getComputedStyle(el);
           if (rect.width === 0 || rect.height === 0 || style.visibility === "hidden") continue;
-          // Screen-reader-only controls (file pickers behind a button, the skip link until it
-          // is focused) are not tap targets. Tailwind's sr-only clips with clip-path.
+          // Screen-reader-only controls (the skip link until it is focused) are not tap
+          // targets. Tailwind's sr-only clips with clip-path.
           if (style.clipPath === "inset(50%)" || el.getAttribute("aria-hidden")) continue;
           // A control inside a label is tapped through the label, like the consent box.
           const label = el.closest("label");
@@ -248,7 +244,7 @@ test.describe("Workshop rules", () => {
   });
 
   test("light is the default and dark mode keeps every rule", async ({ page }) => {
-    await openStep(page, 10);
+    await openStep(page, 4);
     await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
     await page.evaluate(() => document.documentElement.classList.add("dark"));
     const card = page.getByRole("radio", { name: /Class A/ });

@@ -87,14 +87,14 @@ test("consent.png and consent-checked.png: the SMS consent screen", async ({ pag
   const consentText = page.getByText(SMS_CONSENT_TEXT, { exact: true });
   await expect(consentText).toBeVisible();
   await expect(consentText).toBeInViewport({ ratio: 1 });
-  await expect(nextButton(page, "Agree and finish")).toBeVisible();
+  await expect(nextButton(page, "Find local shifts")).toBeVisible();
   await settle(page);
   await page.screenshot({ path: resolve(OUT, "consent.png") });
 
   await checkbox.click();
   await expect(checkbox).toHaveAttribute("aria-checked", "true");
   await expect(consentText).toBeInViewport({ ratio: 1 });
-  await expect(nextButton(page, "Agree and finish")).toBeVisible();
+  await expect(nextButton(page, "Find local shifts")).toBeVisible();
   await settle(page);
   await page.screenshot({ path: resolve(OUT, "consent-checked.png") });
 });

@@ -31,7 +31,7 @@ function toggledLetter(before: readonly Endorsement[], after: readonly Endorseme
   );
 }
 
-function EndorsementsFields({ showQuestion, question, helper }: ScreenFieldsProps) {
+function EndorsementsFields({ question, helper }: ScreenFieldsProps) {
   const {
     control,
     formState: { errors },
@@ -52,7 +52,6 @@ function EndorsementsFields({ showQuestion, question, helper }: ScreenFieldsProp
               <OptionGroup
                 multiple
                 label={question}
-                labelHidden={!showQuestion}
                 options={ENDORSEMENT_OPTIONS}
                 value={value}
                 onChange={(next) => {

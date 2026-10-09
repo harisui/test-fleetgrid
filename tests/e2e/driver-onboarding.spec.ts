@@ -5,7 +5,6 @@ import {
   formAlert,
   login,
   nextButton,
-  PHONE_VIEWPORT,
   PHONES,
   PLACES,
   resetUser,
@@ -18,8 +17,8 @@ const FIVE_MINUTES_MS = 5 * 60 * 1000;
 
 const TWIC_QUESTION = "Do you have an active TWIC card?";
 const MEDICAL_QUESTION = "Is your DOT medical card current?";
-const CLEARINGHOUSE_QUESTION = "Are you registered in the FMCSA Clearinghouse?";
 const MVR_QUESTION = "Any moving violations in the last 3 years?";
+const FINISH = "Find local shifts";
 
 async function startAsNewDriver(page: Page) {
   await seedUser(PHONES.driver, "driver");
@@ -47,32 +46,29 @@ async function driverRow() {
 const card = (page: Page, role: "checkbox" | "radio", name: RegExp) =>
   page.getByRole(role, { name });
 const chip = (page: Page, name: string) => page.getByRole("button", { name, exact: true });
-/** The chip of one yes-or-no question, found through the question's group. */
+/** The chip of one question, found through the question's group. */
 const checkChip = (page: Page, question: string, name: string) =>
   page.getByRole("group", { name: question }).getByRole("button", { name, exact: true });
 
-test.describe("driver onboarding, one question per screen", () => {
-  // The per-question flow is the phone layout. Wider screens group a mile per page and are
-  // covered by the "on a wide screen" tests below, so every project runs this at phone width.
-  test.use({ viewport: PHONE_VIEWPORT });
-
+/**
+ * The short sign-up (client decision of 2026-10-09): six pages, one per mile, the same on a
+ * phone and a desktop. CDL drivers only. Every project runs these at its own viewport.
+ */
+test.describe("driver onboarding, a page per mile", () => {
   test.afterAll(async () => {
     await resetUser(PHONES.driver);
   });
 
-  test("a driver signs up with taps only, in under five minutes, and every answer is stored", async ({
+  test("a driver signs up with taps only, in under two minutes, and every answer is stored", async ({
     page,
   }) => {
     const started = Date.now();
     await startAsNewDriver(page);
 
     // Mile 1: About
-    await expect(screenHeading(page)).toHaveText("What is your name?");
-    await expect(page.getByText("Mile 1 of 5 · About")).toBeVisible();
+    await expect(screenHeading(page)).toHaveText("About");
+    await expect(page.getByText("Mile 1 of 6", { exact: true })).toBeVisible();
     await page.getByLabel("Full name").fill("Pat Driver");
-    await nextButton(page).click();
-
-    await expect(screenHeading(page)).toHaveText("What is your ZIP code?");
     await page.getByLabel("ZIP code", { exact: true }).fill(PLACES.houston.zip);
     // City and state come from the dataset as one read-only line; there is nothing to type.
     await expect(page.locator("[data-slot=zip-place]")).toContainText("Houston, TX");
@@ -80,92 +76,56 @@ test.describe("driver onboarding, one question per screen", () => {
     await expect(page.getByText(/City and state filled in from your ZIP/)).toBeVisible();
     // Houston is inside the launch area: no note.
     await expect(page.locator("[data-slot=launch-area-note]")).toHaveCount(0);
-    await nextButton(page).click();
-
-    await expect(screenHeading(page)).toHaveText("How far will you travel for work?");
     await chip(page, "100 miles").click();
     await nextButton(page).click();
 
-    // Mile 2: Work
-    await expect(screenHeading(page)).toHaveText("What work do you do?");
-    await expect(page.getByText("Mile 2 of 5 · Work")).toBeVisible();
-    await card(page, "checkbox", /CDL driver/).click();
-    await card(page, "checkbox", /Yard spotter/).click();
-    await nextButton(page).click();
-
-    await expect(screenHeading(page)).toHaveText("Do you work W-2 or 1099?");
-    await expect(page.getByText(/W-2 means you are on a company/)).toBeVisible();
-    await card(page, "radio", /W-2 employee/).click();
-    await nextButton(page).click();
-
-    await expect(screenHeading(page)).toHaveText("What kind of driving do you do?");
-    await card(page, "checkbox", /Local day cab/).click();
-    await card(page, "checkbox", /Regional/).click();
-    await nextButton(page).click();
-
-    await expect(screenHeading(page)).toHaveText("What equipment do you run?");
-    await chip(page, "Dry van").click();
-    await chip(page, "Flatbed").click();
-    await expect(page.getByText("Can you drive a manual?")).toBeVisible();
-    await card(page, "radio", /Automatic and manual/).click();
-    await nextButton(page).click();
-
-    await expect(screenHeading(page)).toHaveText("How many years have you done this work?");
+    // Mile 2: CDL. No work type: FleetGrid lists CDL drivers only at launch.
+    await expect(screenHeading(page)).toHaveText("CDL");
+    await expect(screenHeading(page)).toBeFocused();
+    await expect(page.getByText("Mile 2 of 6", { exact: true })).toBeVisible();
+    await expect(page.getByText("What work do you do?")).toHaveCount(0);
+    await expect(page.getByText("Do you work W-2 or 1099?")).toHaveCount(0);
+    await expect(page.getByText(/No CDL/)).toHaveCount(0);
+    await card(page, "radio", /Class A/).click();
     await expect(page.getByLabel("Exact number (optional)")).toHaveCount(0);
     await chip(page, "6 to 10").click();
+    await expect(
+      page.getByText("Major means a DUI, reckless driving, leaving the scene or a suspended license."),
+    ).toBeVisible();
+    await checkChip(page, MVR_QUESTION, "None").click();
     await nextButton(page).click();
 
-    await expect(screenHeading(page)).toHaveText("When can you work?");
-    await card(page, "checkbox", /Full time/).click();
-    await card(page, "checkbox", /Weekends/).click();
-    await nextButton(page).click();
-
-    // Mile 3: License
-    await expect(screenHeading(page)).toHaveText("What class is your CDL?");
-    await expect(page.getByText("Mile 3 of 5 · License")).toBeVisible();
-    await card(page, "radio", /Class A/).click();
-    await nextButton(page).click();
-
-    await expect(screenHeading(page)).toHaveText("Any extra letters on your CDL?");
-    await expect(page.getByText(/These are called endorsements/)).toBeVisible();
-    await card(page, "checkbox", /^H\b/).click();
-    await card(page, "checkbox", /^T\b/).click();
-    await nextButton(page).click();
-
-    await expect(screenHeading(page)).toHaveText("Do you have any certifications?");
-    // TWIC has its own question now, so it is no longer a certification chip.
-    await expect(chip(page, "TWIC")).toHaveCount(0);
-    await chip(page, "Forklift").click();
-    await chip(page, "OSHA 10").click();
-    await nextButton(page).click();
-
-    await expect(screenHeading(page)).toHaveText("Do you have these cards?");
+    // Mile 3: Cards
+    await expect(screenHeading(page)).toHaveText("Cards");
     await checkChip(page, TWIC_QUESTION, "Yes").click();
     await checkChip(page, MEDICAL_QUESTION, "Yes").click();
     await nextButton(page).click();
 
-    // Mile 4: Papers (optional) and the record
-    await expect(screenHeading(page)).toHaveText("Do you want to add your papers now?");
-    await expect(page.getByText("Mile 4 of 5 · Papers")).toBeVisible();
-    await nextButton(page, "Skip for now").click();
-
-    await expect(screenHeading(page)).toHaveText("How is your driving record?");
-    await checkChip(page, CLEARINGHOUSE_QUESTION, "Registered").click();
-    await checkChip(page, MVR_QUESTION, "None").click();
+    // Mile 4: Letters (endorsements and transmission)
+    await expect(screenHeading(page)).toHaveText("Letters");
+    await expect(page.getByText(/These are called endorsements/)).toBeVisible();
+    await card(page, "checkbox", /^H\b/).click();
+    await card(page, "checkbox", /^T\b/).click();
+    await expect(page.getByText("Can you drive a manual?")).toBeVisible();
+    await card(page, "radio", /Automatic and manual/).click();
     await nextButton(page).click();
 
-    // Mile 5: Finish
-    await expect(screenHeading(page)).toHaveText("Anything carriers should know?");
-    await expect(page.getByText("Mile 5 of 5 · Finish")).toBeVisible();
-    await page.getByLabel("About you").fill("Nine years of regional haul. Clean record.");
+    // Mile 5: Equipment
+    await expect(screenHeading(page)).toHaveText("Equipment");
+    await chip(page, "Dry van").click();
+    await chip(page, "Flatbed").click();
     await nextButton(page).click();
 
-    await expect(screenHeading(page)).toHaveText("Can we text you about shifts?");
+    // Mile 6: Finish. No papers, no about you: the consent box and the client's button.
+    await expect(screenHeading(page)).toHaveText("Finish");
+    await expect(page.getByText("Mile 6 of 6", { exact: true })).toBeVisible();
+    await expect(page.getByText("Take a photo")).toHaveCount(0);
+    await expect(page.getByLabel("About you")).toHaveCount(0);
     const consent = page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) });
     await expect(consent).not.toBeChecked();
     await consent.click();
     const before = Date.now();
-    await nextButton(page, "Agree and finish").click();
+    await nextButton(page, FINISH).click();
 
     await expect(screenHeading(page)).toHaveText("You are listed.");
     await expect(page.getByText("Profile complete", { exact: true })).toBeVisible();
@@ -184,25 +144,26 @@ test.describe("driver onboarding, one question per screen", () => {
       lat: PLACES.houston.lat,
       lng: PLACES.houston.lng,
       service_radius_miles: 100,
-      operator_types: ["cdl_driver", "yard_spotter"],
-      employment_type: "w2",
-      driving_styles: ["local_day_cab", "regional"],
-      transmission: "manual_ok",
-      equipment_types: ["dry_van", "flatbed"],
+      operator_types: ["cdl_driver"],
       cdl_class: "A",
-      endorsements: ["H", "T"],
       years_experience: 6,
-      certifications: ["Forklift", "OSHA 10"],
+      mvr_status: "clean",
       twic_active: true,
       medical_card_active: true,
-      clearinghouse_registered: true,
-      mvr_status: "clean",
-      availability: ["full_time", "weekends"],
-      bio: "Nine years of regional haul. Clean record.",
+      endorsements: ["H", "T"],
+      transmission: "manual_ok",
+      equipment_types: ["dry_van", "flatbed"],
+      // Profile-page answers, never asked here.
+      employment_type: null,
+      driving_styles: [],
+      clearinghouse_registered: null,
+      availability: [],
+      certifications: [],
+      bio: null,
       sms_opt_in: true,
       sms_opt_in_text: CONSENT_TEXT,
       sms_opted_out: false,
-      onboarding_step: 18,
+      onboarding_step: 12,
       card_completed: true,
     });
     const consentAt = new Date(row.sms_opt_in_at!).getTime();
@@ -225,74 +186,34 @@ test.describe("driver onboarding, one question per screen", () => {
       },
     ]);
 
-    // The summary shows the new answers and can send the driver back to a question.
+    // The summary shows every answer and can send the driver back to a page.
     const summary = page.locator("[data-slot=summary-card]");
-    await expect(summary.getByText("W-2 employee")).toBeVisible();
-    await expect(summary.getByText("Dry van, Flatbed · Automatic and manual")).toBeVisible();
-    await expect(summary.getByText("TWIC, medical card current")).toBeVisible();
-    await expect(summary.getByText("In the Clearinghouse, no violations in 3 years")).toBeVisible();
-    await page.getByRole("button", { name: "Edit availability" }).click();
-    await expect(screenHeading(page)).toHaveText("When can you work?");
-    await expect(card(page, "checkbox", /Full time/)).toHaveAttribute("aria-checked", "true");
+    for (const value of [
+      "Class A",
+      "6 to 10 years",
+      "No violations in 3 years",
+      "TWIC, medical card current",
+      "H, T",
+      "Automatic and manual",
+      "Dry van, Flatbed",
+    ]) {
+      await expect(summary.getByText(value, { exact: true })).toBeVisible();
+    }
+    await page.getByRole("button", { name: "Edit record" }).click();
+    await expect(screenHeading(page)).toHaveText("CDL");
+    await expect(checkChip(page, MVR_QUESTION, "None")).toHaveAttribute("aria-pressed", "true");
+    await expect(card(page, "radio", /Class A/)).toHaveAttribute("aria-checked", "true");
     await page.goto("/driver/onboarding");
     await expect(screenHeading(page)).toHaveText("You are listed.");
     await page.getByRole("link", { name: "Go to my profile" }).click();
     await expect(page).toHaveURL(/\/driver\/profile$/);
   });
 
-  test("a yard spotter without CDL work skips the driving, equipment and record screens", async ({
-    page,
-  }) => {
-    await resumeAt(page, 4);
-    await expect(screenHeading(page)).toHaveText("What work do you do?");
-    await card(page, "checkbox", /Yard spotter/).click();
-    await nextButton(page).click();
-
-    await expect(screenHeading(page)).toHaveText("Do you work W-2 or 1099?");
-    await card(page, "radio", /Either works/).click();
-    await nextButton(page).click();
-    await expect(screenHeading(page)).toHaveText("How many years have you done this work?");
-    expect(await driverRow()).toMatchObject({
-      operator_types: ["yard_spotter"],
-      employment_type: "either",
-      driving_styles: [],
-      transmission: null,
-      equipment_types: [],
-      onboarding_step: 8,
-    });
-    await page.getByRole("button", { name: "Back" }).click();
-    await expect(screenHeading(page)).toHaveText("Do you work W-2 or 1099?");
-
-    // The cards are asked of everyone; the record only of CDL drivers.
-    await resumeAt(page, 13, {
-      operator_types: ["yard_spotter"],
-      cdl_class: "none",
-      endorsements: [],
-      driving_styles: [],
-      transmission: null,
-      equipment_types: [],
-    });
-    await expect(screenHeading(page)).toHaveText("Do you have these cards?");
-    await checkChip(page, TWIC_QUESTION, "No").click();
-    await checkChip(page, MEDICAL_QUESTION, "Yes").click();
-    await nextButton(page).click();
-    await expect(screenHeading(page)).toHaveText("Do you want to add your papers now?");
-    await nextButton(page, "Skip for now").click();
-    await expect(screenHeading(page)).toHaveText("Anything carriers should know?");
-    expect(await driverRow()).toMatchObject({
-      twic_active: false,
-      medical_card_active: true,
-      clearinghouse_registered: null,
-      mvr_status: null,
-      onboarding_step: 16,
-    });
-  });
-
   test("a driver outside the launch area is told so, still signs up, and is marked on the profile", async ({
     page,
   }) => {
     await resumeAt(page, 2);
-    await expect(screenHeading(page)).toHaveText("What is your ZIP code?");
+    await expect(screenHeading(page)).toHaveText("About");
     const note = page.locator("[data-slot=launch-area-note]");
     const zip = page.getByLabel("ZIP code", { exact: true });
 
@@ -312,19 +233,20 @@ test.describe("driver onboarding, one question per screen", () => {
     await expect(note).toHaveCount(0);
     await zip.fill(PLACES.dallas.zip);
     await expect(note).toBeVisible();
+    await chip(page, "50 miles").click();
     await nextButton(page).click();
-    await expect(screenHeading(page)).toHaveText("How far will you travel for work?");
+    await expect(screenHeading(page)).toHaveText("CDL");
     expect(await driverRow()).toMatchObject({
       zip: "75201",
       lat: PLACES.dallas.lat,
       lng: PLACES.dallas.lng,
     });
 
-    // Finish from the consent screen with the Dallas card.
-    await resumeAt(page, 17, { ...PLACES.dallas });
-    await expect(screenHeading(page)).toHaveText("Can we text you about shifts?");
+    // Finish from the consent page with the Dallas card.
+    await resumeAt(page, 11, { ...PLACES.dallas });
+    await expect(screenHeading(page)).toHaveText("Finish");
     await page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) }).click();
-    await nextButton(page, "Agree and finish").click();
+    await nextButton(page, FINISH).click();
 
     await expect(screenHeading(page)).toHaveText("You're on the list.");
     await expect(page.getByText("Profile complete", { exact: true })).toBeVisible();
@@ -333,7 +255,7 @@ test.describe("driver onboarding, one question per screen", () => {
     ).toBeVisible();
     await expect(page.getByText(/Shift offers arrive by text/)).toHaveCount(0);
     await expect(page.locator("[data-slot=summary-card]")).toBeVisible();
-    expect(await driverRow()).toMatchObject({ card_completed: true, onboarding_step: 18 });
+    expect(await driverRow()).toMatchObject({ card_completed: true, onboarding_step: 12 });
 
     await page.getByRole("link", { name: "Go to my profile" }).click();
     await expect(page).toHaveURL(/\/driver\/profile$/);
@@ -344,59 +266,64 @@ test.describe("driver onboarding, one question per screen", () => {
     );
   });
 
-  test("a refresh mid-flow resumes on the same question with the saved answers", async ({
-    page,
-  }) => {
-    await resumeAt(page, 8);
-    await expect(screenHeading(page)).toHaveText("How many years have you done this work?");
-    await chip(page, "3 to 5").click();
+  test("a refresh mid-flow resumes on the same page with the saved answers", async ({ page }) => {
+    await resumeAt(page, 7);
+    await expect(screenHeading(page)).toHaveText("Cards");
+    await checkChip(page, TWIC_QUESTION, "No").click();
+    await checkChip(page, MEDICAL_QUESTION, "Yes").click();
     await nextButton(page).click();
-    await expect(screenHeading(page)).toHaveText("When can you work?");
+    await expect(screenHeading(page)).toHaveText("Letters");
 
     await page.reload();
-    await expect(screenHeading(page)).toHaveText("When can you work?");
-    await expect(page.getByText("Mile 2 of 5 · Work")).toBeVisible();
-    expect((await driverRow()).onboarding_step).toBe(9);
+    await expect(screenHeading(page)).toHaveText("Letters");
+    await expect(page.getByText("Mile 4 of 6", { exact: true })).toBeVisible();
+    expect((await driverRow()).onboarding_step).toBe(8);
 
     // Logging out and back in resumes there too.
     await page.goto("/driver/profile");
     await expect(page).toHaveURL(/\/driver\/onboarding$/);
-    await expect(screenHeading(page)).toHaveText("When can you work?");
+    await expect(screenHeading(page)).toHaveText("Letters");
   });
 
-  test("Back keeps the saved answers, and changing one never loses progress", async ({ page }) => {
-    await resumeAt(page, 9);
+  test("Back returns a whole page with its answers, and changing one never loses progress", async ({
+    page,
+  }) => {
+    await resumeAt(page, 10);
+    await expect(screenHeading(page)).toHaveText("Equipment");
     await page.getByRole("button", { name: "Back" }).click();
-    await expect(screenHeading(page)).toHaveText("How many years have you done this work?");
-    await expect(chip(page, "6 to 10")).toHaveAttribute("aria-pressed", "true");
-
-    await page.getByRole("button", { name: "Back" }).click();
-    await expect(screenHeading(page)).toHaveText("What equipment do you run?");
-    await expect(chip(page, "Dry van")).toHaveAttribute("aria-pressed", "true");
+    await expect(screenHeading(page)).toHaveText("Letters");
+    await expect(card(page, "checkbox", /^H\b/)).toHaveAttribute("aria-checked", "true");
     await expect(card(page, "radio", /Automatic and manual/)).toHaveAttribute(
       "aria-checked",
       "true",
     );
 
     await page.getByRole("button", { name: "Back" }).click();
-    await expect(screenHeading(page)).toHaveText("What kind of driving do you do?");
-    await expect(card(page, "checkbox", /Regional/)).toHaveAttribute("aria-checked", "true");
+    await expect(screenHeading(page)).toHaveText("Cards");
+    await expect(checkChip(page, TWIC_QUESTION, "Yes")).toHaveAttribute("aria-pressed", "true");
 
     await page.getByRole("button", { name: "Back" }).click();
-    await expect(screenHeading(page)).toHaveText("Do you work W-2 or 1099?");
-    await expect(card(page, "radio", /W-2 employee/)).toHaveAttribute("aria-checked", "true");
+    await expect(screenHeading(page)).toHaveText("CDL");
+    await expect(card(page, "radio", /Class A/)).toHaveAttribute("aria-checked", "true");
+    await expect(chip(page, "6 to 10")).toHaveAttribute("aria-pressed", "true");
+    await expect(checkChip(page, MVR_QUESTION, "None")).toHaveAttribute("aria-pressed", "true");
 
     await page.getByRole("button", { name: "Back" }).click();
-    await expect(screenHeading(page)).toHaveText("What work do you do?");
-    await expect(card(page, "checkbox", /CDL driver/)).toHaveAttribute("aria-checked", "true");
+    await expect(screenHeading(page)).toHaveText("About");
+    await expect(page.getByLabel("Full name")).toHaveValue("Pat Driver");
+    await expect(page.locator("[data-slot=zip-place]")).toContainText("Houston, TX");
+    await expect(chip(page, "50 miles")).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByRole("button", { name: "Back" })).toHaveCount(0);
 
-    await card(page, "checkbox", /Mechanic/).click();
     await nextButton(page).click();
-    await expect(screenHeading(page)).toHaveText("Do you work W-2 or 1099?");
+    await expect(screenHeading(page)).toHaveText("CDL");
+    await card(page, "radio", /Class B/).click();
+    await nextButton(page).click();
+    await expect(screenHeading(page)).toHaveText("Cards");
     await expect(page.getByText("Saved")).toBeVisible();
     const row = await driverRow();
-    expect(row.operator_types).toEqual(["cdl_driver", "mechanic"]);
-    expect(row.onboarding_step).toBe(9);
+    expect(row.cdl_class).toBe("B");
+    expect(row.onboarding_step).toBe(10);
   });
 
   test("errors appear only after Next, with an icon, and are specific", async ({ page }) => {
@@ -405,16 +332,17 @@ test.describe("driver onboarding, one question per screen", () => {
     await page.getByLabel("Full name").fill("P");
     await expect(formAlert(page)).toHaveCount(0);
 
+    // Every question of the page is checked together.
     await nextButton(page).click();
-    const error = formAlert(page);
+    await expect(formAlert(page)).toHaveCount(3);
+    const error = formAlert(page).first();
     await expect(error).toHaveText("Enter your name");
     await expect(error.locator("svg")).toBeVisible();
     await expect(page.getByLabel("Full name")).toHaveAttribute("aria-invalid", "true");
-    await expect(screenHeading(page)).toHaveText("What is your name?");
+    await expect(page.getByText("Pick how far you will travel")).toBeVisible();
+    await expect(screenHeading(page)).toHaveText("About");
 
     await page.getByLabel("Full name").fill("Pat Driver");
-    await nextButton(page).click();
-    await expect(screenHeading(page)).toHaveText("What is your ZIP code?");
     const zip = page.getByLabel("ZIP code", { exact: true });
     await zip.fill("7520");
     await nextButton(page).click();
@@ -422,81 +350,68 @@ test.describe("driver onboarding, one question per screen", () => {
 
     // A ZIP the dataset does not know is an error as soon as it is typed, and Next stays off.
     await zip.fill("99999");
-    await expect(formAlert(page)).toHaveText("We could not find that ZIP. Check the number.");
+    await expect(page.getByText("We could not find that ZIP. Check the number.")).toBeVisible();
     await expect(zip).toHaveAttribute("aria-invalid", "true");
     await expect(page.locator("[data-slot=zip-place]")).toHaveCount(0);
     await expect(nextButton(page)).toBeDisabled();
 
     await zip.fill(PLACES.houston.zip);
     await expect(page.locator("[data-slot=zip-place]")).toContainText("Houston, TX");
-    await expect(formAlert(page)).toHaveCount(0);
+    await expect(page.getByText("We could not find that ZIP. Check the number.")).toHaveCount(0);
     await expect(nextButton(page)).toBeEnabled();
   });
 
-  test("the cards and record screens need both answers, and remember them", async ({ page }) => {
-    await resumeAt(page, 13);
-    await expect(screenHeading(page)).toHaveText("Do you have these cards?");
-    await checkChip(page, TWIC_QUESTION, "No").click();
+  test("the CDL page needs the class, the years and the record", async ({ page }) => {
+    await resumeAt(page, 4);
+    await expect(screenHeading(page)).toHaveText("CDL");
     await nextButton(page).click();
-    await expect(formAlert(page)).toHaveText("Tap Yes or No for the medical card");
-    await expect(screenHeading(page)).toHaveText("Do you have these cards?");
-    await checkChip(page, MEDICAL_QUESTION, "No").click();
-    await nextButton(page).click();
-    await expect(screenHeading(page)).toHaveText("Do you want to add your papers now?");
-    expect(await driverRow()).toMatchObject({ twic_active: false, medical_card_active: false });
+    await expect(formAlert(page)).toHaveCount(3);
+    await expect(page.getByText("Pick your CDL class")).toBeVisible();
+    await expect(page.getByText("Pick how many years you have driven")).toBeVisible();
+    await expect(page.getByText("Pick None, 1 or 2 minor, or 3 or more")).toBeVisible();
+    expect((await driverRow()).onboarding_step).toBe(4);
 
-    // Exact: the papers screen also has "Take a photo of back of your CDL".
-    await page.getByRole("button", { name: "Back", exact: true }).click();
-    await expect(checkChip(page, TWIC_QUESTION, "No")).toHaveAttribute("aria-pressed", "true");
-    await expect(checkChip(page, MEDICAL_QUESTION, "No")).toHaveAttribute("aria-pressed", "true");
-
-    await resumeAt(page, 15);
-    await expect(screenHeading(page)).toHaveText("How is your driving record?");
-    await nextButton(page).click();
-    await expect(formAlert(page)).toHaveCount(2);
-    await checkChip(page, CLEARINGHOUSE_QUESTION, "Not yet").click();
+    await card(page, "radio", /Class C/).click();
+    await chip(page, "Under 1").click();
     await checkChip(page, MVR_QUESTION, "3 or more, or a major one").click();
+    // One level at a time.
+    await checkChip(page, MVR_QUESTION, "1 or 2 minor").click();
+    await expect(checkChip(page, MVR_QUESTION, "3 or more, or a major one")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
     await nextButton(page).click();
-    await expect(screenHeading(page)).toHaveText("Anything carriers should know?");
+    await expect(screenHeading(page)).toHaveText("Cards");
     expect(await driverRow()).toMatchObject({
-      clearinghouse_registered: false,
-      mvr_status: "major_3_plus",
+      cdl_class: "C",
+      years_experience: 0,
+      mvr_status: "minor_1_2",
+      onboarding_step: 7,
     });
   });
 
-  test("a CDL driver who picks No CDL sees the warning and cannot continue", async ({ page }) => {
-    await resumeAt(page, 10);
-    await expect(screenHeading(page)).toHaveText("What class is your CDL?");
-    await expect(nextButton(page)).toBeEnabled();
-
-    await card(page, "radio", /No CDL/).click();
-    await expect(formAlert(page)).toHaveText(
-      "CDL driver work needs a CDL. Pick your class, or change your work type.",
-    );
-    await expect(nextButton(page)).toBeDisabled();
-
-    await card(page, "radio", /Class B/).click();
-    await expect(formAlert(page)).toHaveCount(0);
-    await expect(nextButton(page)).toBeEnabled();
+  test("the Cards page needs both answers, and remembers them", async ({ page }) => {
+    await resumeAt(page, 7);
+    await expect(screenHeading(page)).toHaveText("Cards");
+    await checkChip(page, TWIC_QUESTION, "No").click();
     await nextButton(page).click();
-    await expect(screenHeading(page)).toHaveText("Any extra letters on your CDL?");
-  });
-
-  test("endorsements are skipped for a driver without a CDL", async ({ page }) => {
-    await resumeAt(page, 10, { operator_types: ["yard_spotter"] });
-    await card(page, "radio", /No CDL/).click();
-    await expect(formAlert(page)).toHaveCount(0);
+    await expect(formAlert(page)).toHaveText("Tap Yes or No for the medical card");
+    await expect(screenHeading(page)).toHaveText("Cards");
+    await checkChip(page, MEDICAL_QUESTION, "No").click();
     await nextButton(page).click();
-    await expect(screenHeading(page)).toHaveText("Do you have any certifications?");
-    expect((await driverRow()).endorsements).toEqual([]);
+    await expect(screenHeading(page)).toHaveText("Letters");
+    expect(await driverRow()).toMatchObject({ twic_active: false, medical_card_active: false });
 
     await page.getByRole("button", { name: "Back" }).click();
-    await expect(screenHeading(page)).toHaveText("What class is your CDL?");
+    await expect(checkChip(page, TWIC_QUESTION, "No")).toHaveAttribute("aria-pressed", "true");
+    await expect(checkChip(page, MEDICAL_QUESTION, "No")).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("X auto-selects H and N, S auto-selects P, and None clears the rest", async ({ page }) => {
-    await resumeAt(page, 11, { endorsements: [] });
-    await expect(screenHeading(page)).toHaveText("Any extra letters on your CDL?");
+  test("X auto-selects H and N, S auto-selects P, None clears the rest, and the transmission is required", async ({
+    page,
+  }) => {
+    await resumeAt(page, 8, { endorsements: [] });
+    await expect(screenHeading(page)).toHaveText("Letters");
     await expect(page.getByRole("img", { name: /front of a CDL/ })).toBeVisible();
 
     await card(page, "checkbox", /^X\b/).click();
@@ -521,15 +436,41 @@ test.describe("driver onboarding, one question per screen", () => {
 
     await card(page, "checkbox", /^None/).click();
     await expect(card(page, "checkbox", /^H\b/)).toHaveAttribute("aria-checked", "false");
+
+    // No letters is fine; the transmission is not optional.
     await nextButton(page).click();
-    await expect(screenHeading(page)).toHaveText("Do you have any certifications?");
-    expect((await driverRow()).endorsements).toEqual([]);
+    await expect(formAlert(page)).toHaveText("Pick automatic only, or automatic and manual");
+    await expect(screenHeading(page)).toHaveText("Letters");
+    await card(page, "radio", /Automatic only/).click();
+    await nextButton(page).click();
+    await expect(screenHeading(page)).toHaveText("Equipment");
+    expect(await driverRow()).toMatchObject({
+      endorsements: [],
+      transmission: "automatic_only",
+      onboarding_step: 10,
+    });
+  });
+
+  test("the Equipment page needs at least one chip", async ({ page }) => {
+    await resumeAt(page, 10);
+    await expect(screenHeading(page)).toHaveText("Equipment");
+    await nextButton(page).click();
+    await expect(formAlert(page)).toHaveText("Pick at least one kind of equipment");
+    await chip(page, "Container drayage").click();
+    await chip(page, "Yard mule").click();
+    await nextButton(page).click();
+    await expect(screenHeading(page)).toHaveText("Finish");
+    expect(await driverRow()).toMatchObject({
+      equipment_types: ["container_drayage", "yard_mule"],
+      onboarding_step: 11,
+    });
   });
 
   test("the card cannot be finished without SMS consent", async ({ page }) => {
-    await resumeAt(page, 17);
-    await expect(screenHeading(page)).toHaveText("Can we text you about shifts?");
-    await nextButton(page, "Agree and finish").click();
+    await resumeAt(page, 11);
+    await expect(screenHeading(page)).toHaveText("Finish");
+    await expect(page.getByText("Can we text you about shifts?")).toBeVisible();
+    await nextButton(page, FINISH).click();
     await expect(formAlert(page)).toHaveText("Tap the box to agree before you finish");
 
     const row = await driverRow();
@@ -539,107 +480,17 @@ test.describe("driver onboarding, one question per screen", () => {
     // The profile stays locked until the card is complete.
     await page.goto("/driver/profile");
     await expect(page).toHaveURL(/\/driver\/onboarding$/);
-    await expect(screenHeading(page)).toHaveText("Can we text you about shifts?");
-  });
-
-  test("the about-you counter tracks length and blocks more than 500 characters", async ({
-    page,
-  }) => {
-    await resumeAt(page, 16);
-    await page.getByLabel("About you").fill("Hello");
-    await expect(page.getByText("5 / 500")).toBeVisible();
-    await page.getByLabel("About you").fill("x".repeat(501));
-    await expect(page.getByText("501 / 500")).toBeVisible();
-    await nextButton(page).click();
-    await expect(page.getByText("Keep it to 500 characters or fewer")).toBeVisible();
-    await expect(screenHeading(page)).toHaveText("Anything carriers should know?");
-  });
-});
-
-test.describe("driver onboarding, a mile per page on a wide screen", () => {
-  test.skip(({ viewport }) => (viewport?.width ?? 0) < 768, "desktop layout only");
-
-  test.afterAll(async () => {
-    await resetUser(PHONES.driver);
-  });
-
-  test("a driver finishes mile by mile, and every answer is stored", async ({ page }) => {
-    await startAsNewDriver(page);
-
-    await expect(screenHeading(page)).toHaveText("About");
-    await expect(page.getByText("Mile 1 of 5", { exact: true })).toBeVisible();
-    await page.getByLabel("Full name").fill("Pat Driver");
-    await page.getByLabel("ZIP code", { exact: true }).fill(PLACES.houston.zip);
-    await expect(page.locator("[data-slot=zip-place]")).toContainText("Houston, TX");
-    await chip(page, "100 miles").click();
-    await nextButton(page).click();
-
-    await expect(screenHeading(page)).toHaveText("Work");
-    await expect(screenHeading(page)).toBeFocused();
-    await card(page, "checkbox", /CDL driver/).click();
-    await card(page, "radio", /1099 owner-operator/).click();
-    await card(page, "checkbox", /OTR/).click();
-    await chip(page, "Container drayage").click();
-    await card(page, "radio", /Automatic only/).click();
-    await chip(page, "6 to 10").click();
-    await card(page, "checkbox", /Full time/).click();
-    await nextButton(page).click();
-
-    await expect(screenHeading(page)).toHaveText("License");
-    await card(page, "radio", /Class A/).click();
-    await card(page, "checkbox", /^H\b/).click();
-    await chip(page, "Forklift").click();
-    await checkChip(page, TWIC_QUESTION, "Yes").click();
-    await checkChip(page, MEDICAL_QUESTION, "No").click();
-    await nextButton(page).click();
-
-    // Papers and the record share the page, so the button is Next, not Skip.
-    await expect(screenHeading(page)).toHaveText("Papers");
-    await expect(page.getByText("How is your driving record?")).toBeVisible();
-    await checkChip(page, CLEARINGHOUSE_QUESTION, "Registered").click();
-    await checkChip(page, MVR_QUESTION, "None").click();
-    await nextButton(page).click();
-
     await expect(screenHeading(page)).toHaveText("Finish");
-    await page.getByLabel("About you").fill("Regional haul.");
-    await page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) }).click();
-    await nextButton(page, "Agree and finish").click();
-
-    await expect(screenHeading(page)).toHaveText("You are listed.");
-    expect(await driverRow()).toMatchObject({
-      full_name: "Pat Driver",
-      zip: "77002",
-      city: "Houston",
-      state: "TX",
-      service_radius_miles: 100,
-      operator_types: ["cdl_driver"],
-      employment_type: "owner_operator_1099",
-      driving_styles: ["otr"],
-      transmission: "automatic_only",
-      equipment_types: ["container_drayage"],
-      years_experience: 6,
-      availability: ["full_time"],
-      cdl_class: "A",
-      endorsements: ["H"],
-      certifications: ["Forklift"],
-      twic_active: true,
-      medical_card_active: false,
-      clearinghouse_registered: true,
-      mvr_status: "clean",
-      bio: "Regional haul.",
-      sms_opt_in: true,
-      onboarding_step: 18,
-      card_completed: true,
-    });
   });
 
-  test("the Work, License and Papers miles show a scroll hint until the bottom is in view, and no other mile does", async ({
+  test("a page that runs past the fold shows a scroll hint until the bottom is in view; a short one does not", async ({
     page,
   }) => {
-    // Short enough that the Work mile's questions do not fit.
+    test.skip(test.info().project.name !== "desktop-chrome", "viewport is set by hand here");
+    // Short enough that the CDL page's three questions do not fit.
     await page.setViewportSize({ width: 1280, height: 720 });
     await resumeAt(page, 4);
-    await expect(screenHeading(page)).toHaveText("Work");
+    await expect(screenHeading(page)).toHaveText("CDL");
     const hint = page.getByRole("button", { name: "Scroll down for more" });
     await expect(hint).toBeVisible();
     await expect(hint.locator("svg")).toHaveClass(/animate-nudge/);
@@ -652,79 +503,9 @@ test.describe("driver onboarding, a mile per page on a wide screen", () => {
     await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
     await expect(hint).toHaveCount(0);
 
-    // License and Papers have it too; About and Finish fit and do not.
-    await resumeAt(page, 10);
-    await expect(screenHeading(page)).toHaveText("License");
-    await expect(hint).toBeVisible();
-    await resumeAt(page, 14);
-    await expect(screenHeading(page)).toHaveText("Papers");
-    await expect(hint).toBeVisible();
-    await resumeAt(page, 2);
-    await expect(screenHeading(page)).toHaveText("About");
+    // The Cards page fits, so it has no hint.
+    await resumeAt(page, 7);
+    await expect(screenHeading(page)).toHaveText("Cards");
     await expect(hint).toHaveCount(0);
-    await resumeAt(page, 16);
-    await expect(screenHeading(page)).toHaveText("Finish");
-    await expect(hint).toHaveCount(0);
-  });
-
-  test("a mile's questions are validated together, and Back returns a whole mile", async ({
-    page,
-  }) => {
-    await resumeAt(page, 5);
-    await expect(screenHeading(page)).toHaveText("Work");
-    await expect(card(page, "checkbox", /CDL driver/)).toHaveAttribute("aria-checked", "true");
-    await expect(formAlert(page)).toHaveCount(0);
-
-    // Employment and availability are still unanswered, so the mile cannot be saved yet.
-    await nextButton(page).click();
-    await expect(page.getByText("Pick W-2, 1099 or either")).toBeVisible();
-    await expect(page.getByText("Pick at least one option")).toBeVisible();
-    await expect(screenHeading(page)).toHaveText("Work");
-
-    await page.getByRole("button", { name: "Back" }).click();
-    await expect(screenHeading(page)).toHaveText("About");
-    await expect(page.getByLabel("Full name")).toHaveValue("Pat Driver");
-    await expect(chip(page, "50 miles")).toHaveAttribute("aria-pressed", "true");
-  });
-
-  test("a mile's questions share one page, and the CDL questions appear when CDL driver is ticked", async ({
-    page,
-  }) => {
-    await resumeAt(page, 4);
-    await expect(screenHeading(page)).toHaveText("Work");
-    await expect(page.getByText("Mile 2 of 5", { exact: true })).toBeVisible();
-    for (const question of [
-      "What work do you do?",
-      "Do you work W-2 or 1099?",
-      "How many years have you done this work?",
-      "When can you work?",
-    ]) {
-      await expect(page.getByText(question)).toBeVisible();
-    }
-    const driving = page.getByText("What kind of driving do you do?");
-    await expect(driving).toHaveCount(0);
-    await card(page, "checkbox", /CDL driver/).click();
-    await expect(driving).toBeVisible();
-    await expect(page.getByText("What equipment do you run?")).toBeVisible();
-    await card(page, "checkbox", /CDL driver/).click();
-    await expect(driving).toHaveCount(0);
-
-    await card(page, "checkbox", /Mechanic/).click();
-    await card(page, "radio", /Either works/).click();
-    await chip(page, "1 to 2").click();
-    await card(page, "checkbox", /On call/).click();
-    await nextButton(page).click();
-    await expect(screenHeading(page)).toHaveText("License");
-    const row = await driverRow();
-    expect(row).toMatchObject({
-      operator_types: ["mechanic"],
-      employment_type: "either",
-      driving_styles: [],
-      transmission: null,
-      equipment_types: [],
-      years_experience: 1,
-      availability: ["on_call"],
-      onboarding_step: 10,
-    });
   });
 });

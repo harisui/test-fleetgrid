@@ -1,21 +1,19 @@
 import type { StepId } from "@/lib/onboarding/steps";
 import {
-  AVAILABILITY_OPTIONS,
   CARD_CHECKS,
   CDL_CLASS_OPTIONS,
-  DRIVING_STYLE_OPTIONS,
-  EMPLOYMENT_TYPE_OPTIONS,
   EQUIPMENT_CHIPS,
+  EXPERIENCE_CHIPS,
+  experienceChipFor,
   MVR_SUMMARY,
   TRANSMISSION_OPTIONS,
-  WORK_TYPE_OPTIONS,
   type CardCheck,
 } from "@/lib/onboarding/options";
-import { isCdlDriver, type Driver, type MvrStatus } from "@/types/domain";
+import type { Driver, MvrStatus } from "@/types/domain";
 
 interface SummaryCardProps {
   driver: Driver;
-  /** Jumps back to the screen that collects the row. */
+  /** Jumps back to the page that collects the row. */
   onEdit: (stepId: StepId) => void;
 }
 
@@ -41,71 +39,48 @@ export function checkSummary(check: CardCheck, value: boolean | null): string {
   return CARD_CHECKS[check].summary[value ? "yes" : "no"];
 }
 
-/** How the MVR level reads in a sentence, for example "no violations in 3 years". */
+/** How the MVR level reads, for example "No violations in 3 years". */
 export function mvrSummary(status: MvrStatus | null): string {
   return status === null ? NOT_ANSWERED : MVR_SUMMARY[status];
 }
 
-/** The answers that matter most, each with a way back to change it. */
+/** The years as the range chip the driver tapped, for example "6 to 10 years". */
+export function experienceSummary(years: number | null): string {
+  const chip = EXPERIENCE_CHIPS.find((candidate) => candidate.value === experienceChipFor(years));
+  return chip ? `${chip.label} years` : NOT_ANSWERED;
+}
+
+/** Every answer of the sign-up, in flow order, each with a way back to change it. */
 export function SummaryCard({ driver, onEdit }: SummaryCardProps) {
-  const cdl = isCdlDriver(driver.operatorTypes);
   const rows: Row[] = [
     {
-      label: "Work type",
-      value: labelsOf(WORK_TYPE_OPTIONS, driver.operatorTypes),
-      stepId: "workType",
+      label: "CDL class",
+      value: driver.cdlClass === "none" ? NOT_ANSWERED : labelOf(CDL_CLASS_OPTIONS, driver.cdlClass),
+      stepId: "cdlClass",
     },
-    {
-      label: "Pay",
-      value: driver.employmentType
-        ? labelOf(EMPLOYMENT_TYPE_OPTIONS, driver.employmentType)
-        : NOT_ANSWERED,
-      stepId: "employmentType",
-    },
-    ...(cdl
-      ? [
-          {
-            label: "Driving",
-            value: labelsOf(DRIVING_STYLE_OPTIONS, driver.drivingStyles) || NOT_ANSWERED,
-            stepId: "drivingStyle" as const,
-          },
-          {
-            label: "Equipment",
-            value:
-              [
-                labelsOf(EQUIPMENT_CHIPS, driver.equipmentTypes),
-                driver.transmission && labelOf(TRANSMISSION_OPTIONS, driver.transmission),
-              ]
-                .filter(Boolean)
-                .join(" · ") || NOT_ANSWERED,
-            stepId: "equipment" as const,
-          },
-        ]
-      : []),
-    { label: "CDL class", value: labelOf(CDL_CLASS_OPTIONS, driver.cdlClass), stepId: "cdlClass" },
-    {
-      label: "Endorsements",
-      value: driver.endorsements.length > 0 ? driver.endorsements.join(", ") : "None",
-      stepId: driver.cdlClass === "none" ? "cdlClass" : "endorsements",
-    },
+    { label: "Experience", value: experienceSummary(driver.yearsExperience), stepId: "experience" },
+    { label: "Record", value: mvrSummary(driver.mvrStatus), stepId: "record" },
     {
       label: "Cards",
       value: `${checkSummary("twicActive", driver.twicActive)}, ${checkSummary("medicalCardActive", driver.medicalCardActive)}`,
       stepId: "credentials",
     },
-    ...(cdl
-      ? [
-          {
-            label: "Record",
-            value: `${checkSummary("clearinghouseRegistered", driver.clearinghouseRegistered)}, ${mvrSummary(driver.mvrStatus)}`,
-            stepId: "compliance" as const,
-          },
-        ]
-      : []),
     {
-      label: "Availability",
-      value: labelsOf(AVAILABILITY_OPTIONS, driver.availability),
-      stepId: "availability",
+      label: "Endorsements",
+      value: driver.endorsements.length > 0 ? driver.endorsements.join(", ") : "None",
+      stepId: "endorsements",
+    },
+    {
+      label: "Transmission",
+      value: driver.transmission
+        ? labelOf(TRANSMISSION_OPTIONS, driver.transmission)
+        : NOT_ANSWERED,
+      stepId: "transmission",
+    },
+    {
+      label: "Equipment",
+      value: labelsOf(EQUIPMENT_CHIPS, driver.equipmentTypes) || NOT_ANSWERED,
+      stepId: "equipment",
     },
   ];
 

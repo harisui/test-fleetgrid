@@ -6,13 +6,31 @@ const CONSENT_TEXT =
 
 type Status = "pending" | "approved" | "blocked";
 
-/** A driver with a completed card, signed in on the profile page. */
+/**
+ * A driver with a completed card, signed in on the profile page. With `signUpOnly`, the card
+ * holds the sign-up answers alone, the way a real sign-up leaves it.
+ */
 async function startWithCompletedCard(
   page: Page,
-  options: { status?: Status; optedOut?: boolean; place?: keyof typeof PLACES } = {},
+  options: {
+    status?: Status;
+    optedOut?: boolean;
+    place?: keyof typeof PLACES;
+    signUpOnly?: boolean;
+  } = {},
 ): Promise<string> {
   const userId = await seedUser(PHONES.driver, "driver", options.status ?? "pending");
   const place = PLACES[options.place ?? "houston"];
+  const profileOnly = options.signUpOnly
+    ? {}
+    : {
+        employment_type: "w2" as const,
+        certifications: ["OSHA 10"],
+        driving_styles: ["local_day_cab" as const],
+        clearinghouse_registered: true,
+        availability: ["full_time" as const],
+        bio: "Reliable and on time.",
+      };
   const { data, error } = await adminClient()
     .from("drivers")
     .insert({
@@ -25,26 +43,21 @@ async function startWithCompletedCard(
       lng: place.lng,
       service_radius_miles: 50,
       operator_types: ["cdl_driver"],
-      employment_type: "w2",
       cdl_class: "A",
       endorsements: ["H"],
       years_experience: 8,
-      certifications: ["OSHA 10"],
-      driving_styles: ["local_day_cab"],
       transmission: "manual_ok",
       equipment_types: ["dry_van"],
       twic_active: true,
       medical_card_active: true,
-      clearinghouse_registered: true,
       mvr_status: "clean",
-      availability: ["full_time"],
-      bio: "Reliable and on time.",
+      ...profileOnly,
       sms_opt_in: true,
       sms_opt_in_at: new Date().toISOString(),
       sms_opt_in_text: CONSENT_TEXT,
       sms_opted_out: options.optedOut ?? false,
       sms_opted_out_at: options.optedOut ? new Date().toISOString() : null,
-      onboarding_step: 18,
+      onboarding_step: 12,
       card_completed: true,
     })
     .select("id")
@@ -129,7 +142,8 @@ test.describe("driver profile", () => {
     await page.getByLabel("ZIP code").fill("60601");
     await expect(page.locator("[data-slot=zip-place]")).toContainText("Chicago, IL");
     await page.getByLabel("Service radius (miles)").fill("200");
-    await page.getByText("Mechanic", { exact: true }).click();
+    // No work type on the profile either: CDL drivers only at launch.
+    await expect(page.getByText("Mechanic", { exact: true })).toHaveCount(0);
     await page.getByText("Either works", { exact: true }).click();
     await page.getByText("Class B", { exact: true }).click();
     await page.getByText("T - Double/triple trailers").click();
@@ -163,7 +177,7 @@ test.describe("driver profile", () => {
       lat: 41.8858,
       lng: -87.6181,
       service_radius_miles: 200,
-      operator_types: ["cdl_driver", "mechanic"],
+      operator_types: ["cdl_driver"],
       employment_type: "either",
       cdl_class: "B",
       endorsements: ["H", "T"],
@@ -182,7 +196,7 @@ test.describe("driver profile", () => {
       sms_opt_in: true,
       sms_opt_in_text: CONSENT_TEXT,
       card_completed: true,
-      onboarding_step: 18,
+      onboarding_step: 12,
     });
 
     await page.reload();
@@ -194,31 +208,36 @@ test.describe("driver profile", () => {
     await expect(page.getByText("Forklift", { exact: true })).toBeVisible();
   });
 
-  test("dropping CDL work hides the CDL questions, and a mechanic saves without them", async ({
+  test("a card straight out of sign-up saves with the optional answers left empty", async ({
     page,
   }) => {
-    const driverId = await startWithCompletedCard(page);
-    const driving = page.getByRole("group", { name: "What kind of driving do you do?" });
-    await expect(driving).toBeVisible();
-    await page.getByText("CDL driver", { exact: true }).click();
-    await page.getByText("Mechanic", { exact: true }).click();
-    await page.getByText("No CDL", { exact: true }).click();
-    await expect(driving).toHaveCount(0);
-    await expect(
-      page.getByRole("group", { name: "Are you registered in the FMCSA Clearinghouse?" }),
-    ).toHaveCount(0);
-    await expect(
-      page.getByRole("group", { name: "Do you have an active TWIC card?" }),
-    ).toBeVisible();
+    const driverId = await startWithCompletedCard(page, { signUpOnly: true });
+    // The questions sign-up no longer asks are there, marked optional, and may stay empty.
+    for (const question of [
+      "W-2 or 1099?",
+      "What kind of driving do you do?",
+      "Are you registered in the FMCSA Clearinghouse?",
+      "When can you work?",
+    ]) {
+      await expect(page.getByRole("group", { name: question }).getByText(/^Optional\./)).toBeVisible();
+    }
+    await expect(page.getByText("No CDL", { exact: true })).toHaveCount(0);
     await page.getByRole("button", { name: "Save changes" }).click();
     await expect(page.getByText("Profile saved")).toBeVisible();
 
     const { data } = await adminClient()
       .from("drivers")
-      .select("operator_types, cdl_class, card_completed")
+      .select("operator_types, employment_type, driving_styles, clearinghouse_registered, availability, card_completed")
       .eq("id", driverId)
       .single();
-    expect(data).toEqual({ operator_types: ["mechanic"], cdl_class: "none", card_completed: true });
+    expect(data).toEqual({
+      operator_types: ["cdl_driver"],
+      employment_type: null,
+      driving_styles: [],
+      clearinghouse_registered: null,
+      availability: [],
+      card_completed: true,
+    });
   });
 
   test("a ZIP the dataset does not know is rejected on the profile too", async ({ page }) => {
@@ -243,18 +262,18 @@ test.describe("driver profile", () => {
     const driverId = await startWithCompletedCard(page);
 
     await page.getByLabel("ZIP code").fill("12");
-    await page.getByText("Full time", { exact: true }).click();
+    await page.getByText("Dry van", { exact: true }).click();
     await page.getByRole("button", { name: "Save changes" }).click();
 
     await expect(page.getByText("Enter a 5-digit ZIP code")).toBeVisible();
-    await expect(page.getByText("Select at least one option")).toBeVisible();
+    await expect(page.getByText("Pick at least one kind of equipment")).toBeVisible();
 
     const { data } = await adminClient()
       .from("drivers")
-      .select("zip, availability")
+      .select("zip, equipment_types")
       .eq("id", driverId)
       .single();
-    expect(data).toEqual({ zip: PLACES.houston.zip, availability: ["full_time"] });
+    expect(data).toEqual({ zip: PLACES.houston.zip, equipment_types: ["dry_van"] });
   });
 
   test("the documents page is one tap away", async ({ page }) => {

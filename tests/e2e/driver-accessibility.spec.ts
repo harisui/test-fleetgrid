@@ -105,26 +105,20 @@ for (const colorScheme of ["light", "dark"] as const) {
       await expect(formAlert(page)).toBeVisible();
       await expectNoAccessibilityViolations(page, "ZIP not in the dataset");
 
-      await seedDriverAtStep(PHONES.driver, 7);
+      await seedDriverAtStep(PHONES.driver, 4);
       await openOnboarding(page, PHONES.driver);
-      await page.getByRole("button", { name: "Dry van", exact: true }).click();
-      await page.getByRole("radio", { name: /Automatic only/ }).click();
-      await expectNoAccessibilityViolations(page, "equipment selected");
-
-      await seedDriverAtStep(PHONES.driver, 10);
-      await openOnboarding(page, PHONES.driver);
-      await page.getByRole("radio", { name: /No CDL/ }).click();
-      await expect(formAlert(page)).toBeVisible();
-      await expectNoAccessibilityViolations(page, "CDL conflict");
+      await nextButton(page).click();
+      await expect(formAlert(page).first()).toBeVisible();
+      await expectNoAccessibilityViolations(page, "CDL page with errors");
       await page.getByRole("radio", { name: /Class A/ }).click();
-      await expectNoAccessibilityViolations(page, "CDL class selected");
+      await page.getByRole("button", { name: "3 to 5", exact: true }).click();
+      await page
+        .getByRole("group", { name: "Any moving violations in the last 3 years?" })
+        .getByRole("button", { name: "None", exact: true })
+        .click();
+      await expectNoAccessibilityViolations(page, "CDL page answered");
 
-      await seedDriverAtStep(PHONES.driver, 11);
-      await openOnboarding(page, PHONES.driver);
-      await page.getByRole("checkbox", { name: /^X\b/ }).click();
-      await expectNoAccessibilityViolations(page, "endorsements with X");
-
-      await seedDriverAtStep(PHONES.driver, 13);
+      await seedDriverAtStep(PHONES.driver, 7);
       await openOnboarding(page, PHONES.driver);
       await nextButton(page).click();
       await expect(formAlert(page).first()).toBeVisible();
@@ -135,9 +129,20 @@ for (const colorScheme of ["light", "dark"] as const) {
         .click();
       await expectNoAccessibilityViolations(page, "cards answered");
 
-      await seedDriverAtStep(PHONES.driver, 17);
+      await seedDriverAtStep(PHONES.driver, 8);
       await openOnboarding(page, PHONES.driver);
-      await nextButton(page, "Agree and finish").click();
+      await page.getByRole("checkbox", { name: /^X\b/ }).click();
+      await page.getByRole("radio", { name: /Automatic only/ }).click();
+      await expectNoAccessibilityViolations(page, "letters with X and a transmission");
+
+      await seedDriverAtStep(PHONES.driver, 10);
+      await openOnboarding(page, PHONES.driver);
+      await page.getByRole("button", { name: "Dry van", exact: true }).click();
+      await expectNoAccessibilityViolations(page, "equipment selected");
+
+      await seedDriverAtStep(PHONES.driver, 11);
+      await openOnboarding(page, PHONES.driver);
+      await nextButton(page, "Find local shifts").click();
       await expect(formAlert(page)).toBeVisible();
       await expectNoAccessibilityViolations(page, "consent with error");
       await page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) }).click();
@@ -146,7 +151,7 @@ for (const colorScheme of ["light", "dark"] as const) {
 
     test("profile and documents", async ({ page }) => {
       // Opted out and outside the launch area: both notes and both badges on one page.
-      const { driverId } = await seedDriverAtStep(PHONES.driver, 18, {
+      const { driverId } = await seedDriverAtStep(PHONES.driver, 12, {
         sms_opted_out: true,
         sms_opted_out_at: new Date().toISOString(),
         ...PLACES.dallas,
@@ -204,17 +209,17 @@ for (const colorScheme of ["light", "dark"] as const) {
 
       await tabTo(page, nextButton(page));
       await page.keyboard.press("Enter");
-      await expect(screenHeading(page)).toHaveText("Work");
+      await expect(screenHeading(page)).toHaveText("CDL");
       await expect(screenHeading(page)).toBeFocused();
 
       await page.keyboard.press("Tab");
-      await expect(page.getByRole("checkbox", { name: /CDL driver/ })).toBeFocused();
+      await expect(page.getByRole("radio", { name: /Class A/ })).toBeFocused();
       await page.keyboard.press("Space");
-      await expect(page.getByRole("checkbox", { name: /CDL driver/ })).toHaveAttribute(
+      await expect(page.getByRole("radio", { name: /Class A/ })).toHaveAttribute(
         "aria-checked",
         "true",
       );
-      await expect(page.locator(":focus-visible")).toHaveAttribute("role", "checkbox");
+      await expect(page.locator(":focus-visible")).toHaveAttribute("role", "radio");
     });
   });
 }

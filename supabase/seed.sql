@@ -76,26 +76,15 @@ declare
   v_availability public.availability_type[];
   v_status public.account_status;
   v_opted_out boolean;
-  v_cdl_driver boolean;
 begin
   for i in 1..25 loop
     v_id := ('00000000-0000-4000-a000-' || lpad((1000 + i)::text, 12, '0'))::uuid;
     v_phone := '+1555555' || (1000 + i)::text;
     v_place := v_places[1 + (i % 10) : 1 + (i % 10)][1:5];
 
-    v_operator_types := case i % 5
-      when 0 then array['mechanic']::public.operator_type[]
-      when 1 then array['cdl_driver']::public.operator_type[]
-      when 2 then array['yard_spotter']::public.operator_type[]
-      when 3 then array['cdl_driver', 'yard_spotter']::public.operator_type[]
-      else array['cdl_driver', 'mechanic']::public.operator_type[]
-    end;
-
-    v_cdl := case
-      when i % 5 = 0 then 'none'
-      when i % 5 = 2 then (array['B', 'C', 'none'])[1 + (i % 3)]
-      else (array['A', 'A', 'B'])[1 + (i % 3)]
-    end::public.cdl_class;
+    -- CDL drivers only at launch (2026-10-09): every card holds a class.
+    v_operator_types := array['cdl_driver']::public.operator_type[];
+    v_cdl := (array['A', 'A', 'B', 'C'])[1 + (i % 4)]::public.cdl_class;
 
     v_endorsements := case
       when v_cdl = 'none' then '{}'
@@ -115,8 +104,6 @@ begin
     -- 1 to 17 approved, 18 to 22 pending, 23 to 25 blocked. Driver 7 has opted out of SMS.
     v_status := case when i <= 17 then 'approved' when i <= 22 then 'pending' else 'blocked' end;
     v_opted_out := (i = 7);
-    -- Driving style, transmission, equipment, Clearinghouse and MVR are CDL-driver answers.
-    v_cdl_driver := ('cdl_driver' = any(v_operator_types));
 
     perform pg_temp.seed_user(v_id, v_phone);
 
@@ -137,28 +124,25 @@ begin
       case when i % 3 = 0 then array['Forklift'] when i % 3 = 1 then array['OSHA 10'] else '{}'::text[] end,
       'Seed driver ' || i || '. Reliable, on time, clean record.',
       (array['w2', 'owner_operator_1099', 'either'])[1 + (i % 3)]::public.employment_type,
-      case when not v_cdl_driver then '{}'
-           when i % 4 = 0 then array['local_day_cab']
+      -- Driving style and the Clearinghouse are profile-page answers; some cards leave them empty.
+      case when i % 4 = 0 then array['local_day_cab']
            when i % 4 = 1 then array['regional', 'otr']
-           when i % 4 = 2 then array['local_day_cab', 'yard_spotter']
+           when i % 4 = 2 then '{}'
            else array['otr'] end::public.driving_style[],
-      case when not v_cdl_driver then null
-           when i % 3 = 0 then 'automatic_only' else 'manual_ok' end::public.transmission_type,
-      case when not v_cdl_driver then '{}'
-           when i % 4 = 0 then array['container_drayage', 'dry_van']
+      case when i % 3 = 0 then 'automatic_only' else 'manual_ok' end::public.transmission_type,
+      case when i % 4 = 0 then array['container_drayage', 'dry_van']
            when i % 4 = 1 then array['dry_van', 'reefer']
            when i % 4 = 2 then array['flatbed']
            else array['yard_mule', 'dry_van'] end::public.equipment_type[],
       (i % 2 = 0), (i % 7 <> 0),
-      case when v_cdl_driver then (i % 4 <> 3) end,
-      case when not v_cdl_driver then null
-           when i % 5 = 4 then 'major_3_plus'
+      case when i % 4 = 3 then null else (i % 4 <> 2) end,
+      case when i % 5 = 4 then 'major_3_plus'
            when i % 5 = 2 then 'minor_1_2'
            else 'clean' end::public.mvr_status,
       true, now() - make_interval(days => i),
       'I agree to receive text messages from FleetGrid about available shifts at this number. Message frequency varies. Message and data rates may apply. Reply STOP to opt out, HELP for help.',
       v_opted_out, case when v_opted_out then now() - interval '1 day' end,
-      18, true
+      12, true
     );
   end loop;
 end;

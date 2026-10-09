@@ -11,15 +11,15 @@ import { YesNoChips } from "@/components/shared/YesNoChips";
 import { CARD_CHECKS, CREDENTIALS_HELPER } from "@/lib/onboarding/options";
 import { credentialsScreenSchema } from "@/lib/validation/onboarding.schema";
 
-/** Everyone: an active TWIC card and a current DOT medical card. */
-function CredentialsFields({ showQuestion, question }: ScreenFieldsProps) {
+/** An active TWIC card and a current DOT medical card. */
+function CredentialsFields({ question }: ScreenFieldsProps) {
   const {
     control,
     formState: { errors },
   } = useFormContext<OnboardingFormValues>();
   return (
     <>
-      <ScreenQuestion show={showQuestion}>{question}</ScreenQuestion>
+      <ScreenQuestion>{question}</ScreenQuestion>
       <ScreenHelper>{CREDENTIALS_HELPER}</ScreenHelper>
       <Controller
         control={control}

@@ -12,7 +12,7 @@ import { EXPERIENCE_CHIPS, experienceChipFor } from "@/lib/onboarding/options";
 import { experienceScreenSchema } from "@/lib/validation/onboarding.schema";
 
 /** Five ranges, one tap. The lower bound of the range is what gets stored. */
-function ExperienceFields({ showQuestion, question }: ScreenFieldsProps) {
+function ExperienceFields({ question }: ScreenFieldsProps) {
   const {
     control,
     formState: { errors },
@@ -25,7 +25,6 @@ function ExperienceFields({ showQuestion, question }: ScreenFieldsProps) {
         render={({ field }) => (
           <ChipGroup
             label={question}
-            labelHidden={!showQuestion}
             options={EXPERIENCE_CHIPS}
             value={experienceChipFor(field.value) ?? undefined}
             onChange={field.onChange}

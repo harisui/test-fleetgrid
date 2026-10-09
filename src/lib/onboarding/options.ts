@@ -4,7 +4,6 @@ import {
   Bus,
   CalendarDays,
   Car,
-  CircleOff,
   Clock,
   Cog,
   Cylinder,
@@ -21,7 +20,6 @@ import {
   Sun,
   Truck,
   Users,
-  Wrench,
   type LucideIcon,
 } from "lucide-react";
 import { CERTIFICATION_DOCUMENTS_MAX } from "@/lib/constants";
@@ -34,7 +32,6 @@ import type {
   Endorsement,
   EquipmentType,
   MvrStatus,
-  OperatorType,
   TransmissionType,
 } from "@/types/domain";
 
@@ -50,22 +47,7 @@ export interface CardOption<T extends string> {
   icon: LucideIcon;
 }
 
-export const WORK_TYPE_OPTIONS: readonly CardOption<OperatorType>[] = [
-  {
-    value: "cdl_driver",
-    label: "CDL driver",
-    description: "Drive trucks that need a CDL",
-    icon: Truck,
-  },
-  {
-    value: "yard_spotter",
-    label: "Yard spotter",
-    description: "Move trailers around a yard",
-    icon: Forklift,
-  },
-  { value: "mechanic", label: "Mechanic", description: "Repair and service trucks", icon: Wrench },
-];
-
+/** Profile page only since 2026-10-09; sign-up no longer asks. */
 export const EMPLOYMENT_HELPER =
   "W-2 means you are on a company's payroll. 1099 means you contract or run your own truck.";
 
@@ -90,7 +72,7 @@ export const EMPLOYMENT_TYPE_OPTIONS: readonly CardOption<EmploymentType>[] = [
   },
 ];
 
-/** CDL drivers only. */
+/** Profile page only since 2026-10-09; sign-up no longer asks. */
 export const DRIVING_STYLE_OPTIONS: readonly CardOption<DrivingStyle>[] = [
   {
     value: "local_day_cab",
@@ -110,7 +92,6 @@ export const DRIVING_STYLE_OPTIONS: readonly CardOption<DrivingStyle>[] = [
 
 export const TRANSMISSION_QUESTION = "Can you drive a manual?";
 
-/** CDL drivers only. Shares the equipment screen. */
 export const TRANSMISSION_OPTIONS: readonly CardOption<TransmissionType>[] = [
   {
     value: "automatic_only",
@@ -133,6 +114,7 @@ export const AVAILABILITY_OPTIONS: readonly CardOption<AvailabilityType>[] = [
   { value: "weekends", label: "Weekends", description: "Saturday and Sunday", icon: CalendarDays },
 ];
 
+/** A, B or C. FleetGrid lists CDL drivers only at launch, so there is no "No CDL" card. */
 export const CDL_CLASS_OPTIONS: readonly CardOption<CdlClass>[] = [
   { value: "A", label: "Class A", description: "Tractor-trailers and big rigs", icon: Truck },
   { value: "B", label: "Class B", description: "Straight trucks, buses, dump trucks", icon: Bus },
@@ -142,7 +124,6 @@ export const CDL_CLASS_OPTIONS: readonly CardOption<CdlClass>[] = [
     description: "Passenger vans (16+) and small hazmat vehicles",
     icon: Car,
   },
-  { value: "none", label: "No CDL", description: "Fine for yard and shop work", icon: CircleOff },
 ];
 
 /** Shown in the order drivers most often hold them. Each letter has its own icon. */
@@ -208,7 +189,7 @@ export const DISTANCE_CHIPS: readonly ChipOption<number>[] = [
   { value: 250, label: "250 miles or more" },
 ];
 
-/** CDL drivers only. Chips, pick all that apply. */
+/** Chips, pick all that apply. */
 export const EQUIPMENT_CHIPS: readonly ChipOption<EquipmentType>[] = [
   { value: "container_drayage", label: "Container drayage" },
   { value: "dry_van", label: "Dry van" },
@@ -238,9 +219,6 @@ export function experienceChipFor(years: number | null | undefined): number | nu
   return chip ? chip.value : null;
 }
 
-/** TWIC has its own question on the cards screen, so it is not a certification chip. */
-export const CERTIFICATION_SUGGESTIONS = ["Forklift", "OSHA 10", "ASE"] as const;
-
 /** A yes-or-no answer on the card: the question and the words on its two chips. */
 export interface CheckOption {
   question: string;
@@ -250,7 +228,7 @@ export interface CheckOption {
   summary: { yes: string; no: string };
 }
 
-/** The three yes-or-no checks. TWIC and medical card are asked of everyone; the Clearinghouse of CDL drivers. */
+/** The three yes-or-no checks. TWIC and medical card are asked at sign-up; the Clearinghouse on the profile. */
 export const CARD_CHECKS = {
   twicActive: {
     question: "Do you have an active TWIC card?",
@@ -274,10 +252,7 @@ export const CARD_CHECKS = {
 
 export type CardCheck = keyof typeof CARD_CHECKS;
 
-/**
- * The MVR in three levels (client decision of 2026-10-09). CDL drivers only; shares the
- * record screen with the Clearinghouse question.
- */
+/** The MVR in three levels (client decision of 2026-10-09). */
 export const MVR_QUESTION = "Any moving violations in the last 3 years?";
 export const MVR_HELPER =
   "Major means a DUI, reckless driving, leaving the scene or a suspended license.";
@@ -288,15 +263,14 @@ export const MVR_CHIPS: readonly ChipOption<MvrStatus>[] = [
   { value: "major_3_plus", label: "3 or more, or a major one" },
 ];
 
-/** How each level reads on the summary card and the profile, after "In the Clearinghouse, ". */
+/** How each level reads on the summary card. */
 export const MVR_SUMMARY: Record<MvrStatus, string> = {
-  clean: "no violations in 3 years",
+  clean: "No violations in 3 years",
   minor_1_2: "1 or 2 minor violations in 3 years",
   major_3_plus: "3 or more or a major violation in 3 years",
 };
 
 export const CREDENTIALS_HELPER = "Carriers ask for both. You can update these any time.";
-export const COMPLIANCE_HELPER = "Carriers check both before booking a shift.";
 
 export interface DocumentTile {
   type: DocumentType;
@@ -307,7 +281,7 @@ export interface DocumentTile {
   max: number;
 }
 
-/** Proof of the certifications listed on screen 9: TWIC, forklift cards and the like. */
+/** Proof of certifications: TWIC, forklift cards and the like. */
 export const OTHER_PAPERS_TILE: DocumentTile = {
   type: "certification",
   label: "Other papers",
@@ -315,7 +289,10 @@ export const OTHER_PAPERS_TILE: DocumentTile = {
   max: CERTIFICATION_DOCUMENTS_MAX,
 };
 
-/** The papers asked for during onboarding. The same tiles appear on the Documents page. */
+/**
+ * The tiles of the Documents page. Sign-up no longer asks for papers (client decision of
+ * 2026-10-09); the CDL photos are asked for when a shift comes up (Milestone 3).
+ */
 export const ONBOARDING_DOCUMENT_TILES: readonly DocumentTile[] = [
   { type: "cdl_front", label: "Front of your CDL", max: 1 },
   { type: "cdl_back", label: "Back of your CDL", max: 1 },

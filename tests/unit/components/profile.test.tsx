@@ -5,8 +5,6 @@ import { AccountStatusCard } from "@/components/driver/AccountStatusCard";
 import { ProfileEditor } from "@/components/driver/ProfileEditor";
 import { CARD_CHECKS, MVR_QUESTION } from "@/lib/onboarding/options";
 import {
-  CLEARINGHOUSE_MESSAGE,
-  DRIVING_STYLE_MESSAGE,
   EQUIPMENT_MESSAGE,
   MVR_MESSAGE,
   TRANSMISSION_MESSAGE,
@@ -131,36 +129,53 @@ describe("ProfileEditor", () => {
     expect(screen.queryByRole("combobox", { name: /State/ })).not.toBeInTheDocument();
     expect(screen.getByLabelText(/ZIP code/)).toHaveValue("75201");
     expect(screen.getByLabelText(/Service radius/)).toHaveValue(120);
-    expect(screen.getByRole("checkbox", { name: "CDL driver" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "W-2 employee" })).toBeChecked();
     expect(screen.getByRole("radio", { name: "Class A" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: /^H -/ })).toBeChecked();
     expect(screen.getByRole("radio", { name: "6 to 10" })).toBeChecked();
+    expect(screen.getByRole("radio", { name: "W-2 employee" })).toBeChecked();
     expect(screen.getByText("OSHA 10")).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: "Local day cab" })).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "Regional" })).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "Dry van" })).toBeChecked();
-    expect(screen.getByRole("checkbox", { name: "Flatbed" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "Automatic and manual" })).toBeChecked();
+    expect(checkRadio(MVR_QUESTION, "None")).toBeChecked();
     expect(checkRadio(CARD_CHECKS.twicActive.question, "Yes")).toBeChecked();
     expect(checkRadio(CARD_CHECKS.medicalCardActive.question, "Yes")).toBeChecked();
+    expect(screen.getByRole("radio", { name: "Automatic and manual" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Dry van" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Flatbed" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Local day cab" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Regional" })).toBeChecked();
     expect(checkRadio(CARD_CHECKS.clearinghouseRegistered.question, "Registered")).toBeChecked();
-    expect(checkRadio(MVR_QUESTION, "None")).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Full time" })).toBeChecked();
     expect(screen.getByLabelText("About you")).toHaveValue("Reliable and on time.");
   });
 
-  it("describes each CDL class in the onboarding words, with the label as the name", () => {
+  it("has no work type question: every card is a CDL driver at launch", () => {
+    render(<ProfileEditor driver={buildDriver()} />);
+    expect(screen.queryByRole("group", { name: /What work do you do/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "CDL driver" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Mechanic")).not.toBeInTheDocument();
+  });
+
+  it("offers Class A, B and C only, no No CDL, in the onboarding words", () => {
     render(<ProfileEditor driver={buildDriver()} />);
     const group = screen.getByRole("group", { name: /CDL class/ });
+    expect(
+      within(group)
+        .getAllByRole("radio")
+        .map((radio) => radio.getAttribute("value")),
+    ).toEqual(["A", "B", "C"]);
+    expect(within(group).queryByText(/No CDL/)).not.toBeInTheDocument();
     expect(within(group).getByText("Tractor-trailers and big rigs")).toBeInTheDocument();
     expect(within(group).getByText("Straight trucks, buses, dump trucks")).toBeInTheDocument();
-    expect(
-      within(group).getByText("Passenger vans (16+) and small hazmat vehicles"),
-    ).toBeInTheDocument();
-    expect(within(group).getByText("Fine for yard and shop work")).toBeInTheDocument();
     const classC = within(group).getByRole("radio", { name: "Class C" });
     expect(classC).toHaveAccessibleDescription("Passenger vans (16+) and small hazmat vehicles");
+  });
+
+  it("shows nothing selected for a card whose class was never picked", () => {
+    render(<ProfileEditor driver={buildDriver({ cdlClass: "none", endorsements: [] })} />);
+    for (const radio of within(screen.getByRole("group", { name: /CDL class/ })).getAllByRole(
+      "radio",
+    )) {
+      expect(radio).not.toBeChecked();
+    }
   });
 
   it("shows the years as the same five ranges as onboarding, no number field", () => {
@@ -178,8 +193,23 @@ describe("ProfileEditor", () => {
 
   it("groups the fields into four labelled sections", () => {
     render(<ProfileEditor driver={buildDriver()} />);
-    for (const name of ["Basics", "Role and licenses", "Equipment and checks", "Availability"]) {
+    for (const name of ["Basics", "CDL and licenses", "Equipment and checks", "Availability"]) {
       expect(screen.getByRole("group", { name })).toBeInTheDocument();
+    }
+  });
+
+  it("marks the answers sign-up no longer asks as optional", () => {
+    render(<ProfileEditor driver={buildDriver()} />);
+    for (const question of [
+      /W-2 or 1099/,
+      /What kind of driving do you do/,
+      CARD_CHECKS.clearinghouseRegistered.question,
+      /When can you work/,
+    ]) {
+      expect(
+        within(screen.getByRole("group", { name: question })).getByText(/^Optional\./),
+        String(question),
+      ).toBeInTheDocument();
     }
   });
 
@@ -213,7 +243,7 @@ describe("ProfileEditor", () => {
 
     await userEvent.clear(screen.getByLabelText(/ZIP code/));
     await userEvent.type(screen.getByLabelText(/ZIP code/), "60601");
-    await userEvent.click(screen.getByText("Mechanic"));
+    await userEvent.click(screen.getByText("Class B"));
     await userEvent.click(screen.getByText("Either works"));
     await userEvent.click(screen.getByText("Weekends"));
     await userEvent.click(screen.getByText("10 or more"));
@@ -229,9 +259,8 @@ describe("ProfileEditor", () => {
         fullName: "Pat Driver",
         zip: "60601",
         serviceRadiusMiles: 50,
-        operatorTypes: ["cdl_driver", "mechanic"],
         employmentType: "either",
-        cdlClass: "A",
+        cdlClass: "B",
         endorsements: ["H", "T"],
         yearsExperience: 10,
         certifications: ["OSHA 10"],
@@ -249,67 +278,44 @@ describe("ProfileEditor", () => {
     await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Profile saved"));
   });
 
-  it("hides endorsements and clears them when switching to No CDL", async () => {
+  it("saves a card straight out of sign-up, with the optional answers left empty", async () => {
     actions.updateCardAction.mockResolvedValue(ok(buildDriver()));
-    render(<ProfileEditor driver={buildDriver()} />);
-    await userEvent.click(screen.getByText("No CDL"));
-    expect(screen.queryByRole("group", { name: "Endorsements" })).not.toBeInTheDocument();
-    await userEvent.click(save());
-
-    await waitFor(() =>
-      expect(actions.updateCardAction).toHaveBeenCalledWith(
-        expect.objectContaining({ cdlClass: "none", endorsements: [] }),
-      ),
-    );
-  });
-
-  it("hides the driving, equipment and record questions when the work has no CDL driving", async () => {
-    render(<ProfileEditor driver={buildDriver()} />);
-    const driving = () => screen.queryByRole("group", { name: /What kind of driving/ });
-    expect(driving()).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("checkbox", { name: "CDL driver" }));
-    await userEvent.click(screen.getByRole("checkbox", { name: "Mechanic" }));
-    expect(driving()).not.toBeInTheDocument();
-    expect(screen.queryByRole("group", { name: /What equipment/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("group", { name: /Can you drive a manual/ })).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole("group", { name: CARD_CHECKS.clearinghouseRegistered.question }),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByRole("group", { name: MVR_QUESTION })).not.toBeInTheDocument();
-    // Everyone answers TWIC and the medical card.
-    expect(
-      screen.getByRole("group", { name: CARD_CHECKS.twicActive.question }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole("group", { name: CARD_CHECKS.medicalCardActive.question }),
-    ).toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole("checkbox", { name: "CDL driver" }));
-    expect(driving()).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: "Regional" })).toBeChecked();
-  });
-
-  it("requires the driving, equipment and record answers of a CDL driver", async () => {
     render(
       <ProfileEditor
         driver={buildDriver({
+          employmentType: null,
           drivingStyles: [],
-          transmission: null,
-          equipmentTypes: [],
           clearinghouseRegistered: null,
-          mvrStatus: null,
+          availability: [],
+          certifications: [],
+          bio: null,
         })}
       />,
     );
     await userEvent.click(save());
-    for (const message of [
-      DRIVING_STYLE_MESSAGE,
-      TRANSMISSION_MESSAGE,
-      EQUIPMENT_MESSAGE,
-      CLEARINGHOUSE_MESSAGE,
-      MVR_MESSAGE,
-    ]) {
+    await waitFor(() =>
+      expect(actions.updateCardAction).toHaveBeenCalledWith(
+        expect.objectContaining({
+          employmentType: null,
+          drivingStyles: [],
+          clearinghouseRegistered: null,
+          availability: [],
+          certifications: [],
+          bio: null,
+        }),
+      ),
+    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("requires the record, transmission and equipment answers", async () => {
+    render(
+      <ProfileEditor
+        driver={buildDriver({ transmission: null, equipmentTypes: [], mvrStatus: null })}
+      />,
+    );
+    await userEvent.click(save());
+    for (const message of [TRANSMISSION_MESSAGE, EQUIPMENT_MESSAGE, MVR_MESSAGE]) {
       expect(await screen.findByText(message)).toBeInTheDocument();
     }
     expect(actions.updateCardAction).not.toHaveBeenCalled();
@@ -320,12 +326,10 @@ describe("ProfileEditor", () => {
     await userEvent.clear(screen.getByLabelText(/Full name/));
     await userEvent.clear(screen.getByLabelText(/ZIP code/));
     await userEvent.type(screen.getByLabelText(/ZIP code/), "123");
-    await userEvent.click(screen.getByText("Full time"));
     await userEvent.click(save());
 
     expect(await screen.findByText("Enter your full name")).toBeInTheDocument();
     expect(screen.getByText("Enter a 5-digit ZIP code")).toBeInTheDocument();
-    expect(screen.getByText("Select at least one option")).toBeInTheDocument();
     expect(actions.updateCardAction).not.toHaveBeenCalled();
     expect(toast.success).not.toHaveBeenCalled();
   });

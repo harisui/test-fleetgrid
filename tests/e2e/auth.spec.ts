@@ -182,7 +182,7 @@ test.describe("role routing", () => {
 test.describe("session", () => {
   test("logout ends the session", async ({ page }) => {
     // Log out lives in the app shell, which opens once the card is complete.
-    await seedDriverAtStep(PHONES.driver, 18);
+    await seedDriverAtStep(PHONES.driver, 12);
     await login(page, PHONES.driver);
     await expect(page).toHaveURL(/\/driver\/profile$/);
 
@@ -205,7 +205,7 @@ test.describe("session", () => {
   });
 
   test("the session survives a reload", async ({ page }) => {
-    await seedDriverAtStep(PHONES.driver, 18);
+    await seedDriverAtStep(PHONES.driver, 12);
     await login(page, PHONES.driver);
     await page.reload();
     await expect(page).toHaveURL(/\/driver\/profile$/);

@@ -153,7 +153,7 @@ export const PLACES = {
   dallas: { city: "Dallas", state: "TX", zip: "75201", lat: 32.7904, lng: -96.8044 },
 } as const;
 
-/** Answers for every screen, used to seed a driver part-way through onboarding. In the launch area. */
+/** Answers for every sign-up screen, used to seed a driver part-way through onboarding. In the launch area. */
 export const CARD_ANSWERS = {
   full_name: "Pat Driver",
   city: PLACES.houston.city,
@@ -162,26 +162,21 @@ export const CARD_ANSWERS = {
   lat: PLACES.houston.lat,
   lng: PLACES.houston.lng,
   service_radius_miles: 50,
-  operator_types: ["cdl_driver"] as const,
-  employment_type: "w2" as const,
-  driving_styles: ["local_day_cab", "regional"] as const,
-  transmission: "manual_ok" as const,
-  equipment_types: ["dry_van", "flatbed"] as const,
-  years_experience: 8,
-  availability: ["full_time"] as const,
   cdl_class: "A" as const,
-  endorsements: ["H", "T"] as const,
-  certifications: ["OSHA 10"],
+  years_experience: 8,
+  mvr_status: "clean" as const,
   twic_active: true,
   medical_card_active: true,
-  clearinghouse_registered: true,
-  mvr_status: "clean" as const,
-  bio: "Reliable and on time.",
+  endorsements: ["H", "T"] as const,
+  transmission: "manual_ok" as const,
+  equipment_types: ["dry_van", "flatbed"] as const,
 };
 
 /**
- * Creates a driver who has answered every screen before `stepNumber` (1 to 18 from
- * src/lib/onboarding/steps.ts) and is about to see that screen. Step 18 is a completed card.
+ * Creates a driver who has answered every screen before `stepNumber` (1 to 12 from
+ * src/lib/onboarding/steps.ts) and is about to see that screen. Step 12 is a completed card.
+ * The answers sign-up no longer asks (W-2 or 1099, driving style, the Clearinghouse,
+ * availability, certifications, about you) stay empty, as they do for a real sign-up.
  */
 export async function seedDriverAtStep(
   phone: string,
@@ -215,7 +210,7 @@ export async function moveDriverToStep(
 /** The card columns of a driver who is about to see screen `stepNumber`. Unanswered ones are null. */
 function driverRowAtStep(stepNumber: number) {
   const answered = (screen: number) => stepNumber > screen;
-  const complete = stepNumber >= 18;
+  const complete = stepNumber >= 12;
   const or = <T>(condition: boolean, value: T) => (condition ? value : null);
   return {
     full_name: CARD_ANSWERS.full_name,
@@ -225,26 +220,21 @@ function driverRowAtStep(stepNumber: number) {
     lat: or(answered(2), CARD_ANSWERS.lat),
     lng: or(answered(2), CARD_ANSWERS.lng),
     ...(answered(3) && { service_radius_miles: CARD_ANSWERS.service_radius_miles }),
-    operator_types: answered(4) ? [...CARD_ANSWERS.operator_types] : [],
-    employment_type: or(answered(5), CARD_ANSWERS.employment_type),
-    driving_styles: answered(6) ? [...CARD_ANSWERS.driving_styles] : [],
-    transmission: or(answered(7), CARD_ANSWERS.transmission),
-    equipment_types: answered(7) ? [...CARD_ANSWERS.equipment_types] : [],
-    years_experience: or(answered(8), CARD_ANSWERS.years_experience),
-    availability: answered(9) ? [...CARD_ANSWERS.availability] : [],
-    cdl_class: answered(10) ? CARD_ANSWERS.cdl_class : ("none" as const),
-    endorsements: answered(11) ? [...CARD_ANSWERS.endorsements] : [],
-    certifications: answered(12) ? CARD_ANSWERS.certifications : [],
-    twic_active: or(answered(13), CARD_ANSWERS.twic_active),
-    medical_card_active: or(answered(13), CARD_ANSWERS.medical_card_active),
-    clearinghouse_registered: or(answered(15), CARD_ANSWERS.clearinghouse_registered),
-    mvr_status: or(answered(15), CARD_ANSWERS.mvr_status),
-    bio: or(answered(16), CARD_ANSWERS.bio),
+    // CDL drivers only at launch: set on every card, never asked.
+    operator_types: ["cdl_driver" as const],
+    cdl_class: answered(4) ? CARD_ANSWERS.cdl_class : ("none" as const),
+    years_experience: or(answered(5), CARD_ANSWERS.years_experience),
+    mvr_status: or(answered(6), CARD_ANSWERS.mvr_status),
+    twic_active: or(answered(7), CARD_ANSWERS.twic_active),
+    medical_card_active: or(answered(7), CARD_ANSWERS.medical_card_active),
+    endorsements: answered(8) ? [...CARD_ANSWERS.endorsements] : [],
+    transmission: or(answered(9), CARD_ANSWERS.transmission),
+    equipment_types: answered(10) ? [...CARD_ANSWERS.equipment_types] : [],
     sms_opt_in: complete,
     sms_opt_in_at: or(complete, new Date().toISOString()),
     sms_opt_in_text: or(complete, CONSENT_TEXT),
     card_completed: complete,
-    onboarding_step: Math.min(stepNumber, 18),
+    onboarding_step: Math.min(stepNumber, 12),
   };
 }
 
@@ -256,17 +246,10 @@ export const screenHeading = (page: Page) => page.getByRole("heading", { level: 
 export const nextButton = (page: Page, label = "Next") =>
   page.getByRole("button", { name: label, exact: true });
 
-/** The phone layout: one question per screen. Wider viewports group a mile on one page. */
+/** A phone, for the tests that must run at phone size whatever the project. */
 export const PHONE_VIEWPORT = { width: 390, height: 844 } as const;
-export const DESKTOP_MIN_WIDTH = 768;
 
-/** True when the onboarding groups a mile's questions on one page (viewport 768px and up). */
-export const isGrouped = (page: Page) => (page.viewportSize()?.width ?? 0) >= DESKTOP_MIN_WIDTH;
-
-/**
- * Asserts that a question is on screen, whichever layout is active: the sign title on phones,
- * a question heading or group label inside the mile on wider screens.
- */
+/** Asserts that a question is on its page: a mile's questions share one page on every device. */
 export async function expectScreen(page: Page, question: string) {
   await expect(page.getByText(question, { exact: true }).first()).toBeVisible();
 }

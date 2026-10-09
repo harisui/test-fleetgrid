@@ -16,39 +16,27 @@ import { OnboardingContent, OnboardingShell } from "@/components/onboarding/Onbo
 import { SignHeader } from "@/components/onboarding/SignHeader";
 import { InlineNote } from "@/components/shared/InlineNote";
 import { ScrollingArrow } from "@/components/shared/ScrollingArrow";
-import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery";
 import {
-  contextOf,
   nextStepId,
   previousStepId,
   progressFor,
-  stepApplies,
   stepById,
   stepNumber,
   stepsOfMile,
-  type FlowContext,
-  type MileNumber,
   type Step,
   type StepId,
 } from "@/lib/onboarding/steps";
 import type { SupportContact } from "@/lib/support";
 import { saveOnboardingScreenAction } from "@/server/actions/driver.actions";
-import type { DriverDocument, LocatedDriver } from "@/types/domain";
+import type { LocatedDriver } from "@/types/domain";
 
 const FORM_ID = "screen-form";
-/**
- * On a wide screen the Work, License and Papers miles run past the fold (six questions,
- * four, and the four upload tiles plus the record), so those pages show the scroll hint.
- * About and Finish fit.
- */
-const SCROLL_HINT_MILES: readonly MileNumber[] = [2, 3, 4];
 
 interface OnboardingFlowProps {
   initialStepId: StepId;
   initialDriver: LocatedDriver | null;
   /** The signed-in driver's E.164 phone. */
   phone: string;
-  initialDocuments: DriverDocument[];
   /** Shown in the Help sheet. */
   support?: SupportContact;
 }
@@ -60,25 +48,17 @@ function pick(values: OnboardingFormValues, fields: OnboardingField[]): Onboardi
 }
 
 /**
- * The driver onboarding. One question per screen on phones; on wider screens a mile's
- * questions share one page under one sign header. Every screen is saved on Next, so the
- * driver can leave at any point and resume on the same question.
+ * The driver onboarding. A mile's questions share one page under one sign header, on every
+ * device. Every screen of the page is saved on Next, so the driver can leave at any point
+ * and resume on the same page.
  */
-export function OnboardingFlow({
-  initialStepId,
-  initialDriver,
-  phone,
-  initialDocuments,
-  support,
-}: OnboardingFlowProps) {
+export function OnboardingFlow({ initialStepId, initialDriver, phone, support }: OnboardingFlowProps) {
   const router = useRouter();
-  const isDesktop = useMediaQuery(DESKTOP_QUERY);
   const [stepId, setStepId] = useState<StepId>(initialStepId);
   const [driver, setDriver] = useState(initialDriver);
-  const [documents, setDocuments] = useState(initialDocuments);
   const firstRender = useRef(true);
 
-  // Move focus to the new question so screen readers and keyboards follow along.
+  // Move focus to the new page so screen readers and keyboards follow along.
   useEffect(() => {
     if (firstRender.current) {
       firstRender.current = false;
@@ -86,9 +66,7 @@ export function OnboardingFlow({
     }
     (document.querySelector("[data-slot=sign-title]") as HTMLElement | null)?.focus();
     window.scrollTo?.({ top: 0 });
-  }, [stepId, isDesktop]);
-
-  const flowContext = contextOf(driver);
+  }, [stepId]);
 
   if (stepId === "done" && driver) {
     return (
@@ -98,14 +76,10 @@ export function OnboardingFlow({
     );
   }
 
-  const current = stepById(stepId);
-  // A grouped page holds every screen of the mile; the page decides live which ones apply
-  // (the endorsements question appears as soon as a CDL class is picked, the CDL-only
-  // questions as soon as CDL driver is ticked).
-  const pageSteps = isDesktop ? stepsOfMile(current.mile) : [current];
-  const pageKey = `${isDesktop ? "mile" : "step"}:${pageSteps.map((step) => step.id).join("+")}`;
+  const pageSteps = stepsOfMile(stepById(stepId).mile);
+  const pageKey = pageSteps.map((step) => step.id).join("+");
 
-  // The shell stays mounted across steps; only the screen inside it is replaced, so the
+  // The shell stays mounted across pages; only the page inside it is replaced, so the
   // road's fill and truck animate to the next position.
   return (
     <OnboardingShell stepId={stepId} support={support}>
@@ -113,24 +87,20 @@ export function OnboardingFlow({
         key={pageKey}
         stepId={stepId}
         pageSteps={pageSteps}
-        grouped={isDesktop}
-        context={{ driver, phone, documents }}
-        documents={documents}
-        onDocumentsChange={setDocuments}
+        context={{ driver, phone }}
         onBack={() => {
-          const previous = previousStepId(pageSteps[0].id, flowContext);
-          if (!previous) return;
-          setStepId(isDesktop ? stepsOfMile(stepById(previous).mile, flowContext)[0].id : previous);
+          const previous = previousStepId(pageSteps[0].id);
+          if (previous) setStepId(stepsOfMile(stepById(previous).mile)[0].id);
         }}
         onSaved={(saved, completed) => {
           setDriver(saved);
-          const next = nextStepId(pageSteps[pageSteps.length - 1].id, contextOf(saved));
-          setStepId(next);
+          setStepId(nextStepId(pageSteps[pageSteps.length - 1].id));
           // The profile page opens up once the card is complete.
           if (completed) router.refresh();
         }}
       />
-      {isDesktop && SCROLL_HINT_MILES.includes(current.mile) && <ScrollingArrow />}
+      {/* Shown only while the page can still scroll, so short pages never see it. */}
+      <ScrollingArrow />
     </OnboardingShell>
   );
 }
@@ -138,25 +108,13 @@ export function OnboardingFlow({
 interface ScreenPageProps {
   stepId: StepId;
   pageSteps: Step[];
-  grouped: boolean;
   context: ScreenContext;
-  documents: DriverDocument[];
-  onDocumentsChange: (documents: DriverDocument[]) => void;
   onBack: () => void;
   onSaved: (driver: LocatedDriver, completed: boolean) => void;
 }
 
-function ScreenPage({
-  stepId,
-  pageSteps,
-  grouped,
-  context,
-  documents,
-  onDocumentsChange,
-  onBack,
-  onSaved,
-}: ScreenPageProps) {
-  const allDefinitions = useMemo(
+function ScreenPage({ stepId, pageSteps, context, onBack, onSaved }: ScreenPageProps) {
+  const definitions = useMemo(
     () => pageSteps.map((step) => SCREENS[step.id as keyof typeof SCREENS]),
     [pageSteps],
   );
@@ -166,28 +124,13 @@ function ScreenPage({
     resolver: (values, ...rest) => resolver(values, ...rest),
     defaultValues: Object.assign(
       {},
-      ...allDefinitions.map((definition) => definition.defaults(context.driver)),
+      ...definitions.map((definition) => definition.defaults(context.driver)),
     ),
     // Errors show after the driver leaves a field or taps Next, never while typing.
     mode: "onTouched",
     reValidateMode: "onChange",
   });
   const values = useWatch({ control: form.control });
-
-  // Which of the page's screens apply right now, from the answer on the page when there is
-  // one, otherwise from the saved card.
-  const liveContext: FlowContext = {
-    cdlClass: values.cdlClass ?? context.driver?.cdlClass ?? null,
-    operatorTypes: values.operatorTypes ?? context.driver?.operatorTypes ?? [],
-  };
-  // A phone shows the one screen the flow chose; a grouped page drops the screens that no
-  // longer apply to the answers on it.
-  const activeSteps = grouped
-    ? pageSteps.filter((step) => stepApplies(step.id, liveContext))
-    : pageSteps;
-  const definitions = allDefinitions.filter((definition) =>
-    activeSteps.some((step) => step.id === definition.id),
-  );
 
   const resolver: Resolver<OnboardingFormValues> = async (values) => {
     const errors: Record<string, { type: string; message: string }> = {};
@@ -213,7 +156,7 @@ function ScreenPage({
   const nextLabel = last.nextLabel?.(values, context) ?? "Next";
   const progress = progressFor(stepId);
   const saved = context.driver !== null && stepNumber(last.id) < context.driver.onboardingStep;
-  const hasBack = previousStepId(pageSteps[0].id, contextOf(context.driver)) !== null;
+  const hasBack = previousStepId(pageSteps[0].id) !== null;
 
   const submit = form.handleSubmit(async (parsed) => {
     setFormError(undefined);
@@ -245,8 +188,8 @@ function ScreenPage({
     <>
       <OnboardingContent>
         <SignHeader
-          eyebrow={grouped ? `Mile ${progress.mile.mile} of 5` : progress.eyebrow}
-          title={grouped ? progress.mile.label : progress.step.question}
+          eyebrow={progress.eyebrow}
+          title={progress.mile.label}
           srText={progress.srLabel}
         />
         {formError && (
@@ -256,15 +199,12 @@ function ScreenPage({
         )}
         <FormProvider {...form}>
           <form id={FORM_ID} onSubmit={submit} noValidate className="flex flex-col gap-8">
-            {activeSteps.map((step, index) => (
+            {pageSteps.map((step, index) => (
               <ScreenSection
                 key={step.id}
                 step={step}
                 definition={definitions[index]}
-                grouped={grouped}
                 context={context}
-                documents={documents}
-                onDocumentsChange={onDocumentsChange}
               />
             ))}
           </form>
@@ -285,28 +225,19 @@ function ScreenPage({
 function ScreenSection({
   step,
   definition,
-  grouped,
   context,
-  documents,
-  onDocumentsChange,
 }: {
   step: Step;
   definition: ScreenDefinition;
-  grouped: boolean;
   context: ScreenContext;
-  documents: DriverDocument[];
-  onDocumentsChange: (documents: DriverDocument[]) => void;
 }) {
   const Fields = definition.Fields;
   return (
     <section data-slot="screen" data-step={step.id} className="flex flex-col gap-4">
       <Fields
         {...context}
-        showQuestion={grouped}
         question={step.question}
         helper={"helper" in step ? step.helper : undefined}
-        documents={documents}
-        onDocumentsChange={onDocumentsChange}
       />
     </section>
   );

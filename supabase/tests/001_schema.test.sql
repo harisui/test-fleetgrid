@@ -265,8 +265,8 @@ select lives_ok(pg_temp.update_driver($$lat = null, lng = null$$), 'coordinates 
 select throws_ok(pg_temp.update_driver($$bio = repeat('x', 501)$$), '23514', null, 'bio over 500 chars rejected');
 select lives_ok(pg_temp.update_driver($$bio = repeat('x', 500)$$), 'bio of 500 chars accepted');
 select throws_ok(pg_temp.update_driver($$onboarding_step = 0$$), '23514', null, 'onboarding step 0 rejected');
-select throws_ok(pg_temp.update_driver($$onboarding_step = 19$$), '23514', null, 'onboarding step 19 rejected');
-select lives_ok(pg_temp.update_driver($$onboarding_step = 18$$), 'onboarding step 18 (done) accepted');
+select throws_ok(pg_temp.update_driver($$onboarding_step = 13$$), '23514', null, 'onboarding step 13 rejected');
+select lives_ok(pg_temp.update_driver($$onboarding_step = 12$$), 'onboarding step 12 (done) accepted');
 select lives_ok(pg_temp.update_driver($$onboarding_step = 1$$), 'onboarding step 1 accepted');
 select throws_ok(pg_temp.update_driver($$operator_types = '{pilot}'$$), '22P02', null, 'unknown operator type rejected');
 select throws_ok(
@@ -289,52 +289,42 @@ select throws_ok(
   '23514', null, 'opt-in without timestamp rejected'
 );
 
--- card_completed requires every required field
+-- card_completed requires every sign-up answer (the checks of 0011 to 0013 are covered in 008;
+-- here they are filled in so the older rules can be checked on their own).
 select throws_ok(pg_temp.update_driver($$card_completed = true$$), '23514', null, 'incomplete card cannot be completed');
+select lives_ok(
+  pg_temp.update_driver($$twic_active = true, medical_card_active = true, transmission = 'manual_ok',
+    equipment_types = '{dry_van}', mvr_status = 'clean'$$),
+  'the check answers are filled in'
+);
 select throws_ok(
-  pg_temp.update_driver($$card_completed = true, operator_types = '{cdl_driver}', availability = '{full_time}', years_experience = 5$$),
+  pg_temp.update_driver($$card_completed = true, operator_types = '{cdl_driver}', years_experience = 5$$),
   '23514', null, 'card cannot be completed without SMS consent'
 );
 select throws_ok(
-  pg_temp.update_driver($$card_completed = true, operator_types = '{}', availability = '{full_time}', years_experience = 5,
+  pg_temp.update_driver($$card_completed = true, operator_types = '{}', years_experience = 5,
     sms_opt_in = true, sms_opt_in_at = now(), sms_opt_in_text = 'I agree'$$),
   '23514', null, 'card cannot be completed without an operator type'
 );
 select throws_ok(
-  pg_temp.update_driver($$card_completed = true, operator_types = '{cdl_driver}', availability = '{}', years_experience = 5,
-    sms_opt_in = true, sms_opt_in_at = now(), sms_opt_in_text = 'I agree'$$),
-  '23514', null, 'card cannot be completed without availability'
-);
-select throws_ok(
-  pg_temp.update_driver($$card_completed = true, operator_types = '{cdl_driver}', availability = '{full_time}', years_experience = null,
+  pg_temp.update_driver($$card_completed = true, operator_types = '{cdl_driver}', years_experience = null,
     sms_opt_in = true, sms_opt_in_at = now(), sms_opt_in_text = 'I agree'$$),
   '23514', null, 'card cannot be completed without years of experience'
 );
 select throws_ok(
-  pg_temp.update_driver($$card_completed = true, operator_types = '{cdl_driver}', availability = '{full_time}', years_experience = 5,
+  pg_temp.update_driver($$card_completed = true, operator_types = '{cdl_driver}', years_experience = 5,
     sms_opt_in = true, sms_opt_in_at = now(), sms_opt_in_text = 'I agree'$$),
   '23514', null, 'card cannot be completed without a state and ZIP'
 );
 select throws_ok(
-  pg_temp.update_driver($$card_completed = true, state = 'TX', zip = '75201', cdl_class = 'none', operator_types = '{cdl_driver}',
-    availability = '{full_time}', years_experience = 5, sms_opt_in = true, sms_opt_in_at = now(), sms_opt_in_text = 'I agree',
-    employment_type = 'w2', twic_active = true, medical_card_active = true, driving_styles = '{regional}',
-    transmission = 'manual_ok', equipment_types = '{dry_van}', clearinghouse_registered = true, mvr_status = 'clean'$$),
-  '23514', null, 'a CDL driver cannot complete the card without a CDL class'
-);
--- The answers added in 0011 (employment type, TWIC, medical card, and the CDL checks) are
--- covered in 008; here they are filled in so the older rules can be checked on their own.
-select lives_ok(
-  pg_temp.update_driver($$card_completed = true, onboarding_step = 18, state = 'TX', zip = '75201', cdl_class = 'none',
-    endorsements = '{}', operator_types = '{yard_spotter}', availability = '{full_time}', years_experience = 5,
-    sms_opt_in = true, sms_opt_in_at = now(), sms_opt_in_text = 'I agree',
-    employment_type = 'w2', twic_active = true, medical_card_active = true$$),
-  'a yard spotter without a CDL can complete the card'
+  pg_temp.update_driver($$card_completed = true, state = 'TX', zip = '75201', cdl_class = 'none', endorsements = '{}',
+    operator_types = '{cdl_driver}', years_experience = 5, sms_opt_in = true, sms_opt_in_at = now(), sms_opt_in_text = 'I agree'$$),
+  '23514', null, 'the card cannot be completed without a CDL class'
 );
 select lives_ok(
-  pg_temp.update_driver($$cdl_class = 'A', operator_types = '{cdl_driver}', driving_styles = '{regional}',
-    transmission = 'manual_ok', equipment_types = '{dry_van}', clearinghouse_registered = true, mvr_status = 'clean'$$),
-  'a full card can be completed'
+  pg_temp.update_driver($$card_completed = true, onboarding_step = 12, state = 'TX', zip = '75201', cdl_class = 'A',
+    operator_types = '{cdl_driver}', years_experience = 5, sms_opt_in = true, sms_opt_in_at = now(), sms_opt_in_text = 'I agree'$$),
+  'a full card can be completed; availability, W-2 or 1099 and the Clearinghouse are not needed'
 );
 select throws_ok(
   pg_temp.update_driver($$sms_opt_in = false$$),

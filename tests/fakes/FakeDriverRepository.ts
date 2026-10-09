@@ -35,7 +35,7 @@ export class FakeDriverRepository implements IDriverRepository {
       id: `00000000-0000-4000-8000-${String(this.sequence).padStart(12, "0")}`,
       profileId,
       fullName: input.fullName,
-      operatorTypes: [],
+      operatorTypes: input.operatorTypes ?? [],
       cdlClass: "none",
       endorsements: [],
       yearsExperience: null,
