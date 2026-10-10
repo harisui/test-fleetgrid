@@ -55,11 +55,16 @@ export default function SmsTermsPage() {
         <span data-slot="support-contact">
           <a href={`mailto:${support.email}`} className={linkClass}>
             {support.email}
-          </a>{" "}
-          or{" "}
-          <a href={`tel:${support.phone}`} className={linkClass}>
-            {formatE164ForDisplay(support.phone)}
           </a>
+          {support.phone && (
+            <>
+              {" "}
+              or{" "}
+              <a href={`tel:${support.phone}`} className={linkClass}>
+                {formatE164ForDisplay(support.phone)}
+              </a>
+            </>
+          )}
         </span>
         .
       </p>

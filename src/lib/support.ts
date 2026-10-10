@@ -8,8 +8,7 @@
 
 export const BUSINESS_NAME = "FleetGrid LLC";
 export const SUPPORT_EMAIL_DEFAULT = "support@fleetgridus.com";
-/** The FleetGrid toll-free number, E.164. */
-export const SUPPORT_PHONE_DEFAULT = "+18888692040";
+// No phone number is shown on the site (user, 2026-10-10) unless SUPPORT_PHONE is set.
 /** A registered agent address, not a home address (client, 2026-10-10). One line per entry. */
 export const BUSINESS_ADDRESS_DEFAULT: readonly string[] = [
   "8401 Mayland Dr. STE A",
@@ -44,10 +43,13 @@ export function readSupportEnv(
 }
 
 /** The contact details, from the environment where set and the client's defaults otherwise. */
-export function getSupportContact(env: SupportEnv = readSupportEnv()): Required<SupportContact> {
+export function getSupportContact(
+  env: SupportEnv = readSupportEnv(),
+): SupportContact & { email: string; address: readonly string[] } {
+  const phone = set(env.SUPPORT_PHONE);
   return {
     email: set(env.SUPPORT_EMAIL) ?? SUPPORT_EMAIL_DEFAULT,
-    phone: set(env.SUPPORT_PHONE) ?? SUPPORT_PHONE_DEFAULT,
+    ...(phone && { phone }),
     address: set(env.BUSINESS_ADDRESS)
       ? env.BUSINESS_ADDRESS!.split("|")
           .map((line) => line.trim())

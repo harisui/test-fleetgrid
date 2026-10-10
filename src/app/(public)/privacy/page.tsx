@@ -164,11 +164,16 @@ export default function PrivacyPage() {
         <p>
           <a href={`mailto:${contact.email}`} className={linkClass}>
             {contact.email}
-          </a>{" "}
-          or{" "}
-          <a href={`tel:${contact.phone}`} className={linkClass}>
-            {formatE164ForDisplay(contact.phone)}
           </a>
+          {contact.phone && (
+            <>
+              {" "}
+              or{" "}
+              <a href={`tel:${contact.phone}`} className={linkClass}>
+                {formatE164ForDisplay(contact.phone)}
+              </a>
+            </>
+          )}
         </p>
       </address>
     </LegalPage>

@@ -171,12 +171,14 @@ export default function LandingPage() {
                 {contact.email}
               </a>
             </p>
-            <p className="flex items-center gap-2">
-              <Phone aria-hidden="true" className="size-5 shrink-0" />
-              <a href={`tel:${contact.phone}`} className={linkClass}>
-                {formatE164ForDisplay(contact.phone)}
-              </a>
-            </p>
+            {contact.phone && (
+              <p className="flex items-center gap-2">
+                <Phone aria-hidden="true" className="size-5 shrink-0" />
+                <a href={`tel:${contact.phone}`} className={linkClass}>
+                  {formatE164ForDisplay(contact.phone)}
+                </a>
+              </p>
+            )}
             <p className="flex items-start gap-2">
               <MapPin aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
               <span>

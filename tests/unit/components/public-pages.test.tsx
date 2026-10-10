@@ -94,18 +94,26 @@ describe("landing page", () => {
     expect(about).toHaveTextContent(/serves carriers .* and drivers/);
   });
 
-  it("has a Contact section with the email, the number and the business address", () => {
+  it("has a Contact section with the email and the business address, and no phone number", () => {
     render(<LandingPage />);
     const contact = screen.getByRole("region", { name: "Contact" });
     expect(within(contact).getByRole("link", { name: "support@fleetgridus.com" })).toHaveAttribute(
       "href",
       "mailto:support@fleetgridus.com",
     );
-    expect(within(contact).getByRole("link", { name: "(888) 869-2040" })).toHaveAttribute(
-      "href",
-      "tel:+18888692040",
-    );
+    expect(contact.querySelector("a[href^='tel:']")).toBeNull();
+    expect(document.body.textContent).not.toMatch(/\(\d{3}\) \d{3}-\d{4}/);
     expect(contact).toHaveTextContent("FleetGrid LLC8401 Mayland Dr. STE ARichmond, VA 23294");
+  });
+
+  it("shows a phone number only when SUPPORT_PHONE is set", () => {
+    vi.stubEnv("SUPPORT_PHONE", "+12145550123");
+    render(<LandingPage />);
+    const contact = screen.getByRole("region", { name: "Contact" });
+    expect(within(contact).getByRole("link", { name: "(214) 555-0123" })).toHaveAttribute(
+      "href",
+      "tel:+12145550123",
+    );
   });
 
   it("the footer names FleetGrid LLC with the support email, the address and the legal links", () => {
@@ -184,6 +192,7 @@ describe.each([
     );
     expect(main).toHaveTextContent("8401 Mayland Dr. STE A");
     expect(main).toHaveTextContent("Richmond, VA 23294");
+    expect(main.querySelector("a[href^='tel:']")).toBeNull();
   });
 });
 
@@ -265,16 +274,13 @@ describe("/sms-terms", () => {
     expect(within(main).getByText("STOP")).toBeInTheDocument();
     expect(within(main).getByText("HELP")).toBeInTheDocument();
     expect(within(main).getByText("START")).toBeInTheDocument();
-    // Support contact
+    // Support contact: the email; no phone number unless one is configured
     const contact = main.querySelector("[data-slot=support-contact]") as HTMLElement;
     expect(within(contact).getByRole("link", { name: "support@fleetgridus.com" })).toHaveAttribute(
       "href",
       "mailto:support@fleetgridus.com",
     );
-    expect(within(contact).getByRole("link", { name: "(888) 869-2040" })).toHaveAttribute(
-      "href",
-      "tel:+18888692040",
-    );
+    expect(contact.querySelector("a[href^='tel:']")).toBeNull();
     // No sharing for marketing
     expect(within(main).getByText(/do not sell your phone number/)).toBeInTheDocument();
   });

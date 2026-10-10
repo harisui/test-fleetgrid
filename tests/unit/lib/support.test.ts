@@ -7,7 +7,6 @@ import {
   getSupportContact,
   readSupportEnv,
   SUPPORT_EMAIL_DEFAULT,
-  SUPPORT_PHONE_DEFAULT,
 } from "@/lib/support";
 
 const BASE = {
@@ -21,27 +20,26 @@ describe("the business details", () => {
   it("are the ones the client gave on 2026-10-10", () => {
     expect(BUSINESS_NAME).toBe("FleetGrid LLC");
     expect(SUPPORT_EMAIL_DEFAULT).toBe("support@fleetgridus.com");
-    expect(SUPPORT_PHONE_DEFAULT).toBe("+18888692040");
     expect(BUSINESS_ADDRESS_DEFAULT).toEqual(["8401 Mayland Dr. STE A", "Richmond, VA 23294"]);
   });
 });
 
 describe("getSupportContact", () => {
-  it("falls back to the client's details when nothing is configured", () => {
+  it("falls back to the client's details when nothing is configured, with no phone number", () => {
     expect(getSupportContact({})).toEqual({
       email: SUPPORT_EMAIL_DEFAULT,
-      phone: SUPPORT_PHONE_DEFAULT,
       address: BUSINESS_ADDRESS_DEFAULT,
     });
+    expect(getSupportContact({})).not.toHaveProperty("phone");
     expect(getSupportContact({ SUPPORT_EMAIL: " ", SUPPORT_PHONE: "", BUSINESS_ADDRESS: "" })).toEqual(
       getSupportContact({}),
     );
   });
 
   it("takes whichever parts the environment overrides", () => {
-    expect(getSupportContact({ SUPPORT_EMAIL: "help@fleetgridus.com" })).toMatchObject({
+    expect(getSupportContact({ SUPPORT_EMAIL: "help@fleetgridus.com" })).toEqual({
       email: "help@fleetgridus.com",
-      phone: SUPPORT_PHONE_DEFAULT,
+      address: BUSINESS_ADDRESS_DEFAULT,
     });
     expect(
       getSupportContact({
