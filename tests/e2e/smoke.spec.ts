@@ -5,7 +5,10 @@ test.describe("smoke", () => {
     const response = await page.goto("/");
     expect(response?.status()).toBe(200);
     await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
-    await expect(page.getByRole("link", { name: "FleetGrid" })).toBeVisible();
+    // The wordmark in the header; the support email links also contain the name.
+    await expect(
+      page.getByRole("banner").getByRole("link", { name: "FleetGrid", exact: true }),
+    ).toBeVisible();
   });
 
   test("health endpoint responds", async ({ request }) => {
