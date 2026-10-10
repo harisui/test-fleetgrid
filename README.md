@@ -47,7 +47,7 @@ Copy `.env.example` to `.env.local`. The app validates these at startup (`src/li
 | `NEXT_PUBLIC_SUPABASE_URL`                       | Milestone 1 | `http://127.0.0.1:54321`                               |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY`                  | Milestone 1 | `ANON_KEY` from `pnpm exec supabase status -o env`     |
 | `SUPABASE_SERVICE_ROLE_KEY`                      | Milestone 1 | `SERVICE_ROLE_KEY` from the same command. Server only. |
-| `SUPPORT_EMAIL`, `SUPPORT_PHONE`                 | Milestone 1 | optional; shown in Help and on SMS Terms once set      |
+| `SUPPORT_EMAIL`, `SUPPORT_PHONE`, `BUSINESS_ADDRESS` | Milestone 1 | optional overrides of the client's contact details in `src/lib/support.ts` (footer, Contact, Help, SMS Terms); address lines separated by ` \| ` |
 | `TWILIO_*`                                       | Milestone 3 | not needed yet                                         |
 | `STRIPE_*`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Milestone 2 | not needed yet                                         |
 

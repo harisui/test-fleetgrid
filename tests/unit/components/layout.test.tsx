@@ -141,9 +141,17 @@ describe("Footer", () => {
     );
   });
 
-  it("shows the current year", () => {
+  it("names FleetGrid LLC with the current year, the support email and the business address", () => {
     render(<Footer />);
-    expect(screen.getByText(new RegExp(String(new Date().getFullYear())))).toBeInTheDocument();
+    const footer = screen.getByRole("contentinfo");
+    expect(footer).toHaveTextContent(`© ${new Date().getFullYear()} FleetGrid LLC`);
+    expect(within(footer).getByRole("link", { name: "support@fleetgridus.com" })).toHaveAttribute(
+      "href",
+      "mailto:support@fleetgridus.com",
+    );
+    expect(footer.querySelector("[data-slot=footer-contact]")).toHaveTextContent(
+      "8401 Mayland Dr. STE A, Richmond, VA 23294",
+    );
   });
 });
 

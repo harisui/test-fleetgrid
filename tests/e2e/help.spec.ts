@@ -27,8 +27,9 @@ async function expectHelpContent(page: Page) {
     await expect(stages.filter({ hasText: new RegExp(`^${mile.label}`) })).toBeVisible();
   }
   await expect(surface.getByRole("heading", { name: "Support" })).toBeVisible();
-  // SUPPORT_EMAIL and SUPPORT_PHONE are empty locally, so the placeholder shows.
+  // The client's support email and number, from src/lib/support.ts unless the env overrides them.
   await expect(surface.locator("[data-slot=support-contact]")).toBeVisible();
+  await expect(surface.getByRole("link", { name: /@fleetgridus\.com$/ })).toBeVisible();
   await expect(surface.getByRole("link", { name: "SMS Terms" })).toHaveAttribute(
     "href",
     "/sms-terms",

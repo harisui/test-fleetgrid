@@ -111,24 +111,22 @@ describe("HelpSheet on a wide screen", () => {
 });
 
 describe("the support block", () => {
-  it("says the contact is coming soon when none is configured", async () => {
+  it("shows no contact block, and no placeholder, when none is given", async () => {
     stubDesktop(false);
     render(<HelpSheet support={{}} />);
     await userEvent.click(helpButton());
     const sheet = await screen.findByRole("dialog", { name: "Help" });
-    expect(within(sheet).getByText("Support contact coming soon.")).toHaveAttribute(
-      "data-slot",
-      "support-contact",
-    );
-    expect(within(sheet).queryByRole("link", { name: /^Call|^Email/ })).not.toBeInTheDocument();
+    expect(sheet.querySelector("[data-slot=support-contact]")).toBeNull();
+    expect(sheet.textContent).not.toMatch(/coming soon/i);
+    expect(within(sheet).getByRole("heading", { name: "Support" })).toBeInTheDocument();
   });
 
-  it("shows a phone and an email as tappable links when they are configured", async () => {
+  it("shows a phone and an email as tappable links", async () => {
     stubDesktop(false);
     render(<HelpSheet support={{ email: "help@fleetgridus.com", phone: "+12145550123" }} />);
     await userEvent.click(helpButton());
     const sheet = await screen.findByRole("dialog", { name: "Help" });
-    expect(within(sheet).queryByText("Support contact coming soon.")).not.toBeInTheDocument();
+    expect(sheet.querySelector("[data-slot=support-contact]")).not.toBeNull();
     expect(within(sheet).getByRole("link", { name: "(214) 555-0123" })).toHaveAttribute(
       "href",
       "tel:+12145550123",

@@ -12,13 +12,12 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { DESKTOP_QUERY, useMediaQuery } from "@/hooks/useMediaQuery";
-import { SUPPORT_CONTACT_PENDING } from "@/lib/constants";
 import { MILE_SUMMARIES, MILES } from "@/lib/onboarding/steps";
 import { formatE164ForDisplay } from "@/lib/phone";
 import type { SupportContact } from "@/lib/support";
 
 interface HelpSheetProps {
-  /** From SUPPORT_EMAIL and SUPPORT_PHONE. Empty until the client provides them. */
+  /** From `getSupportContact()` on the server. */
   support?: SupportContact;
 }
 
@@ -65,7 +64,7 @@ function HelpBody({ support, headingId }: { support?: SupportContact; headingId:
         <h3 id={headingId} className="text-label leading-label font-semibold">
           Support
         </h3>
-        {contact ? (
+        {contact && (
           <ul
             className="flex flex-col gap-1 text-helper leading-helper"
             data-slot="support-contact"
@@ -93,13 +92,6 @@ function HelpBody({ support, headingId }: { support?: SupportContact; headingId:
               </li>
             )}
           </ul>
-        ) : (
-          <p
-            className="text-helper leading-helper text-muted-foreground"
-            data-slot="support-contact"
-          >
-            {SUPPORT_CONTACT_PENDING}
-          </p>
         )}
         <p className="text-helper leading-helper text-muted-foreground">
           Read the{" "}

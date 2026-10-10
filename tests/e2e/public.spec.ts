@@ -60,21 +60,57 @@ test.describe("public pages", () => {
     await expect(page).toHaveURL(/\/login\?role=carrier$/);
   });
 
-  test("footer links reach every legal page", async ({ page }) => {
+  test("footer links reach every legal page, and none of them is a placeholder", async ({
+    page,
+  }) => {
     await page.goto("/");
     const legal = page.getByRole("navigation", { name: "Legal" });
 
     await legal.getByRole("link", { name: "Terms", exact: true }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Terms of Service" })).toBeVisible();
-    await expect(page.getByRole("note")).toHaveText("Legal text to be provided by FleetGrid.");
+    await expect(page.locator("[data-slot=effective]")).toHaveText(/^Effective /);
+    await expect(page.getByRole("note")).toHaveCount(0);
 
     await legal.getByRole("link", { name: "Privacy" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Privacy Policy" })).toBeVisible();
-    await expect(page.getByRole("note")).toHaveText("Legal text to be provided by FleetGrid.");
+    await expect(page.locator("[data-slot=effective]")).toHaveText(/^Effective /);
+    await expect(page.getByRole("note")).toHaveCount(0);
 
     await legal.getByRole("link", { name: "SMS Terms" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "SMS Terms" })).toBeVisible();
   });
+
+  test("the landing page shows the company, how it works, about and contact, as Twilio checks", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const footer = page.getByRole("contentinfo");
+    await expect(footer).toContainText("FleetGrid LLC");
+    await expect(footer.getByRole("link", { name: /@fleetgridus\.com$/ })).toBeVisible();
+    await expect(footer).toContainText("Richmond, VA 23294");
+
+    await expect(page.getByRole("region", { name: "How it works" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "About FleetGrid" })).toContainText(
+      "FleetGrid LLC",
+    );
+    const contact = page.getByRole("region", { name: "Contact" });
+    await expect(contact.getByRole("link", { name: /@fleetgridus\.com$/ })).toBeVisible();
+    await expect(contact).toContainText("8401 Mayland Dr. STE A");
+
+    // The opt-in line under the driver button leads to the SMS Terms.
+    const line = page.locator("[data-slot=sms-opt-in-line]");
+    await expect(line).toContainText("Drivers can opt in to receive shift offers by text.");
+    await line.getByRole("link", { name: "SMS Terms" }).click();
+    await expect(page).toHaveURL(/\/sms-terms$/);
+  });
+
+  for (const path of ["/", "/terms", "/privacy", "/sms-terms"]) {
+    test(`${path} carries no placeholder words`, async ({ page }) => {
+      await page.goto(path);
+      const text = await page.getByRole("main").innerText();
+      expect(text).not.toMatch(/placeholder|coming soon|to be provided|lorem ipsum|pending legal/i);
+    });
+  }
 
   test("SMS terms link to the privacy policy, and the brand links home", async ({ page }) => {
     await page.goto("/sms-terms");
@@ -82,7 +118,8 @@ test.describe("public pages", () => {
     await page.getByRole("main").getByRole("link", { name: "Privacy Policy" }).click();
     await expect(page).toHaveURL(/\/privacy$/);
 
-    await page.getByRole("link", { name: "FleetGrid" }).click();
+    // The wordmark in the header; the support email links also contain the name.
+    await page.getByRole("banner").getByRole("link", { name: "FleetGrid" }).click();
     await expect(page).toHaveURL(/\/$/);
   });
 

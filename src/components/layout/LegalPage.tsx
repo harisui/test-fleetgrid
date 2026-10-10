@@ -1,28 +1,29 @@
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/layout/AppShell";
-import { InlineNote } from "@/components/shared/InlineNote";
-
-export const LEGAL_PLACEHOLDER_NOTICE = "Legal text to be provided by FleetGrid.";
 
 interface LegalPageProps {
   title: string;
-  /** Shows the "to be provided" banner for pages still waiting on final legal text. */
-  placeholder?: boolean;
+  /** "Effective October 10, 2026", under the title. */
+  effective?: string;
   children?: ReactNode;
 }
 
 /** Shared frame for Terms, Privacy and SMS Terms. */
-export function LegalPage({ title, placeholder = false, children }: LegalPageProps) {
+export function LegalPage({ title, effective, children }: LegalPageProps) {
   return (
     <AppShell width="narrow">
       <article className="flex flex-col gap-6">
-        <h1 className="font-heading text-h1 leading-h1 font-bold">{title}</h1>
-        {placeholder && (
-          <InlineNote variant="warning" role="note" className="font-semibold">
-            {LEGAL_PLACEHOLDER_NOTICE}
-          </InlineNote>
-        )}
-        {children}
+        <div className="flex flex-col gap-1">
+          <h1 className="font-heading text-h1 leading-h1 font-bold">{title}</h1>
+          {effective && (
+            <p className="text-helper leading-helper text-muted-foreground" data-slot="effective">
+              Effective {effective}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-col gap-4 [&_h2]:mt-2 [&_h2]:text-lg [&_h2]:font-semibold [&_p]:leading-relaxed [&_ul]:list-disc [&_ul]:pl-6 [&_li]:leading-relaxed">
+          {children}
+        </div>
       </article>
     </AppShell>
   );
