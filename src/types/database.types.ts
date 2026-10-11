@@ -145,7 +145,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "account_status": "pending"|"approved"|"blocked","availability_type": "full_time"|"part_time"|"on_call"|"weekends","cdl_class": "A"|"B"|"C"|"none","document_type": "cdl_front"|"cdl_back"|"medical_card"|"certification"|"other","driving_style": "local_day_cab"|"yard_spotter"|"regional"|"otr","employment_type": "w2"|"owner_operator_1099"|"either","endorsement": "H"|"N"|"P"|"S"|"T"|"X","equipment_type": "container_drayage"|"dry_van"|"flatbed"|"reefer"|"yard_mule","mvr_status": "clean"|"minor_1_2"|"major_3_plus","operator_type": "cdl_driver"|"yard_spotter"|"mechanic","sms_consent_event": "opt_in"|"opt_out"|"opt_in_again","sms_consent_source": "onboarding"|"sms_stop"|"sms_start"|"profile","transmission_type": "automatic_only"|"manual_ok","user_role": "driver"|"carrier"|"admin"
+            "account_status": "pending"|"approved"|"blocked","availability_type": "full_time"|"part_time"|"on_call"|"weekends","cdl_class": "A"|"B"|"none","document_type": "cdl_front"|"cdl_back"|"medical_card"|"certification"|"other","driving_style": "local_day_cab"|"regional","employment_type": "w2"|"contractor_1099"|"either","endorsement": "H"|"N"|"T"|"X","equipment_type": "container_drayage"|"dry_van"|"flatbed"|"reefer","mvr_status": "clean"|"minor_1_2"|"major_3_plus","operator_type": "cdl_driver"|"yard_spotter"|"mechanic","sms_consent_event": "opt_in"|"opt_out"|"opt_in_again","sms_consent_source": "onboarding"|"sms_stop"|"sms_start"|"profile","transmission_type": "automatic_only"|"manual_ok","user_role": "driver"|"carrier"|"admin"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -265,7 +265,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "account_status": ["pending", "approved", "blocked"],"availability_type": ["full_time", "part_time", "on_call", "weekends"],"cdl_class": ["A", "B", "C", "none"],"document_type": ["cdl_front", "cdl_back", "medical_card", "certification", "other"],"driving_style": ["local_day_cab", "yard_spotter", "regional", "otr"],"employment_type": ["w2", "owner_operator_1099", "either"],"endorsement": ["H", "N", "P", "S", "T", "X"],"equipment_type": ["container_drayage", "dry_van", "flatbed", "reefer", "yard_mule"],"mvr_status": ["clean", "minor_1_2", "major_3_plus"],"operator_type": ["cdl_driver", "yard_spotter", "mechanic"],"sms_consent_event": ["opt_in", "opt_out", "opt_in_again"],"sms_consent_source": ["onboarding", "sms_stop", "sms_start", "profile"],"transmission_type": ["automatic_only", "manual_ok"],"user_role": ["driver", "carrier", "admin"]
+            "account_status": ["pending", "approved", "blocked"],"availability_type": ["full_time", "part_time", "on_call", "weekends"],"cdl_class": ["A", "B", "none"],"document_type": ["cdl_front", "cdl_back", "medical_card", "certification", "other"],"driving_style": ["local_day_cab", "regional"],"employment_type": ["w2", "contractor_1099", "either"],"endorsement": ["H", "N", "T", "X"],"equipment_type": ["container_drayage", "dry_van", "flatbed", "reefer"],"mvr_status": ["clean", "minor_1_2", "major_3_plus"],"operator_type": ["cdl_driver", "yard_spotter", "mechanic"],"sms_consent_event": ["opt_in", "opt_out", "opt_in_again"],"sms_consent_source": ["onboarding", "sms_stop", "sms_start", "profile"],"transmission_type": ["automatic_only", "manual_ok"],"user_role": ["driver", "carrier", "admin"]
           }
         }
 } as const

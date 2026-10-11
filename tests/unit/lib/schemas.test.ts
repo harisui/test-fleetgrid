@@ -197,9 +197,11 @@ describe("driverLicensesSchema (CDL and licenses)", () => {
     expect(parsed.certifications).toEqual(["TWIC", "OSHA 10"]);
   });
 
-  it("applies the S-needs-P rule on the profile", () => {
-    const parsed = driverLicensesSchema.parse(validLicenses({ endorsements: ["S"] }));
-    expect(parsed.endorsements).toEqual(["P", "S"]);
+  it("rejects the passenger and school bus letters and Class C, which left the launch scope", () => {
+    for (const endorsements of [["P"], ["S"], ["H", "P"]]) {
+      expect(driverLicensesSchema.safeParse(validLicenses({ endorsements })).success).toBe(false);
+    }
+    expect(driverLicensesSchema.safeParse(validLicenses({ cdlClass: "C" })).success).toBe(false);
   });
 
   it("has no work type: every card is a CDL driver at launch", () => {
@@ -344,10 +346,19 @@ describe("driverChecksSchema (equipment and checks)", () => {
 
   it("removes duplicate driving styles and equipment", () => {
     const parsed = driverChecksSchema.parse(
-      validChecks({ drivingStyles: ["otr", "otr"], equipmentTypes: ["reefer", "reefer"] }),
+      validChecks({ drivingStyles: ["regional", "regional"], equipmentTypes: ["reefer", "reefer"] }),
     );
-    expect(parsed.drivingStyles).toEqual(["otr"]);
+    expect(parsed.drivingStyles).toEqual(["regional"]);
     expect(parsed.equipmentTypes).toEqual(["reefer"]);
+  });
+
+  it("rejects OTR, yard spotting and the yard mule, which left the launch scope", () => {
+    for (const drivingStyles of [["otr"], ["yard_spotter"], ["regional", "otr"]]) {
+      expect(driverChecksSchema.safeParse(validChecks({ drivingStyles })).success).toBe(false);
+    }
+    expect(
+      driverChecksSchema.safeParse(validChecks({ equipmentTypes: ["dry_van", "yard_mule"] })).success,
+    ).toBe(false);
   });
 
   it.each([

@@ -11,7 +11,7 @@ import { CDL_CLASS_OPTIONS } from "@/lib/onboarding/options";
 import { stepNumber } from "@/lib/onboarding/steps";
 import { cdlClassScreenSchema } from "@/lib/validation/onboarding.schema";
 
-/** Class A, B or C. FleetGrid lists CDL drivers only at launch, so there is no "No CDL". */
+/** Class A or B (the launch scope). FleetGrid lists CDL drivers only, so there is no "No CDL". */
 function CdlClassFields({ question }: ScreenFieldsProps) {
   const {
     control,

@@ -280,13 +280,14 @@ describe("About page: name, ZIP, distance", () => {
 });
 
 describe("CDL page: class, years, record", () => {
-  it("offers Class A, B and C only, with no No CDL card", () => {
+  it("offers Class A and B only, with no Class C and no No CDL card", () => {
     renderFlow("cdlClass", driverAt(4));
     const classes = within(screen.getByRole("radiogroup", { name: "What class is your CDL?" }));
-    expect(classes.getAllByRole("radio")).toHaveLength(3);
-    for (const name of ["Class A", "Class B", "Class C"]) {
+    expect(classes.getAllByRole("radio")).toHaveLength(2);
+    for (const name of ["Class A", "Class B"]) {
       expect(classes.getByRole("radio", { name: new RegExp(name) })).toBeInTheDocument();
     }
+    expect(screen.queryByText(/Class C/)).not.toBeInTheDocument();
     expect(screen.queryByText(/No CDL/)).not.toBeInTheDocument();
   });
 
@@ -418,12 +419,12 @@ describe("Letters page: endorsements and transmission", () => {
     expect(screen.getByRole("checkbox", { name: /^H\b/ })).toHaveAttribute("aria-checked", "true");
     expect(screen.queryByText("X includes H and N.")).not.toBeInTheDocument();
 
-    // S (school bus) needs P (passengers).
-    await userEvent.click(screen.getByRole("checkbox", { name: /^S\b/ }));
-    expect(screen.getByRole("checkbox", { name: /^P\b/ })).toHaveAttribute("aria-checked", "true");
-    expect(screen.getByText(/S includes P\./)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("checkbox", { name: /^P\b/ }));
-    expect(screen.getByRole("checkbox", { name: /^S\b/ })).toHaveAttribute("aria-checked", "false");
+    // The freight letters only: no passengers (P) and no school bus (S).
+    expect(screen.queryByRole("checkbox", { name: /^P\b/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: /^S\b/ })).not.toBeInTheDocument();
+    expect(
+      screen.getAllByRole("checkbox").filter((box) => !/^None/.test(box.textContent ?? "")),
+    ).toHaveLength(4);
 
     await userEvent.click(screen.getByRole("checkbox", { name: /^None/ }));
     expect(screen.getByRole("checkbox", { name: /^None/ })).toHaveAttribute("aria-checked", "true");

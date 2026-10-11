@@ -82,15 +82,14 @@ begin
     v_phone := '+1555555' || (1000 + i)::text;
     v_place := v_places[1 + (i % 10) : 1 + (i % 10)][1:5];
 
-    -- CDL drivers only at launch (2026-10-09): every card holds a class.
+    -- CDL drivers only at launch (2026-10-09), Class A or B (2026-10-11): every card holds a class.
     v_operator_types := array['cdl_driver']::public.operator_type[];
-    v_cdl := (array['A', 'A', 'B', 'C'])[1 + (i % 4)]::public.cdl_class;
+    v_cdl := (array['A', 'A', 'B', 'B'])[1 + (i % 4)]::public.cdl_class;
 
     v_endorsements := case
-      when v_cdl = 'none' then '{}'
       when i % 4 = 0 then array['H', 'N']
       when i % 4 = 1 then array['T']
-      when i % 4 = 2 then array['X', 'P']
+      when i % 4 = 2 then array['X', 'H', 'N']
       else '{}'
     end::public.endorsement[];
 
@@ -123,17 +122,17 @@ begin
       25 + (i % 6) * 25, v_availability,
       case when i % 3 = 0 then array['Forklift'] when i % 3 = 1 then array['OSHA 10'] else '{}'::text[] end,
       'Seed driver ' || i || '. Reliable, on time, clean record.',
-      (array['w2', 'owner_operator_1099', 'either'])[1 + (i % 3)]::public.employment_type,
+      (array['w2', 'contractor_1099', 'either'])[1 + (i % 3)]::public.employment_type,
       -- Driving style and the Clearinghouse are profile-page answers; some cards leave them empty.
       case when i % 4 = 0 then array['local_day_cab']
-           when i % 4 = 1 then array['regional', 'otr']
+           when i % 4 = 1 then array['local_day_cab', 'regional']
            when i % 4 = 2 then '{}'
-           else array['otr'] end::public.driving_style[],
+           else array['regional'] end::public.driving_style[],
       case when i % 3 = 0 then 'automatic_only' else 'manual_ok' end::public.transmission_type,
       case when i % 4 = 0 then array['container_drayage', 'dry_van']
            when i % 4 = 1 then array['dry_van', 'reefer']
            when i % 4 = 2 then array['flatbed']
-           else array['yard_mule', 'dry_van'] end::public.equipment_type[],
+           else array['dry_van', 'flatbed'] end::public.equipment_type[],
       (i % 2 = 0), (i % 7 <> 0),
       case when i % 4 = 3 then null else (i % 4 <> 2) end,
       case when i % 5 = 4 then 'major_3_plus'

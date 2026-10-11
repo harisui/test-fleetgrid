@@ -8,8 +8,20 @@ select no_plan();
 select enum_has_labels('public', 'user_role', array['driver', 'carrier', 'admin']);
 select enum_has_labels('public', 'account_status', array['pending', 'approved', 'blocked']);
 select enum_has_labels('public', 'operator_type', array['cdl_driver', 'yard_spotter', 'mechanic']);
-select enum_has_labels('public', 'cdl_class', array['A', 'B', 'C', 'none']);
-select enum_has_labels('public', 'endorsement', array['H', 'N', 'P', 'S', 'T', 'X']);
+-- Class A and B and the freight endorsements only since 0014 (2026-10-11).
+select enum_has_labels('public', 'cdl_class', array['A', 'B', 'none']);
+select enum_has_labels('public', 'endorsement', array['H', 'N', 'T', 'X']);
+select col_default_is('drivers', 'cdl_class', 'none', 'cdl_class keeps its default after the enum was recreated');
+select col_default_is('drivers', 'endorsements', '{}', 'endorsements keep their default after the enum was recreated');
+select throws_ok(
+  $$select 'C'::public.cdl_class$$, '22P02', null, 'Class C is no longer a CDL class'
+);
+select throws_ok(
+  $$select '{P}'::public.endorsement[]$$, '22P02', null, 'P (passengers) is no longer an endorsement'
+);
+select throws_ok(
+  $$select '{S}'::public.endorsement[]$$, '22P02', null, 'S (school bus) is no longer an endorsement'
+);
 select enum_has_labels('public', 'availability_type', array['full_time', 'part_time', 'on_call', 'weekends']);
 select enum_has_labels('public', 'document_type', array['cdl_front', 'cdl_back', 'medical_card', 'certification', 'other']);
 

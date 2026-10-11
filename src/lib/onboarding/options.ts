@@ -3,12 +3,10 @@ import {
   Building2,
   Bus,
   CalendarDays,
-  Car,
   Clock,
   Cog,
   Cylinder,
   FlaskConical,
-  Forklift,
   Gauge,
   Handshake,
   House,
@@ -16,10 +14,8 @@ import {
   Link2,
   Map,
   Phone,
-  Route,
   Sun,
   Truck,
-  Users,
   type LucideIcon,
 } from "lucide-react";
 import { CERTIFICATION_DOCUMENTS_MAX } from "@/lib/constants";
@@ -47,9 +43,13 @@ export interface CardOption<T extends string> {
   icon: LucideIcon;
 }
 
-/** Profile page only since 2026-10-09; sign-up no longer asks. */
+/**
+ * Profile page only since 2026-10-09; sign-up no longer asks. FleetGrid is for drivers who
+ * run the carrier's truck, so 1099 means a contractor, never an owner-operator (client
+ * decision of 2026-10-11).
+ */
 export const EMPLOYMENT_HELPER =
-  "W-2 means you are on a company's payroll. 1099 means you contract or run your own truck.";
+  "W-2 means you are on a company's payroll. 1099 means you work as a contractor.";
 
 export const EMPLOYMENT_TYPE_OPTIONS: readonly CardOption<EmploymentType>[] = [
   {
@@ -59,9 +59,9 @@ export const EMPLOYMENT_TYPE_OPTIONS: readonly CardOption<EmploymentType>[] = [
     icon: Building2,
   },
   {
-    value: "owner_operator_1099",
-    label: "1099 owner-operator",
-    description: "Your own truck or a contract",
+    value: "contractor_1099",
+    label: "1099 contractor",
+    description: "Contract worker / 1099",
     icon: Handshake,
   },
   {
@@ -72,7 +72,10 @@ export const EMPLOYMENT_TYPE_OPTIONS: readonly CardOption<EmploymentType>[] = [
   },
 ];
 
-/** Profile page only since 2026-10-09; sign-up no longer asks. */
+/**
+ * Profile page only since 2026-10-09; sign-up no longer asks. Local shift coverage only, so
+ * no OTR and no yard spotting (client decision of 2026-10-11).
+ */
 export const DRIVING_STYLE_OPTIONS: readonly CardOption<DrivingStyle>[] = [
   {
     value: "local_day_cab",
@@ -80,14 +83,7 @@ export const DRIVING_STYLE_OPTIONS: readonly CardOption<DrivingStyle>[] = [
     description: "Home every night",
     icon: House,
   },
-  {
-    value: "yard_spotter",
-    label: "Yard spotter",
-    description: "Trailers around a yard or port",
-    icon: Forklift,
-  },
   { value: "regional", label: "Regional", description: "Out a few nights a week", icon: Map },
-  { value: "otr", label: "OTR (over the road)", description: "Long hauls, weeks out", icon: Route },
 ];
 
 export const TRANSMISSION_QUESTION = "Can you drive a manual?";
@@ -114,36 +110,31 @@ export const AVAILABILITY_OPTIONS: readonly CardOption<AvailabilityType>[] = [
   { value: "weekends", label: "Weekends", description: "Saturday and Sunday", icon: CalendarDays },
 ];
 
-/** A, B or C. FleetGrid lists CDL drivers only at launch, so there is no "No CDL" card. */
+/**
+ * Class A or B, the launch scope (client decision of 2026-10-11; Class C left). FleetGrid
+ * lists CDL drivers only, so there is no "No CDL" card.
+ */
 export const CDL_CLASS_OPTIONS: readonly CardOption<CdlClass>[] = [
   { value: "A", label: "Class A", description: "Tractor-trailers and big rigs", icon: Truck },
   { value: "B", label: "Class B", description: "Straight trucks, buses, dump trucks", icon: Bus },
-  {
-    value: "C",
-    label: "Class C",
-    description: "Passenger vans (16+) and small hazmat vehicles",
-    icon: Car,
-  },
 ];
 
-/** Shown in the order drivers most often hold them. Each letter has its own icon. */
+/**
+ * The freight endorsements, in the order drivers most often hold them. Each letter has its
+ * own icon. P (passengers) and S (school bus) left on 2026-10-11.
+ */
 export const ENDORSEMENT_OPTIONS: readonly CardOption<Endorsement>[] = [
   { value: "X", label: "X", description: "Tank and hazmat", icon: Layers },
   { value: "H", label: "H", description: "Hazmat", icon: FlaskConical },
   { value: "N", label: "N", description: "Tank vehicles", icon: Cylinder },
   { value: "T", label: "T", description: "Doubles and triples", icon: Link2 },
-  { value: "P", label: "P", description: "Passengers", icon: Users },
-  { value: "S", label: "S", description: "School bus", icon: Bus },
 ];
 
 export const ENDORSEMENT_X_NOTE = "X includes H and N.";
-export const ENDORSEMENT_S_NOTE =
-  "S includes P. School bus drivers also need the passenger endorsement.";
 
 /**
- * Applies the endorsement rules after one letter is tapped:
- * picking X also picks H and N; dropping H or N also drops X;
- * picking S also picks P (federal rule); dropping P also drops S.
+ * Applies the endorsement rule after one letter is tapped:
+ * picking X also picks H and N; dropping H or N also drops X.
  */
 export function toggleEndorsement(
   current: readonly Endorsement[],
@@ -153,26 +144,23 @@ export function toggleEndorsement(
   if (selected.has(letter)) {
     selected.delete(letter);
     if (letter === "H" || letter === "N") selected.delete("X");
-    if (letter === "P") selected.delete("S");
   } else {
     selected.add(letter);
     if (letter === "X") {
       selected.add("H");
       selected.add("N");
     }
-    if (letter === "S") selected.add("P");
   }
   return ENDORSEMENT_OPTIONS.map((option) => option.value).filter((value) => selected.has(value));
 }
 
-/** The same rules for saved data: X always comes with H and N, S with P. Keeps the display order. */
+/** The same rule for saved data: X always comes with H and N. Keeps the display order. */
 export function normalizeEndorsements(values: readonly Endorsement[]): Endorsement[] {
   const selected = new Set(values);
   if (selected.has("X")) {
     selected.add("H");
     selected.add("N");
   }
-  if (selected.has("S")) selected.add("P");
   return ENDORSEMENT_OPTIONS.map((option) => option.value).filter((value) => selected.has(value));
 }
 
@@ -189,13 +177,12 @@ export const DISTANCE_CHIPS: readonly ChipOption<number>[] = [
   { value: 250, label: "250 miles or more" },
 ];
 
-/** Chips, pick all that apply. */
+/** Chips, pick all that apply. The yard mule left on 2026-10-11 (Class A and B drivers only). */
 export const EQUIPMENT_CHIPS: readonly ChipOption<EquipmentType>[] = [
   { value: "container_drayage", label: "Container drayage" },
   { value: "dry_van", label: "Dry van" },
   { value: "flatbed", label: "Flatbed" },
   { value: "reefer", label: "Reefer" },
-  { value: "yard_mule", label: "Yard mule" },
 ];
 
 /**

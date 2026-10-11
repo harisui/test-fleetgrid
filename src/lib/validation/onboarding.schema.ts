@@ -79,7 +79,7 @@ export const MVR_MESSAGE = "Pick None, 1 or 2 minor, or 3 or more";
 /** A yes-or-no chip answer. Only a real boolean counts; "true" or 1 is not a tap. */
 const yesNo = (message: string) => z.boolean({ error: message });
 
-/** A, B or C. FleetGrid lists CDL drivers only at launch, so "none" is not an answer here. */
+/** A or B. FleetGrid lists CDL drivers only at launch, so "none" is not an answer here. */
 export const cdlClassScreenSchema = z.object({
   cdlClass: z.enum(CDL_HELD_CLASSES, { error: CDL_CLASS_MESSAGE }),
 });

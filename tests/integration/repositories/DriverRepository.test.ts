@@ -133,8 +133,8 @@ describe("DriverRepository (local Supabase)", () => {
 
   it("update stores the employment, equipment and check answers and maps them back", async () => {
     const updated = await repository.update(driver.id, {
-      employmentType: "owner_operator_1099",
-      drivingStyles: ["regional", "otr"],
+      employmentType: "contractor_1099",
+      drivingStyles: ["local_day_cab", "regional"],
       transmission: "automatic_only",
       equipmentTypes: ["container_drayage", "reefer"],
       twicActive: true,
@@ -143,8 +143,8 @@ describe("DriverRepository (local Supabase)", () => {
       mvrStatus: "minor_1_2",
     });
     expect(updated).toMatchObject({
-      employmentType: "owner_operator_1099",
-      drivingStyles: ["regional", "otr"],
+      employmentType: "contractor_1099",
+      drivingStyles: ["local_day_cab", "regional"],
       transmission: "automatic_only",
       equipmentTypes: ["container_drayage", "reefer"],
       twicActive: true,
@@ -185,8 +185,8 @@ describe("DriverRepository (local Supabase)", () => {
       endorsements: ["H", "X"],
       years_experience: 12,
       availability: ["full_time"],
-      employment_type: "owner_operator_1099",
-      driving_styles: ["regional", "otr"],
+      employment_type: "contractor_1099",
+      driving_styles: ["local_day_cab", "regional"],
       transmission: "automatic_only",
       equipment_types: ["container_drayage", "reefer"],
       twic_active: true,

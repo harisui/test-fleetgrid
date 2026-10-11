@@ -1,17 +1,22 @@
--- The driver card answers added by migration 0011 (T1.14), the MVR levels of 0012 and the
--- CDL-only completion rule of 0013: enums, columns, the 12-screen step range and what a
--- completed card must hold.
+-- The driver card answers added by migration 0011 (T1.14), the MVR levels of 0012, the
+-- CDL-only completion rule of 0013 and the launch scope of 0014 (Class A and B, freight
+-- endorsements, local driving, no yard mule, 1099 contractor): enums, columns, the
+-- 12-screen step range and what a completed card must hold.
 begin;
 select no_plan();
 
 -- ---------------------------------------------------------------------------
 -- Enums and columns
 -- ---------------------------------------------------------------------------
-select enum_has_labels('public', 'employment_type', array['w2', 'owner_operator_1099', 'either']);
-select enum_has_labels('public', 'driving_style', array['local_day_cab', 'yard_spotter', 'regional', 'otr']);
+select enum_has_labels('public', 'employment_type', array['w2', 'contractor_1099', 'either']);
+select enum_has_labels('public', 'driving_style', array['local_day_cab', 'regional']);
 select enum_has_labels('public', 'transmission_type', array['automatic_only', 'manual_ok']);
-select enum_has_labels('public', 'equipment_type', array['container_drayage', 'dry_van', 'flatbed', 'reefer', 'yard_mule']);
+select enum_has_labels('public', 'equipment_type', array['container_drayage', 'dry_van', 'flatbed', 'reefer']);
 select enum_has_labels('public', 'mvr_status', array['clean', 'minor_1_2', 'major_3_plus']);
+select throws_ok($$select 'owner_operator_1099'::public.employment_type$$, '22P02', null, 'the owner-operator value was renamed (0014)');
+select throws_ok($$select '{otr}'::public.driving_style[]$$, '22P02', null, 'OTR is no longer a driving style (0014)');
+select throws_ok($$select '{yard_spotter}'::public.driving_style[]$$, '22P02', null, 'yard spotter is no longer a driving style (0014)');
+select throws_ok($$select '{yard_mule}'::public.equipment_type[]$$, '22P02', null, 'the yard mule is no longer equipment (0014)');
 
 select col_type_is('drivers', 'employment_type', 'employment_type');
 select col_is_null('drivers', 'employment_type', 'employment_type is null until answered');
@@ -63,9 +68,9 @@ select results_eq(
 -- ---------------------------------------------------------------------------
 -- Values
 -- ---------------------------------------------------------------------------
-select lives_ok(pg_temp.update_driver($$employment_type = 'owner_operator_1099'$$), 'employment type accepted');
+select lives_ok(pg_temp.update_driver($$employment_type = 'contractor_1099'$$), 'employment type accepted');
 select throws_ok(pg_temp.update_driver($$employment_type = 'contractor'$$), '22P02', null, 'unknown employment type rejected');
-select lives_ok(pg_temp.update_driver($$driving_styles = '{local_day_cab,otr}'$$), 'driving styles accepted');
+select lives_ok(pg_temp.update_driver($$driving_styles = '{local_day_cab,regional}'$$), 'driving styles accepted');
 select throws_ok(pg_temp.update_driver($$driving_styles = '{night}'$$), '22P02', null, 'unknown driving style rejected');
 select lives_ok(pg_temp.update_driver($$transmission = 'automatic_only'$$), 'transmission accepted');
 select throws_ok(pg_temp.update_driver($$transmission = 'stick'$$), '22P02', null, 'unknown transmission rejected');

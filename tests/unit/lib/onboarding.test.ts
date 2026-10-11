@@ -4,6 +4,7 @@ import {
   CARD_CHECKS,
   CDL_CLASS_OPTIONS,
   DRIVING_STYLE_OPTIONS,
+  EMPLOYMENT_HELPER,
   EMPLOYMENT_TYPE_OPTIONS,
   ENDORSEMENT_OPTIONS,
   EQUIPMENT_CHIPS,
@@ -213,25 +214,46 @@ describe("options", () => {
     }
   });
 
-  it("offers the three CDL classes with the approved descriptions, and no No CDL card", () => {
+  it("offers Class A and B with the approved descriptions, no Class C and no No CDL card", () => {
     expect(CDL_CLASS_OPTIONS.map((option) => `${option.label}: ${option.description}`)).toEqual([
       "Class A: Tractor-trailers and big rigs",
       "Class B: Straight trucks, buses, dump trucks",
-      "Class C: Passenger vans (16+) and small hazmat vehicles",
     ]);
+    expect(CDL_HELD_CLASSES).toEqual(["A", "B"]);
+  });
+
+  it("offers the freight endorsements H, N, T and X, no passengers or school bus", () => {
+    expect(ENDORSEMENT_OPTIONS.map((option) => `${option.label}: ${option.description}`)).toEqual([
+      "X: Tank and hazmat",
+      "H: Hazmat",
+      "N: Tank vehicles",
+      "T: Doubles and triples",
+    ]);
+    expect(ENDORSEMENTS).toEqual(["H", "N", "T", "X"]);
   });
 
   it("uses the client's words for employment, driving style, transmission and equipment", () => {
-    expect(EMPLOYMENT_TYPE_OPTIONS.map((option) => option.label)).toEqual([
-      "W-2 employee",
-      "1099 owner-operator",
-      "Either works",
+    // 1099 is a contractor, never an owner-operator: drivers run the carrier's truck.
+    expect(
+      EMPLOYMENT_TYPE_OPTIONS.map((option) => `${option.label}: ${option.description}`),
+    ).toEqual([
+      "W-2 employee: On the carrier's payroll",
+      "1099 contractor: Contract worker / 1099",
+      "Either works: Open to both",
     ]);
+    expect(EMPLOYMENT_HELPER).toBe(
+      "W-2 means you are on a company's payroll. 1099 means you work as a contractor.",
+    );
+    for (const text of [
+      EMPLOYMENT_HELPER,
+      ...EMPLOYMENT_TYPE_OPTIONS.flatMap((option) => [option.label, option.description]),
+    ]) {
+      expect(text).not.toMatch(/own truck|owner/i);
+    }
+    // Local shift coverage only: no OTR, and no yard spotting.
     expect(DRIVING_STYLE_OPTIONS.map((option) => option.label)).toEqual([
       "Local day cab",
-      "Yard spotter",
       "Regional",
-      "OTR (over the road)",
     ]);
     expect(TRANSMISSION_OPTIONS.map((option) => option.label)).toEqual([
       "Automatic only",
@@ -242,7 +264,6 @@ describe("options", () => {
       "Dry van",
       "Flatbed",
       "Reefer",
-      "Yard mule",
     ]);
   });
 
@@ -342,26 +363,15 @@ describe("endorsement rules", () => {
   });
 
   it("toggles other letters on and off in display order", () => {
-    expect(toggleEndorsement(["P"], "T")).toEqual(["T", "P"]);
-    expect(toggleEndorsement(["T", "P"], "P")).toEqual(["T"]);
+    expect(toggleEndorsement(["T"], "H")).toEqual(["H", "T"]);
+    expect(toggleEndorsement(["H", "T"], "T")).toEqual(["H"]);
+    expect(toggleEndorsement(["H", "T"], "H")).toEqual(["T"]);
   });
 
-  it("picking S (school bus) also picks P (passengers), the federal rule", () => {
-    expect(toggleEndorsement([], "S")).toEqual(["P", "S"]);
-    expect(toggleEndorsement(["T"], "S")).toEqual(["T", "P", "S"]);
-  });
-
-  it("dropping P also drops S, while dropping S keeps P", () => {
-    expect(toggleEndorsement(["P", "S"], "P")).toEqual([]);
-    expect(toggleEndorsement(["T", "P", "S"], "P")).toEqual(["T"]);
-    expect(toggleEndorsement(["P", "S"], "S")).toEqual(["P"]);
-  });
-
-  it("normalizes saved data the same way: X brings H and N, S brings P", () => {
+  it("normalizes saved data the same way: X brings H and N, in display order", () => {
     expect(normalizeEndorsements(["X"])).toEqual(["X", "H", "N"]);
-    expect(normalizeEndorsements(["S", "H"])).toEqual(["H", "P", "S"]);
-    expect(normalizeEndorsements(["S"])).toEqual(["P", "S"]);
-    expect(normalizeEndorsements(["P"])).toEqual(["P"]);
+    expect(normalizeEndorsements(["T", "H"])).toEqual(["H", "T"]);
+    expect(normalizeEndorsements(["N"])).toEqual(["N"]);
     expect(normalizeEndorsements([])).toEqual([]);
   });
 });

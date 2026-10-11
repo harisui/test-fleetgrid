@@ -110,11 +110,11 @@ describe("distance", () => {
 });
 
 describe("CDL class, experience, record", () => {
-  it("the class is A, B or C: no No CDL, since FleetGrid lists CDL drivers only", () => {
-    for (const cdlClass of ["A", "B", "C"]) {
+  it("the class is A or B: no Class C and no No CDL, since FleetGrid lists CDL drivers only", () => {
+    for (const cdlClass of ["A", "B"]) {
       expect(cdlClassScreenSchema.parse({ cdlClass })).toEqual({ cdlClass });
     }
-    for (const cdlClass of ["none", "D", null, undefined]) {
+    for (const cdlClass of ["C", "none", "D", null, undefined]) {
       expect(errorsOf(cdlClassScreenSchema, { cdlClass })).toEqual({ cdlClass: CDL_CLASS_MESSAGE });
     }
     expect(CDL_CLASS_MESSAGE).toBe("Pick your CDL class");
@@ -174,13 +174,13 @@ describe("letters: endorsements and transmission", () => {
       endorsements: ["X", "H", "N"],
     });
     expect(endorsementsScreenSchema.parse({})).toEqual({ endorsements: [] });
-    // S is never stored without P.
-    expect(endorsementsScreenSchema.parse({ endorsements: ["S"] })).toEqual({
-      endorsements: ["P", "S"],
-    });
-    expect(Object.keys(errorsOf(endorsementsScreenSchema, { endorsements: ["Z"] }))).toEqual([
-      "endorsements.0",
-    ]);
+    // The freight letters only: P (passengers) and S (school bus) are not endorsements here.
+    for (const letter of ["Z", "P", "S"]) {
+      expect(
+        Object.keys(errorsOf(endorsementsScreenSchema, { endorsements: [letter] })),
+        letter,
+      ).toEqual(["endorsements.0"]);
+    }
   });
 
   it("transmission is automatic only, or automatic and manual", () => {

@@ -37,19 +37,16 @@ export const OPERATOR_TYPES = [
   "mechanic",
 ] as const satisfies readonly OperatorType[];
 
-export const CDL_CLASSES = ["A", "B", "C", "none"] as const satisfies readonly CdlClass[];
+export const CDL_CLASSES = ["A", "B", "none"] as const satisfies readonly CdlClass[];
 
-/** The classes a driver can hold. "none" is the database default before the class is picked. */
-export const CDL_HELD_CLASSES = ["A", "B", "C"] as const satisfies readonly CdlClass[];
+/**
+ * The classes a driver can hold: A and B, the launch scope (client decision of 2026-10-11).
+ * "none" is the database default before the class is picked.
+ */
+export const CDL_HELD_CLASSES = ["A", "B"] as const satisfies readonly CdlClass[];
 
-export const ENDORSEMENTS = [
-  "H",
-  "N",
-  "P",
-  "S",
-  "T",
-  "X",
-] as const satisfies readonly Endorsement[];
+/** The freight endorsements. P (passengers) and S (school bus) left on 2026-10-11. */
+export const ENDORSEMENTS = ["H", "N", "T", "X"] as const satisfies readonly Endorsement[];
 
 export const AVAILABILITY_TYPES = [
   "full_time",
@@ -66,17 +63,17 @@ export const DOCUMENT_TYPES = [
   "other",
 ] as const satisfies readonly DocumentType[];
 
+/** W-2, 1099 contractor (never an owner-operator: drivers run the carrier's truck), or either. */
 export const EMPLOYMENT_TYPES = [
   "w2",
-  "owner_operator_1099",
+  "contractor_1099",
   "either",
 ] as const satisfies readonly EmploymentType[];
 
+/** Local shift coverage only: no OTR, and no yard spotting (client decision of 2026-10-11). */
 export const DRIVING_STYLES = [
   "local_day_cab",
-  "yard_spotter",
   "regional",
-  "otr",
 ] as const satisfies readonly DrivingStyle[];
 
 export const TRANSMISSION_TYPES = [
@@ -89,7 +86,6 @@ export const EQUIPMENT_TYPES = [
   "dry_van",
   "flatbed",
   "reefer",
-  "yard_mule",
 ] as const satisfies readonly EquipmentType[];
 
 /** Moving violations in the last 3 years: none, 1 to 2 minor, or 3 or more or a major one. */
@@ -111,8 +107,6 @@ export const OPERATOR_TYPE_LABELS: Record<OperatorType, string> = {
 export const ENDORSEMENT_LABELS: Record<Endorsement, string> = {
   H: "H - Hazardous materials",
   N: "N - Tank vehicles",
-  P: "P - Passengers",
-  S: "S - School bus",
   T: "T - Double/triple trailers",
   X: "X - Tanker and hazmat",
 };

@@ -120,7 +120,7 @@ const certificationsSchema = z
 
 export const driverLicensesSchema = z.object({
   cdlClass: z.enum(CDL_HELD_CLASSES, { error: CDL_CLASS_MESSAGE }),
-  // The same letter rules as onboarding: X brings H and N, S brings P.
+  // The same letter rule as onboarding: X brings H and N.
   endorsements: z.array(z.enum(ENDORSEMENTS)).default([]).transform(normalizeEndorsements),
   yearsExperience: wholeNumber({
     required: "Enter your years of experience",

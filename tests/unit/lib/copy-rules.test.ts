@@ -39,7 +39,7 @@ describe("onboarding copy", () => {
   it("keeps the CDL class descriptions in one place, the onboarding options", () => {
     const sources = filesUnder("src").filter((file) => /\.tsx?$/.test(file));
     const owners = sources.filter((file) =>
-      readFileSync(file, "utf8").includes("Passenger vans (16+) and small hazmat vehicles"),
+      readFileSync(file, "utf8").includes("Straight trucks, buses, dump trucks"),
     );
     expect(owners.map((file) => file.replace(/\\/g, "/"))).toEqual([
       "src/lib/onboarding/options.ts",

@@ -371,7 +371,9 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(page.getByText("Pick None, 1 or 2 minor, or 3 or more")).toBeVisible();
     expect((await driverRow()).onboarding_step).toBe(4);
 
-    await card(page, "radio", /Class C/).click();
+    // Class A and B only (the launch scope): no Class C card.
+    await expect(card(page, "radio", /Class C/)).toHaveCount(0);
+    await card(page, "radio", /Class B/).click();
     await chip(page, "Under 1").click();
     await checkChip(page, MVR_QUESTION, "3 or more, or a major one").click();
     // One level at a time.
@@ -383,7 +385,7 @@ test.describe("driver onboarding, a page per mile", () => {
     await nextButton(page).click();
     await expect(screenHeading(page)).toHaveText("Cards");
     expect(await driverRow()).toMatchObject({
-      cdl_class: "C",
+      cdl_class: "B",
       years_experience: 0,
       mvr_status: "minor_1_2",
       onboarding_step: 7,
@@ -407,7 +409,7 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(checkChip(page, MEDICAL_QUESTION, "No")).toHaveAttribute("aria-pressed", "true");
   });
 
-  test("X auto-selects H and N, S auto-selects P, None clears the rest, and the transmission is required", async ({
+  test("X auto-selects H and N, only the freight letters are offered, None clears the rest, and the transmission is required", async ({
     page,
   }) => {
     await resumeAt(page, 8, { endorsements: [] });
@@ -427,12 +429,10 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(card(page, "checkbox", /^X\b/)).toHaveAttribute("aria-checked", "false");
     await expect(card(page, "checkbox", /^H\b/)).toHaveAttribute("aria-checked", "true");
 
-    // S (school bus) needs P (passengers): S brings P in, dropping P drops S.
-    await card(page, "checkbox", /^S\b/).click();
-    await expect(card(page, "checkbox", /^P\b/)).toHaveAttribute("aria-checked", "true");
-    await expect(page.getByText(/S includes P\./)).toBeVisible();
-    await card(page, "checkbox", /^P\b/).click();
-    await expect(card(page, "checkbox", /^S\b/)).toHaveAttribute("aria-checked", "false");
+    // The freight letters only: no passengers (P) and no school bus (S).
+    await expect(card(page, "checkbox", /^P\b/)).toHaveCount(0);
+    await expect(card(page, "checkbox", /^S\b/)).toHaveCount(0);
+    await expect(card(page, "checkbox", /^T\b/)).toHaveCount(1);
 
     await card(page, "checkbox", /^None/).click();
     await expect(card(page, "checkbox", /^H\b/)).toHaveAttribute("aria-checked", "false");
@@ -456,12 +456,14 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(screenHeading(page)).toHaveText("Equipment");
     await nextButton(page).click();
     await expect(formAlert(page)).toHaveText("Pick at least one kind of equipment");
+    // No yard mule (Class A and B drivers only).
+    await expect(chip(page, "Yard mule")).toHaveCount(0);
     await chip(page, "Container drayage").click();
-    await chip(page, "Yard mule").click();
+    await chip(page, "Reefer").click();
     await nextButton(page).click();
     await expect(screenHeading(page)).toHaveText("Finish");
     expect(await driverRow()).toMatchObject({
-      equipment_types: ["container_drayage", "yard_mule"],
+      equipment_types: ["container_drayage", "reefer"],
       onboarding_step: 11,
     });
   });

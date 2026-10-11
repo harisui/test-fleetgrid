@@ -154,19 +154,46 @@ describe("ProfileEditor", () => {
     expect(screen.queryByText("Mechanic")).not.toBeInTheDocument();
   });
 
-  it("offers Class A, B and C only, no No CDL, in the onboarding words", () => {
+  it("offers Class A and B only, no Class C and no No CDL, in the onboarding words", () => {
     render(<ProfileEditor driver={buildDriver()} />);
     const group = screen.getByRole("group", { name: /CDL class/ });
     expect(
       within(group)
         .getAllByRole("radio")
         .map((radio) => radio.getAttribute("value")),
-    ).toEqual(["A", "B", "C"]);
+    ).toEqual(["A", "B"]);
+    expect(within(group).queryByText(/Class C/)).not.toBeInTheDocument();
     expect(within(group).queryByText(/No CDL/)).not.toBeInTheDocument();
-    expect(within(group).getByText("Tractor-trailers and big rigs")).toBeInTheDocument();
-    expect(within(group).getByText("Straight trucks, buses, dump trucks")).toBeInTheDocument();
-    const classC = within(group).getByRole("radio", { name: "Class C" });
-    expect(classC).toHaveAccessibleDescription("Passenger vans (16+) and small hazmat vehicles");
+    expect(within(group).getByRole("radio", { name: "Class A" })).toHaveAccessibleDescription(
+      "Tractor-trailers and big rigs",
+    );
+    expect(within(group).getByRole("radio", { name: "Class B" })).toHaveAccessibleDescription(
+      "Straight trucks, buses, dump trucks",
+    );
+  });
+
+  it("offers the freight endorsements, local driving, four kinds of equipment and 1099 as a contractor", () => {
+    render(<ProfileEditor driver={buildDriver()} />);
+    const names = (group: RegExp) =>
+      within(screen.getByRole("group", { name: group }))
+        .getAllByRole("checkbox")
+        .map((box) => box.getAttribute("value"));
+    expect(names(/Endorsements/)).toEqual(["H", "N", "T", "X"]);
+    expect(names(/What kind of driving do you do/)).toEqual(["local_day_cab", "regional"]);
+    expect(names(/What equipment do you run/)).toEqual([
+      "container_drayage",
+      "dry_van",
+      "flatbed",
+      "reefer",
+    ]);
+    const employment = screen.getByRole("group", { name: /W-2 or 1099/ });
+    expect(within(employment).getByRole("radio", { name: "1099 contractor" })).toHaveAccessibleDescription(
+      "Contract worker / 1099",
+    );
+    expect(within(employment).queryByText(/own truck|owner/i)).not.toBeInTheDocument();
+    for (const gone of [/Yard mule/, /Yard spotter/, /OTR/, /Passengers/, /School bus/]) {
+      expect(screen.queryByText(gone)).not.toBeInTheDocument();
+    }
   });
 
   it("shows nothing selected for a card whose class was never picked", () => {
@@ -247,7 +274,7 @@ describe("ProfileEditor", () => {
     await userEvent.click(screen.getByText("Either works"));
     await userEvent.click(screen.getByText("Weekends"));
     await userEvent.click(screen.getByText("10 or more"));
-    await userEvent.click(screen.getByText("OTR (over the road)"));
+    await userEvent.click(screen.getByText("Regional"));
     await userEvent.click(screen.getByText("Reefer"));
     await userEvent.click(screen.getByText("Automatic only"));
     await userEvent.click(checkRadio(CARD_CHECKS.twicActive.question, "No"));
@@ -264,7 +291,7 @@ describe("ProfileEditor", () => {
         endorsements: ["H", "T"],
         yearsExperience: 10,
         certifications: ["OSHA 10"],
-        drivingStyles: ["local_day_cab", "regional", "otr"],
+        drivingStyles: ["local_day_cab"],
         transmission: "automatic_only",
         equipmentTypes: ["dry_van", "flatbed", "reefer"],
         twicActive: false,

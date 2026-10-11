@@ -14,7 +14,7 @@ export const ROLE_OPTIONS: readonly CardOption<SignupRole>[] = [
   {
     value: "driver",
     label: "I drive or work trucks",
-    description: "Drivers, yard spotters and mechanics. Get shift offers by text.",
+    description: "Class A and B CDL drivers. Get shift offers by text.",
     icon: Truck,
   },
   {

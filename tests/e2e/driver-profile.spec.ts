@@ -151,7 +151,9 @@ test.describe("driver profile", () => {
     await page.getByRole("button", { name: "Remove OSHA 10" }).click();
     await page.getByRole("textbox", { name: "Certifications" }).fill("Forklift");
     await page.getByRole("button", { name: "Add", exact: true }).click();
-    await page.getByText("OTR (over the road)", { exact: true }).click();
+    // Local shift coverage only: no OTR on the profile either.
+    await expect(page.getByText("OTR (over the road)", { exact: true })).toHaveCount(0);
+    await page.getByText("Regional", { exact: true }).click();
     await page.getByText("Reefer", { exact: true }).click();
     await page.getByText("Automatic only", { exact: true }).click();
     await page
@@ -183,7 +185,7 @@ test.describe("driver profile", () => {
       endorsements: ["H", "T"],
       years_experience: 10,
       certifications: ["Forklift"],
-      driving_styles: ["local_day_cab", "otr"],
+      driving_styles: ["local_day_cab", "regional"],
       transmission: "automatic_only",
       equipment_types: ["dry_van", "reefer"],
       twic_active: false,
