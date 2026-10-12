@@ -201,7 +201,7 @@ describe("/terms", () => {
     render(<TermsPage />);
     const main = screen.getByRole("main");
     for (const heading of [
-      "1. What FleetGrid is",
+      "1. What is FleetGrid?",
       "2. Accounts",
       "3. Drivers",
       "4. Carriers",
@@ -217,6 +217,22 @@ describe("/terms", () => {
     }
     expect(main).toHaveTextContent(/not an employer, a staffing agency, a freight broker/);
     expect(main).toHaveTextContent(/Reply STOP to stop and HELP for help/);
+    // The client's wording of 2026-10-12.
+    for (const text of [
+      "You must be 18 years old or older",
+      "by checking the consent box",
+      "We will notify you when we become aware.",
+      "sign-in are removed permanently",
+      "Carriers maintain sole responsibility for evaluating, qualifying and managing all drivers. FleetGrid provides directory matching only.",
+      "verifying the driver's CDL, DOT medical card, TWIC, MVR record and FMCSA Clearinghouse status",
+      "creating and maintaining all FMCSA-required Driver Qualification (DQ) files",
+      "supplying appropriate commercial insurance",
+      "setting pay rates, managing tax classifications (W-2 or 1099) and paying drivers directly",
+      "You are fully responsible for your shifts, equipment, operations and the personnel you engage.",
+    ]) {
+      expect(main, text).toHaveTextContent(text);
+    }
+    expect(main).not.toHaveTextContent(/for good|ticking/);
     expect(within(main).getByRole("link", { name: "SMS Terms" })).toHaveAttribute(
       "href",
       "/sms-terms",
@@ -250,6 +266,26 @@ describe("/privacy", () => {
       "href",
       "https://www.geonames.org/",
     );
+  });
+
+  it("styles the Data sources paragraph like every other paragraph (client note of 2026-10-12)", () => {
+    render(<PrivacyPage />);
+    const main = screen.getByRole("main");
+    const firstHeading = within(main).getByRole("heading", { name: "1. What we collect" });
+    // Every body paragraph, from the first section on (the "Effective" line above is the header).
+    const paragraphs = [...main.querySelectorAll("p")].filter(
+      (paragraph) =>
+        firstHeading.compareDocumentPosition(paragraph) & Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    const dataSources = within(main).getByRole("link", { name: "GeoNames" }).closest("p");
+    expect(dataSources).not.toBeNull();
+    expect(paragraphs).toContain(dataSources);
+    // No body paragraph carries its own size, line height or colour; the page sets them once.
+    for (const paragraph of paragraphs) {
+      expect(paragraph.className, paragraph.textContent ?? "").not.toMatch(
+        /text-small|leading-small|text-muted-foreground/,
+      );
+    }
   });
 });
 

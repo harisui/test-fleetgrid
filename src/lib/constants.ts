@@ -21,7 +21,7 @@ export const DEFAULT_TIMEZONE = "America/Chicago";
 
 export const SMS_PROGRAM_NAME = "FleetGrid Shift Alerts";
 /** The date the public Terms and Privacy pages took effect. */
-export const LEGAL_EFFECTIVE_DATE = "October 10, 2026";
+export const LEGAL_EFFECTIVE_DATE = "October 12, 2026";
 
 export const DOCUMENTS_BUCKET = "driver-documents";
 /** "Other papers" (document type certification) a driver can keep at once. */

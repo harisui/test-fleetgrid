@@ -131,11 +131,11 @@ export default function PrivacyPage() {
       <p>The service is for adults 18 and older. We do not knowingly collect data from children.</p>
 
       <h2>9. Data sources</h2>
-      <p className="text-small leading-small text-muted-foreground">
+      <p>
         ZIP code, city and state data comes from{" "}
         <a
           href="https://www.geonames.org/"
-          className="underline underline-offset-4"
+          className="text-foreground underline underline-offset-4"
           rel="noopener noreferrer"
           target="_blank"
         >

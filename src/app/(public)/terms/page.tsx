@@ -20,7 +20,7 @@ export default function TermsPage() {
         agree, do not use the service.
       </p>
 
-      <h2>1. What FleetGrid is</h2>
+      <h2>1. What is FleetGrid?</h2>
       <p>
         FleetGrid is a confidential directory that connects local freight carriers with certified
         CDL drivers. Drivers create a qualification card and can receive shift offers by text.
@@ -37,7 +37,7 @@ export default function TermsPage() {
 
       <h2>2. Accounts</h2>
       <ul>
-        <li>You must be 18 or older and have a US mobile number to use the service.</li>
+        <li>You must be 18 years old or older and have a US mobile number to use the service.</li>
         <li>
           You sign in with a one-time code sent to your number. There is no password. Keep your
           phone secure; anyone with access to your number and the code can use your account.
@@ -79,14 +79,34 @@ export default function TermsPage() {
           resell or share driver data, or contact drivers for any other purpose.
         </li>
         <li>
-          You are responsible for your shifts, for the people you hire and for complying with the
-          laws that apply to your business.
+          Carriers maintain sole responsibility for evaluating, qualifying and managing all
+          drivers. FleetGrid provides directory matching only. Before assigning any shift, you are
+          solely responsible for:
+          <ul>
+            <li>
+              verifying the driver&apos;s CDL, DOT medical card, TWIC, MVR record and FMCSA
+              Clearinghouse status;
+            </li>
+            <li>creating and maintaining all FMCSA-required Driver Qualification (DQ) files;</li>
+            <li>
+              supplying appropriate commercial insurance and maintaining compliance with all
+              federal, state and local transportation laws;
+            </li>
+            <li>
+              setting pay rates, managing tax classifications (W-2 or 1099) and paying drivers
+              directly.
+            </li>
+          </ul>
+        </li>
+        <li>
+          You are fully responsible for your shifts, equipment, operations and the personnel you
+          engage.
         </li>
       </ul>
 
       <h2>5. Text messages</h2>
       <p>
-        Drivers choose whether to receive shift offers by text by ticking the consent box during
+        Drivers choose whether to receive shift offers by text by checking the consent box during
         sign-up. Message frequency varies and message and data rates may apply. Reply STOP to stop
         and HELP for help. Login codes are sent to everyone who signs in. The full program terms
         are in the{" "}
@@ -110,14 +130,14 @@ export default function TermsPage() {
       <p>
         New driver profiles are reviewed by FleetGrid before carriers can see them. We may approve,
         hold, suspend or remove any account or profile at any time, for example for a false answer,
-        a complaint from a carrier or driver, or a breach of these terms. We will tell you when we
-        can.
+        a complaint from a carrier or driver, or a breach of these terms. We will notify you when
+        we become aware.
       </p>
 
       <h2>8. Deleting your account</h2>
       <p>
         You can delete your account at any time from your profile page. Your card, documents and
-        sign-in are removed for good. We keep a record of your text-message consent and opt-out, as
+        sign-in are removed permanently. We keep a record of your text-message consent and opt-out, as
         US texting rules require, and anything we must keep by law. See the{" "}
         <Link href="/privacy" className={linkClass}>
           Privacy Policy
