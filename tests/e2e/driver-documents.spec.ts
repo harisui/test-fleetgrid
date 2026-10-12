@@ -182,7 +182,7 @@ test.describe("driver documents", () => {
   test("Other papers hold several files, up to five", async ({ page }) => {
     const driverId = await startWithCard(page);
     const tile = page.locator("[data-slot=multi-upload-tile]");
-    await expect(tile).toContainText("TWIC card, forklift card, other certificates");
+    await expect(tile).toContainText("TWIC, forklift cert, or extra CDL endorsements (optional)");
     await expect(tile).toHaveAttribute("data-count", "0");
 
     const chooser = page.getByLabel("Choose a file for other papers");

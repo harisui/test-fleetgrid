@@ -343,7 +343,8 @@ describe("options", () => {
     ]);
     const other = ONBOARDING_DOCUMENT_TILES[3];
     expect(other.label).toBe("Other papers");
-    expect(other.helper).toBe("TWIC card, forklift card, other certificates");
+    // The client's words of 2026-10-12.
+    expect(other.helper).toBe("TWIC, forklift cert, or extra CDL endorsements (optional)");
   });
 });
 

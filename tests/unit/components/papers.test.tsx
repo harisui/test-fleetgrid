@@ -45,7 +45,7 @@ const pdf = (name: string) => new File(["%PDF-1.4"], name, { type: "application/
 describe("MultiUploadTile", () => {
   const base = {
     label: "Other papers",
-    helper: "TWIC card, forklift card, other certificates",
+    helper: "TWIC, forklift cert, or extra CDL endorsements (optional)",
     max: 5,
     onFile: vi.fn(),
     onRemove: vi.fn(),

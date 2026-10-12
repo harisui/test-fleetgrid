@@ -272,7 +272,7 @@ export interface DocumentTile {
 export const OTHER_PAPERS_TILE: DocumentTile = {
   type: "certification",
   label: "Other papers",
-  helper: "TWIC card, forklift card, other certificates",
+  helper: "TWIC, forklift cert, or extra CDL endorsements (optional)",
   max: CERTIFICATION_DOCUMENTS_MAX,
 };
 
