@@ -1,5 +1,11 @@
 import { SMS_CONSENT_TEXT } from "@/lib/constants";
-import type { DriverDocument, LocatedDriver, Profile } from "@/types/domain";
+import type {
+  DriverDocument,
+  LocatedCarrier,
+  LocatedDriver,
+  Profile,
+  Subscription,
+} from "@/types/domain";
 
 /**
  * Test data builders. Each builder returns a valid object and accepts overrides.
@@ -219,5 +225,86 @@ export const validCard = (overrides: Record<string, unknown> = {}) => ({
   ...validLicenses(),
   ...validChecks(),
   ...validAvailability(),
+  ...overrides,
+});
+
+// ---------------------------------------------------------------------------
+// Carrier side (Milestone 2)
+// ---------------------------------------------------------------------------
+
+export const CARRIER_USER_ID = "44444444-4444-4444-8444-444444444444";
+export const CARRIER_ID = "c0000000-0000-4000-8000-000000000001";
+export const SUBSCRIPTION_ID = "s0000000-0000-4000-8000-000000000001";
+
+/** ZIP centres from the dataset: Houston is in the launch area, Dallas is not. */
+export const PLACES = {
+  houston: { city: "Houston", state: "TX", zip: "77002", lat: 29.7594, lng: -95.3594 },
+  pasadena: { city: "Pasadena", state: "TX", zip: "77506", lat: 29.7009, lng: -95.1989 },
+  dallas: { city: "Dallas", state: "TX", zip: "75201", lat: 32.7904, lng: -96.8044 },
+} as const;
+
+export function buildCarrierProfile(overrides: Partial<Profile> = {}): Profile {
+  return buildProfile({
+    id: CARRIER_USER_ID,
+    role: "carrier",
+    phone: TEST_PHONES.carrier,
+    status: "approved",
+    ...overrides,
+  });
+}
+
+/** A carrier with a Houston yard, inside the launch area, before any checkout. */
+export function buildCarrier(overrides: Partial<LocatedCarrier> = {}): LocatedCarrier {
+  return build<LocatedCarrier>(
+    {
+      id: CARRIER_ID,
+      profileId: CARRIER_USER_ID,
+      companyName: "Bayou Freight LLC",
+      contactName: "Maria Lopez",
+      billingEmail: "billing@bayoufreight.example",
+      usdot: "1234567",
+      mc: null,
+      city: PLACES.houston.city,
+      state: PLACES.houston.state,
+      zip: PLACES.houston.zip,
+      lat: PLACES.houston.lat,
+      lng: PLACES.houston.lng,
+      stripeCustomerId: null,
+      inServiceArea: true,
+      createdAt: TIMESTAMP,
+      updatedAt: TIMESTAMP,
+    },
+    overrides,
+  );
+}
+
+/** An active monthly subscription for buildCarrier(). */
+export function buildSubscription(overrides: Partial<Subscription> = {}): Subscription {
+  return build<Subscription>(
+    {
+      id: SUBSCRIPTION_ID,
+      carrierId: CARRIER_ID,
+      stripeSubscriptionId: "sub_test_0001",
+      stripeCustomerId: "cus_test_0001",
+      status: "active",
+      priceId: "price_test_monthly",
+      currentPeriodEnd: "2026-11-13T12:00:00.000Z",
+      cancelAtPeriodEnd: false,
+      canceledAt: null,
+      createdAt: TIMESTAMP,
+      updatedAt: TIMESTAMP,
+    },
+    overrides,
+  );
+}
+
+/** Valid raw input for the carrier details form. */
+export const validCarrierDetails = (overrides: Record<string, unknown> = {}) => ({
+  companyName: "Bayou Freight LLC",
+  contactName: "Maria Lopez",
+  billingEmail: "billing@bayoufreight.example",
+  usdot: "1234567",
+  mc: "",
+  zip: PLACES.houston.zip,
   ...overrides,
 });

@@ -98,6 +98,24 @@ describe("AccountService", () => {
       expect(accounts.deleted).toEqual([]);
     });
 
+    it("cancels a carrier's billing before the user goes, and stops if that fails", async () => {
+      const cancelled: string[] = [];
+      const withBilling = new AccountService(auth, drivers, documents, () => accounts, async (id) => {
+        cancelled.push(id);
+      });
+      await withBilling.deleteOwnAccount(USER, { code: "123456" });
+      expect(cancelled).toEqual([USER_ID]);
+      expect(accounts.deleted).toEqual([USER_ID]);
+
+      accounts.deleted.length = 0;
+      await service.requestDeletionCode(USER);
+      const failing = new AccountService(auth, drivers, documents, () => accounts, async () => {
+        throw new Error("Stripe down");
+      });
+      await expect(failing.deleteOwnAccount(USER, { code: "123456" })).rejects.toThrow("Stripe down");
+      expect(accounts.deleted).toEqual([]);
+    });
+
     it("still succeeds when the sign-out fails because the user is already gone", async () => {
       auth.signOut = async () => {
         throw new Error("session gone");

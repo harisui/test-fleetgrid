@@ -19,6 +19,8 @@ export class AccountService {
     private readonly documents: IDocumentRepository,
     /** Built on demand: the admin client is only ever created for this one operation. */
     private readonly accounts: () => IAccountRepository,
+    /** Stops a carrier's billing before the account goes (Milestone 2). No-op for drivers. */
+    private readonly cancelSubscription: (userId: string) => Promise<void> = async () => undefined,
   ) {}
 
   /** Texts a code to the signed-in person's own number, never to one they typed. */
@@ -35,6 +37,9 @@ export class AccountService {
   async deleteOwnAccount(user: SessionUser, input: unknown): Promise<void> {
     const { code } = parseInput(deleteAccountSchema, input);
     await this.auth.verifyOtp(user.phone, code);
+
+    // A carrier's Stripe subscription is cancelled first; a deleted account is never billed.
+    await this.cancelSubscription(user.id);
 
     const driver = await this.drivers.findByProfileId(user.id);
     if (driver) {

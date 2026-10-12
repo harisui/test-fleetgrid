@@ -2,8 +2,19 @@
 export const SMS_CONSENT_VERSION = "2026-10-v1";
 export const SMS_CONSENT_TEXT =
   "I agree to receive text messages from FleetGrid about available shifts at this number. Message frequency varies. Message and data rates may apply. Reply STOP to opt out, HELP for help.";
-export const TOS_VERSION = "2026-10-v1"; // used in M2
-export const ALLOWED_SUB_STATUSES = ["active", "trialing"] as const; // used in M2
+/** Bump when the Terms of Service change in a way carriers must accept again. */
+export const TOS_VERSION = "2026-10-v1";
+export const ALLOWED_SUB_STATUSES = ["active", "trialing"] as const;
+/** The carrier plan as shown on the billing page. Stripe holds the real price. */
+export const SUBSCRIPTION_PRICE_LABEL = "$399 a month";
+export const SUBSCRIPTION_PLAN_NAME = "FleetGrid Carrier";
+/** Driver search (T2.7): results per page and the distance from the yard. */
+export const SEARCH_PAGE_SIZE = 20;
+export const SEARCH_RADIUS_DEFAULT_MILES = 50;
+export const SEARCH_RADIUS_MIN_MILES = 5;
+export const SEARCH_RADIUS_MAX_MILES = 250;
+export const COMPANY_NAME_MAX_LENGTH = 120;
+export const CONTACT_NAME_MAX_LENGTH = 100;
 export const BROADCAST_MAX_RECIPIENTS = 200; // used in M3
 export const BROADCAST_SEND_CONCURRENCY = 10; // used in M3
 export const OTP_RESEND_COOLDOWN_SECONDS = 60;
