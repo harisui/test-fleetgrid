@@ -120,6 +120,104 @@ export async function createTestDriver(
   return { ...user, driverId: data.id };
 }
 
+/** ZIP centres from src/data/us-zips.tsv: inside the launch areas (Houston, Pasadena) and outside (Dallas). */
+export const TEST_PLACES = {
+  houston: { city: "Houston", state: "TX", zip: "77002", lat: 29.7594, lng: -95.3594 },
+  pasadena: { city: "Pasadena", state: "TX", zip: "77506", lat: 29.7009, lng: -95.1989 },
+  dallas: { city: "Dallas", state: "TX", zip: "75201", lat: 32.7904, lng: -96.8044 },
+} as const;
+
+type Place = (typeof TEST_PLACES)[keyof typeof TEST_PLACES];
+type DriverInsert = Database["public"]["Tables"]["drivers"]["Insert"];
+
+/**
+ * A driver a subscribed carrier can see: approved, complete, opted in, inside a launch area.
+ * Override any column, for example to make the card pending, opted out or out of area.
+ */
+export async function createListedDriver(
+  options: { fullName?: string; place?: Place; status?: Status } & Partial<DriverInsert> = {},
+): Promise<TestDriver> {
+  const { fullName, place = TEST_PLACES.houston, status = "approved", ...columns } = options;
+  const user = await createTestUser({ role: "driver", status });
+  const { data, error } = await serviceClient()
+    .from("drivers")
+    .insert({
+      profile_id: user.id,
+      full_name: fullName ?? "Listed Driver",
+      operator_types: ["cdl_driver"],
+      cdl_class: "A",
+      endorsements: ["H", "N", "T", "X"],
+      years_experience: 8,
+      city: place.city,
+      state: place.state,
+      zip: place.zip,
+      lat: place.lat,
+      lng: place.lng,
+      transmission: "manual_ok",
+      equipment_types: ["dry_van", "flatbed"],
+      twic_active: true,
+      medical_card_active: true,
+      mvr_status: "clean",
+      sms_opt_in: true,
+      sms_opt_in_at: new Date().toISOString(),
+      sms_opt_in_text: "I agree",
+      onboarding_step: 12,
+      card_completed: true,
+      ...columns,
+    })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error(`listed driver insert failed: ${error?.message}`);
+  return { ...user, driverId: data.id };
+}
+
+export interface TestCarrier extends TestUser {
+  carrierId: string;
+}
+
+/** A carrier with a company row at the given yard, and optionally a subscription in the given status. */
+export async function createTestCarrier(
+  options: {
+    place?: Place;
+    status?: Status;
+    subscription?: Database["public"]["Enums"]["subscription_status"] | null;
+    companyName?: string;
+  } = {},
+): Promise<TestCarrier> {
+  const { place = TEST_PLACES.houston, status = "approved", subscription = null } = options;
+  const user = await createTestUser({ role: "carrier", status });
+  const admin = serviceClient();
+  const customerId = subscription ? `cus_test_${randomUUID().slice(0, 8)}` : null;
+  const { data, error } = await admin
+    .from("carriers")
+    .insert({
+      profile_id: user.id,
+      company_name: options.companyName ?? "Test Freight",
+      contact_name: "Test Owner",
+      billing_email: `billing-${randomUUID().slice(0, 8)}@example.com`,
+      city: place.city,
+      state: place.state,
+      zip: place.zip,
+      lat: place.lat,
+      lng: place.lng,
+      stripe_customer_id: customerId,
+    })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error(`carrier insert failed: ${error?.message}`);
+  if (subscription) {
+    const { error: subscriptionError } = await admin.from("subscriptions").insert({
+      carrier_id: data.id,
+      stripe_subscription_id: `sub_test_${randomUUID().slice(0, 8)}`,
+      stripe_customer_id: customerId!,
+      status: subscription,
+      current_period_end: new Date(Date.now() + 30 * 86_400_000).toISOString(),
+    });
+    if (subscriptionError) throw new Error(`subscription insert failed: ${subscriptionError.message}`);
+  }
+  return { ...user, carrierId: data.id };
+}
+
 /** Deletes every user created through this module, with their rows and files. */
 export async function cleanupTestUsers(): Promise<void> {
   const admin = serviceClient();
