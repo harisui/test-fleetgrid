@@ -4,6 +4,7 @@ import { createServerClient } from "@/lib/supabase/server";
 import { getPaymentProvider } from "@/server/providers/createPaymentProvider";
 import { FileZipProvider } from "@/server/providers/ZipProvider";
 import { AccountRepository } from "@/server/repositories/AccountRepository";
+import { AdminRepository } from "@/server/repositories/AdminRepository";
 import { AuthRepository } from "@/server/repositories/AuthRepository";
 import type { TypedSupabaseClient } from "@/server/repositories/BaseRepository";
 import { CarrierRepository } from "@/server/repositories/CarrierRepository";
@@ -18,6 +19,7 @@ import { TosRepository } from "@/server/repositories/TosRepository";
 import { WaitlistRepository } from "@/server/repositories/WaitlistRepository";
 import { WebhookEventRepository } from "@/server/repositories/WebhookEventRepository";
 import { AccountService } from "@/server/services/AccountService";
+import { AdminService } from "@/server/services/AdminService";
 import { AuthService } from "@/server/services/AuthService";
 import { CarrierService } from "@/server/services/CarrierService";
 import { DocumentService } from "@/server/services/DocumentService";
@@ -89,6 +91,7 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     carrierService,
     subscriptionService,
     driverSearchService: new DriverSearchService(carrierService, driverSearch, documents),
+    adminService: new AdminService(new AdminRepository(supabase), profiles, serviceAreas),
   };
 }
 
