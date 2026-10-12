@@ -2,7 +2,12 @@
 
 import { useEffect, useState } from "react";
 import { normalizeZip } from "@/lib/validation/onboarding.schema";
+import type { Result } from "@/server/errors/AppError";
 import { lookupZipAction } from "@/server/actions/driver.actions";
+import type { ZipLookup } from "@/server/services/ZipLookupService";
+
+/** The server action that answers a ZIP. Drivers and carriers each have their own. */
+export type ZipLookupAction = (zip: unknown) => Promise<Result<ZipLookup | null>>;
 
 export const ZIP_LOOKUP_DELAY_MS = 250;
 
@@ -41,7 +46,11 @@ interface LookupResult {
  * place, when the typed ZIP is the saved one, shows at once while the answer is on its way.
  * A failed request leaves the status pending: the server checks the ZIP again on save.
  */
-export function useZipLookup(value: unknown, saved: ZipPlace | null = null): ZipLookupState {
+export function useZipLookup(
+  value: unknown,
+  saved: ZipPlace | null = null,
+  lookupAction: ZipLookupAction = lookupZipAction,
+): ZipLookupState {
   const zip = fiveDigits(value);
   const [result, setResult] = useState<LookupResult | null>(null);
 
@@ -49,7 +58,7 @@ export function useZipLookup(value: unknown, saved: ZipPlace | null = null): Zip
     if (!zip) return;
     let cancelled = false;
     const timer = setTimeout(async () => {
-      const lookup = await lookupZipAction(zip);
+      const lookup = await lookupAction(zip);
       if (cancelled || !lookup.ok) return;
       setResult({
         zip,
@@ -61,7 +70,7 @@ export function useZipLookup(value: unknown, saved: ZipPlace | null = null): Zip
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [zip]);
+  }, [zip, lookupAction]);
 
   if (!zip) return { status: "idle", zip: null, place: null, inServiceArea: null };
   if (result?.zip === zip) {

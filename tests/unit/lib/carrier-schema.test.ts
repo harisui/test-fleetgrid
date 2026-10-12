@@ -146,6 +146,11 @@ describe("driverSearchSchema", () => {
     });
     expect(parsed.cdlClass).toBeUndefined();
     expect(parsed.minYears).toBeUndefined();
+    // The dropdowns submit "any" for no choice.
+    const anyChoice = driverSearchSchema.parse({ cdlClass: "any", minYears: "any", mvrMax: "any" });
+    expect(anyChoice.cdlClass).toBeUndefined();
+    expect(anyChoice.minYears).toBeUndefined();
+    expect(anyChoice.mvrMax).toBeUndefined();
     expect(parsed.twicActive).toBeUndefined();
     expect(parsed.medicalCardActive).toBeUndefined();
     expect(parsed.mvrMax).toBeUndefined();

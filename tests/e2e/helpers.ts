@@ -238,6 +238,69 @@ function driverRowAtStep(stepNumber: number) {
   };
 }
 
+/** The carrier details as the sign-up form takes them. Houston yard. */
+export const CARRIER_DETAILS = {
+  companyName: "Bayou Freight LLC",
+  contactName: "Maria Lopez",
+  billingEmail: "billing@bayoufreight.example",
+  usdot: "1234567",
+} as const;
+
+/**
+ * A carrier with the company row saved at the given yard, optionally past the Terms and with
+ * a subscription in the given status. Returns the ids the tests check against.
+ */
+export async function seedCarrier(
+  phone: string,
+  options: {
+    place?: keyof typeof PLACES;
+    terms?: boolean;
+    subscription?: "active" | "trialing" | "past_due" | "canceled" | null;
+    status?: Status;
+  } = {},
+): Promise<{ userId: string; carrierId: string }> {
+  const userId = await seedUser(phone, "carrier", options.status ?? "approved");
+  const place = PLACES[options.place ?? "houston"];
+  const admin = adminClient();
+  const customerId = options.subscription ? `cus_e2e_${userId.slice(0, 8)}` : null;
+  const { data, error } = await admin
+    .from("carriers")
+    .insert({
+      profile_id: userId,
+      company_name: CARRIER_DETAILS.companyName,
+      contact_name: CARRIER_DETAILS.contactName,
+      billing_email: CARRIER_DETAILS.billingEmail,
+      usdot: CARRIER_DETAILS.usdot,
+      city: place.city,
+      state: place.state,
+      zip: place.zip,
+      lat: place.lat,
+      lng: place.lng,
+      stripe_customer_id: customerId,
+    })
+    .select("id")
+    .single();
+  if (error) throw new Error(`seedCarrier failed: ${error.message}`);
+  if (options.terms) {
+    const { error: tosError } = await admin
+      .from("tos_acceptances")
+      .insert({ profile_id: userId, version: "2026-10-v1" });
+    if (tosError) throw new Error(`seedCarrier terms failed: ${tosError.message}`);
+  }
+  if (options.subscription) {
+    const { error: subscriptionError } = await admin.from("subscriptions").insert({
+      carrier_id: data.id,
+      stripe_subscription_id: `sub_e2e_${userId.slice(0, 8)}`,
+      stripe_customer_id: customerId!,
+      status: options.subscription,
+      price_id: "price_e2e_monthly",
+      current_period_end: new Date(Date.now() + 30 * 86_400_000).toISOString(),
+    });
+    if (subscriptionError) throw new Error(`seedCarrier subscription failed: ${subscriptionError.message}`);
+  }
+  return { userId, carrierId: data.id };
+}
+
 export const CONSENT_TEXT =
   "I agree to receive text messages from FleetGrid about available shifts at this number. Message frequency varies. Message and data rates may apply. Reply STOP to opt out, HELP for help.";
 

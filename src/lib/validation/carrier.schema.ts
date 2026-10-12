@@ -15,8 +15,9 @@ import { CDL_HELD_CLASSES, ENDORSEMENTS, EQUIPMENT_TYPES, MVR_STATUSES } from "@
  * checkbox, the driver search filters and the ids the pages pass around.
  */
 
+/** A blank field, and the "any" choice of a filter dropdown, both mean "none". */
 const blankToNull = (value: unknown) =>
-  typeof value === "string" && value.trim() === "" ? null : value;
+  typeof value === "string" && (value.trim() === "" || value === "any") ? null : value;
 
 /** An optional federal number: digits only, up to eight. Blank means none. */
 const federalNumber = (label: string) =>
@@ -95,7 +96,7 @@ export const driverSearchSchema = z.object({
   ),
   endorsements: list(ENDORSEMENTS),
   minYears: z.preprocess(
-    (value) => (value === "" || value === null || value === undefined ? undefined : value),
+    (value) => blankToNull(value) ?? undefined,
     z.coerce.number().int().min(0).max(YEARS_EXPERIENCE_MAX).optional(),
   ),
   twicActive: optionalFlag,
