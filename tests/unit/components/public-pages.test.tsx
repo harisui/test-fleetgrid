@@ -258,6 +258,8 @@ describe("/privacy", () => {
     }
     expect(main).toHaveTextContent(/phone number is never shown to carriers/);
     expect(main).toHaveTextContent(/do not sell your personal information/);
+    expect(main).toHaveTextContent(/by checking a box during sign-up/);
+    expect(main).not.toHaveTextContent(/ticking/);
     expect(main).toHaveTextContent(
       /record of text-message consent and opt-outs, including the phone number and time/,
     );
@@ -319,6 +321,11 @@ describe("/sms-terms", () => {
     expect(contact.querySelector("a[href^='tel:']")).toBeNull();
     // No sharing for marketing
     expect(within(main).getByText(/do not sell your phone number/)).toBeInTheDocument();
+    // How you opt in, in the client's words (2026-10-12)
+    expect(main).toHaveTextContent(
+      "Drivers opt in during sign-up by checking an unchecked box next to this statement:",
+    );
+    expect(main).not.toHaveTextContent(/ticking/);
   });
 
   it("shows a configured support phone and email instead", () => {

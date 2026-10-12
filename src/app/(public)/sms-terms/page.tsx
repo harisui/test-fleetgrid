@@ -28,7 +28,7 @@ export default function SmsTermsPage() {
       </p>
 
       <h2>How you opt in</h2>
-      <p>Drivers opt in during sign-up by ticking an unchecked box next to this statement:</p>
+      <p>Drivers opt in during sign-up by checking an unchecked box next to this statement:</p>
       <blockquote className="border-border text-muted-foreground border-l-4 pl-4">
         {SMS_CONSENT_TEXT}
       </blockquote>

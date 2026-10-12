@@ -93,7 +93,7 @@ export default function PrivacyPage() {
 
       <h2>4. Text messages</h2>
       <p>
-        Drivers opt in to shift offers by ticking a box during sign-up. Reply STOP to any message to
+        Drivers opt in to shift offers by checking a box during sign-up. Reply STOP to any message to
         stop, START to begin again and HELP for help. Login codes are sent to everyone who signs in.
         The program terms are in the{" "}
         <Link href="/sms-terms" className={linkClass}>
