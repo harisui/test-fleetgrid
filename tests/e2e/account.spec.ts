@@ -90,7 +90,8 @@ test.describe("delete my account", () => {
   }) => {
     const userId = await seedUser(PHONES.carrier, "carrier");
     await login(page, PHONES.carrier);
-    await expect(page).toHaveURL(/\/carrier$/);
+    // A carrier without company details lands on the sign-up form, which carries the card.
+    await expect(page).toHaveURL(/\/carrier\/onboarding$/);
 
     await startDeletion(page);
     await enterCode(page, OTP);
@@ -123,6 +124,6 @@ test.describe("delete my account", () => {
     const { data: profiles } = await adminClient().from("profiles").select("id").eq("id", userId);
     expect(profiles).toHaveLength(1);
     await page.reload();
-    await expect(page).toHaveURL(/\/carrier$/);
+    await expect(page).toHaveURL(/\/carrier\/onboarding$/);
   });
 });

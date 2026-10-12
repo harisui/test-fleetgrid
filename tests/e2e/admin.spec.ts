@@ -29,11 +29,11 @@ async function expectNoAccessibilityViolations(page: Page, label: string) {
 
 test.describe("driver review", () => {
   test.beforeEach(async () => {
+    // Recreates the seeded admin with the same number; other specs rely on it existing.
     await seedUser(PHONES.admin, "admin", "approved");
   });
 
   test.afterAll(async () => {
-    await resetUser(PHONES.admin);
     await resetUser(PHONES.driver);
     await resetUser(PHONES.carrier);
   });
