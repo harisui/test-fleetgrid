@@ -211,7 +211,7 @@ describe("/terms", () => {
       "8. Deleting your account",
       "10. Disclaimers",
       "11. Limitation of liability",
-      "13. Governing law",
+      "13. Governing law and dispute resolution",
     ]) {
       expect(within(main).getByRole("heading", { name: heading })).toBeInTheDocument();
     }
@@ -231,6 +231,12 @@ describe("/terms", () => {
       "You are fully responsible for your shifts, equipment, operations and the personnel you engage.",
       // Section 3, Drivers, her sentence of 2026-10-13.
       "FleetGrid does not pay wages, withhold taxes, manage schedules, or issue tax forms (W-2/1099) to drivers. All work, payment, and engagement terms are strictly between you and the carrier.",
+      // Section 13, her expanded version of 2026-10-13: AAA arbitration, no class actions.
+      "final and binding individual arbitration administered by the American Arbitration Association (AAA) under its Commercial Rules",
+      "either party may bring claims in small claims court in Virginia if qualified",
+      "not in a class, consolidated, or representative action",
+      "the prevailing party shall be entitled to recover its reasonable attorneys’ fees and costs",
+      "brought exclusively in the state or federal courts located in Virginia",
     ]) {
       expect(main, text).toHaveTextContent(text);
     }

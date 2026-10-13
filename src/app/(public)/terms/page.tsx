@@ -180,11 +180,23 @@ export default function TermsPage() {
         after that means you accept them.
       </p>
 
-      <h2>13. Governing law</h2>
+      <h2>13. Governing law and dispute resolution</h2>
       <p>
         These terms are governed by the laws of the Commonwealth of Virginia, United States,
-        without regard to its conflict of law rules. Any dispute will be brought in the state or
-        federal courts located in Virginia, and you agree to their jurisdiction.
+        without regard to its conflict of law rules. Any dispute, claim or controversy arising out
+        of or relating to these terms or the service shall be resolved by final and binding
+        individual arbitration administered by the American Arbitration Association (AAA) under
+        its Commercial Rules, rather than in court, except that either party may bring claims in
+        small claims court in Virginia if qualified.
+      </p>
+      <p>
+        You and FleetGrid agree that any dispute resolution proceedings will be conducted only on
+        an individual basis and not in a class, consolidated, or representative action. If any
+        legal action or arbitration arises under these terms, the prevailing party shall be
+        entitled to recover its reasonable attorneys&rsquo; fees and costs from the non-prevailing
+        party. If an arbitrable claim proceeds in court for any reason, all disputes will be
+        brought exclusively in the state or federal courts located in Virginia, and you agree to
+        their jurisdiction.
       </p>
 
       <h2>14. Contact</h2>
