@@ -229,6 +229,8 @@ describe("/terms", () => {
       "supplying appropriate commercial insurance",
       "setting pay rates, managing tax classifications (W-2 or 1099) and paying drivers directly",
       "You are fully responsible for your shifts, equipment, operations and the personnel you engage.",
+      // Section 3, Drivers, her sentence of 2026-10-13.
+      "FleetGrid does not pay wages, withhold taxes, manage schedules, or issue tax forms (W-2/1099) to drivers. All work, payment, and engagement terms are strictly between you and the carrier.",
     ]) {
       expect(main, text).toHaveTextContent(text);
     }

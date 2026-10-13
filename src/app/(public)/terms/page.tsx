@@ -65,6 +65,11 @@ export default function TermsPage() {
           Receiving a shift offer is not an offer of employment and does not guarantee work.
           Accepting a shift is between you and the carrier.
         </li>
+        <li>
+          FleetGrid does not pay wages, withhold taxes, manage schedules, or issue tax forms
+          (W-2/1099) to drivers. All work, payment, and engagement terms are strictly between you
+          and the carrier.
+        </li>
       </ul>
 
       <h2>4. Carriers</h2>
