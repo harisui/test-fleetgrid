@@ -66,13 +66,13 @@ describe("landing page", () => {
     expect(screen.getByRole("link", { name: "I'm a Carrier" })).toHaveClass("h-target-lg");
   });
 
-  it("with CARRIER_DISABLED the carrier button says coming soon and goes to that page", () => {
+  it("with CARRIER_DISABLED the carrier button keeps its label and goes to the coming soon page", () => {
     availability.carrierDisabled = true;
     render(<LandingPage />);
-    expect(screen.queryByRole("link", { name: "I'm a Carrier" })).not.toBeInTheDocument();
-    const button = screen.getByRole("link", { name: "Carriers: coming soon" });
+    const button = screen.getByRole("link", { name: "I'm a Carrier" });
     expect(button).toHaveAttribute("href", "/carriers");
     expect(button).toHaveClass("h-target-lg");
+    expect(document.body.textContent).not.toMatch(/coming soon/i);
     // The driver side is untouched.
     expect(screen.getByRole("link", { name: "I'm a Driver" })).toHaveAttribute(
       "href",

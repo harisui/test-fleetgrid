@@ -88,6 +88,10 @@ export function decideRoute({
   const onChooseRole = isWithin(pathname, CHOOSE_ROLE_PATH);
   const onSignedOutOnly = SIGNED_OUT_ONLY.some((path) => isWithin(pathname, path));
 
+  // A signed-in carrier has no home while the carrier side is off, so the login pages stay
+  // open to them instead of bouncing to the coming soon page.
+  if (carrierDisabled && role === "carrier" && onSignedOutOnly) return allow;
+
   if (!signedIn) {
     if (requiredRole || onChooseRole) return redirectTo(LOGIN_PATH);
     return allow;

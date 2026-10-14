@@ -105,17 +105,10 @@ export default function LandingPage() {
             </p>
           </div>
           <Button asChild variant="secondary" className="sm:min-w-48">
-            {carrierDisabled ? (
-              <Link href={CARRIER_COMING_SOON_PATH}>
-                <Building2 aria-hidden="true" />
-                Carriers: coming soon
-              </Link>
-            ) : (
-              <Link href="/login?role=carrier">
-                <Building2 aria-hidden="true" />
-                I&apos;m a Carrier
-              </Link>
-            )}
+            <Link href={carrierDisabled ? CARRIER_COMING_SOON_PATH : "/login?role=carrier"}>
+              <Building2 aria-hidden="true" />
+              I&apos;m a Carrier
+            </Link>
           </Button>
         </div>
 

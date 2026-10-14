@@ -120,10 +120,19 @@ describe("decideRoute", () => {
 
     it("changes nothing for the other areas", () => {
       for (const path of [...DRIVER_PATHS, ...ADMIN_PATHS, ...PUBLIC_PATHS, ...SIGNED_OUT_ONLY_PATHS]) {
-        for (const who of everyone) {
+        for (const who of everyone.filter((who) => who !== CARRIER)) {
           expect(decideDisabled(path, who)).toEqual(decide(path, who));
         }
       }
+    });
+
+    it("a signed-in carrier may open the login pages instead of bouncing to the coming soon page", () => {
+      for (const path of SIGNED_OUT_ONLY_PATHS) {
+        expect(decideDisabled(path, CARRIER)).toEqual(allow);
+      }
+      // Their own area still goes to the coming soon page, and the role picker still goes home.
+      expect(decideDisabled("/carrier/search", CARRIER)).toEqual(to(CARRIER_COMING_SOON_PATH));
+      expect(decideDisabled("/choose-role", CARRIER)).toEqual(to("/carrier"));
     });
 
     it("is off unless asked for", () => {
