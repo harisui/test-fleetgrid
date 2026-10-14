@@ -23,7 +23,45 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "driver_documents": {
+            "carrier_waitlist": {
+                  Row: {
+                    "carrier_id": string,"created_at": string,"id": string,"lat": number,"lng": number,"updated_at": string,"zip": string
+                  }
+                  Insert: {
+                    "carrier_id": string,"created_at"?: string,"id"?: string,"lat": number,"lng": number,"updated_at"?: string,"zip": string
+                  }
+                  Update: {
+                    "carrier_id"?: string,"created_at"?: string,"id"?: string,"lat"?: number,"lng"?: number,"updated_at"?: string,"zip"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "carrier_waitlist_carrier_id_fkey"
+      columns: ["carrier_id"]
+isOneToOne: true
+      referencedRelation: "carriers"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"carriers": {
+                  Row: {
+                    "billing_email": string,"city": string,"company_name": string,"contact_name": string,"created_at": string,"id": string,"lat": number,"lng": number,"mc": string | null,"profile_id": string,"state": string,"stripe_customer_id": string | null,"updated_at": string,"usdot": string | null,"zip": string
+                  }
+                  Insert: {
+                    "billing_email": string,"city": string,"company_name": string,"contact_name": string,"created_at"?: string,"id"?: string,"lat": number,"lng": number,"mc"?: string | null,"profile_id": string,"state": string,"stripe_customer_id"?: string | null,"updated_at"?: string,"usdot"?: string | null,"zip": string
+                  }
+                  Update: {
+                    "billing_email"?: string,"city"?: string,"company_name"?: string,"contact_name"?: string,"created_at"?: string,"id"?: string,"lat"?: number,"lng"?: number,"mc"?: string | null,"profile_id"?: string,"state"?: string,"stripe_customer_id"?: string | null,"updated_at"?: string,"usdot"?: string | null,"zip"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "carriers_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: true
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"driver_documents": {
                   Row: {
                     "created_at": string,"driver_id": string,"file_name": string,"id": string,"mime_type": string,"size_bytes": number,"storage_path": string,"type": Database["public"]['Enums']["document_type"],"updated_at": string
                   }
@@ -100,6 +138,25 @@ isOneToOne: true
                   Relationships: [
                     
                   ]
+                },"subscriptions": {
+                  Row: {
+                    "cancel_at_period_end": boolean,"canceled_at": string | null,"carrier_id": string,"created_at": string,"current_period_end": string | null,"id": string,"price_id": string | null,"status": Database["public"]['Enums']["subscription_status"],"stripe_customer_id": string,"stripe_subscription_id": string,"updated_at": string
+                  }
+                  Insert: {
+                    "cancel_at_period_end"?: boolean,"canceled_at"?: string | null,"carrier_id": string,"created_at"?: string,"current_period_end"?: string | null,"id"?: string,"price_id"?: string | null,"status": Database["public"]['Enums']["subscription_status"],"stripe_customer_id": string,"stripe_subscription_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "cancel_at_period_end"?: boolean,"canceled_at"?: string | null,"carrier_id"?: string,"created_at"?: string,"current_period_end"?: string | null,"id"?: string,"price_id"?: string | null,"status"?: Database["public"]['Enums']["subscription_status"],"stripe_customer_id"?: string,"stripe_subscription_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "subscriptions_carrier_id_fkey"
+      columns: ["carrier_id"]
+isOneToOne: false
+      referencedRelation: "carriers"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"tos_acceptances": {
                   Row: {
                     "accepted_at": string,"created_at": string,"id": string,"ip": string | null,"profile_id": string,"updated_at": string,"user_agent": string | null,"version": string
@@ -119,6 +176,19 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"webhook_events": {
+                  Row: {
+                    "created_at": string,"event_id": string,"id": string,"provider": string,"type": string,"updated_at": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"event_id": string,"id"?: string,"provider"?: string,"type": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"event_id"?: string,"id"?: string,"provider"?: string,"type"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 }
           }
           Views: {
@@ -127,6 +197,12 @@ isOneToOne: false
           Functions: {
             "auth_role":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["user_role"]
+                           },
+"carrier_has_active_subscription":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"current_carrier_id":
+{ Args: Record<PropertyKey, never>; Returns: string
                            },
 "current_driver_id":
 { Args: Record<PropertyKey, never>; Returns: string
@@ -142,10 +218,18 @@ isOneToOne: false
                            },
 "miles_between":
 { Args: { "lat1": number,"lat2": number,"lng1": number,"lng2": number }; Returns: number
+                           },
+"profile_status":
+{ Args: { "p_profile_id": string }; Returns: Database["public"]['Enums']["account_status"]
+                           },
+"search_drivers":
+{ Args: { "p_cdl_class"?: Database["public"]['Enums']["cdl_class"],"p_endorsements"?: (Database["public"]['Enums']["endorsement"])[],"p_equipment"?: (Database["public"]['Enums']["equipment_type"])[],"p_lat": number,"p_limit"?: number,"p_lng": number,"p_manual"?: boolean,"p_medical"?: boolean,"p_min_years"?: number,"p_mvr_max"?: Database["public"]['Enums']["mvr_status"],"p_offset"?: number,"p_radius_miles": number,"p_twic"?: boolean }; Returns: {
+              "distance_miles": number,"driver_id": string,"total_count": number
+            }[]
                            }
           }
           Enums: {
-            "account_status": "pending"|"approved"|"blocked","availability_type": "full_time"|"part_time"|"on_call"|"weekends","cdl_class": "A"|"B"|"none","document_type": "cdl_front"|"cdl_back"|"medical_card"|"certification"|"other","driving_style": "local_day_cab"|"regional","employment_type": "w2"|"contractor_1099"|"either","endorsement": "H"|"N"|"T"|"X","equipment_type": "container_drayage"|"dry_van"|"flatbed"|"reefer","mvr_status": "clean"|"minor_1_2"|"major_3_plus","operator_type": "cdl_driver"|"yard_spotter"|"mechanic","sms_consent_event": "opt_in"|"opt_out"|"opt_in_again","sms_consent_source": "onboarding"|"sms_stop"|"sms_start"|"profile","transmission_type": "automatic_only"|"manual_ok","user_role": "driver"|"carrier"|"admin"
+            "account_status": "pending"|"approved"|"blocked","availability_type": "full_time"|"part_time"|"on_call"|"weekends","cdl_class": "A"|"B"|"none","document_type": "cdl_front"|"cdl_back"|"medical_card"|"certification"|"other","driving_style": "local_day_cab"|"regional","employment_type": "w2"|"contractor_1099"|"either","endorsement": "H"|"N"|"T"|"X","equipment_type": "container_drayage"|"dry_van"|"flatbed"|"reefer","mvr_status": "clean"|"minor_1_2"|"major_3_plus","operator_type": "cdl_driver"|"yard_spotter"|"mechanic","sms_consent_event": "opt_in"|"opt_out"|"opt_in_again","sms_consent_source": "onboarding"|"sms_stop"|"sms_start"|"profile","subscription_status": "trialing"|"active"|"past_due"|"canceled"|"unpaid"|"incomplete"|"incomplete_expired"|"paused","transmission_type": "automatic_only"|"manual_ok","user_role": "driver"|"carrier"|"admin"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -265,7 +349,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "account_status": ["pending", "approved", "blocked"],"availability_type": ["full_time", "part_time", "on_call", "weekends"],"cdl_class": ["A", "B", "none"],"document_type": ["cdl_front", "cdl_back", "medical_card", "certification", "other"],"driving_style": ["local_day_cab", "regional"],"employment_type": ["w2", "contractor_1099", "either"],"endorsement": ["H", "N", "T", "X"],"equipment_type": ["container_drayage", "dry_van", "flatbed", "reefer"],"mvr_status": ["clean", "minor_1_2", "major_3_plus"],"operator_type": ["cdl_driver", "yard_spotter", "mechanic"],"sms_consent_event": ["opt_in", "opt_out", "opt_in_again"],"sms_consent_source": ["onboarding", "sms_stop", "sms_start", "profile"],"transmission_type": ["automatic_only", "manual_ok"],"user_role": ["driver", "carrier", "admin"]
+            "account_status": ["pending", "approved", "blocked"],"availability_type": ["full_time", "part_time", "on_call", "weekends"],"cdl_class": ["A", "B", "none"],"document_type": ["cdl_front", "cdl_back", "medical_card", "certification", "other"],"driving_style": ["local_day_cab", "regional"],"employment_type": ["w2", "contractor_1099", "either"],"endorsement": ["H", "N", "T", "X"],"equipment_type": ["container_drayage", "dry_van", "flatbed", "reefer"],"mvr_status": ["clean", "minor_1_2", "major_3_plus"],"operator_type": ["cdl_driver", "yard_spotter", "mechanic"],"sms_consent_event": ["opt_in", "opt_out", "opt_in_again"],"sms_consent_source": ["onboarding", "sms_stop", "sms_start", "profile"],"subscription_status": ["trialing", "active", "past_due", "canceled", "unpaid", "incomplete", "incomplete_expired", "paused"],"transmission_type": ["automatic_only", "manual_ok"],"user_role": ["driver", "carrier", "admin"]
           }
         }
 } as const

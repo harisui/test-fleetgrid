@@ -19,6 +19,7 @@ export type DrivingStyle = Enums["driving_style"];
 export type TransmissionType = Enums["transmission_type"];
 export type EquipmentType = Enums["equipment_type"];
 export type MvrStatus = Enums["mvr_status"];
+export type SubscriptionStatus = Enums["subscription_status"];
 
 export const USER_ROLES = ["driver", "carrier", "admin"] as const satisfies readonly UserRole[];
 /** Roles a user can pick for themselves at sign-up. */
@@ -94,6 +95,18 @@ export const MVR_STATUSES = [
   "minor_1_2",
   "major_3_plus",
 ] as const satisfies readonly MvrStatus[];
+
+/** Every status Stripe reports. Access needs one of ALLOWED_SUB_STATUSES (constants.ts). */
+export const SUBSCRIPTION_STATUSES = [
+  "trialing",
+  "active",
+  "past_due",
+  "canceled",
+  "unpaid",
+  "incomplete",
+  "incomplete_expired",
+  "paused",
+] as const satisfies readonly SubscriptionStatus[];
 
 /** The one work type at launch (client decision of 2026-10-09). Set on every new card. */
 export const CDL_WORK_TYPE: OperatorType = "cdl_driver";
@@ -195,6 +208,71 @@ export interface DriverDocument {
   mimeType: string;
   sizeBytes: number;
   createdAt: string;
+}
+
+/** A carrier company (Milestone 2). The yard is the ZIP with its place from the dataset. */
+export interface Carrier {
+  id: string;
+  profileId: string;
+  companyName: string;
+  contactName: string;
+  billingEmail: string;
+  usdot: string | null;
+  mc: string | null;
+  city: string;
+  state: string;
+  zip: string;
+  lat: number;
+  lng: number;
+  /** Set by server code when checkout first starts. Null until then. */
+  stripeCustomerId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A carrier plus whether the yard sits inside an active service area, computed live. */
+export interface LocatedCarrier extends Carrier {
+  inServiceArea: boolean;
+}
+
+/** The mirror of a carrier's Stripe subscription, kept current by the webhook. */
+export interface Subscription {
+  id: string;
+  carrierId: string;
+  stripeSubscriptionId: string;
+  stripeCustomerId: string;
+  status: SubscriptionStatus;
+  priceId: string | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  canceledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A carrier waiting for FleetGrid to reach their yard. */
+export interface WaitlistEntry {
+  id: string;
+  carrierId: string;
+  zip: string;
+  lat: number;
+  lng: number;
+  createdAt: string;
+}
+
+export interface TosAcceptance {
+  id: string;
+  profileId: string;
+  version: string;
+  acceptedAt: string;
+  ip: string | null;
+  userAgent: string | null;
+}
+
+/** A listed driver as a search result: the card and how far it is from the yard. */
+export interface DriverMatch {
+  driver: Driver;
+  distanceMiles: number;
 }
 
 /** The signed-in auth user, before any profile lookup. */

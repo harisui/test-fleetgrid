@@ -3,6 +3,9 @@
 --   Admin:   +15555550102 (log in locally with code 123456)
 --   Drivers: +15555551001 to +15555551025 (seeded for search and admin screens, no login)
 --
+--   Carriers: +15555551101 (Bayou Freight, Houston, subscribed) and +15555551102 (Lone Star
+--             Hauling, Dallas, on the waitlist), no login
+--
 -- +15555550100 (driver) and +15555550101 (carrier) are left unseeded so the
 -- sign-up flow can be exercised by hand and by e2e tests.
 
@@ -146,3 +149,28 @@ begin
   end loop;
 end;
 $$;
+
+-- ---------------------------------------------------------------------------
+-- 2 carriers (Milestone 2): one in the launch area with an active subscription, one
+-- outside it on the waitlist. Stripe ids are placeholders; no real customer exists.
+-- ---------------------------------------------------------------------------
+select pg_temp.seed_user('00000000-0000-4000-a000-000000001101', '+15555551101');
+select pg_temp.seed_user('00000000-0000-4000-a000-000000001102', '+15555551102');
+
+insert into public.profiles (id, role, phone, status) values
+  ('00000000-0000-4000-a000-000000001101', 'carrier', '+15555551101', 'approved'),
+  ('00000000-0000-4000-a000-000000001102', 'carrier', '+15555551102', 'approved');
+
+insert into public.carriers (id, profile_id, company_name, contact_name, billing_email, usdot, mc, city, state, zip, lat, lng, stripe_customer_id) values
+  ('c0000000-0000-4000-a000-000000000001', '00000000-0000-4000-a000-000000001101', 'Bayou Freight LLC', 'Maria Lopez', 'billing@bayoufreight.example', '1234567', '987654', 'Houston', 'TX', '77002', 29.7594, -95.3594, 'cus_seed_bayou'),
+  ('c0000000-0000-4000-a000-000000000002', '00000000-0000-4000-a000-000000001102', 'Lone Star Hauling', 'Jim Reed', 'jim@lonestarhauling.example', null, null, 'Dallas', 'TX', '75201', 32.7904, -96.8044, null);
+
+insert into public.subscriptions (carrier_id, stripe_subscription_id, stripe_customer_id, status, price_id, current_period_end) values
+  ('c0000000-0000-4000-a000-000000000001', 'sub_seed_bayou', 'cus_seed_bayou', 'active', 'price_seed_monthly', now() + interval '30 days');
+
+insert into public.carrier_waitlist (carrier_id, zip, lat, lng) values
+  ('c0000000-0000-4000-a000-000000000002', '75201', 32.7904, -96.8044);
+
+insert into public.tos_acceptances (profile_id, version) values
+  ('00000000-0000-4000-a000-000000001101', '2026-10-v1'),
+  ('00000000-0000-4000-a000-000000001102', '2026-10-v1');

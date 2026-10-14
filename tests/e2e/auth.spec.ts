@@ -98,8 +98,8 @@ test.describe("phone login", () => {
     );
 
     await page.getByRole("button", { name: "Continue" }).click();
-    await expect(page).toHaveURL(/\/carrier$/);
-    await expect(page.getByRole("heading", { name: "Carrier setup coming soon" })).toBeVisible();
+    await expect(page).toHaveURL(/\/carrier\/onboarding$/);
+    await expect(page.getByRole("heading", { name: "Set up your company" })).toBeVisible();
   });
 
   test("/verify without a phone number goes back to /login", async ({ page }) => {
@@ -120,7 +120,7 @@ test.describe("role routing", () => {
   test("the seeded admin lands in the admin area", async ({ page }) => {
     await login(page, PHONES.admin);
     await expect(page).toHaveURL(/\/admin$/);
-    await expect(page.getByRole("heading", { name: "Admin panel coming soon" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Driver review" })).toBeVisible();
   });
 
   test("signed-out visitors are sent to /login from every protected area", async ({ page }) => {
@@ -153,7 +153,8 @@ test.describe("role routing", () => {
 
     for (const path of ["/driver/profile", "/driver/onboarding", "/admin", "/choose-role"]) {
       await page.goto(path);
-      await expect(page, path).toHaveURL(/\/carrier$/);
+      // The carrier home, which sends a carrier without company details to the sign-up form.
+      await expect(page, path).toHaveURL(/\/carrier\/onboarding$/);
     }
   });
 

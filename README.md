@@ -49,7 +49,8 @@ Copy `.env.example` to `.env.local`. The app validates these at startup (`src/li
 | `SUPABASE_SERVICE_ROLE_KEY`                      | Milestone 1 | `SERVICE_ROLE_KEY` from the same command. Server only. |
 | `SUPPORT_EMAIL`, `SUPPORT_PHONE`, `BUSINESS_ADDRESS` | Milestone 1 | optional overrides of the client's contact details in `src/lib/support.ts` (footer, Contact, Help, SMS Terms); address lines separated by ` \| ` |
 | `TWILIO_*`                                       | Milestone 3 | not needed yet                                         |
-| `STRIPE_*`, `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Milestone 2 | not needed yet                                         |
+| `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID_MONTHLY`, `STRIPE_WEBHOOK_SECRET` | Milestone 2 | the Stripe dashboard (test mode locally). With all three set, checkout and the webhook use Stripe. Leave them empty locally: with `ENABLE_TEST_LOGIN=true` an in-memory provider stands in and checkout goes to a page inside the app. Server only. |
+| `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`             | Milestone 2 | not used yet (Checkout is hosted by Stripe)            |
 
 Never commit `.env.local`. The service role key, Stripe secret and Twilio credentials must never be imported into client components.
 
@@ -128,6 +129,27 @@ Next, so a driver can leave and resume on the same page. The answers sign-up no 
 are optional on the profile page, and the CDL photos are asked for when a shift comes up
 (Milestone 3).
 
+### The carrier side (Milestone 2)
+
+A carrier signs in with the same text code, then: `/carrier/onboarding` (company, contact,
+billing email, optional USDOT and MC, the yard ZIP), `/carrier/terms` (the Terms of Service,
+logged with the IP and browser), `/carrier/billing` (Stripe Checkout for the $399 a month
+plan; the Customer Portal for card changes and cancellation), `/carrier/search` (listed
+drivers by distance from the yard, filters in the URL), `/carrier/drivers/[id]` (one driver's
+card and papers), `/carrier/account`. A yard outside every active service area lands on
+`/carrier/waitlist` instead of checkout. Every carrier page sends the carrier to the page for
+the stage they are at (`requireCarrierStage` in `src/lib/auth/guards.ts`), so the search is
+never reachable without an active subscription; the database says the same through RLS.
+
+Stripe keeps the `subscriptions` table current through `POST /api/stripe/webhook`
+(signature checked, each event id handled once). Register that URL in the Stripe dashboard
+with the events `checkout.session.completed`, `customer.subscription.*`, `invoice.paid` and
+`invoice.payment_failed`. Locally, without Stripe keys, `/carrier/billing/test-checkout` stands
+in for Checkout: "Pay" writes an active subscription the way a webhook would.
+
+A listed driver is one who is approved, has a complete card, has opted in to texts and has not
+opted out, with a ZIP inside an active service area. Carriers never see a driver's phone number.
+
 ## Architecture
 
 ```
@@ -200,9 +222,10 @@ The user must have logged in once and chosen a role first, so that a profile row
    ```
    Do not run the seed against production. It contains fake data only.
 4. Import the repository in Vercel (framework preset: Next.js, package manager: pnpm).
-5. Set the environment variables in Vercel for Production and Preview: `NEXT_PUBLIC_APP_URL` (the deployed URL), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`.
+5. Set the environment variables in Vercel for Production and Preview: `NEXT_PUBLIC_APP_URL` (the deployed URL), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and for the carrier side `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID_MONTHLY` (a recurring monthly price of $399) and `STRIPE_WEBHOOK_SECRET`.
 6. In Supabase, set the Site URL to the deployed URL (Authentication, URL Configuration).
-7. Deploy, then check `https://<your-domain>/api/health` returns `{"ok":true}`.
+7. In Stripe, add a webhook endpoint at `https://<your-domain>/api/stripe/webhook` for `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `customer.subscription.paused`, `customer.subscription.resumed`, `invoice.paid` and `invoice.payment_failed`, and turn on the Customer Portal (Settings, Billing) with cancellation allowed.
+8. Deploy, then check `https://<your-domain>/api/health` returns `{"ok":true}`.
 
 ## Data
 

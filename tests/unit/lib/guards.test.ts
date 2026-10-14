@@ -1,6 +1,13 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { requireRole, requireSession, requireUser } from "@/lib/auth/guards";
+import {
+  requireActiveSubscription,
+  requireCarrierStage,
+  requireRole,
+  requireSession,
+  requireUser,
+} from "@/lib/auth/guards";
+import type { CarrierAccess, CarrierStage } from "@/server/services/CarrierService";
 import type { Profile, SessionUser } from "@/types/domain";
 import { buildProfile, TEST_PHONES, USER_ID } from "../../setup/factories";
 
@@ -16,8 +23,11 @@ const authService = vi.hoisted(() => ({
   getSession: vi.fn(),
   signOut: vi.fn(),
 }));
+const carrierService = vi.hoisted(() => ({ getAccess: vi.fn() }));
 
-vi.mock("@/server/container", () => ({ getContainer: async () => ({ authService }) }));
+vi.mock("@/server/container", () => ({
+  getContainer: async () => ({ authService, carrierService }),
+}));
 vi.mock("next/navigation", () => ({
   redirect: (to: string) => {
     throw new RedirectSignal(to);
@@ -44,6 +54,73 @@ beforeEach(() => {
   authService.getCurrentUser.mockReset().mockResolvedValue(null);
   authService.getSession.mockReset().mockResolvedValue(null);
   authService.signOut.mockReset().mockResolvedValue(undefined);
+  carrierService.getAccess.mockReset();
+});
+
+describe("requireCarrierStage", () => {
+  const STAGE_PATHS: Record<CarrierStage, string> = {
+    onboarding: "/carrier/onboarding",
+    terms: "/carrier/terms",
+    waitlist: "/carrier/waitlist",
+    billing: "/carrier/billing",
+    ready: "/carrier/search",
+  };
+  const accessAt = (stage: CarrierStage): CarrierAccess => ({
+    carrier: null,
+    termsAccepted: false,
+    subscription: null,
+    subscribed: stage === "ready",
+    waitlisted: false,
+    stage,
+  });
+
+  it("needs a carrier first: drivers go home, signed-out users to /login", async () => {
+    await expect(redirectOf(requireCarrierStage("ready"))).resolves.toBe("/login");
+    signedInAs(buildProfile({ role: "driver" }));
+    await expect(redirectOf(requireCarrierStage("ready"))).resolves.toBe("/driver/profile");
+    expect(carrierService.getAccess).not.toHaveBeenCalled();
+  });
+
+  it.each(Object.keys(STAGE_PATHS) as CarrierStage[])(
+    "lets a carrier at %s through to a page for that stage, with the access",
+    async (stage) => {
+      const profile = buildProfile({ role: "carrier", status: "approved" });
+      signedInAs(profile);
+      carrierService.getAccess.mockResolvedValue(accessAt(stage));
+      await expect(requireCarrierStage(stage)).resolves.toEqual({
+        user,
+        profile,
+        access: accessAt(stage),
+      });
+      expect(carrierService.getAccess).toHaveBeenCalledWith(user.id);
+    },
+  );
+
+  it.each([
+    ["onboarding", "ready"],
+    ["terms", "ready"],
+    ["billing", "ready"],
+    ["waitlist", "billing"],
+    ["ready", "onboarding"],
+  ] as const)("a carrier at %s is sent to their own page from a %s page", async (at, wanted) => {
+    signedInAs(buildProfile({ role: "carrier", status: "approved" }));
+    carrierService.getAccess.mockResolvedValue(accessAt(at));
+    await expect(redirectOf(requireCarrierStage(wanted))).resolves.toBe(STAGE_PATHS[at]);
+  });
+
+  it("accepts several stages, as the account page does", async () => {
+    signedInAs(buildProfile({ role: "carrier", status: "approved" }));
+    carrierService.getAccess.mockResolvedValue(accessAt("billing"));
+    await expect(requireCarrierStage("terms", "billing", "ready")).resolves.toBeTruthy();
+  });
+
+  it("requireActiveSubscription is the ready stage", async () => {
+    signedInAs(buildProfile({ role: "carrier", status: "approved" }));
+    carrierService.getAccess.mockResolvedValue(accessAt("billing"));
+    await expect(redirectOf(requireActiveSubscription())).resolves.toBe("/carrier/billing");
+    carrierService.getAccess.mockResolvedValue(accessAt("ready"));
+    await expect(requireActiveSubscription()).resolves.toMatchObject({ access: { stage: "ready" } });
+  });
 });
 
 describe("requireUser", () => {

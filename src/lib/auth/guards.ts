@@ -1,6 +1,11 @@
 import { redirect } from "next/navigation";
 import { CHOOSE_ROLE_PATH, LOGIN_PATH, ROLE_HOME } from "@/lib/auth/routes";
 import { getContainer } from "@/server/container";
+import {
+  CARRIER_STAGE_PATHS,
+  type CarrierAccess,
+  type CarrierStage,
+} from "@/server/services/CarrierService";
 import type { Profile, SessionUser, UserRole } from "@/types/domain";
 
 /**
@@ -46,4 +51,25 @@ export async function requireRole(
   if (profile.role !== role) redirect(ROLE_HOME[profile.role]);
 
   return { user, profile };
+}
+
+/**
+ * The signed-in carrier at one of the given stages. A carrier at any other stage is sent to
+ * the page for their own stage, so the search is never reachable without a subscription and
+ * the sign-up form never shows twice. The order is onboarding, terms, waitlist or billing,
+ * ready (see CarrierService.getAccess).
+ */
+export async function requireCarrierStage(
+  ...stages: CarrierStage[]
+): Promise<{ user: SessionUser; profile: Profile; access: CarrierAccess }> {
+  const { user, profile } = await requireRole("carrier");
+  const { carrierService } = await getContainer();
+  const access = await carrierService.getAccess(user.id);
+  if (!stages.includes(access.stage)) redirect(CARRIER_STAGE_PATHS[access.stage]);
+  return { user, profile, access };
+}
+
+/** The signed-in carrier with an active subscription, or the page for the stage they are at. */
+export async function requireActiveSubscription() {
+  return requireCarrierStage("ready");
 }
