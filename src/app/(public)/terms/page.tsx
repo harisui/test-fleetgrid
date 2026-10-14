@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LegalPage } from "@/components/layout/LegalPage";
+import { LegalHeading, LegalPage } from "@/components/layout/LegalPage";
 import { LEGAL_EFFECTIVE_DATE } from "@/lib/constants";
 import { formatE164ForDisplay } from "@/lib/phone";
 import { BUSINESS_NAME, getSupportContact } from "@/lib/support";
@@ -9,10 +9,32 @@ export const metadata: Metadata = { title: "Terms of Service" };
 
 const linkClass = "text-foreground underline underline-offset-4";
 
+/** The section headings, in order, for the table of contents. Each one is a LegalHeading below. */
+export const TERMS_SECTIONS = [
+  "1. What is FleetGrid?",
+  "2. Accounts",
+  "3. Drivers",
+  "4. Carriers",
+  "5. Text messages",
+  "6. Acceptable use",
+  "7. Review, suspension and removal",
+  "8. Deleting your account",
+  "9. Our content and your content",
+  "10. Disclaimers",
+  "11. Limitation of liability",
+  "12. Changes",
+  "13. Governing law and dispute resolution",
+  "14. Contact",
+] as const;
+
 export default function TermsPage() {
   const contact = getSupportContact();
   return (
-    <LegalPage title="Terms of Service" effective={LEGAL_EFFECTIVE_DATE}>
+    <LegalPage
+      title="Terms of Service"
+      effective={LEGAL_EFFECTIVE_DATE}
+      sections={TERMS_SECTIONS}
+    >
       <p>
         These terms are an agreement between you and {BUSINESS_NAME} (&quot;FleetGrid&quot;,
         &quot;we&quot;, &quot;us&quot;) about your use of the FleetGrid website, service and text
@@ -20,7 +42,7 @@ export default function TermsPage() {
         agree, do not use the service.
       </p>
 
-      <h2>1. What is FleetGrid?</h2>
+      <LegalHeading>1. What is FleetGrid?</LegalHeading>
       <p>
         FleetGrid is a confidential directory that connects local freight carriers with certified
         CDL drivers. Drivers create a qualification card and can receive shift offers by text.
@@ -35,7 +57,7 @@ export default function TermsPage() {
         to them, including FMCSA rules.
       </p>
 
-      <h2>2. Accounts</h2>
+      <LegalHeading>2. Accounts</LegalHeading>
       <ul>
         <li>You must be 18 years old or older and have a US mobile number to use the service.</li>
         <li>
@@ -46,7 +68,7 @@ export default function TermsPage() {
         <li>You must keep the information in your account true, accurate and up to date.</li>
       </ul>
 
-      <h2>3. Drivers</h2>
+      <LegalHeading>3. Drivers</LegalHeading>
       <ul>
         <li>
           Your qualification card (CDL class, years of experience, driving record, TWIC and medical
@@ -72,7 +94,7 @@ export default function TermsPage() {
         </li>
       </ul>
 
-      <h2>4. Carriers</h2>
+      <LegalHeading>4. Carriers</LegalHeading>
       <ul>
         <li>
           Access to driver cards requires an active subscription, billed monthly. Prices, billing
@@ -109,7 +131,7 @@ export default function TermsPage() {
         </li>
       </ul>
 
-      <h2>5. Text messages</h2>
+      <LegalHeading>5. Text messages</LegalHeading>
       <p>
         Drivers choose whether to receive shift offers by text by checking the consent box during
         sign-up. Message frequency varies and message and data rates may apply. Reply STOP to stop
@@ -121,7 +143,7 @@ export default function TermsPage() {
         .
       </p>
 
-      <h2>6. Acceptable use</h2>
+      <LegalHeading>6. Acceptable use</LegalHeading>
       <p>You agree not to:</p>
       <ul>
         <li>give false information about yourself, your qualifications or your company;</li>
@@ -131,7 +153,7 @@ export default function TermsPage() {
         <li>use the service for anything unlawful.</li>
       </ul>
 
-      <h2>7. Review, suspension and removal</h2>
+      <LegalHeading>7. Review, suspension and removal</LegalHeading>
       <p>
         New driver profiles are reviewed by FleetGrid before carriers can see them. We may approve,
         hold, suspend or remove any account or profile at any time, for example for a false answer,
@@ -139,7 +161,7 @@ export default function TermsPage() {
         we become aware.
       </p>
 
-      <h2>8. Deleting your account</h2>
+      <LegalHeading>8. Deleting your account</LegalHeading>
       <p>
         You can delete your account at any time from your profile page. Your card, documents and
         sign-in are removed permanently. We keep a record of your text-message consent and opt-out, as
@@ -150,13 +172,13 @@ export default function TermsPage() {
         .
       </p>
 
-      <h2>9. Our content and your content</h2>
+      <LegalHeading>9. Our content and your content</LegalHeading>
       <p>
         The FleetGrid name, logo, design and software belong to {BUSINESS_NAME}. You keep ownership
         of what you upload and give us permission to store it and show it as these terms describe.
       </p>
 
-      <h2>10. Disclaimers</h2>
+      <LegalHeading>10. Disclaimers</LegalHeading>
       <p>
         The service is provided as is. We do not promise that a driver will find work, that a
         carrier will find a driver, that any driver or carrier is who they say they are, or that
@@ -164,7 +186,7 @@ export default function TermsPage() {
         drivers and carriers enter beyond the review described above.
       </p>
 
-      <h2>11. Limitation of liability</h2>
+      <LegalHeading>11. Limitation of liability</LegalHeading>
       <p>
         To the extent the law allows, {BUSINESS_NAME} is not liable for indirect, incidental,
         special or consequential damages, lost profits or lost work arising from the service or
@@ -173,14 +195,14 @@ export default function TermsPage() {
         paid nothing.
       </p>
 
-      <h2>12. Changes</h2>
+      <LegalHeading>12. Changes</LegalHeading>
       <p>
         We may update these terms. The date at the top shows the current version. When a change
         matters, we will ask you to accept the new terms the next time you sign in. Continued use
         after that means you accept them.
       </p>
 
-      <h2>13. Governing law and dispute resolution</h2>
+      <LegalHeading>13. Governing law and dispute resolution</LegalHeading>
       <p>
         These terms are governed by the laws of the Commonwealth of Virginia, United States,
         without regard to its conflict of law rules. Any dispute, claim or controversy arising out
@@ -199,7 +221,7 @@ export default function TermsPage() {
         their jurisdiction.
       </p>
 
-      <h2>14. Contact</h2>
+      <LegalHeading>14. Contact</LegalHeading>
       <address className="not-italic">
         <p>
           {BUSINESS_NAME}

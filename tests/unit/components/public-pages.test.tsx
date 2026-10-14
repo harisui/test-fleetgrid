@@ -2,10 +2,10 @@ import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import CarriersComingSoonPage from "@/app/(public)/carriers/page";
 import LandingPage from "@/app/(public)/page";
-import PrivacyPage from "@/app/(public)/privacy/page";
-import SmsTermsPage from "@/app/(public)/sms-terms/page";
-import TermsPage from "@/app/(public)/terms/page";
-import { LegalPage } from "@/components/layout/LegalPage";
+import PrivacyPage, { PRIVACY_SECTIONS } from "@/app/(public)/privacy/page";
+import SmsTermsPage, { SMS_TERMS_SECTIONS } from "@/app/(public)/sms-terms/page";
+import TermsPage, { TERMS_SECTIONS } from "@/app/(public)/terms/page";
+import { LegalHeading, LegalPage, legalSectionId } from "@/components/layout/LegalPage";
 import { LEGAL_EFFECTIVE_DATE, SMS_CONSENT_TEXT } from "@/lib/constants";
 
 const navigation = vi.hoisted(() => ({
@@ -200,19 +200,88 @@ describe("/carriers (coming soon)", () => {
 });
 
 describe("LegalPage", () => {
-  it("shows the title, the effective date when given, and the body", () => {
+  it("shows the eyebrow, the title, the date when given, and the body in the site shell", () => {
     const { rerender } = render(
       <LegalPage title="Terms" effective="October 10, 2026">
         <p>Body</p>
       </LegalPage>,
     );
     expect(screen.getByRole("heading", { level: 1, name: "Terms" })).toBeInTheDocument();
-    expect(screen.getByText("Effective October 10, 2026")).toHaveAttribute("data-slot", "effective");
+    const header = document.querySelector("[data-slot=legal-header]") as HTMLElement;
+    expect(header).toHaveClass("bg-sign-panel", "border-sign-panel-border");
+    expect(within(header).getByText("Legal")).toHaveClass("uppercase");
+    expect(screen.getByText("Last updated October 10, 2026")).toHaveAttribute(
+      "data-slot",
+      "effective",
+    );
     expect(screen.getByText("Body")).toBeInTheDocument();
+    expect(screen.getByRole("banner")).toHaveAttribute("data-slot", "site-header");
+    expect(screen.queryByRole("navigation", { name: "On this page" })).not.toBeInTheDocument();
 
     rerender(<LegalPage title="SMS Terms" />);
     expect(document.querySelector("[data-slot=effective]")).toBeNull();
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
+  });
+
+  it("builds the table of contents from the sections, pointing at each heading's anchor", () => {
+    render(
+      <LegalPage title="Terms" sections={["1. What is FleetGrid?", "2. Accounts"]}>
+        <LegalHeading>1. What is FleetGrid?</LegalHeading>
+        <p>One</p>
+        <LegalHeading>2. Accounts</LegalHeading>
+        <p>Two</p>
+      </LegalPage>,
+    );
+    const toc = screen.getByRole("navigation", { name: "On this page" });
+    expect(toc).toHaveAttribute("data-slot", "legal-toc");
+    expect(toc).toHaveClass("lg:sticky");
+    const links = within(toc).getAllByRole("link");
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "#what-is-fleetgrid",
+      "#accounts",
+    ]);
+    for (const link of links) expect(link).toHaveClass("min-h-target");
+    expect(screen.getByRole("heading", { level: 2, name: "1. What is FleetGrid?" })).toHaveAttribute(
+      "id",
+      "what-is-fleetgrid",
+    );
+    expect(screen.getByRole("heading", { level: 2, name: "2. Accounts" })).toHaveAttribute(
+      "id",
+      "accounts",
+    );
+  });
+
+  it("turns a heading into an anchor id", () => {
+    expect(legalSectionId("13. Governing law and dispute resolution")).toBe(
+      "governing-law-and-dispute-resolution",
+    );
+    expect(legalSectionId("Msg & data rates")).toBe("msg-data-rates");
+    expect(legalSectionId("Program name")).toBe("program-name");
+  });
+});
+
+describe.each([
+  ["/terms", TermsPage, TERMS_SECTIONS],
+  ["/privacy", PrivacyPage, PRIVACY_SECTIONS],
+  ["/sms-terms", SmsTermsPage, SMS_TERMS_SECTIONS],
+])("%s table of contents", (_path, Page, sections) => {
+  it("lists every heading of the page, in order, and nothing else", () => {
+    render(<Page />);
+    const headings = within(screen.getByRole("main"))
+      .getAllByRole("heading", { level: 2 })
+      .map((heading) => heading.textContent);
+    expect(headings).toEqual([...sections]);
+    const toc = screen.getByRole("navigation", { name: "On this page" });
+    expect(within(toc).getAllByRole("link").map((link) => link.textContent)).toEqual([
+      ...sections,
+    ]);
+    for (const heading of within(screen.getByRole("main")).getAllByRole("heading", { level: 2 })) {
+      expect(heading).toHaveAttribute("id");
+      expect(within(toc).getByRole("link", { name: heading.textContent! })).toHaveAttribute(
+        "href",
+        `#${heading.id}`,
+      );
+    }
   });
 });
 
@@ -237,7 +306,7 @@ describe.each([
   it("carries the effective date, names the company and gives the contact details", () => {
     render(<Page />);
     expect(screen.getByRole("heading", { level: 1, name: title })).toBeInTheDocument();
-    expect(screen.getByText(`Effective ${LEGAL_EFFECTIVE_DATE}`)).toBeInTheDocument();
+    expect(screen.getByText(`Last updated ${LEGAL_EFFECTIVE_DATE}`)).toBeInTheDocument();
     const main = screen.getByRole("main");
     expect(main).toHaveTextContent(/FleetGrid LLC/);
     expect(within(main).getByRole("heading", { name: /Contact/ })).toBeInTheDocument();
@@ -321,6 +390,10 @@ describe("/privacy", () => {
     }
     expect(main).toHaveTextContent(/phone number is never shown to carriers/);
     expect(main).toHaveTextContent(/do not sell your personal information/);
+    // Twilio's verbatim clause (2026-10-14), in section 3.
+    expect(main.querySelector("[data-slot=opt-in-data-clause]")).toHaveTextContent(
+      "All the above categories exclude text messaging originator opt-in data and consent; this information won't be shared with any third parties.",
+    );
     expect(main).toHaveTextContent(/by checking a box during sign-up/);
     expect(main).not.toHaveTextContent(/ticking/);
     expect(main).toHaveTextContent(
@@ -384,6 +457,20 @@ describe("/sms-terms", () => {
     expect(contact.querySelector("a[href^='tel:']")).toBeNull();
     // No sharing for marketing
     expect(within(main).getByText(/do not sell your phone number/)).toBeInTheDocument();
+    // The carrier liability line, in Twilio's standard wording (2026-10-14)
+    expect(
+      within(main).getByText("Wireless carriers are not liable for delayed or undelivered messages."),
+    ).toBeInTheDocument();
+    expect(main).not.toHaveTextContent(/Mobile carriers/);
+    // Links to both other legal pages
+    expect(within(main).getByRole("link", { name: "Privacy Policy" })).toHaveAttribute(
+      "href",
+      "/privacy",
+    );
+    expect(within(main).getByRole("link", { name: "Terms of Service" })).toHaveAttribute(
+      "href",
+      "/terms",
+    );
     // How you opt in, in the client's words (2026-10-12)
     expect(main).toHaveTextContent(
       "Drivers opt in during sign-up by checking an unchecked box next to this statement:",

@@ -76,6 +76,7 @@
   --spacing-target-lg: var(--target-primary);
   --spacing-card-min: var(--card-min-h);
   --container-content: var(--content-max);
+  --container-reading: var(--reading-max);
 
   /* Type: text-body, text-body-lg, text-label, text-helper, text-button, text-eyebrow, text-h1, text-h2, text-code, text-small */
   --text-body: var(--text-body);
@@ -163,6 +164,31 @@
 html.js-motion [data-reveal]:not([data-revealed]) {
   opacity: 0;
   transform: translateY(var(--motion-distance-md));
+}
+
+/* Printing a legal page: the text alone, black on white, with the links' addresses. */
+@media print {
+  [data-slot="launch-strip"],
+  [data-slot="site-header"],
+  [data-slot="legal-toc"],
+  [data-slot="scroll-sentinel"],
+  footer {
+    display: none !important;
+  }
+  body {
+    background: white;
+    color: black;
+    font-size: 12pt;
+  }
+  [data-slot="legal-header"] {
+    background: white;
+    color: black;
+    border: 0;
+    padding: 0;
+  }
+  main a[href^="http"]::after {
+    content: " (" attr(href) ")";
+  }
 }
 
 /* The launch strip above the site header, dismissed once and remembered in localStorage.

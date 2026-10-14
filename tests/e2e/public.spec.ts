@@ -68,12 +68,18 @@ test.describe("public pages", () => {
 
     await legal.getByRole("link", { name: "Terms", exact: true }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Terms of Service" })).toBeVisible();
-    await expect(page.locator("[data-slot=effective]")).toHaveText(/^Effective /);
+    await expect(page.locator("[data-slot=effective]")).toHaveText(/^Last updated /);
     await expect(page.getByRole("note")).toHaveCount(0);
+    // The table of contents jumps to a section.
+    await page
+      .getByRole("navigation", { name: "On this page" })
+      .getByRole("link", { name: "13. Governing law and dispute resolution" })
+      .click();
+    await expect(page).toHaveURL(/#governing-law-and-dispute-resolution$/);
 
     await legal.getByRole("link", { name: "Privacy" }).click();
     await expect(page.getByRole("heading", { level: 1, name: "Privacy Policy" })).toBeVisible();
-    await expect(page.locator("[data-slot=effective]")).toHaveText(/^Effective /);
+    await expect(page.locator("[data-slot=effective]")).toHaveText(/^Last updated /);
     await expect(page.getByRole("note")).toHaveCount(0);
 
     await legal.getByRole("link", { name: "SMS Terms" }).click();

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { LegalPage } from "@/components/layout/LegalPage";
+import { LegalHeading, LegalPage } from "@/components/layout/LegalPage";
 import { LEGAL_EFFECTIVE_DATE } from "@/lib/constants";
 import { formatE164ForDisplay } from "@/lib/phone";
 import { BUSINESS_NAME, getSupportContact } from "@/lib/support";
@@ -9,17 +9,43 @@ export const metadata: Metadata = { title: "Privacy Policy" };
 
 const linkClass = "text-foreground underline underline-offset-4";
 
+/** The section headings, in order, for the table of contents. Each one is a LegalHeading below. */
+export const PRIVACY_SECTIONS = [
+  "1. What we collect",
+  "2. How we use it",
+  "3. Who can see your information",
+  "4. Text messages",
+  "5. How long we keep it",
+  "6. Security",
+  "7. Your choices",
+  "8. Children",
+  "9. Data sources",
+  "10. Changes",
+  "11. Contact",
+] as const;
+
+/**
+ * Twilio's required wording for the opt-in data, verbatim (toll-free verification, 2026-10-14).
+ * Not to be reworded.
+ */
+export const SMS_OPT_IN_DATA_CLAUSE =
+  "All the above categories exclude text messaging originator opt-in data and consent; this information won't be shared with any third parties.";
+
 export default function PrivacyPage() {
   const contact = getSupportContact();
   return (
-    <LegalPage title="Privacy Policy" effective={LEGAL_EFFECTIVE_DATE}>
+    <LegalPage
+      title="Privacy Policy"
+      effective={LEGAL_EFFECTIVE_DATE}
+      sections={PRIVACY_SECTIONS}
+    >
       <p>
         This policy explains what {BUSINESS_NAME} (&quot;FleetGrid&quot;, &quot;we&quot;,
         &quot;us&quot;) collects when you use the FleetGrid website, service and text messages,
         what we do with it, and the choices you have.
       </p>
 
-      <h2>1. What we collect</h2>
+      <LegalHeading>1. What we collect</LegalHeading>
       <ul>
         <li>
           <strong>Your mobile number</strong>, used to sign you in with a one-time code and, if you
@@ -53,7 +79,7 @@ export default function PrivacyPage() {
         </li>
       </ul>
 
-      <h2>2. How we use it</h2>
+      <LegalHeading>2. How we use it</LegalHeading>
       <ul>
         <li>To sign you in and keep your account secure.</li>
         <li>To build the directory: showing driver cards to subscribed carriers.</li>
@@ -63,7 +89,7 @@ export default function PrivacyPage() {
         <li>To answer support requests and to meet legal obligations.</li>
       </ul>
 
-      <h2>3. Who can see your information</h2>
+      <LegalHeading>3. Who can see your information</LegalHeading>
       <ul>
         <li>
           <strong>Carriers with an active subscription</strong> can see a driver&apos;s
@@ -90,8 +116,10 @@ export default function PrivacyPage() {
         parties for their own marketing. Text-message consent and opt-in information is never
         shared with anyone for marketing.
       </p>
+      <p data-slot="opt-in-data-clause">{SMS_OPT_IN_DATA_CLAUSE}</p>
+      {/* The sentence above is Twilio's exact wording; the apostrophe in "won't" is intended. */}
 
-      <h2>4. Text messages</h2>
+      <LegalHeading>4. Text messages</LegalHeading>
       <p>
         Drivers opt in to shift offers by checking a box during sign-up. Reply STOP to any message to
         stop, START to begin again and HELP for help. Login codes are sent to everyone who signs in.
@@ -102,7 +130,7 @@ export default function PrivacyPage() {
         .
       </p>
 
-      <h2>5. How long we keep it</h2>
+      <LegalHeading>5. How long we keep it</LegalHeading>
       <p>
         We keep your account, card and documents while your account exists. When you delete your
         account, they are removed for good. We keep a record of text-message consent and opt-outs,
@@ -110,7 +138,7 @@ export default function PrivacyPage() {
         deleted, along with billing records and anything else the law requires us to keep.
       </p>
 
-      <h2>6. Security</h2>
+      <LegalHeading>6. Security</LegalHeading>
       <p>
         Data travels over encrypted connections and is stored with per-user access rules, so an
         account can only read and change its own data. Documents are kept in private storage and
@@ -118,7 +146,7 @@ export default function PrivacyPage() {
         you think your account has been misused.
       </p>
 
-      <h2>7. Your choices</h2>
+      <LegalHeading>7. Your choices</LegalHeading>
       <ul>
         <li>Change any answer on your card from your profile page at any time.</li>
         <li>Remove a document from the Documents page.</li>
@@ -127,10 +155,10 @@ export default function PrivacyPage() {
         <li>Ask us what we hold about you, or to correct it, at the address below.</li>
       </ul>
 
-      <h2>8. Children</h2>
+      <LegalHeading>8. Children</LegalHeading>
       <p>The service is for adults 18 and older. We do not knowingly collect data from children.</p>
 
-      <h2>9. Data sources</h2>
+      <LegalHeading>9. Data sources</LegalHeading>
       <p>
         ZIP code, city and state data comes from{" "}
         <a
@@ -145,13 +173,13 @@ export default function PrivacyPage() {
         is never sent to a third party.
       </p>
 
-      <h2>10. Changes</h2>
+      <LegalHeading>10. Changes</LegalHeading>
       <p>
         We may update this policy. The date at the top shows the current version, and we will tell
         you in the app when a change matters.
       </p>
 
-      <h2>11. Contact</h2>
+      <LegalHeading>11. Contact</LegalHeading>
       <address className="not-italic">
         <p>
           {BUSINESS_NAME}
