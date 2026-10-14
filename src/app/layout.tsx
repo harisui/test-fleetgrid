@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Geist, Geist_Mono } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
+import { getSiteEnv } from "@/lib/env";
+import { SITE_INIT_SCRIPT } from "@/lib/motion";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -23,6 +25,7 @@ const barlowCondensed = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteEnv().NEXT_PUBLIC_SITE_URL),
   title: {
     default: "FleetGrid",
     template: "%s | FleetGrid",
@@ -45,6 +48,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         {/* Applies the saved dark mode choice before first paint (no flash, pages stay static). */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/* Marks the page for section reveals (not under reduced motion) and hides a dismissed launch strip. */}
+        <script dangerouslySetInnerHTML={{ __html: SITE_INIT_SCRIPT }} />
       </head>
       <body className="flex min-h-full flex-col">
         {children}

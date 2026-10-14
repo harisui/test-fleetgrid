@@ -11,7 +11,7 @@ interface LegalPageProps {
 /** Shared frame for Terms, Privacy and SMS Terms. */
 export function LegalPage({ title, effective, children }: LegalPageProps) {
   return (
-    <AppShell width="narrow">
+    <AppShell variant="marketing" width="narrow">
       <article className="flex flex-col gap-6">
         <div className="flex flex-col gap-1">
           <h1 className="font-heading text-h1 leading-h1 font-bold">{title}</h1>

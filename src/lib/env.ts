@@ -86,8 +86,24 @@ export const serverEnvSchema = clientEnvSchema
     }
   });
 
+/**
+ * The marketing site's settings, all public and all optional: the canonical host, and the
+ * two switches that show the toll-free number for calls or as the shift-text sender. Both
+ * are off unless set to exactly "true" (the number stays off the site until the client
+ * confirms calls are answered and Twilio has approved it).
+ */
+export const siteEnvSchema = z.object({
+  NEXT_PUBLIC_SITE_URL: z.preprocess(
+    emptyToUndefined,
+    z.url("NEXT_PUBLIC_SITE_URL must be a valid URL").default("https://fleetgridus.com"),
+  ),
+  NEXT_PUBLIC_SHOW_PHONE: flag,
+  NEXT_PUBLIC_SHOW_SMS_NUMBER: flag,
+});
+
 export type ClientEnv = z.infer<typeof clientEnvSchema>;
 export type ServerEnv = z.infer<typeof serverEnvSchema>;
+export type SiteEnv = z.infer<typeof siteEnvSchema>;
 
 type EnvSource = Record<string, string | undefined>;
 
@@ -117,8 +133,23 @@ export function parseServerEnv(source: EnvSource): ServerEnv {
   return parseWith(serverEnvSchema, source);
 }
 
+export function parseSiteEnv(source: EnvSource): SiteEnv {
+  return parseWith(siteEnvSchema, source);
+}
+
 let cachedClientEnv: ClientEnv | undefined;
 let cachedServerEnv: ServerEnv | undefined;
+let cachedSiteEnv: SiteEnv | undefined;
+
+/** Safe anywhere. Needs none of the Supabase variables, so the marketing site renders in any test. */
+export function getSiteEnv(): SiteEnv {
+  cachedSiteEnv ??= parseSiteEnv({
+    NEXT_PUBLIC_SITE_URL: process.env.NEXT_PUBLIC_SITE_URL,
+    NEXT_PUBLIC_SHOW_PHONE: process.env.NEXT_PUBLIC_SHOW_PHONE,
+    NEXT_PUBLIC_SHOW_SMS_NUMBER: process.env.NEXT_PUBLIC_SHOW_SMS_NUMBER,
+  });
+  return cachedSiteEnv;
+}
 
 /** Safe on the client. NEXT_PUBLIC_ variables must be referenced statically so Next.js can inline them. */
 export function getClientEnv(): ClientEnv {
@@ -144,4 +175,5 @@ export function getServerEnv(): ServerEnv {
 export function resetEnvCache(): void {
   cachedClientEnv = undefined;
   cachedServerEnv = undefined;
+  cachedSiteEnv = undefined;
 }

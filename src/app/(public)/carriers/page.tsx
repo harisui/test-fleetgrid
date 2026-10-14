@@ -18,7 +18,7 @@ export default function CarriersComingSoonPage() {
   const contact = getSupportContact();
 
   return (
-    <AppShell width="narrow">
+    <AppShell variant="marketing" width="narrow">
       <div className="mx-auto flex max-w-md flex-col items-center gap-6 py-12 text-center">
         <Building2 aria-hidden="true" className="size-10 text-muted-foreground" />
         <div className="flex flex-col gap-3">

@@ -16,7 +16,7 @@ const buttonVariants = cva(
         primary:
           "border-transparent bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-hover",
         secondary:
-          "border-border-strong bg-card text-foreground hover:bg-muted active:bg-muted aria-expanded:bg-muted",
+          "border-border-strong bg-card text-foreground hover:border-foreground hover:bg-muted active:bg-muted aria-expanded:bg-muted",
         ghost:
           "border-transparent bg-transparent text-foreground hover:bg-muted active:bg-muted aria-expanded:bg-muted",
         destructive:

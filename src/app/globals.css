@@ -120,8 +120,10 @@
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-barlow-condensed);
 
-  /* Motion: duration-(--dur-press) etc., ease-standard */
+  /* Motion: duration-(--dur-press) etc., ease-standard; the site's ease-motion and
+     duration-(--motion-fast) and so on. */
   --ease-standard: var(--ease-standard);
+  --ease-motion: var(--motion-ease);
   --default-transition-duration: var(--dur-state);
   --default-transition-timing-function: var(--ease-standard);
 
@@ -146,6 +148,27 @@
     var(--lane-line) 0 var(--lane-dash),
     transparent var(--lane-dash) calc(var(--lane-dash) + var(--lane-gap))
   );
+}
+
+/* Section reveals on the marketing site (src/components/marketing/Reveal.tsx). Content is
+   visible in the server HTML; the hidden start applies only once the inline script in the
+   root layout has marked the page `js-motion`, which it never does under reduced motion.
+   Children of a Stagger carry --i, so each one waits a step longer. */
+[data-reveal] {
+  transition:
+    opacity var(--motion-slow) var(--motion-ease),
+    transform var(--motion-slow) var(--motion-ease);
+  transition-delay: calc(var(--i, 0) * var(--motion-stagger));
+}
+html.js-motion [data-reveal]:not([data-revealed]) {
+  opacity: 0;
+  transform: translateY(var(--motion-distance-md));
+}
+
+/* The launch strip above the site header, dismissed once and remembered in localStorage.
+   The same inline script hides it before first paint, so nothing jumps. */
+html.launch-strip-dismissed [data-slot="launch-strip"] {
+  display: none;
 }
 
 @layer base {

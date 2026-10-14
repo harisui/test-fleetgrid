@@ -62,7 +62,7 @@ export default function LandingPage() {
   const contact = getSupportContact();
   const carrierDisabled = isCarrierDisabled();
   return (
-    <AppShell>
+    <AppShell variant="marketing">
       <div className="mx-auto flex max-w-2xl flex-col items-center gap-10 py-8 text-center sm:py-16">
         <div className="flex flex-col gap-4">
           <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-5xl">

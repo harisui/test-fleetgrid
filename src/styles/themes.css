@@ -76,6 +76,16 @@
   --dur-hint: 1800ms;
   --hint-travel: 8px;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* The marketing site's motion: hover and press, menus and accordions, section reveals.
+     One easing, three durations, two distances, one stagger step (at most five children). */
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  --motion-fast: 120ms;
+  --motion-base: 160ms;
+  --motion-slow: 200ms;
+  --motion-distance-sm: 8px;
+  --motion-distance-md: 12px;
+  --motion-stagger: 50ms;
 }
 
 .dark {
@@ -89,6 +99,12 @@
     --dur-state: 0ms;
     --dur-move: 0ms;
     --dur-hint: 0ms;
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+    --motion-distance-sm: 0px;
+    --motion-distance-md: 0px;
+    --motion-stagger: 0ms;
   }
 }
 /* ==== SHARED END ==== */
