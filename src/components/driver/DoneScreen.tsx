@@ -1,4 +1,4 @@
-import { FileText, MessageSquareText, Search } from "lucide-react";
+import { FileText, MessageSquareOff, MessageSquareText, Search } from "lucide-react";
 import { SummaryCard } from "@/components/driver/SummaryCard";
 import { ActionBar } from "@/components/onboarding/ActionBar";
 import { OnboardingContent } from "@/components/onboarding/OnboardingShell";
@@ -15,22 +15,35 @@ interface DoneScreenProps {
   onEdit: (stepId: StepId) => void;
 }
 
+/** Shown when the driver finished without ticking the shift-text box. */
+export const NO_TEXTS_NEXT_STEP =
+  "You chose not to receive shift texts. Turn them on from your profile when you want offers.";
+
 const NEXT_STEPS = [
   {
     icon: Search,
     text: "A FleetGrid reviewer will check your profile.",
     /** Shift offers only come where FleetGrid is live. */
     inAreaOnly: false,
+    textsOnly: false,
   },
   {
     icon: MessageSquareText,
     text: "Shift offers arrive by text. Reply YES to claim one.",
     inAreaOnly: true,
+    textsOnly: true,
+  },
+  {
+    icon: MessageSquareOff,
+    text: NO_TEXTS_NEXT_STEP,
+    inAreaOnly: false,
+    textsOnly: null,
   },
   {
     icon: FileText,
     text: "You can add your CDL and medical card any time from Documents.",
     inAreaOnly: false,
+    textsOnly: false,
   },
 ] as const;
 
@@ -41,6 +54,12 @@ const NEXT_STEPS = [
  */
 export function DoneScreen({ driver, phone, onEdit }: DoneScreenProps) {
   const outOfArea = driver.inServiceArea === false;
+  const texts = driver.smsOptIn;
+  const nextSteps = NEXT_STEPS.filter(
+    (item) =>
+      (!outOfArea || !item.inAreaOnly) &&
+      (item.textsOnly === null ? !texts : !item.textsOnly || texts),
+  );
   return (
     <>
       <OnboardingContent>
@@ -56,15 +75,17 @@ export function DoneScreen({ driver, phone, onEdit }: DoneScreenProps) {
           />
           {outOfArea ? (
             <p>{OUT_OF_AREA_DONE_TEXT}</p>
-          ) : (
+          ) : texts ? (
             <p>
               Once your profile is approved, carriers near {driver.zip} can find you. We will text
               you at {maskPhone(phone)} when a carrier sends a shift.
             </p>
+          ) : (
+            <p>Once your profile is approved, carriers near {driver.zip} can find you.</p>
           )}
           <SummaryCard driver={driver} onEdit={onEdit} />
           <ul className="flex flex-col gap-3" aria-label="What happens next">
-            {NEXT_STEPS.filter((item) => !outOfArea || !item.inAreaOnly).map((item) => (
+            {nextSteps.map((item) => (
               <li key={item.text} className="flex items-start gap-3 text-helper leading-helper">
                 <item.icon
                   aria-hidden="true"

@@ -140,13 +140,15 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.getByRole("button", { name: "Dry van", exact: true }).click();
       await expectNoAccessibilityViolations(page, "equipment selected");
 
+      // The consent box is optional (0016): no error state exists on this page.
       await seedDriverAtStep(PHONES.driver, 11);
       await openOnboarding(page, PHONES.driver);
-      await nextButton(page, "Find local shifts").click();
-      await expect(formAlert(page)).toBeVisible();
-      await expectNoAccessibilityViolations(page, "consent with error");
+      await expectNoAccessibilityViolations(page, "consent unchecked");
       await page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) }).click();
       await expectNoAccessibilityViolations(page, "consent checked");
+      await nextButton(page, "Find local shifts").click();
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("You are listed.");
+      await expectNoAccessibilityViolations(page, "done");
     });
 
     test("profile and documents", async ({ page }) => {

@@ -1,4 +1,5 @@
 import { MapPinOff, MessageSquareOff, MessageSquareText } from "lucide-react";
+import { SmsConsentControl } from "@/components/driver/SmsConsentControl";
 import { InlineNote } from "@/components/shared/InlineNote";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +10,7 @@ import type { AccountStatus, LocatedDriver, Profile } from "@/types/domain";
 const STATUS_HELP: Record<AccountStatus, string> = {
   pending:
     "We are reviewing your profile. You will start getting shift offers once it is approved.",
-  approved: "You are approved. Matching shift offers will be texted to you.",
+  approved: "You are approved. Carriers near you can see your card.",
   blocked: "Your account is blocked and will not receive shift offers. Contact support for help.",
 };
 
@@ -77,11 +78,13 @@ export function AccountStatusCard({ profile, driver }: AccountStatusCardProps) {
           </span>
           .
         </p>
-        {driver.smsOptedOut && (
+        {driver.smsOptedOut ? (
           <InlineNote variant="warning">
             You replied STOP, so we are not texting you shift offers. To start again, text{" "}
             <strong>START</strong> to the FleetGrid number that sent your offers.
           </InlineNote>
+        ) : (
+          <SmsConsentControl smsOptIn={driver.smsOptIn} />
         )}
       </div>
     </section>

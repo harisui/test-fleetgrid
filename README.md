@@ -148,7 +148,7 @@ with the events `checkout.session.completed`, `customer.subscription.*`, `invoic
 `invoice.payment_failed`. Locally, without Stripe keys, `/carrier/billing/test-checkout` stands
 in for Checkout: "Pay" writes an active subscription the way a webhook would.
 
-A listed driver is one who is approved, has a complete card, has opted in to texts and has not
+A listed driver is one who is approved, has a complete card and has not
 opted out, with a ZIP inside an active service area. Carriers never see a driver's phone number.
 
 ## Architecture

@@ -64,7 +64,7 @@ insert into auth.users (id, phone) values
   ('44444444-4444-4444-8444-444444444444', '15555559004'), -- carrier, subscribed, Houston yard
   ('55555555-5555-4555-8555-555555555555', '15555559005'), -- carrier, not subscribed
   ('66666666-6666-4666-8666-666666666666', '15555559006'), -- pending driver (not listed)
-  ('77777777-7777-4777-8777-777777777777', '15555559007'), -- opted-out driver (not listed)
+  ('77777777-7777-4777-8777-777777777777', '15555559007'), -- driver who declined shift texts (listed, marked)
   ('88888888-8888-4888-8888-888888888888', '15555559008'), -- Dallas driver, outside every area (not listed)
   ('99999999-9999-4999-8999-999999999999', '15555559009'); -- carrier whose subscription lapsed
 
@@ -79,20 +79,22 @@ insert into public.profiles (id, role, phone, status) values
   ('88888888-8888-4888-8888-888888888888', 'driver', '+15555559008', 'approved'),
   ('99999999-9999-4999-8999-999999999999', 'carrier', '+15555559009', 'approved');
 
--- A complete, consented card. Houston 77002 unless told otherwise.
+-- A complete card, consented unless told otherwise. Houston 77002 unless told otherwise.
 create function pg_temp.card(p_id uuid, p_profile uuid, p_name text, p_lat numeric, p_lng numeric,
   p_class public.cdl_class default 'A', p_letters public.endorsement[] default '{H,N,T,X}',
   p_years int default 8, p_twic boolean default true, p_medical boolean default true,
   p_transmission public.transmission_type default 'manual_ok',
   p_equipment public.equipment_type[] default '{dry_van,flatbed,reefer}',
-  p_mvr public.mvr_status default 'clean', p_opted_out boolean default false)
+  p_mvr public.mvr_status default 'clean', p_opted_out boolean default false,
+  p_opt_in boolean default true)
 returns void language sql as $$
   insert into public.drivers (id, profile_id, full_name, operator_types, cdl_class, endorsements,
     years_experience, city, state, zip, lat, lng, service_radius_miles, transmission, equipment_types,
     twic_active, medical_card_active, mvr_status, sms_opt_in, sms_opt_in_at, sms_opt_in_text,
     sms_opted_out, sms_opted_out_at, onboarding_step, card_completed)
   values (p_id, p_profile, p_name, '{cdl_driver}', p_class, p_letters, p_years, 'Houston', 'TX', '77002',
-    p_lat, p_lng, 50, p_transmission, p_equipment, p_twic, p_medical, p_mvr, true, now(), 'I agree',
+    p_lat, p_lng, 50, p_transmission, p_equipment, p_twic, p_medical, p_mvr,
+    p_opt_in, case when p_opt_in then now() end, case when p_opt_in then 'I agree' end,
     p_opted_out, case when p_opted_out then now() end, 12, true);
 $$;
 
@@ -100,8 +102,10 @@ select pg_temp.card('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', '11111111-1111-4111-
 select pg_temp.card('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', '22222222-2222-4222-8222-222222222222', 'Listed Pasadena', 29.7009, -95.1989,
   'B', '{T}', 2, false, true, 'automatic_only', '{dry_van}', 'minor_1_2');
 select pg_temp.card('cccccccc-cccc-4ccc-8ccc-cccccccccccc', '66666666-6666-4666-8666-666666666666', 'Pending Houston', 29.7594, -95.3594);
-select pg_temp.card('dddddddd-dddd-4ddd-8ddd-dddddddddddd', '77777777-7777-4777-8777-777777777777', 'Opted out Houston', 29.7594, -95.3594,
-  'A', '{H,N,T,X}', 8, true, true, 'manual_ok', '{dry_van,flatbed,reefer}', 'clean', true);
+-- Declined shift texts (0016): listed all the same, with the weakest card so the filters still
+-- single out the Houston card.
+select pg_temp.card('dddddddd-dddd-4ddd-8ddd-dddddddddddd', '77777777-7777-4777-8777-777777777777', 'Declined texts Houston', 29.7594, -95.3594,
+  'B', '{}', 1, false, true, 'automatic_only', '{dry_van}', 'major_3_plus', false, false);
 select pg_temp.card('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '88888888-8888-4888-8888-888888888888', 'Dallas', 32.7904, -96.8044);
 
 insert into public.driver_documents (id, driver_id, type, storage_path, file_name, mime_type, size_bytes) values
@@ -220,11 +224,16 @@ select throws_ok(
   '42501', null, 'a carrier cannot read webhook events');
 select is_empty('select 1 from public.profiles where id <> auth.uid()', 'a carrier reads no other profile, so no driver phone number');
 
--- Listed drivers only: approved, complete, opted in, inside an active area.
+-- Listed drivers only: approved, complete, inside an active area. Shift-text consent does not
+-- gate the listing (0016); the carrier sees the flag and the app shows "No shift texts".
 select results_eq(
   'select full_name from public.drivers order by full_name',
-  $$values ('Listed Houston'), ('Listed Pasadena')$$,
+  $$values ('Declined texts Houston'), ('Listed Houston'), ('Listed Pasadena')$$,
   'a subscribed carrier sees the listed cards and nothing else');
+select results_eq(
+  $$select sms_opt_in from public.drivers where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'$$,
+  $$values (false)$$,
+  'and can tell that a listed driver declined shift texts');
 select is_empty(
   $$update public.drivers set full_name = 'Hacked' returning 1$$,
   'a subscribed carrier cannot edit a card');
@@ -239,11 +248,11 @@ select is_empty(
 -- The search from the Houston yard.
 select results_eq(
   $$select driver_id, total_count from public.search_drivers(29.7594, -95.3594, 50)$$,
-  $$values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid, 2::bigint), ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid, 2::bigint)$$,
+  $$values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid, 3::bigint), ('dddddddd-dddd-4ddd-8ddd-dddddddddddd'::uuid, 3::bigint), ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid, 3::bigint)$$,
   'the search returns the listed cards within the radius, nearest first, with the total');
 select results_eq(
   $$select distance_miles from public.search_drivers(29.7594, -95.3594, 50) order by distance_miles$$,
-  $$values (0.0::numeric), (10.4::numeric)$$,
+  $$values (0.0::numeric), (0.0::numeric), (10.4::numeric)$$,
   'distances are miles from the yard to a tenth');
 select is_empty(
   $$select 1 from public.search_drivers(29.7594, -95.3594, 5) where driver_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'$$,
@@ -254,7 +263,7 @@ select results_eq(
   'Class A filters to Class A');
 select is(
   (select count(*) from public.search_drivers(29.7594, -95.3594, 50, p_cdl_class => 'B')),
-  2::bigint,
+  3::bigint,
   'Class B matches A and B (meets or exceeds)');
 select results_eq(
   $$select driver_id from public.search_drivers(29.7594, -95.3594, 50, p_endorsements => '{H,T}')$$,
@@ -266,7 +275,7 @@ select results_eq(
   'minimum years');
 select results_eq(
   $$select driver_id from public.search_drivers(29.7594, -95.3594, 50, p_twic => false)$$,
-  $$values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid)$$,
+  $$values ('dddddddd-dddd-4ddd-8ddd-dddddddddddd'::uuid), ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid)$$,
   'TWIC filter');
 select results_eq(
   $$select driver_id from public.search_drivers(29.7594, -95.3594, 50, p_manual => true)$$,
@@ -274,7 +283,7 @@ select results_eq(
   'manual required');
 select is(
   (select count(*) from public.search_drivers(29.7594, -95.3594, 50, p_manual => false)),
-  2::bigint,
+  3::bigint,
   'manual not required matches everyone');
 select results_eq(
   $$select driver_id from public.search_drivers(29.7594, -95.3594, 50, p_equipment => '{flatbed}')$$,
@@ -290,7 +299,7 @@ select is(
   'up to 1 or 2 minor matches both');
 select results_eq(
   $$select driver_id, total_count from public.search_drivers(29.7594, -95.3594, 50, p_limit => 1, p_offset => 1)$$,
-  $$values ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid, 2::bigint)$$,
+  $$values ('dddddddd-dddd-4ddd-8ddd-dddddddddddd'::uuid, 3::bigint)$$,
   'paging keeps the total');
 select pg_temp.sign_out();
 

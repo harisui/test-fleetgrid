@@ -17,8 +17,8 @@ import {
  * The carrier side end to end: sign-up, the Terms, the paywall with the test checkout, the
  * waitlist for a yard outside the launch area, the driver search from the yard, one
  * driver's page with their papers, the account page, and what a carrier can never reach.
- * The seeded drivers (supabase/seed.sql) are the listed cards: eleven approved, complete,
- * opted-in drivers in the Houston area.
+ * The seeded drivers (supabase/seed.sql) are the listed cards: the approved, complete
+ * drivers in the Houston area, whether or not they receive shift texts (0016).
  */
 
 const SEED_DRIVER_PHONE = "+15555551001";
@@ -36,15 +36,14 @@ async function expectNoAccessibilityViolations(page: Page, label: string) {
   expect(summary, label).toEqual([]);
 }
 
-/** The seed drivers a subscribed Houston carrier sees: approved, complete, opted in, in area. */
+/** The seed drivers a subscribed Houston carrier sees: approved, complete, in area (texts or not). */
 async function listedSeedDriverIds(): Promise<string[]> {
   const admin = adminClient();
   const { data: drivers } = await admin
     .from("drivers")
-    .select("id, profile_id, sms_opted_out, card_completed, lat, lng")
+    .select("id, profile_id, card_completed, lat, lng")
     .like("zip", "77%")
-    .eq("card_completed", true)
-    .eq("sms_opted_out", false);
+    .eq("card_completed", true);
   const { data: profiles } = await admin
     .from("profiles")
     .select("id")

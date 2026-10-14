@@ -52,8 +52,8 @@ export interface DriverPatch {
   clearinghouseRegistered?: boolean | null;
   mvrStatus?: MvrStatus | null;
   smsOptIn?: boolean;
-  smsOptInAt?: string;
-  smsOptInText?: string;
+  smsOptInAt?: string | null;
+  smsOptInText?: string | null;
   onboardingStep?: number;
   cardCompleted?: boolean;
 }

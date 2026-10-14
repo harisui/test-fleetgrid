@@ -22,7 +22,8 @@ function ConsentFields({ question, phone }: ScreenFieldsProps) {
     <>
       <ScreenQuestion>{question}</ScreenQuestion>
       <ScreenHelper>
-        Shift offers come by text to {maskPhone(phone)}. You reply YES to claim one.
+        Shift offers come by text to {maskPhone(phone)}. You reply YES to claim one. This is
+        optional: you can finish without it and turn texts on later from your profile.
       </ScreenHelper>
       <Controller
         control={control}
@@ -41,6 +42,13 @@ function ConsentFields({ question, phone }: ScreenFieldsProps) {
               className="font-semibold text-foreground underline underline-offset-4"
             >
               SMS Terms
+            </Link>
+            ,{" "}
+            <Link
+              href="/terms"
+              className="font-semibold text-foreground underline underline-offset-4"
+            >
+              Terms of Service
             </Link>{" "}
             and{" "}
             <Link

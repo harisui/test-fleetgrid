@@ -20,6 +20,7 @@ import {
   experienceScreenSchema,
   nameScreenSchema,
   recordScreenSchema,
+  smsConsentSchema,
   transmissionScreenSchema,
   ZIP_UNKNOWN_MESSAGE,
   zipScreenSchema,
@@ -207,8 +208,13 @@ export class DriverService {
     }
   }
 
+  /**
+   * The last screen. The card completes whether or not the box is ticked: shift texts are
+   * optional, never a condition of signing up (Twilio). A ticked box records the opt-in;
+   * an unticked box after an earlier opt-in records the opt-out.
+   */
   private async saveConsent(userId: string, existing: Driver, input: unknown): Promise<Driver> {
-    parseInput(consentScreenSchema, input);
+    const { consent } = parseInput(consentScreenSchema, input);
 
     const missing = missingCardFields(existing);
     if (missing.length > 0) {
@@ -218,24 +224,55 @@ export class DriverService {
       );
     }
 
-    const patch: DriverPatch = { onboardingStep: DONE_STEP_NUMBER, cardCompleted: true };
-    // Keep the original consent record if the driver already agreed.
-    if (!existing.smsOptIn) {
-      // The audit row goes first: proof of consent must exist before anything relies on it.
-      const profile = await this.profiles.findById(userId);
-      if (!profile) throw AppError.forbidden("Only drivers can do this");
-      await this.consentLog().record({
-        phone: profile.phone,
-        event: "opt_in",
-        consentText: SMS_CONSENT_TEXT,
-        consentVersion: SMS_CONSENT_VERSION,
-        source: "onboarding",
-      });
-      patch.smsOptIn = true;
-      patch.smsOptInAt = this.now().toISOString();
-      patch.smsOptInText = SMS_CONSENT_TEXT;
-    }
+    const patch: DriverPatch = {
+      onboardingStep: DONE_STEP_NUMBER,
+      cardCompleted: true,
+      ...(await this.consentPatch(userId, existing, consent, "onboarding")),
+    };
     return this.drivers.update(userId, patch);
+  }
+
+  /** Turns shift texts on or off from the profile page. A STOP reply can only be undone by START. */
+  async setSmsConsent(userId: string, input: unknown): Promise<LocatedDriver> {
+    const { consent } = parseInput(smsConsentSchema, input);
+    await this.requireDriverProfile(userId);
+    const existing = await this.drivers.findByProfileId(userId);
+    if (!existing) throw AppError.validation("Start with the first step");
+    if (consent && existing.smsOptedOut) {
+      throw AppError.validation(
+        "You replied STOP, so texts can only be turned back on by replying START to the FleetGrid number.",
+      );
+    }
+    const patch = await this.consentPatch(userId, existing, consent, "profile");
+    return this.locate(
+      Object.keys(patch).length > 0 ? await this.drivers.update(userId, patch) : existing,
+    );
+  }
+
+  /**
+   * The columns that change when the answer differs from what is on record, with the audit
+   * row written first: proof of consent must exist before anything relies on it. The
+   * original opt-in record is kept when the driver agrees again.
+   */
+  private async consentPatch(
+    userId: string,
+    existing: Driver,
+    consent: boolean,
+    source: "onboarding" | "profile",
+  ): Promise<DriverPatch> {
+    if (consent === existing.smsOptIn) return {};
+    const profile = await this.profiles.findById(userId);
+    if (!profile) throw AppError.forbidden("Only drivers can do this");
+    await this.consentLog().record({
+      phone: profile.phone,
+      event: consent ? "opt_in" : "opt_out",
+      consentText: SMS_CONSENT_TEXT,
+      consentVersion: SMS_CONSENT_VERSION,
+      source,
+    });
+    return consent
+      ? { smsOptIn: true, smsOptInAt: this.now().toISOString(), smsOptInText: SMS_CONSENT_TEXT }
+      : { smsOptIn: false, smsOptInAt: null, smsOptInText: null };
   }
 
   /** Moves progress forward to `next`, never backwards. */

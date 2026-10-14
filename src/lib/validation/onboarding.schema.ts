@@ -119,8 +119,19 @@ export const equipmentScreenSchema = z.object({
     .transform(unique),
 });
 
+export const CONSENT_MESSAGE = "Tap the box to agree, or leave it empty to finish without texts";
+
+/**
+ * Shift texts are optional (Twilio: consent must never be a condition of signing up). An
+ * unchecked box, or no answer at all, finishes the card without texts.
+ */
 export const consentScreenSchema = z.object({
-  consent: z.literal(true, { error: "Tap the box to agree before you finish" }),
+  consent: z.boolean({ error: CONSENT_MESSAGE }).default(false),
+});
+
+/** The profile page's "Turn on shift texts" and "Turn off shift texts". */
+export const smsConsentSchema = z.object({
+  consent: z.boolean({ error: CONSENT_MESSAGE }),
 });
 
 export const SCREEN_SCHEMAS = {

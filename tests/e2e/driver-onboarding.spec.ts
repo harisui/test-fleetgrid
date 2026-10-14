@@ -468,21 +468,61 @@ test.describe("driver onboarding, a page per mile", () => {
     });
   });
 
-  test("the card cannot be finished without SMS consent", async ({ page }) => {
+  test("the card can be finished without SMS consent, and texts can be turned on from the profile", async ({
+    page,
+  }) => {
+    // The consent log outlives accounts by design, so only rows from this test count.
+    const since = new Date().toISOString();
     await resumeAt(page, 11);
     await expect(screenHeading(page)).toHaveText("Finish");
     await expect(page.getByText("Can we text you about shifts?")).toBeVisible();
+    await expect(page.getByText(/This is optional/)).toBeVisible();
+    // The box is unchecked, separate from the button, and links to all three legal pages.
+    const consent = page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) });
+    await expect(consent).not.toBeChecked();
+    for (const name of ["SMS Terms", "Terms of Service", "Privacy Policy"]) {
+      await expect(page.getByRole("main").getByRole("link", { name })).toBeVisible();
+    }
     await nextButton(page, FINISH).click();
-    await expect(formAlert(page)).toHaveText("Tap the box to agree before you finish");
 
+    await expect(screenHeading(page)).toHaveText("You are listed.");
+    await expect(formAlert(page)).toHaveCount(0);
+    await expect(page.getByText(/You chose not to receive shift texts/)).toBeVisible();
+    await expect(page.getByText(/Shift offers arrive by text/)).toHaveCount(0);
     const row = await driverRow();
-    expect(row.card_completed).toBe(false);
-    expect(row.sms_opt_in).toBe(false);
+    expect(row).toMatchObject({
+      card_completed: true,
+      onboarding_step: 12,
+      sms_opt_in: false,
+      sms_opt_in_at: null,
+      sms_opt_in_text: null,
+    });
+    const { data: noLog } = await adminClient()
+      .from("sms_consent_log")
+      .select("id")
+      .eq("phone", PHONES.driver)
+      .gte("created_at", since);
+    expect(noLog).toEqual([]);
 
-    // The profile stays locked until the card is complete.
+    // The profile opens, prompts, and turns texts on with the same consent box.
     await page.goto("/driver/profile");
-    await expect(page).toHaveURL(/\/driver\/onboarding$/);
-    await expect(screenHeading(page)).toHaveText("Finish");
+    await expect(page).toHaveURL(/\/driver\/profile$/);
+    await expect(page.getByText("Not subscribed")).toBeVisible();
+    await expect(page.getByText("Turn on shift texts to get offers from carriers.")).toBeVisible();
+    const turnOn = page.getByRole("button", { name: "Turn on shift texts" });
+    await turnOn.click();
+    await expect(formAlert(page)).toHaveText("Tap the box to agree before turning texts on");
+    await page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) }).click();
+    await turnOn.click();
+    await expect(page.getByText("Subscribed")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Turn off shift texts" })).toBeVisible();
+    expect(await driverRow()).toMatchObject({ sms_opt_in: true, sms_opt_in_text: CONSENT_TEXT });
+    const { data: log } = await adminClient()
+      .from("sms_consent_log")
+      .select("event, source")
+      .eq("phone", PHONES.driver)
+      .gte("created_at", since);
+    expect(log).toEqual([{ event: "opt_in", source: "profile" }]);
   });
 
   test("a page that runs past the fold shows a scroll hint until the bottom is in view; a short one does not", async ({

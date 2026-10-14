@@ -2,6 +2,7 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OnboardingFlow } from "@/components/driver/OnboardingFlow";
+import { NO_TEXTS_NEXT_STEP } from "@/components/driver/DoneScreen";
 import { SMS_CONSENT_TEXT } from "@/lib/constants";
 import { CARD_CHECKS, MVR_HELPER, MVR_QUESTION } from "@/lib/onboarding/options";
 import { MILES, STEPS, stepsOfMile, type StepId } from "@/lib/onboarding/steps";
@@ -473,7 +474,37 @@ describe("Equipment page", () => {
 });
 
 describe("Finish page: consent and done", () => {
-  it("consent must be ticked, then Find local shifts shows the done screen and refreshes", async () => {
+  it("the consent box is optional and unchecked, with links to all three legal pages", async () => {
+    const complete = buildDriver({ onboardingStep: 12, cardCompleted: true, smsOptIn: false });
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(complete));
+    renderFlow("consent", answeredAt(11));
+    expect(screen.getByText(/This is optional/)).toBeInTheDocument();
+    const box = screen.getByRole("checkbox", { name: new RegExp(SMS_CONSENT_TEXT.slice(0, 20)) });
+    expect(box).not.toBeChecked();
+    for (const [name, href] of [
+      ["SMS Terms", "/sms-terms"],
+      ["Terms of Service", "/terms"],
+      ["Privacy Policy", "/privacy"],
+    ]) {
+      expect(screen.getByRole("link", { name })).toHaveAttribute("href", href);
+    }
+
+    // Finishing without the box: no error, the card completes without texts.
+    await userEvent.click(screen.getByRole("button", { name: "Find local shifts" }));
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("You are listed."),
+    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("consent", { consent: false });
+    expect(screen.getByText(NO_TEXTS_NEXT_STEP)).toBeInTheDocument();
+    expect(screen.queryByText(/Shift offers arrive by text/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/We will text you at/)).not.toBeInTheDocument();
+    expect(
+      screen.getByText("Once your profile is approved, carriers near 75201 can find you."),
+    ).toBeInTheDocument();
+  });
+
+  it("ticking the box, then Find local shifts shows the done screen and refreshes", async () => {
     const complete = buildDriver({ onboardingStep: 12, cardCompleted: true });
     actions.saveOnboardingScreenAction.mockResolvedValue(ok(complete));
     renderFlow("consent", answeredAt(11));
@@ -482,12 +513,6 @@ describe("Finish page: consent and done", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
     const finish = screen.getByRole("button", { name: "Find local shifts" });
-    await userEvent.click(finish);
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Tap the box to agree before you finish",
-    );
-    expect(actions.saveOnboardingScreenAction).not.toHaveBeenCalled();
-
     await userEvent.click(
       screen.getByRole("checkbox", { name: new RegExp(SMS_CONSENT_TEXT.slice(0, 20)) }),
     );

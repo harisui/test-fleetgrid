@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { DoneScreen } from "@/components/driver/DoneScreen";
+import { DoneScreen, NO_TEXTS_NEXT_STEP } from "@/components/driver/DoneScreen";
 import { buildDriver } from "../../setup/factories";
 
 const PHONE = "+15555550100";
@@ -29,6 +29,29 @@ describe("DoneScreen", () => {
       "inside",
     );
     expect(screen.queryByText(/isn't in your area/)).not.toBeInTheDocument();
+  });
+
+  it("tells a driver who declined texts how to turn them on, and promises no texts", () => {
+    render(
+      <DoneScreen
+        driver={buildDriver({ inServiceArea: true, smsOptIn: false })}
+        phone={PHONE}
+        onEdit={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByText("Once your profile is approved, carriers near 75201 can find you."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/We will text you/)).not.toBeInTheDocument();
+    expect(
+      nextSteps()
+        .getAllByRole("listitem")
+        .map((item) => item.textContent),
+    ).toEqual([
+      "A FleetGrid reviewer will check your profile.",
+      NO_TEXTS_NEXT_STEP,
+      "You can add your CDL and medical card any time from Documents.",
+    ]);
   });
 
   it("treats a card without coordinates like one inside the area", () => {
