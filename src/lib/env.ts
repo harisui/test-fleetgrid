@@ -68,6 +68,14 @@ export const serverEnvSchema = clientEnvSchema
     SUPPORT_EMAIL: optionalString,
     SUPPORT_PHONE: optionalString,
     BUSINESS_ADDRESS: optionalString,
+    // The website's contact form (src/server/services/ContactService.ts). Resend sends the
+    // mail from CONTACT_FROM to CONTACT_TO; CONTACT_FORM_SECRET signs the form's timestamp.
+    // Without the key or the secret, production shows the form's error state; development
+    // logs the outcome and uses a built-in secret.
+    RESEND_API_KEY: optionalString,
+    CONTACT_TO: optionalString,
+    CONTACT_FROM: optionalString,
+    CONTACT_FORM_SECRET: optionalString,
   })
   .superRefine((env, context) => {
     // A production build may only carry the flag against the local stack (CI). Against a

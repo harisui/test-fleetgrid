@@ -38,6 +38,40 @@ export const NAV_LINKS: readonly SiteLink[] = [
 export const LOGIN_LINK: SiteLink = { href: "/login", label: "Log in" };
 export const HEADER_CTA: SiteLink = { href: "/carriers", label: "Find drivers" };
 
+export const CONTACT = {
+  status: "draft" as CopyStatus,
+  title: "Contact FleetGrid.",
+  /** "usually within one business day" waits for the client to confirm the turnaround. */
+  intro: "Questions about the service, your account or a profile review. We reply by email.",
+  form: {
+    heading: "Send a message",
+    name: "Name",
+    email: "Email",
+    role: "I am a",
+    company: "Company",
+    companyHint: "Optional",
+    message: "Message",
+    submit: "Send message",
+    submitting: "Sending",
+    privacyNote: "We use your details only to reply to your message. See our",
+    privacyLink: "Privacy Policy",
+    successTitle: "Thanks. Your message was sent.",
+    success: (email: string) => `We will reply to ${email}.`,
+    error: "Your message did not send. Please try again or email",
+    summaryTitle: (count: number) =>
+      count === 1 ? "One field needs attention" : `${count} fields need attention`,
+  },
+  details: {
+    heading: "How to reach us",
+    email: "Email",
+    company: "Company",
+    serviceArea: "Service area",
+    serviceAreaValue: "Houston and Pasadena, Texas",
+    address: "Mailing address",
+    phone: "Phone",
+  },
+};
+
 export const FOOTER = {
   status: "draft" as CopyStatus,
   description:
