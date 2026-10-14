@@ -58,6 +58,9 @@ export const serverEnvSchema = clientEnvSchema
     // Test conveniences, all behind one flag that is off unless set to "true": the login and
     // code forms start filled with TEST_PHONE_DRIVER and TEST_OTP (src/lib/auth/prefill.ts).
     ENABLE_TEST_LOGIN: flag,
+    // "true" hides the carrier side: /carrier/* and the carrier sign-up go to a "coming soon"
+    // page (src/lib/carrier/availability.ts). Off unless set to exactly "true".
+    CARRIER_DISABLED: flag,
     TEST_PHONE_DRIVER: optionalString,
     TEST_OTP: optionalString,
     NODE_ENV: optionalString,

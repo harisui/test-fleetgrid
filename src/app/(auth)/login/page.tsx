@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { getSupportContact } from "@/lib/support";
 import { PhoneForm } from "@/components/auth/PhoneForm";
 import { SignHeader } from "@/components/onboarding/SignHeader";
 import { InlineNote } from "@/components/shared/InlineNote";
 import { testLoginPrefill } from "@/lib/auth/prefill";
+import { CARRIER_COMING_SOON_PATH, isCarrierDisabled } from "@/lib/carrier/availability";
 import { SIGNUP_ROLES } from "@/types/domain";
 
 export const metadata: Metadata = { title: "Log in" };
@@ -12,6 +14,7 @@ export const metadata: Metadata = { title: "Log in" };
 export default async function LoginPage({ searchParams }: PageProps<"/login">) {
   const params = await searchParams;
   const role = SIGNUP_ROLES.find((candidate) => candidate === params.role);
+  if (role === "carrier" && isCarrierDisabled()) redirect(CARRIER_COMING_SOON_PATH);
   const blocked = params.blocked === "1";
 
   return (

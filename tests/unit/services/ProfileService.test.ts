@@ -61,6 +61,18 @@ describe("ProfileService", () => {
       },
     );
 
+    it("refuses a carrier profile while the carrier side is switched off, drivers still sign up", async () => {
+      const closed = new ProfileService(profiles, { carrierDisabled: true });
+      const error = await expectAppError(closed.createProfile(user, { role: "carrier" }));
+      expect(error.code).toBe("VALIDATION");
+      expect(error.fieldErrors?.role).toMatch(/not open yet/);
+      expect(profiles.rows.size).toBe(0);
+
+      await expect(closed.createProfile(user, { role: "driver" })).resolves.toMatchObject({
+        role: "driver",
+      });
+    });
+
     it("is idempotent: the same role twice returns the existing profile", async () => {
       const first = await service.createProfile(user, { role: "driver" });
       const second = await service.createProfile(user, { role: "driver" });

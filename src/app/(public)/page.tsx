@@ -10,6 +10,7 @@ import {
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { Button } from "@/components/ui/button";
+import { CARRIER_COMING_SOON_PATH, isCarrierDisabled } from "@/lib/carrier/availability";
 import { LAUNCH_LINE } from "@/lib/launch";
 import { formatE164ForDisplay } from "@/lib/phone";
 import { BUSINESS_NAME, getSupportContact } from "@/lib/support";
@@ -59,6 +60,7 @@ const headingClass = "font-heading text-h2 leading-h2 font-semibold";
 
 export default function LandingPage() {
   const contact = getSupportContact();
+  const carrierDisabled = isCarrierDisabled();
   return (
     <AppShell>
       <div className="mx-auto flex max-w-2xl flex-col items-center gap-10 py-8 text-center sm:py-16">
@@ -103,10 +105,17 @@ export default function LandingPage() {
             </p>
           </div>
           <Button asChild variant="secondary" className="sm:min-w-48">
-            <Link href="/login?role=carrier">
-              <Building2 aria-hidden="true" />
-              I&apos;m a Carrier
-            </Link>
+            {carrierDisabled ? (
+              <Link href={CARRIER_COMING_SOON_PATH}>
+                <Building2 aria-hidden="true" />
+                Carriers: coming soon
+              </Link>
+            ) : (
+              <Link href="/login?role=carrier">
+                <Building2 aria-hidden="true" />
+                I&apos;m a Carrier
+              </Link>
+            )}
           </Button>
         </div>
 

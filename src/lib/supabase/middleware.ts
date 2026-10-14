@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { decideRoute, needsAuthCheck } from "@/lib/auth/routes";
+import { isCarrierDisabled } from "@/lib/carrier/availability";
 import { getClientEnv } from "@/lib/env";
 import { ProfileRepository } from "@/server/repositories/ProfileRepository";
 import type { Database } from "@/types/database.types";
@@ -51,7 +52,12 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     role = profile?.role ?? null;
   }
 
-  const decision = decideRoute({ pathname, signedIn: Boolean(user), role });
+  const decision = decideRoute({
+    pathname,
+    signedIn: Boolean(user),
+    role,
+    carrierDisabled: isCarrierDisabled(),
+  });
   if (decision.action === "allow") return response;
 
   const url = request.nextUrl.clone();

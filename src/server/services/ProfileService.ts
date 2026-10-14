@@ -3,8 +3,16 @@ import { AppError, parseInput } from "@/server/errors/AppError";
 import type { IProfileRepository } from "@/server/repositories/ProfileRepository";
 import type { Profile, SessionUser, UserRole } from "@/types/domain";
 
+export interface ProfileServiceOptions {
+  /** CARRIER_DISABLED=true: no new carrier profiles while the carrier side is switched off. */
+  carrierDisabled?: boolean;
+}
+
 export class ProfileService {
-  constructor(private readonly profiles: IProfileRepository) {}
+  constructor(
+    private readonly profiles: IProfileRepository,
+    private readonly options: ProfileServiceOptions = {},
+  ) {}
 
   async getProfile(userId: string): Promise<Profile | null> {
     return this.profiles.findById(userId);
@@ -33,6 +41,11 @@ export class ProfileService {
    */
   async createProfile(user: SessionUser, input: unknown): Promise<Profile> {
     const { role } = parseInput(chooseRoleSchema, input);
+    if (role === "carrier" && this.options.carrierDisabled) {
+      throw AppError.validation("Carrier sign-up is not open yet", {
+        role: "Carrier sign-up is not open yet. Choose Driver.",
+      });
+    }
 
     const existing = await this.profiles.findById(user.id);
     if (existing) return this.resolveExisting(existing, role);

@@ -374,6 +374,16 @@ describe("RoleChooser", () => {
     expect(driver()).not.toBeChecked();
   });
 
+  it("offers Driver only while the carrier side is switched off", async () => {
+    actions.chooseRoleAction.mockResolvedValue(ok({ redirectTo: "/driver/profile" }));
+    render(<RoleChooser carrierDisabled />);
+    expect(screen.getAllByRole("radio")).toHaveLength(1);
+    expect(screen.queryByRole("radio", { name: /I hire for my company/ })).not.toBeInTheDocument();
+    await userEvent.click(driver());
+    await userEvent.click(submit());
+    expect(actions.chooseRoleAction).toHaveBeenCalledWith({ role: "driver" });
+  });
+
   it("requires a choice", async () => {
     render(<RoleChooser />);
     await userEvent.click(submit());

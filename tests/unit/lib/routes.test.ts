@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import {
+  CARRIER_COMING_SOON_PATH,
   decideRoute,
   homePathFor,
   needsAuthCheck,
@@ -97,6 +98,40 @@ describe("decideRoute", () => {
     for (const path of ["/drivers", "/driver-jobs", "/administrator", "/carriers", "/loginx"]) {
       expect(decide(path, SIGNED_OUT)).toEqual(allow);
     }
+  });
+
+  describe("with the carrier side switched off (CARRIER_DISABLED)", () => {
+    const decideDisabled = (pathname: string, who: Who) =>
+      decideRoute({ pathname, signedIn: who.signedIn, role: who.role, carrierDisabled: true });
+    const everyone = [SIGNED_OUT, NO_PROFILE, DRIVER, CARRIER, ADMIN];
+
+    it.each(CARRIER_PATHS.flatMap((path) => everyone.map((who) => [path, who.label, who] as const)))(
+      "%s for %s goes to the coming soon page",
+      (path, _label, who) => {
+        expect(decideDisabled(path, who)).toEqual(to(CARRIER_COMING_SOON_PATH));
+      },
+    );
+
+    it("the coming soon page itself is public", () => {
+      for (const who of everyone) {
+        expect(decideDisabled(CARRIER_COMING_SOON_PATH, who)).toEqual(allow);
+      }
+    });
+
+    it("changes nothing for the other areas", () => {
+      for (const path of [...DRIVER_PATHS, ...ADMIN_PATHS, ...PUBLIC_PATHS, ...SIGNED_OUT_ONLY_PATHS]) {
+        for (const who of everyone) {
+          expect(decideDisabled(path, who)).toEqual(decide(path, who));
+        }
+      }
+    });
+
+    it("is off unless asked for", () => {
+      expect(decide("/carrier/search", CARRIER)).toEqual(allow);
+      expect(
+        decideRoute({ pathname: "/carrier", signedIn: true, role: "carrier", carrierDisabled: false }),
+      ).toEqual(allow);
+    });
   });
 });
 

@@ -28,10 +28,15 @@ export const ROLE_OPTIONS: readonly CardOption<SignupRole>[] = [
 interface RoleChooserProps {
   /** Preselected from the landing page button the user clicked. */
   defaultRole?: SignupRole;
+  /** CARRIER_DISABLED=true: only the driver option is offered. */
+  carrierDisabled?: boolean;
 }
 
-export function RoleChooser({ defaultRole }: RoleChooserProps) {
+export function RoleChooser({ defaultRole, carrierDisabled = false }: RoleChooserProps) {
   const router = useRouter();
+  const options = carrierDisabled
+    ? ROLE_OPTIONS.filter((option) => option.value !== "carrier")
+    : ROLE_OPTIONS;
   const [role, setRole] = useState<SignupRole | undefined>(defaultRole);
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
@@ -60,7 +65,7 @@ export function RoleChooser({ defaultRole }: RoleChooserProps) {
       <OptionGroup
         label="Account type"
         labelHidden
-        options={ROLE_OPTIONS}
+        options={options}
         value={role}
         onChange={(next) => {
           setRole(next);

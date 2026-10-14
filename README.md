@@ -48,6 +48,7 @@ Copy `.env.example` to `.env.local`. The app validates these at startup (`src/li
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY`                  | Milestone 1 | `ANON_KEY` from `pnpm exec supabase status -o env`     |
 | `SUPABASE_SERVICE_ROLE_KEY`                      | Milestone 1 | `SERVICE_ROLE_KEY` from the same command. Server only. |
 | `SUPPORT_EMAIL`, `SUPPORT_PHONE`, `BUSINESS_ADDRESS` | Milestone 1 | optional overrides of the client's contact details in `src/lib/support.ts` (footer, Contact, Help, SMS Terms); address lines separated by ` \| ` |
+| `CARRIER_DISABLED`                               | Milestone 2 | optional. `true` hides the carrier side: the landing page button, `/login?role=carrier`, the role picker and every `/carrier` page lead to a "Carriers: coming soon" page at `/carriers`, and no carrier profile can be created. Off unless set to exactly `true`. |
 | `TWILIO_*`                                       | Milestone 3 | not needed yet                                         |
 | `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID_MONTHLY`, `STRIPE_WEBHOOK_SECRET` | Milestone 2 | the Stripe dashboard (test mode locally). With all three set, checkout and the webhook use Stripe. Leave them empty locally: with `ENABLE_TEST_LOGIN=true` an in-memory provider stands in and checkout goes to a page inside the app. Server only. |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`             | Milestone 2 | not used yet (Checkout is hosted by Stripe)            |

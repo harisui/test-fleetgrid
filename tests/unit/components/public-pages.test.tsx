@@ -1,5 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import CarriersComingSoonPage from "@/app/(public)/carriers/page";
 import LandingPage from "@/app/(public)/page";
 import PrivacyPage from "@/app/(public)/privacy/page";
 import SmsTermsPage from "@/app/(public)/sms-terms/page";
@@ -7,10 +8,24 @@ import TermsPage from "@/app/(public)/terms/page";
 import { LegalPage } from "@/components/layout/LegalPage";
 import { LEGAL_EFFECTIVE_DATE, SMS_CONSENT_TEXT } from "@/lib/constants";
 
-vi.mock("next/navigation", () => ({ usePathname: () => "/" }));
+const navigation = vi.hoisted(() => ({
+  redirect: vi.fn((to: string) => {
+    throw new Error(`NEXT_REDIRECT:${to}`);
+  }),
+}));
+/** The CARRIER_DISABLED flag as the pages see it; off unless a test turns it on. */
+const availability = vi.hoisted(() => ({ carrierDisabled: false }));
+
+vi.mock("next/navigation", () => ({ usePathname: () => "/", redirect: navigation.redirect }));
+vi.mock("@/lib/carrier/availability", () => ({
+  CARRIER_COMING_SOON_PATH: "/carriers",
+  isCarrierDisabled: () => availability.carrierDisabled,
+}));
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  availability.carrierDisabled = false;
+  navigation.redirect.mockClear();
 });
 
 /** Words a finished public page must never show (Twilio reads the site as a real business). */
@@ -49,6 +64,46 @@ describe("landing page", () => {
     render(<LandingPage />);
     expect(screen.getByRole("link", { name: "I'm a Driver" })).toHaveClass("h-target-lg");
     expect(screen.getByRole("link", { name: "I'm a Carrier" })).toHaveClass("h-target-lg");
+  });
+
+  it("with CARRIER_DISABLED the carrier button says coming soon and goes to that page", () => {
+    availability.carrierDisabled = true;
+    render(<LandingPage />);
+    expect(screen.queryByRole("link", { name: "I'm a Carrier" })).not.toBeInTheDocument();
+    const button = screen.getByRole("link", { name: "Carriers: coming soon" });
+    expect(button).toHaveAttribute("href", "/carriers");
+    expect(button).toHaveClass("h-target-lg");
+    // The driver side is untouched.
+    expect(screen.getByRole("link", { name: "I'm a Driver" })).toHaveAttribute(
+      "href",
+      "/login?role=driver",
+    );
+  });
+});
+
+describe("/carriers (coming soon)", () => {
+  it("with CARRIER_DISABLED it says carriers are coming soon and offers the support email", () => {
+    availability.carrierDisabled = true;
+    render(<CarriersComingSoonPage />);
+    const main = screen.getByRole("main");
+    expect(within(main).getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Carriers: coming soon",
+    );
+    expect(main).toHaveTextContent(/Carrier sign-up is not open yet/);
+    expect(within(main).getByRole("link", { name: /support@fleetgridus.com/ })).toHaveAttribute(
+      "href",
+      "mailto:support@fleetgridus.com",
+    );
+    expect(within(main).getByRole("link", { name: "Back to the home page" })).toHaveAttribute(
+      "href",
+      "/",
+    );
+    expect(navigation.redirect).not.toHaveBeenCalled();
+  });
+
+  it("with the carrier side open it sends the visitor to the carrier login", () => {
+    expect(() => render(<CarriersComingSoonPage />)).toThrow("NEXT_REDIRECT:/login?role=carrier");
+    expect(navigation.redirect).toHaveBeenCalledWith("/login?role=carrier");
   });
 
   it("says under the driver button that drivers can opt in to texts, with the SMS Terms link", () => {

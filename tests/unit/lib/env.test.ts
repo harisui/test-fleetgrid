@@ -65,8 +65,24 @@ describe("parseClientEnv", () => {
 });
 
 describe("parseServerEnv", () => {
-  it("accepts a valid server environment, with the test login flag off by default", () => {
-    expect(parseServerEnv(validServer)).toEqual({ ...validServer, ENABLE_TEST_LOGIN: false });
+  it("accepts a valid server environment, with the test login and carrier flags off by default", () => {
+    expect(parseServerEnv(validServer)).toEqual({
+      ...validServer,
+      ENABLE_TEST_LOGIN: false,
+      CARRIER_DISABLED: false,
+    });
+  });
+
+  it("reads CARRIER_DISABLED as a flag: only the exact word true hides the carrier side", () => {
+    expect(parseServerEnv({ ...validServer, CARRIER_DISABLED: "true" }).CARRIER_DISABLED).toBe(
+      true,
+    );
+    for (const value of ["1", "yes", "TRUE", "false", ""]) {
+      expect(
+        parseServerEnv({ ...validServer, CARRIER_DISABLED: value }).CARRIER_DISABLED,
+        value,
+      ).toBe(false);
+    }
   });
 
   it("reads ENABLE_TEST_LOGIN as a flag: only the exact word true turns it on", () => {

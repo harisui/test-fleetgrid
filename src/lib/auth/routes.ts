@@ -5,6 +5,9 @@ import type { Profile, UserRole } from "@/types/domain";
 export const LOGIN_PATH = "/login";
 export const VERIFY_PATH = "/verify";
 export const CHOOSE_ROLE_PATH = "/choose-role";
+/** Where the carrier area goes while the carrier side is switched off (CARRIER_DISABLED). */
+export const CARRIER_COMING_SOON_PATH = "/carriers";
+const CARRIER_PREFIX = "/carrier";
 
 export const ROLE_HOME: Record<UserRole, string> = {
   driver: "/driver/profile",
@@ -51,6 +54,8 @@ export interface RouteContext {
   signedIn: boolean;
   /** The user's role, or null when signed out or when no profile exists yet. */
   role: UserRole | null;
+  /** True while CARRIER_DISABLED=true: the whole carrier area shows the "coming soon" page. */
+  carrierDisabled?: boolean;
 }
 
 export type RouteDecision = { action: "allow" } | { action: "redirect"; to: string };
@@ -66,8 +71,19 @@ const redirectTo = (to: string): RouteDecision => ({ action: "redirect", to });
  * - Signed in with a profile: only the own area is allowed. Other areas, the role picker and
  *   the login pages go to the role home.
  * - Everything else (landing, legal pages, API) is public.
+ * - With the carrier side switched off, /carrier and below go to the "coming soon" page for
+ *   everyone, signed in or not.
  */
-export function decideRoute({ pathname, signedIn, role }: RouteContext): RouteDecision {
+export function decideRoute({
+  pathname,
+  signedIn,
+  role,
+  carrierDisabled = false,
+}: RouteContext): RouteDecision {
+  if (carrierDisabled && isWithin(pathname, CARRIER_PREFIX)) {
+    return redirectTo(CARRIER_COMING_SOON_PATH);
+  }
+
   const requiredRole = requiredRoleFor(pathname);
   const onChooseRole = isWithin(pathname, CHOOSE_ROLE_PATH);
   const onSignedOutOnly = SIGNED_OUT_ONLY.some((path) => isWithin(pathname, path));

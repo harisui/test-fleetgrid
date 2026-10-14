@@ -78,7 +78,7 @@ export function buildContainer(supabase: TypedSupabaseClient) {
       () => new AccountRepository(createAdminClient()),
       (userId) => subscriptionService.cancelForAccountDeletion(userId),
     ),
-    profileService: new ProfileService(profiles),
+    profileService: new ProfileService(profiles, { carrierDisabled: env.CARRIER_DISABLED }),
     driverService: new DriverService(
       drivers,
       profiles,

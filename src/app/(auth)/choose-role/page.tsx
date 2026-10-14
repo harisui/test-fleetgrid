@@ -7,6 +7,7 @@ import { RoleChooser } from "@/components/auth/RoleChooser";
 import { SignHeader } from "@/components/onboarding/SignHeader";
 import { requireSession } from "@/lib/auth/guards";
 import { homePathFor } from "@/lib/auth/routes";
+import { isCarrierDisabled } from "@/lib/carrier/availability";
 import { SIGNUP_ROLES } from "@/types/domain";
 
 export const metadata: Metadata = { title: "Choose your account type" };
@@ -16,7 +17,9 @@ export default async function ChooseRolePage({ searchParams }: PageProps<"/choos
   if (profile) redirect(homePathFor(profile));
 
   const params = await searchParams;
-  const defaultRole = SIGNUP_ROLES.find((candidate) => candidate === params.role);
+  const carrierDisabled = isCarrierDisabled();
+  const requested = SIGNUP_ROLES.find((candidate) => candidate === params.role);
+  const defaultRole = carrierDisabled && requested === "carrier" ? undefined : requested;
 
   return (
     <AuthShell support={getSupportContact()}>
@@ -24,7 +27,7 @@ export default async function ChooseRolePage({ searchParams }: PageProps<"/choos
       <p className="text-helper leading-helper text-muted-foreground">
         Pick the one that fits. This cannot be changed later without our help.
       </p>
-      <RoleChooser defaultRole={defaultRole} />
+      <RoleChooser defaultRole={defaultRole} carrierDisabled={carrierDisabled} />
       <div className="flex items-center justify-center gap-2 text-helper leading-helper text-muted-foreground">
         <span>Wrong number?</span>
         <LogoutButton />
