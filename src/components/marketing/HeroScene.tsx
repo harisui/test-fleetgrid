@@ -1,37 +1,55 @@
 "use client";
 
 import { Check, Smartphone } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { RoadScene } from "@/components/marketing/RoadScene";
 import { HOME } from "@/content/marketing";
-import { SMS_SAMPLE_THREAD } from "@/content/sms-samples";
+import { nextShiftCode, SMS_SAMPLE_CODE, threadWithCode } from "@/content/sms-samples";
 import { MOTION_CLASS } from "@/lib/motion";
 import { cn } from "@/lib/utils";
 
 export const HERO_PLAYING_CLASS = "is-playing";
 export const HERO_START_DELAY_MS = 300;
 
+/** The offer bubble's keyframes; its restart marks a new time round the loop. */
+export const HERO_LOOP_ANIMATION = "hero-bubble-1";
+
 interface HeroSceneProps {
   /** The phone card's header line: "FleetGrid", with the sending number only when the switch is on. */
   phoneHeader: string;
+  /** Injected by tests for predictable shift codes. */
+  random?: () => number;
 }
 
 /**
  * The hero's highway and phone. The phone is drawn finished in the server HTML: three
  * bubbles, progress full, SHIFT FILLED. When the page is marked for motion, the thread
  * starts empty and plays on a nine-second loop (globals.css keyframes), beginning 300ms
- * after the scene is in view with the tab visible. The highway underneath (RoadScene) rolls
- * on its own. Reduced motion never marks the page, so both stay on their still frame.
+ * after the scene is in view with the tab visible. The first time round it is the exact
+ * Twilio sample; every later round carries a fresh shift code in the offer and the reply,
+ * swapped while the thread is cleared, so it reads as a new shift each time. The highway
+ * underneath (RoadScene) rolls on its own. Reduced motion never marks the page, so both
+ * stay on their still frame.
  */
-export function HeroScene({ phoneHeader }: HeroSceneProps) {
+export function HeroScene({ phoneHeader, random = Math.random }: HeroSceneProps) {
   const scene = useRef<HTMLDivElement>(null);
+  const [code, setCode] = useState(SMS_SAMPLE_CODE);
+  const thread = threadWithCode(code);
 
   useEffect(() => {
     const element = scene.current;
     if (!element || !document.documentElement.classList.contains(MOTION_CLASS)) return;
+
+    // Each restart of the offer's keyframes is a new time round: a new shift, a new code.
+    const onIteration = (event: Event) => {
+      if ((event as AnimationEvent).animationName !== HERO_LOOP_ANIMATION) return;
+      setCode((previous) => nextShiftCode(previous, random));
+    };
+    element.addEventListener("animationiteration", onIteration);
+
     if (typeof IntersectionObserver === "undefined") {
       element.classList.add(HERO_PLAYING_CLASS);
-      return;
+      return () => element.removeEventListener("animationiteration", onIteration);
     }
     let timer: ReturnType<typeof setTimeout> | undefined;
     const observer = new IntersectionObserver(([entry]) => {
@@ -41,10 +59,11 @@ export function HeroScene({ phoneHeader }: HeroSceneProps) {
     });
     observer.observe(element);
     return () => {
+      element.removeEventListener("animationiteration", onIteration);
       observer.disconnect();
       if (timer) clearTimeout(timer);
     };
-  }, []);
+  }, [random]);
 
   return (
     <div
@@ -74,7 +93,7 @@ export function HeroScene({ phoneHeader }: HeroSceneProps) {
             {phoneHeader}
           </div>
           <ol className="flex flex-col gap-2 p-3">
-            {SMS_SAMPLE_THREAD.map((bubble, index) => (
+            {thread.map((bubble, index) => (
               <li
                 key={index}
                 data-slot="hero-bubble"

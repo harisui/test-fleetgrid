@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import LandingPage from "@/app/(public)/page";
 import { HERO_PLAYING_CLASS, HeroScene } from "@/components/marketing/HeroScene";
 import { HOME } from "@/content/marketing";
-import { SMS_SAMPLE_OFFER, SMS_SAMPLE_REPLY } from "@/content/sms-samples";
+import { SMS_SAMPLE_CONFIRMATION, SMS_SAMPLE_OFFER, SMS_SAMPLE_REPLY } from "@/content/sms-samples";
 import { resetEnvCache } from "@/lib/env";
 import { MOTION_CLASS } from "@/lib/motion";
 
@@ -168,6 +168,37 @@ describe("HeroScene playback", () => {
     act(() => vi.advanceTimersByTime(1));
     expect(scene).toHaveClass(HERO_PLAYING_CLASS);
     expect(trigger.observed).toEqual([]);
+  });
+
+  it("shows the exact Twilio sample first, then a fresh shift code in the offer and the reply each time round", () => {
+    document.documentElement.classList.add(MOTION_CLASS);
+    vi.stubGlobal("IntersectionObserver", undefined);
+    const values = [0.5, 0.5, 0.25];
+    let calls = 0;
+    render(<HeroScene phoneHeader="FleetGrid" random={() => values[calls++ % values.length]} />);
+    const scene = document.querySelector("[data-slot=hero]") as HTMLElement;
+    const bubble = (n: number) => scene.querySelector(`[data-slot=hero-bubble][data-bubble='${n}']`)!.textContent;
+    expect(bubble(1)).toBe(SMS_SAMPLE_OFFER);
+    expect(bubble(2)).toBe(SMS_SAMPLE_REPLY);
+
+    const round = (animationName: string) =>
+      act(() => {
+        scene
+          .querySelector("[data-slot=hero-bubble][data-bubble='1']")!
+          .dispatchEvent(Object.assign(new Event("animationiteration", { bubbles: true }), { animationName }));
+      });
+    // Another part's loop restarting means nothing.
+    round("hero-badge");
+    expect(bubble(2)).toBe(SMS_SAMPLE_REPLY);
+
+    round("hero-bubble-1");
+    // 0.5 gives 5500: the offer and the reply both carry it, and the words are unchanged.
+    expect(bubble(2)).toBe("YES 5500");
+    expect(bubble(1)).toBe(SMS_SAMPLE_OFFER.replace("4821", "5500"));
+    expect(bubble(3)).toBe(SMS_SAMPLE_CONFIRMATION);
+    // The next round draws 0.5 again (the same code), which is skipped for 0.25: 3250.
+    round("hero-bubble-1");
+    expect(bubble(2)).toBe("YES 3250");
   });
 
   it("stays on the final frame when the page is not marked for motion (reduced motion, no script)", () => {

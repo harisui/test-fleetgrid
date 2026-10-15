@@ -250,6 +250,15 @@ test.describe("marketing pages", () => {
     expect(
       await hero.locator("[data-slot=hero-badge]").evaluate((el) => getComputedStyle(el).animationDuration),
     ).toBe("9s");
+    // The first round is the exact Twilio sample; the next round is a new shift with its own code.
+    const reply = hero.locator("[data-slot=hero-bubble][data-bubble='2']");
+    const offer = hero.locator("[data-slot=hero-bubble][data-bubble='1']");
+    await expect(reply).toHaveText("YES 4821");
+    await expect(reply).not.toHaveText("YES 4821", { timeout: 9_000 });
+    const code = (await reply.textContent())!.replace("YES ", "");
+    expect(code).toMatch(/^\d{4}$/);
+    await expect(offer).toContainText(`Reply YES ${code} to claim.`);
+    await expect(offer).toContainText("FleetGrid: CDL-A driver needed, Pasadena TX, Tue Oct 14 6:00 AM.");
     // The highway rolls and trucks drive by: the ground is animated, the still frame is
     // hidden, and the live layer has traffic from the first frame on.
     const road = hero.locator("[data-slot=hero-road]");
