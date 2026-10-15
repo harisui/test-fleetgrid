@@ -109,7 +109,7 @@ export default function CarriersPage() {
         {/* Broadcast Shift: steps beside the sample thread. */}
         <Reveal as="section" id={broadcast.id} aria-labelledby="broadcast-title" className="flex flex-col gap-8 scroll-mt-24">
           <SectionHeading id="broadcast-title" eyebrow={broadcast.eyebrow} title={broadcast.title} />
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-start lg:gap-12">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center lg:gap-12">
             <ol className="flex flex-col gap-4" aria-label="Broadcast Shift steps">
               <Stagger>
                 {broadcast.steps.map((step, index) => (

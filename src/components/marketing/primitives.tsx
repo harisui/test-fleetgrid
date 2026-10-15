@@ -1,4 +1,4 @@
-import { ArrowRight, Check, type LucideIcon } from "lucide-react";
+import { ArrowRight, Check, MessageCircleQuestion, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Button } from "@/components/ui/button";
@@ -85,13 +85,16 @@ export function IconTile({ icon: Icon, className }: { icon: LucideIcon; classNam
   );
 }
 
-/** The orange check badge (the progress-fill orange, one of the four allowed uses). */
+/**
+ * The orange "included" mark: a round badge with a white check, so it reads as a tick and
+ * never as a form checkbox. The progress-fill orange, one of the four allowed uses.
+ */
 export function CheckMark() {
   return (
     <span
       aria-hidden="true"
       data-slot="check-badge"
-      className="mt-1 flex size-5 shrink-0 items-center justify-center rounded-badge bg-progress-fill text-primary-foreground"
+      className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-round bg-progress-fill text-primary-foreground"
     >
       <Check className="size-3.5" strokeWidth={3} />
     </span>
@@ -108,23 +111,38 @@ export function CheckItem({ children, className }: { children: ReactNode; classN
   );
 }
 
-/** A card that is one link, with an arrow that moves 2px on hover. No lift, no shadow. */
+/**
+ * A card that is one link, styled like the promise cards: an icon tile, the title, an arrow
+ * that moves 2px on hover, and on hover a firmer border, the tile turning orange and an
+ * orange stripe growing along the top. Fills its grid cell so a row stays level. No lift, no
+ * shadow.
+ */
 export function LinkCard({
   href,
   title,
   text,
+  icon: Icon = MessageCircleQuestion,
   className,
-}: SiteLink & { title: string; text?: string; className?: string }) {
+}: SiteLink & { title: string; text?: string; icon?: LucideIcon; className?: string }) {
   return (
     <Link
       href={href}
       data-slot="link-card"
       className={cn(
-        "group flex min-h-target items-center justify-between gap-4 rounded-card border border-border bg-card p-4 transition-colors duration-(--motion-fast) ease-motion hover:border-border-strong",
+        "group relative flex h-full min-h-target items-center gap-4 overflow-hidden rounded-card border border-border bg-card p-4 transition-colors duration-(--motion-base) ease-motion hover:border-border-strong",
         className,
       )}
     >
-      <span className="flex min-w-0 flex-col gap-1">
+      <span
+        aria-hidden="true"
+        data-slot="link-card-stripe"
+        className="absolute top-0 left-0 h-1 w-0 bg-progress-fill transition-[width] duration-(--motion-base) ease-motion group-hover:w-full"
+      />
+      <IconTile
+        icon={Icon}
+        className="transition-colors duration-(--motion-base) ease-motion group-hover:border-progress-fill group-hover:bg-progress-fill group-hover:text-primary-foreground"
+      />
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="text-label leading-label font-semibold">{title}</span>
         {text && <span className="text-helper leading-helper text-muted-foreground">{text}</span>}
       </span>

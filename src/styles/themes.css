@@ -19,8 +19,8 @@
   --radius-badge: 2px;
   --radius-sheet: 8px;
   --radius-sign: 4px;
-  /* The illustrated phone on the home page, and nothing else: its shell, its screen, its
-     message bubbles, and the pill shapes on it. */
+  /* The illustrated phone on the home page: its shell, its screen, its message bubbles,
+     and the pill shapes on it. The round radius also draws the site's "included" marks. */
   --radius-phone: 44px;
   --radius-screen: 34px;
   --radius-bubble: 16px;

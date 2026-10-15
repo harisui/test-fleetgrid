@@ -105,6 +105,13 @@ describe("/carriers", () => {
       expect(screen.getByRole("link", { name: entry.question })).toHaveAttribute("href", `/faq#${entry.id}`);
     }
     expect(screen.getByRole("link", { name: "All carrier questions" })).toHaveAttribute("href", "/faq#carriers");
+    // Styled like the promise cards: an icon tile, the orange stripe that grows on hover, level heights.
+    for (const card of document.querySelectorAll("[data-slot=link-card]")) {
+      expect(card).toHaveClass("group", "h-full", "hover:border-border-strong");
+      expect(card.querySelector("[data-slot=icon-tile] svg")).not.toBeNull();
+      expect(card.querySelector("[data-slot=icon-tile]")).toHaveClass("group-hover:bg-progress-fill");
+      expect(card.querySelector("[data-slot=link-card-stripe]")).toHaveClass("w-0", "group-hover:w-full", "bg-progress-fill");
+    }
     const band = screen.getByRole("region", { name: "Ready when you are." });
     expect(within(band).getByRole("link", { name: "Check your yard's ZIP" })).toHaveAttribute(
       "href",

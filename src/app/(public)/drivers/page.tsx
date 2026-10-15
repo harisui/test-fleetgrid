@@ -46,7 +46,7 @@ export default function DriversPage() {
 
         <Reveal as="section" id={signUp.id} aria-labelledby="sign-up-title" className="flex flex-col gap-8 scroll-mt-24">
           <SectionHeading id="sign-up-title" eyebrow={signUp.eyebrow} title={signUp.title} />
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-start lg:gap-12">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center lg:gap-12">
             <ol className="flex flex-col gap-4" aria-label="Sign-up steps">
               <Stagger>
                 {signUp.steps.map((step, index) => (
@@ -92,15 +92,19 @@ export default function DriversPage() {
           </p>
         </Reveal>
 
-        <Reveal as="section" id={texts.id} aria-labelledby="texts-title" className="flex flex-col gap-8 scroll-mt-24">
-          <SectionHeading id="texts-title" eyebrow={texts.eyebrow} title={texts.title} />
-          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-start lg:gap-12">
-            <div className="flex max-w-reading flex-col gap-4">
-              <p className="text-body-lg leading-body-lg text-muted-foreground">{texts.text}</p>
-              <p className="font-semibold">{texts.stopLine}</p>
-            </div>
-            <SmsThread className="justify-self-center md:justify-self-end" />
+        {/* The heading and the text in one column, the thread centred beside them. */}
+        <Reveal
+          as="section"
+          id={texts.id}
+          aria-labelledby="texts-title"
+          className="grid grid-cols-1 gap-8 scroll-mt-24 md:grid-cols-2 md:items-center lg:gap-12"
+        >
+          <div className="flex max-w-reading flex-col gap-6">
+            <SectionHeading id="texts-title" eyebrow={texts.eyebrow} title={texts.title} />
+            <p className="text-body-lg leading-body-lg text-muted-foreground">{texts.text}</p>
+            <p className="font-semibold">{texts.stopLine}</p>
           </div>
+          <SmsThread className="justify-self-center md:justify-self-end" />
         </Reveal>
 
         <Reveal as="section" id={free.id} aria-labelledby="free-title" className="flex flex-col gap-4 scroll-mt-24">

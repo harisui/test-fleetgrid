@@ -1,3 +1,4 @@
+import { List } from "lucide-react";
 import { LinkCard, SectionHeading } from "@/components/marketing/primitives";
 import { Reveal, Stagger } from "@/components/marketing/Reveal";
 import type { FaqEntry } from "@/content/faq";
@@ -24,7 +25,7 @@ export function FaqExcerpt({ id, eyebrow, title, entries, more }: FaqExcerptProp
             </Reveal>
           ))}
           <Reveal as="li">
-            <LinkCard href={more.href} label={more.label} title={more.label} />
+            <LinkCard href={more.href} label={more.label} title={more.label} icon={List} />
           </Reveal>
         </Stagger>
       </ul>
