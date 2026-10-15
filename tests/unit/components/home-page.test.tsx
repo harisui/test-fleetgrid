@@ -144,15 +144,18 @@ describe("home page", () => {
     const promises = screen.getByRole("region", { name: "Plain promises" });
     const cards = within(promises).getAllByRole("listitem");
     expect(cards.map((item) => item.textContent)).toEqual(HOME.promises.items.map((item) => `${item.title}${item.text}`));
-    // Each card is styled: an icon tile, the orange stripe that grows on hover, a firmer border on hover.
-    for (const card of cards) {
-      expect(card).toHaveAttribute("data-slot", "promise-card");
-      expect(card).toHaveClass("group", "hover:border-border-strong");
+    // Each promise and each "who" tile is a feature card: an icon tile, the orange stripe that
+    // grows on hover, a firmer border on hover, level heights.
+    const who = screen.getByRole("list", { name: "Who is on FleetGrid" });
+    for (const item of [...cards, ...within(who).getAllByRole("listitem")]) {
+      const card = item.querySelector("[data-slot=feature-card]")!;
+      expect(card).toHaveClass("group", "h-full", "hover:border-border-strong", "flex-col");
       expect(card.querySelector("[data-slot=icon-tile] svg")).not.toBeNull();
       expect(card.querySelector("[data-slot=icon-tile]")).toHaveClass("group-hover:bg-progress-fill");
-      expect(card.querySelector("[data-slot=promise-stripe]")).toHaveClass("w-0", "group-hover:w-full", "bg-progress-fill");
+      expect(card.querySelector("[data-slot=feature-stripe]")).toHaveClass("w-0", "group-hover:w-full", "bg-progress-fill");
       expect(card.querySelector("[data-slot=check-badge]")).toBeNull();
     }
+    expect(cards[0]).toHaveAttribute("data-slot", "promise-card");
 
     const band = screen.getByRole("region", { name: "Ready when you are." });
     expect(within(band).getByRole("link", { name: "Find drivers" })).toHaveAttribute("href", "/carriers");

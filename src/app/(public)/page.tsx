@@ -20,7 +20,7 @@ import {
   CheckItem,
   CtaBand,
   Eyebrow,
-  IconTile,
+  FeatureCard,
   SectionHeading,
   SignPanel,
 } from "@/components/marketing/primitives";
@@ -164,10 +164,8 @@ export default function LandingPage() {
           <ul className="grid grid-cols-1 gap-6 md:grid-cols-3" aria-label="Who is on FleetGrid">
             <Stagger>
               {who.tiles.map((tile, index) => (
-                <Reveal as="li" key={tile.title} className="flex flex-col gap-3 rounded-card border border-border bg-card p-4">
-                  <IconTile icon={WHO_ICONS[index]} />
-                  <span className="text-label leading-label font-semibold">{tile.title}</span>
-                  <span className="text-helper leading-helper text-muted-foreground">{tile.text}</span>
+                <Reveal as="li" key={tile.title}>
+                  <FeatureCard icon={WHO_ICONS[index]} title={tile.title} text={tile.text} />
                 </Reveal>
               ))}
             </Stagger>
@@ -229,25 +227,8 @@ export default function LandingPage() {
           <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
             <Stagger>
               {promises.items.map((item, index) => (
-                <Reveal
-                  as="li"
-                  key={item.title}
-                  data-slot="promise-card"
-                  className="group relative flex flex-col gap-4 overflow-hidden rounded-card border border-border bg-card p-5 transition-colors duration-(--motion-base) ease-motion hover:border-border-strong"
-                >
-                  <span
-                    aria-hidden="true"
-                    data-slot="promise-stripe"
-                    className="absolute top-0 left-0 h-1 w-0 bg-progress-fill transition-[width] duration-(--motion-base) ease-motion group-hover:w-full"
-                  />
-                  <IconTile
-                    icon={PROMISE_ICONS[index]}
-                    className="transition-colors duration-(--motion-base) ease-motion group-hover:border-progress-fill group-hover:bg-progress-fill group-hover:text-primary-foreground"
-                  />
-                  <span className="flex flex-col gap-1">
-                    <span className="text-label leading-label font-semibold">{item.title}</span>
-                    <span className="text-helper leading-helper text-muted-foreground">{item.text}</span>
-                  </span>
+                <Reveal as="li" key={item.title} data-slot="promise-card">
+                  <FeatureCard icon={PROMISE_ICONS[index]} title={item.title} text={item.text} />
                 </Reveal>
               ))}
             </Stagger>

@@ -19,7 +19,7 @@ import {
   CheckItem,
   CtaBand,
   Eyebrow,
-  IconTile,
+  FeatureCard,
   SectionHeading,
   SignPanel,
 } from "@/components/marketing/primitives";
@@ -94,12 +94,8 @@ export default function CarriersPage() {
           <ul className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3" aria-label="Search filters">
             <Stagger>
               {search.filters.map((filter, index) => (
-                <Reveal as="li" key={filter.label} className="flex gap-4 rounded-card border border-border bg-card p-4">
-                  <IconTile icon={FILTER_ICONS[index]} />
-                  <span className="flex flex-col gap-1">
-                    <span className="text-label leading-label font-semibold">{filter.label}</span>
-                    <span className="text-helper leading-helper text-muted-foreground">{filter.detail}</span>
-                  </span>
+                <Reveal as="li" key={filter.label}>
+                  <FeatureCard icon={FILTER_ICONS[index]} title={filter.label} text={filter.detail} layout="row" />
                 </Reveal>
               ))}
             </Stagger>

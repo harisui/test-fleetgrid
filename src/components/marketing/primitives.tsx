@@ -111,8 +111,56 @@ export function CheckItem({ children, className }: { children: ReactNode; classN
   );
 }
 
+const HOVER_TILE =
+  "transition-colors duration-(--motion-base) ease-motion group-hover:border-progress-fill group-hover:bg-progress-fill group-hover:text-primary-foreground";
+
+/** The orange stripe along a card's top edge that grows from the left on hover. */
+function HoverStripe({ slot }: { slot: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      data-slot={slot}
+      className="absolute top-0 left-0 h-1 w-0 bg-progress-fill transition-[width] duration-(--motion-base) ease-motion group-hover:w-full"
+    />
+  );
+}
+
+interface FeatureCardProps {
+  icon: LucideIcon;
+  title: string;
+  text?: string;
+  /** stack: the tile above the words (default). row: the tile beside them. */
+  layout?: "stack" | "row";
+  className?: string;
+}
+
 /**
- * A card that is one link, styled like the promise cards: an icon tile, the title, an arrow
+ * A card with an icon tile, a title and a line of text. On hover the border firms up, the
+ * tile turns orange and an orange stripe grows along the top, all over --motion-base.
+ * Fills its grid cell so a row stays level. No lift, no shadow.
+ */
+export function FeatureCard({ icon, title, text, layout = "stack", className }: FeatureCardProps) {
+  return (
+    <div
+      data-slot="feature-card"
+      className={cn(
+        "group relative flex h-full gap-4 overflow-hidden rounded-card border border-border bg-card p-5 transition-colors duration-(--motion-base) ease-motion hover:border-border-strong",
+        layout === "stack" ? "flex-col" : "flex-row items-start",
+        className,
+      )}
+    >
+      <HoverStripe slot="feature-stripe" />
+      <IconTile icon={icon} className={HOVER_TILE} />
+      <span className="flex min-w-0 flex-col gap-1">
+        <span className="text-label leading-label font-semibold">{title}</span>
+        {text && <span className="text-helper leading-helper text-muted-foreground">{text}</span>}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * A card that is one link, styled like the feature cards: an icon tile, the title, an arrow
  * that moves 2px on hover, and on hover a firmer border, the tile turning orange and an
  * orange stripe growing along the top. Fills its grid cell so a row stays level. No lift, no
  * shadow.
@@ -133,15 +181,8 @@ export function LinkCard({
         className,
       )}
     >
-      <span
-        aria-hidden="true"
-        data-slot="link-card-stripe"
-        className="absolute top-0 left-0 h-1 w-0 bg-progress-fill transition-[width] duration-(--motion-base) ease-motion group-hover:w-full"
-      />
-      <IconTile
-        icon={Icon}
-        className="transition-colors duration-(--motion-base) ease-motion group-hover:border-progress-fill group-hover:bg-progress-fill group-hover:text-primary-foreground"
-      />
+      <HoverStripe slot="link-card-stripe" />
+      <IconTile icon={Icon} className={HOVER_TILE} />
       <span className="flex min-w-0 flex-1 flex-col gap-1">
         <span className="text-label leading-label font-semibold">{title}</span>
         {text && <span className="text-helper leading-helper text-muted-foreground">{text}</span>}

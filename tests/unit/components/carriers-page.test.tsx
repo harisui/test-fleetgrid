@@ -43,9 +43,15 @@ describe("/carriers", () => {
   it("lists the nine real search filters and nothing the app does not offer", () => {
     render(<CarriersPage />);
     const list = screen.getByRole("list", { name: "Search filters" });
-    const labels = within(list)
-      .getAllByRole("listitem")
-      .map((item) => item.querySelector(".text-label")?.textContent);
+    const items = within(list).getAllByRole("listitem");
+    const labels = items.map((item) => item.querySelector(".text-label")?.textContent);
+    // Each filter is a feature card laid out in a row, with the hover stripe and tile.
+    for (const item of items) {
+      const card = item.querySelector("[data-slot=feature-card]")!;
+      expect(card).toHaveClass("group", "h-full", "flex-row", "hover:border-border-strong");
+      expect(card.querySelector("[data-slot=feature-stripe]")).toHaveClass("group-hover:w-full");
+      expect(card.querySelector("[data-slot=icon-tile]")).toHaveClass("group-hover:bg-progress-fill");
+    }
     expect(labels).toEqual([
       "Distance from your yard",
       "CDL class",
