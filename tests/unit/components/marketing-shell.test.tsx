@@ -242,6 +242,24 @@ describe("AppShell marketing variant", () => {
     expect(screen.getByRole("link", { name: "Skip to content" })).toBeInTheDocument();
   });
 
+  it("the strip, the header, the page and the footer share the one site column", () => {
+    render(
+      <AppShell variant="marketing">
+        <p>Page</p>
+      </AppShell>,
+    );
+    const strip = screen.getByRole("region", { name: "Launch area" });
+    const banner = screen.getByRole("banner");
+    const footer = screen.getByRole("contentinfo");
+    expect(strip.querySelector("[data-slot=container]")).toHaveClass("max-w-site", "lg:px-8");
+    expect(banner.querySelector("[data-slot=container]")).toHaveClass("max-w-site", "lg:px-8");
+    expect(screen.getByRole("main")).toHaveClass("max-w-site", "lg:px-8");
+    // The columns and the legal line each sit in the column.
+    expect(footer.querySelectorAll("[data-slot=container]")).toHaveLength(2);
+    expect(footer.querySelector("[data-slot=container]")).toHaveClass("lg:grid-cols-4", "md:grid-cols-2");
+    expect(document.querySelectorAll(".max-w-5xl")).toHaveLength(0);
+  });
+
   it("the app variant has no strip and no sentinel", () => {
     render(
       <AppShell>

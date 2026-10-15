@@ -85,17 +85,24 @@ export function IconTile({ icon: Icon, className }: { icon: LucideIcon; classNam
   );
 }
 
-/** A line with the orange check badge (the progress-fill orange, one of the four allowed uses). */
+/** The orange check badge (the progress-fill orange, one of the four allowed uses). */
+export function CheckMark() {
+  return (
+    <span
+      aria-hidden="true"
+      data-slot="check-badge"
+      className="mt-1 flex size-5 shrink-0 items-center justify-center rounded-badge bg-progress-fill text-primary-foreground"
+    >
+      <Check className="size-3.5" strokeWidth={3} />
+    </span>
+  );
+}
+
+/** A list line with the check badge. */
 export function CheckItem({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <li className={cn("flex items-start gap-3", className)} data-slot="check-item">
-      <span
-        aria-hidden="true"
-        data-slot="check-badge"
-        className="mt-1 flex size-5 shrink-0 items-center justify-center rounded-badge bg-progress-fill text-primary-foreground"
-      >
-        <Check className="size-3.5" strokeWidth={3} />
-      </span>
+      <CheckMark />
       <span>{children}</span>
     </li>
   );

@@ -16,7 +16,8 @@ export const metadata: Metadata = {
 export default function FaqPage() {
   return (
     <AppShell variant="marketing">
-      <div className="flex flex-col gap-10 py-4 sm:py-8">
+      {/* One centred column: accordion rows read badly at the full site width. */}
+      <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 py-4 sm:py-8">
         <div className="flex max-w-reading flex-col gap-3">
           <h1 className="font-heading text-h1 leading-h1 font-bold sm:text-4xl sm:leading-tight">
             {FAQ_PAGE.title}

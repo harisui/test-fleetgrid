@@ -16,7 +16,7 @@ export function FaqExcerpt({ id, eyebrow, title, entries, more }: FaqExcerptProp
   return (
     <Reveal as="section" id={id} aria-labelledby={`${id}-title`} className="flex flex-col gap-6">
       <SectionHeading id={`${id}-title`} eyebrow={eyebrow} title={title} />
-      <ul className="grid gap-3 sm:grid-cols-2">
+      <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Stagger>
           {entries.map((entry) => (
             <Reveal as="li" key={entry.id}>

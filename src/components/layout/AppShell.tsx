@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { CONTAINER_CLASS } from "@/components/layout/Container";
 import { Footer } from "@/components/layout/Footer";
 import { Header, type HeaderVariant } from "@/components/layout/Header";
 import { MobileNav } from "@/components/layout/MobileNav";
@@ -13,21 +14,32 @@ interface AppShellProps {
   variant?: HeaderVariant;
   navItems?: NavItem[];
   headerActions?: ReactNode;
-  /** Narrow column for forms and driver screens, wide for tables and dashboards. */
-  width?: "narrow" | "wide";
+  /**
+   * Narrow column for forms and driver screens, wide for tables and dashboards, site for the
+   * marketing pages (the Container column: 80rem with the responsive gutter). Marketing pages
+   * default to site.
+   */
+  width?: "narrow" | "wide" | "site";
   showFooter?: boolean;
 }
+
+const MAIN_WIDTH = {
+  narrow: "mx-auto w-full max-w-xl px-4",
+  wide: "mx-auto w-full max-w-5xl px-4",
+  site: CONTAINER_CLASS,
+} as const;
 
 export function AppShell({
   children,
   variant = "app",
   navItems = [],
   headerActions,
-  width = "wide",
+  width,
   showFooter = true,
 }: AppShellProps) {
   const hasMobileNav = navItems.length > 0;
   const marketing = variant === "marketing";
+  const mainWidth = width ?? (marketing ? "site" : "wide");
 
   return (
     <div className="relative flex min-h-dvh flex-1 flex-col">
@@ -42,11 +54,7 @@ export function AppShell({
       <Header variant={variant} navItems={navItems} actions={headerActions} />
       <main
         id="main-content"
-        className={cn(
-          "mx-auto w-full flex-1 px-4 py-6",
-          width === "narrow" ? "max-w-xl" : "max-w-5xl",
-          hasMobileNav && "pb-24 md:pb-6",
-        )}
+        className={cn("flex-1 py-6", MAIN_WIDTH[mainWidth], hasMobileNav && "pb-24 md:pb-6")}
       >
         {children}
       </main>

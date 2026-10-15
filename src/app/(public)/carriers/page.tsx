@@ -65,7 +65,7 @@ export default function CarriersPage() {
     <AppShell variant="marketing">
       <div className="flex flex-col gap-16 py-4 sm:gap-24 sm:py-8">
         {/* Hero. Server-rendered, never animated. */}
-        <section aria-labelledby="hero-title" className="flex max-w-reading flex-col gap-5">
+        <section aria-labelledby="hero-title" className="flex max-w-3xl flex-col gap-5">
           <Eyebrow>{hero.eyebrow}</Eyebrow>
           <h1
             id="hero-title"
@@ -73,7 +73,7 @@ export default function CarriersPage() {
           >
             {hero.title}
           </h1>
-          <p className="text-body-lg leading-body-lg text-muted-foreground">{hero.text}</p>
+          <p className="max-w-reading text-body-lg leading-body-lg text-muted-foreground">{hero.text}</p>
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <Button asChild className="sm:min-w-48">
               <Link href={hero.primary.href}>{hero.primary.label}</Link>
@@ -91,7 +91,7 @@ export default function CarriersPage() {
         {/* The nine filters, as the search offers them. */}
         <Reveal as="section" id={search.id} aria-labelledby="search-title" className="flex flex-col gap-8 scroll-mt-24">
           <SectionHeading id="search-title" eyebrow={search.eyebrow} title={search.title} text={search.text} />
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Search filters">
+          <ul className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3" aria-label="Search filters">
             <Stagger>
               {search.filters.map((filter, index) => (
                 <Reveal as="li" key={filter.label} className="flex gap-4 rounded-card border border-border bg-card p-4">
@@ -109,7 +109,7 @@ export default function CarriersPage() {
         {/* Broadcast Shift: steps beside the sample thread. */}
         <Reveal as="section" id={broadcast.id} aria-labelledby="broadcast-title" className="flex flex-col gap-8 scroll-mt-24">
           <SectionHeading id="broadcast-title" eyebrow={broadcast.eyebrow} title={broadcast.title} />
-          <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-start lg:gap-12">
             <ol className="flex flex-col gap-4" aria-label="Broadcast Shift steps">
               <Stagger>
                 {broadcast.steps.map((step, index) => (
@@ -128,16 +128,16 @@ export default function CarriersPage() {
                 ))}
               </Stagger>
             </ol>
-            <SmsThread className="justify-self-center lg:justify-self-end" />
+            <SmsThread className="justify-self-center md:justify-self-end" />
           </div>
         </Reveal>
 
         {/* Pricing. */}
         <Reveal as="section" id={pricing.id} aria-labelledby="pricing-title" className="flex flex-col gap-8 scroll-mt-24">
           <SectionHeading id="pricing-title" eyebrow={pricing.eyebrow} title={pricing.title} />
-          <div className="grid gap-8 lg:grid-cols-5 lg:items-start">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-5 md:items-start lg:gap-12">
             <div
-              className="overflow-hidden rounded-card border border-border bg-card lg:col-span-3"
+              className="overflow-hidden rounded-card border border-border bg-card md:col-span-3"
               data-slot="pricing-card"
             >
               <div className="border-t-4 border-sign-panel-border bg-sign-panel px-6 py-4 text-sign-panel-foreground">
@@ -163,7 +163,7 @@ export default function CarriersPage() {
                 </Button>
               </div>
             </div>
-            <p className="text-body-lg leading-body-lg text-muted-foreground lg:col-span-2">{pricing.framing}</p>
+            <p className="text-body-lg leading-body-lg text-muted-foreground md:col-span-2">{pricing.framing}</p>
           </div>
         </Reveal>
 
@@ -175,7 +175,7 @@ export default function CarriersPage() {
             title={serviceArea.title}
             text={serviceArea.text}
           />
-          <div className="max-w-reading">
+          <div className="max-w-xl">
             <ZipCheck />
           </div>
         </Reveal>
@@ -183,7 +183,7 @@ export default function CarriersPage() {
         {/* Is and is not. */}
         <Reveal id={isAndIsNot.id} className="flex flex-col gap-6 scroll-mt-24">
           <Eyebrow>{isAndIsNot.eyebrow}</Eyebrow>
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <SignPanel aria-labelledby="is-title" className="flex flex-col gap-4">
               <h2 id="is-title" className="font-heading text-h2 leading-h2 font-semibold">
                 {isAndIsNot.is.title}

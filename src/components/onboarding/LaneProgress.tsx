@@ -48,7 +48,8 @@ export function LaneProgress({ stepId }: LaneProgressProps) {
         />
       </div>
 
-      <ol className="flex justify-between gap-2 text-small leading-small" aria-label="Stages">
+      {/* Six labels need about 315px; on a 320px phone (and the home page preview) they wrap. */}
+      <ol className="flex flex-wrap justify-between gap-2 text-small leading-small" aria-label="Stages">
         {MILES.map((mile) => {
           const done = progress.completedMiles.includes(mile.mile);
           const current = mile.mile === progress.mile.mile;

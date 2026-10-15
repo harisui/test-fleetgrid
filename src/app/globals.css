@@ -71,11 +71,12 @@
   --shadow-1: var(--shadow-1);
   --shadow-2: var(--shadow-2);
 
-  /* Sizes: h-target, h-target-lg, min-h-card-min, max-w-content */
+  /* Sizes: h-target, h-target-lg, min-h-card-min, max-w-content, max-w-site, max-w-reading */
   --spacing-target: var(--target-min);
   --spacing-target-lg: var(--target-primary);
   --spacing-card-min: var(--card-min-h);
   --container-content: var(--content-max);
+  --container-site: var(--site-max);
   --container-reading: var(--reading-max);
 
   /* Type: text-body, text-body-lg, text-label, text-helper, text-button, text-eyebrow, text-h1, text-h2, text-code, text-small */
@@ -189,6 +190,97 @@ html.js-motion [data-reveal]:not([data-revealed]) {
   main a[href^="http"]::after {
     content: " (" attr(href) ")";
   }
+}
+
+/* The home page hero (src/components/marketing/HeroScene.tsx). The server HTML is the final
+   frame. With the page marked for motion, the scene waits at frame zero until the trigger
+   adds `is-playing`, then every part runs once on its own delay. Durations fall to 0s under
+   reduced motion through the safety net below, so the final frame shows at once. */
+@keyframes hero-dashes {
+  to {
+    stroke-dashoffset: -14;
+  }
+}
+@keyframes hero-truck {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(280px);
+  }
+}
+@keyframes hero-rise {
+  from {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-sm));
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes hero-fill {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+[data-slot="hero-truck"] {
+  transform: translateX(280px);
+}
+html.js-motion [data-slot="hero"]:not(.is-playing) [data-slot="hero-truck"] {
+  transform: translateX(0);
+}
+html.js-motion [data-slot="hero"]:not(.is-playing) [data-slot="hero-bubble"],
+html.js-motion [data-slot="hero"]:not(.is-playing) [data-slot="hero-badge"] {
+  opacity: 0;
+}
+html.js-motion [data-slot="hero"]:not(.is-playing) [data-slot="hero-fill"] {
+  transform: scaleX(0);
+}
+[data-slot="hero"].is-playing [data-slot="hero-dashes"] {
+  animation: hero-dashes 600ms linear 1 both;
+}
+[data-slot="hero"].is-playing [data-slot="hero-truck"] {
+  animation: hero-truck 1000ms var(--motion-ease) 100ms 1 both;
+}
+[data-slot="hero"].is-playing [data-slot="hero-bubble"] {
+  animation: hero-rise var(--motion-slow) var(--motion-ease) 1 both;
+}
+[data-slot="hero"].is-playing [data-slot="hero-bubble"][data-bubble="1"] {
+  animation-delay: 1100ms;
+}
+[data-slot="hero"].is-playing [data-slot="hero-bubble"][data-bubble="2"] {
+  animation-delay: 1500ms;
+}
+[data-slot="hero"].is-playing [data-slot="hero-bubble"][data-bubble="3"] {
+  animation-delay: 1900ms;
+}
+[data-slot="hero"].is-playing [data-slot="hero-fill"] {
+  animation: hero-fill var(--motion-slow) var(--motion-ease) 2100ms 1 both;
+}
+[data-slot="hero"].is-playing [data-slot="hero-badge"] {
+  animation: hero-rise var(--motion-slow) var(--motion-ease) 2100ms 1 both;
+}
+
+/* The four-mile row on the home page: the fill and the truck travel the whole bar over four
+   reveal steps once the row is in view; without motion they sit at the end. */
+[data-slot="miles-fill"] {
+  transform: scaleX(1);
+  transform-origin: left;
+  transition: transform calc(var(--motion-slow) * 4) var(--motion-ease);
+}
+[data-slot="miles-truck"] {
+  left: 100%;
+  transition: left calc(var(--motion-slow) * 4) var(--motion-ease);
+}
+html.js-motion [data-slot="miles"]:not([data-revealed]) [data-slot="miles-fill"] {
+  transform: scaleX(0);
+}
+html.js-motion [data-slot="miles"]:not([data-revealed]) [data-slot="miles-truck"] {
+  left: 0%;
 }
 
 /* The launch strip above the site header, dismissed once and remembered in localStorage.

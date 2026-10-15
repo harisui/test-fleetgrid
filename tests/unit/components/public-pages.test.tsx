@@ -36,49 +36,20 @@ afterEach(() => {
 const PLACEHOLDER_WORDS = /placeholder|coming soon|to be provided|lorem ipsum|pending legal|TODO|TBD/i;
 
 describe("landing page", () => {
-  it("has a headline and one sentence each for carriers and drivers", () => {
-    render(<LandingPage />);
-    const main = screen.getByRole("main");
-    expect(within(main).getByRole("heading", { level: 1 })).toHaveTextContent(
-      "Local freight shifts, filled fast",
-    );
-    expect(within(main).getByText(/find certified transport operators/)).toBeInTheDocument();
-    expect(within(main).getByText(/get matching shift offers by text/)).toBeInTheDocument();
-  });
-
   it("says where FleetGrid is launching", () => {
     render(<LandingPage />);
     const line = within(screen.getByRole("main")).getByText("Now launching in the Houston area.");
     expect(line).toHaveAttribute("data-slot", "launch-line");
   });
 
-  it("both buttons go to login with the role preselected", () => {
-    render(<LandingPage />);
-    expect(screen.getByRole("link", { name: "I'm a Driver" })).toHaveAttribute(
-      "href",
-      "/login?role=driver",
-    );
-    expect(screen.getByRole("link", { name: "I'm a Carrier" })).toHaveAttribute(
-      "href",
-      "/login?role=carrier",
-    );
-  });
-
-  it("the buttons are large tap targets", () => {
-    render(<LandingPage />);
-    expect(screen.getByRole("link", { name: "I'm a Driver" })).toHaveClass("h-target-lg");
-    expect(screen.getByRole("link", { name: "I'm a Carrier" })).toHaveClass("h-target-lg");
-  });
-
-  it("with CARRIER_DISABLED the carrier button keeps its label and goes to the coming soon page", () => {
+  it("the carrier button goes to the carriers page, which the CARRIER_DISABLED switch turns into coming soon", () => {
     availability.carrierDisabled = true;
     render(<LandingPage />);
-    const button = screen.getByRole("link", { name: "I'm a Carrier" });
-    expect(button).toHaveAttribute("href", "/carriers");
-    expect(button).toHaveClass("h-target-lg");
+    // The header and the final band repeat the buttons; the hero's pair is the one Twilio reads.
+    const hero = screen.getByRole("region", { name: "Local CDL drivers. Shifts filled by text." });
+    expect(within(hero).getByRole("link", { name: "Find drivers" })).toHaveAttribute("href", "/carriers");
     expect(document.body.textContent).not.toMatch(/coming soon/i);
-    // The driver side is untouched.
-    expect(screen.getByRole("link", { name: "I'm a Driver" })).toHaveAttribute(
+    expect(within(hero).getByRole("link", { name: "Sign up to drive, free" })).toHaveAttribute(
       "href",
       "/login?role=driver",
     );
@@ -114,6 +85,9 @@ describe("/carriers with CARRIER_DISABLED", () => {
     expect(navigation.redirect).not.toHaveBeenCalled();
   });
 
+});
+
+describe("landing page, what Twilio checks", () => {
   it("says under the driver button that drivers can opt in to texts, with the SMS Terms link", () => {
     render(<LandingPage />);
     const line = document.querySelector("[data-slot=sms-opt-in-line]") as HTMLElement;
@@ -124,59 +98,16 @@ describe("/carriers with CARRIER_DISABLED", () => {
       "href",
       "/sms-terms",
     );
-    // Directly under the driver button: the two share a column.
-    expect(line.parentElement).toContainElement(screen.getByRole("link", { name: "I'm a Driver" }));
-  });
-
-  it("explains how it works for carriers and for drivers, in two columns", () => {
-    render(<LandingPage />);
-    const section = screen.getByRole("region", { name: "How it works" });
-    const carriers = within(section).getByRole("heading", { level: 3, name: "Carriers" });
-    const drivers = within(section).getByRole("heading", { level: 3, name: "Drivers" });
-    const steps = (heading: HTMLElement) =>
-      within(heading.parentElement as HTMLElement)
-        .getAllByRole("listitem")
-        .map((item) => item.textContent);
-    expect(steps(carriers)).toEqual([
-      "Subscribe to FleetGrid.",
-      "Search qualified drivers near your yard.",
-      "Broadcast a shift. The first driver to reply YES has it.",
-    ]);
-    expect(steps(drivers)).toEqual([
-      "Sign up on your phone with a text code.",
-      "Build your qualification card in six short pages.",
-      "Get shift offers by text and reply YES to claim one.",
-    ]);
-  });
-
-  it("says who FleetGrid LLC is, where it launches and who it serves", () => {
-    render(<LandingPage />);
-    const about = screen.getByRole("region", { name: "About FleetGrid" });
-    expect(about).toHaveTextContent(/FleetGrid LLC runs a confidential directory/);
-    expect(about).toHaveTextContent(/launching in the Houston, Texas area first/);
-    expect(about).toHaveTextContent(/serves carriers .* and drivers/);
-  });
-
-  it("has a Contact section with the email and the business address, and no phone number", () => {
-    render(<LandingPage />);
-    const contact = screen.getByRole("region", { name: "Contact" });
-    expect(within(contact).getByRole("link", { name: "support@fleetgridus.com" })).toHaveAttribute(
-      "href",
-      "mailto:support@fleetgridus.com",
+    // In the hero's text column, under the buttons.
+    expect(line.parentElement).toContainElement(
+      within(line.parentElement as HTMLElement).getByRole("link", { name: "Sign up to drive, free" }),
     );
-    expect(contact.querySelector("a[href^='tel:']")).toBeNull();
+  });
+
+  it("shows no phone number anywhere unless a switch says so", () => {
+    render(<LandingPage />);
     expect(document.body.textContent).not.toMatch(/\(\d{3}\) \d{3}-\d{4}/);
-    expect(contact).toHaveTextContent("FleetGrid LLC8401 Mayland Dr. STE ARichmond, VA 23294");
-  });
-
-  it("shows a phone number only when SUPPORT_PHONE is set", () => {
-    vi.stubEnv("SUPPORT_PHONE", "+12145550123");
-    render(<LandingPage />);
-    const contact = screen.getByRole("region", { name: "Contact" });
-    expect(within(contact).getByRole("link", { name: "(214) 555-0123" })).toHaveAttribute(
-      "href",
-      "tel:+12145550123",
-    );
+    expect(document.querySelector("a[href^='tel:']")).toBeNull();
   });
 
   it("the footer names FleetGrid LLC with the support email, the address and the legal links", () => {
@@ -294,7 +225,7 @@ describe.each([
 });
 
 describe.each([
-  ["/", LandingPage, "Local freight shifts, filled fast"],
+  ["/", LandingPage, "Local CDL drivers. Shifts filled by text."],
   ["/terms", TermsPage, "Terms of Service"],
   ["/privacy", PrivacyPage, "Privacy Policy"],
   ["/sms-terms", SmsTermsPage, "SMS Terms"],

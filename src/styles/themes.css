@@ -41,6 +41,8 @@
   --target-primary: 56px;
   --card-min-h: 64px;
   --content-max: 560px;
+  /* The marketing site's page container (header, footer and every section). */
+  --site-max: 80rem;
   /* The legal pages' reading column. */
   --reading-max: 70ch;
   --lane-dash: 8px;

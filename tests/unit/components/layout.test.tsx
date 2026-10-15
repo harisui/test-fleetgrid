@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { FileText, User } from "lucide-react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { AppShell } from "@/components/layout/AppShell";
+import { Container, CONTAINER_CLASS } from "@/components/layout/Container";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import { MobileNav } from "@/components/layout/MobileNav";
@@ -193,5 +194,47 @@ describe("AppShell", () => {
     expect(screen.getByRole("navigation", { name: "Main mobile" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Log out" })).toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
+  });
+
+  it("the marketing variant uses the site column, and can still be narrow", () => {
+    const { unmount } = render(
+      <AppShell variant="marketing">
+        <p>Page</p>
+      </AppShell>,
+    );
+    const main = screen.getByRole("main");
+    expect(main).toHaveClass("max-w-site", "px-4", "md:px-6", "lg:px-8", "flex-1");
+    expect(main).not.toHaveClass("max-w-5xl");
+    unmount();
+
+    render(
+      <AppShell variant="marketing" width="narrow">
+        <p>Page</p>
+      </AppShell>,
+    );
+    expect(screen.getByRole("main")).toHaveClass("max-w-xl");
+  });
+});
+
+describe("Container", () => {
+  it("is the 80rem site column with the 16, 24 and 32px gutters, a div by default", () => {
+    render(<Container className="py-6">Inside</Container>);
+    const container = screen.getByText("Inside");
+    expect(container.tagName).toBe("DIV");
+    expect(container).toHaveAttribute("data-slot", "container");
+    for (const cls of CONTAINER_CLASS.split(" ")) expect(container).toHaveClass(cls);
+    expect(container).toHaveClass("py-6");
+    expect(CONTAINER_CLASS).toBe("mx-auto w-full max-w-site px-4 md:px-6 lg:px-8");
+  });
+
+  it("renders the element it is asked for and passes attributes through", () => {
+    render(
+      <Container as="nav" aria-label="Site">
+        Links
+      </Container>,
+    );
+    const nav = screen.getByRole("navigation", { name: "Site" });
+    expect(nav).toHaveTextContent("Links");
+    expect(nav).toHaveClass("max-w-site");
   });
 });

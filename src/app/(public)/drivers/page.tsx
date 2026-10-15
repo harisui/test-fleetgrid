@@ -2,17 +2,14 @@ import { MapPin, MessageSquareText, Smartphone } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
-import { DeviceFrame } from "@/components/marketing/DeviceFrame";
 import { FaqExcerpt } from "@/components/marketing/FaqExcerpt";
+import { LanePreview } from "@/components/marketing/LanePreview";
 import { CheckItem, CtaBand, Eyebrow, IconTile, SectionHeading, SignPanel } from "@/components/marketing/primitives";
 import { Reveal, Stagger } from "@/components/marketing/Reveal";
 import { SmsThread } from "@/components/marketing/SmsThread";
-import { LaneProgress } from "@/components/onboarding/LaneProgress";
-import { SignHeader } from "@/components/onboarding/SignHeader";
 import { Button } from "@/components/ui/button";
 import { DRIVER_FAQ_EXCERPT } from "@/content/faq";
 import { DRIVERS } from "@/content/marketing";
-import { progressFor } from "@/lib/onboarding/steps";
 
 export const metadata: Metadata = {
   title: "CDL Driver Shifts in Houston and Pasadena, TX",
@@ -21,25 +18,13 @@ export const metadata: Metadata = {
   alternates: { canonical: "/drivers" },
 };
 
-/** The sign-up's own progress bar on the CDL mile, drawn by the real component. */
-function LanePreview() {
-  const progress = progressFor("cdlClass");
-  return (
-    <DeviceFrame caption={`The road through the sign-up: ${progress.eyebrow}, ${progress.mile.label}.`}>
-      <SignHeader as="h2" eyebrow={progress.eyebrow} title={progress.mile.label} srText={progress.srLabel} />
-      <LaneProgress stepId="cdlClass" />
-      <p className="text-label leading-label font-semibold">What class is your CDL?</p>
-    </DeviceFrame>
-  );
-}
-
 export default function DriversPage() {
   const { hero, signUp, card, texts, free, respect, outside, faq, finalCta } = DRIVERS;
 
   return (
     <AppShell variant="marketing">
       <div className="flex flex-col gap-16 py-4 sm:gap-24 sm:py-8">
-        <section aria-labelledby="hero-title" className="flex max-w-reading flex-col gap-5">
+        <section aria-labelledby="hero-title" className="flex max-w-3xl flex-col gap-5">
           <Eyebrow>{hero.eyebrow}</Eyebrow>
           <h1
             id="hero-title"
@@ -47,7 +32,7 @@ export default function DriversPage() {
           >
             {hero.title}
           </h1>
-          <p className="text-body-lg leading-body-lg text-muted-foreground">{hero.text}</p>
+          <p className="max-w-reading text-body-lg leading-body-lg text-muted-foreground">{hero.text}</p>
           <div className="flex flex-col gap-2">
             <Button asChild className="sm:w-fit sm:min-w-48">
               <Link href={hero.primary.href}>{hero.primary.label}</Link>
@@ -61,7 +46,7 @@ export default function DriversPage() {
 
         <Reveal as="section" id={signUp.id} aria-labelledby="sign-up-title" className="flex flex-col gap-8 scroll-mt-24">
           <SectionHeading id="sign-up-title" eyebrow={signUp.eyebrow} title={signUp.title} />
-          <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-start lg:gap-12">
             <ol className="flex flex-col gap-4" aria-label="Sign-up steps">
               <Stagger>
                 {signUp.steps.map((step, index) => (
@@ -80,7 +65,7 @@ export default function DriversPage() {
                 ))}
               </Stagger>
             </ol>
-            <div className="justify-self-center lg:justify-self-end">
+            <div className="w-full max-w-sm justify-self-center md:justify-self-end">
               <LanePreview />
             </div>
           </div>
@@ -88,7 +73,7 @@ export default function DriversPage() {
 
         <Reveal as="section" id={card.id} aria-labelledby="card-title" className="flex flex-col gap-8 scroll-mt-24">
           <SectionHeading id="card-title" eyebrow={card.eyebrow} title={card.title} text={card.text} />
-          <ol className="grid gap-x-8 gap-y-3 sm:grid-cols-2" aria-label="The driver card">
+          <ol className="grid grid-cols-1 gap-x-8 gap-y-3 md:grid-cols-2 lg:grid-cols-3" aria-label="The driver card">
             {card.items.map((item, index) => (
               <li key={item} className="flex items-baseline gap-3 border-b border-border py-2">
                 <span
@@ -109,12 +94,12 @@ export default function DriversPage() {
 
         <Reveal as="section" id={texts.id} aria-labelledby="texts-title" className="flex flex-col gap-8 scroll-mt-24">
           <SectionHeading id="texts-title" eyebrow={texts.eyebrow} title={texts.title} />
-          <div className="grid gap-8 lg:grid-cols-2 lg:items-start">
-            <div className="flex flex-col gap-4">
+          <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-start lg:gap-12">
+            <div className="flex max-w-reading flex-col gap-4">
               <p className="text-body-lg leading-body-lg text-muted-foreground">{texts.text}</p>
               <p className="font-semibold">{texts.stopLine}</p>
             </div>
-            <SmsThread className="justify-self-center lg:justify-self-end" />
+            <SmsThread className="justify-self-center md:justify-self-end" />
           </div>
         </Reveal>
 

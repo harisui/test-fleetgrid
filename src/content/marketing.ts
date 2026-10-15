@@ -38,6 +38,130 @@ export const NAV_LINKS: readonly SiteLink[] = [
 export const LOGIN_LINK: SiteLink = { href: "/login", label: "Log in" };
 export const HEADER_CTA: SiteLink = { href: "/carriers", label: "Find drivers" };
 
+/** The home page. */
+export const HOME = {
+  status: "draft" as CopyStatus,
+  hero: {
+    eyebrow: "Houston · Pasadena · Port of Houston",
+    title: "Local CDL drivers. Shifts filled by text.",
+    text: "FleetGrid connects Houston-area carriers with approved Class A and B drivers within 50 miles of the yard. Broadcast a shift, and the first qualified driver to reply YES gets it.",
+    primary: { href: "/carriers", label: "Find drivers" },
+    secondary: { href: "/login?role=driver", label: "Sign up to drive, free" },
+    smallPrint: "Carriers $399 a month, cancel anytime. Free for drivers.",
+    optInLine: "Drivers can opt in to receive shift offers by text. See",
+    optInLink: { href: "/sms-terms", label: "SMS Terms" },
+    /** What a screen reader hears for the animated scene. */
+    sceneLabel:
+      "A truck drives to a yard. A phone shows a shift offer by text, the driver's reply YES 4821, and the confirmation. The shift is filled.",
+    badge: "Shift filled",
+  },
+  sides: {
+    id: "two-sides",
+    eyebrow: "Two sides, one grid",
+    carrier: {
+      eyebrow: "For carriers",
+      items: [
+        "Search approved drivers by distance, CDL class and endorsements.",
+        "Broadcast a shift by text in one step.",
+        "Pay drivers directly. No markup on wages.",
+      ],
+      link: { href: "/carriers", label: "How it works for carriers" },
+    },
+    driver: {
+      eyebrow: "For drivers",
+      items: [
+        "Free. Sign up on your phone in a few minutes.",
+        "Shift offers come by text. Take the ones that fit.",
+        "No app to install. No password.",
+      ],
+      link: { href: "/drivers", label: "How it works for drivers" },
+    },
+  },
+  miles: {
+    id: "how-a-shift-gets-filled",
+    eyebrow: "How a shift gets filled",
+    title: "Four miles from an open shift to a driver on the way.",
+    steps: [
+      { mile: "Mile 1 · Post", text: "Enter the date, time, yard and the work." },
+      {
+        mile: "Mile 2 · Broadcast",
+        text: "Matching drivers within your distance get a text, sent in random order so no one is favored.",
+      },
+      {
+        mile: "Mile 3 · Claim",
+        text: "The first driver to reply YES with the shift code gets it. Everyone else is told it is filled.",
+      },
+      { mile: "Mile 4 · Work", text: "You confirm the details and pay the driver directly." },
+    ],
+  },
+  who: {
+    id: "who-is-on-fleetgrid",
+    eyebrow: "Who is on FleetGrid",
+    title: "Class A and B CDL drivers, with their card on file.",
+    tiles: [
+      {
+        title: "CDL Class A and B",
+        text: "Every driver's class, years with a CDL and driving record are on the card.",
+      },
+      {
+        title: "Endorsements and cards",
+        text: "H, N, T and X endorsements, TWIC and DOT medical card status.",
+      },
+      {
+        title: "Equipment",
+        text: "Container drayage, dry van, flatbed and reefer, and whether they drive a manual.",
+      },
+    ],
+  },
+  review: {
+    id: "review-before-visible",
+    eyebrow: "Review before visible",
+    items: [
+      "Every driver answers the same 11 questions.",
+      "Drivers can add photos of their CDL and medical card.",
+      "FleetGrid reviews each profile before carriers can see it.",
+      "Drivers choose whether to receive shift texts and can stop at any time.",
+    ],
+    /** LEGAL REVIEW */
+    smallPrint:
+      "Profile review is not a background check or FMCSA driver qualification. Carriers remain responsible for qualifying any driver they work with.",
+  },
+  area: {
+    id: "built-for-houston",
+    eyebrow: "Built for the Houston area",
+    title: "One region first, so shifts get answered.",
+    text: "FleetGrid starts in one region so shifts get answered. If your yard is within 50 miles of Houston or Pasadena, Texas, you can subscribe today. Outside the area, join the waitlist and we will tell you when FleetGrid opens near you.",
+    link: { href: "/carriers#service-area", label: "Check your yard's ZIP" },
+    mapLabel:
+      "A map diagram: two 50-mile rings around Houston and Pasadena, Texas, with the Port of Houston, Baytown, La Porte, Beltway 8 and the Grand Parkway inside them.",
+  },
+  proof: {
+    id: "the-product",
+    eyebrow: "The product",
+    title: "What drivers and carriers actually see.",
+    captions: [
+      "The driver card: 11 questions, one mile at a time.",
+      "Carrier search: distance, class, endorsements, cards, equipment.",
+      "A shift offer by text, and the reply that claims it.",
+    ],
+  },
+  promises: {
+    id: "plain-promises",
+    items: [
+      "No contracts. Cancel anytime.",
+      "Free for drivers.",
+      "No wage markup.",
+      "Your phone number is never sold.",
+      "Reply STOP to stop texts.",
+    ],
+  },
+  finalCta: {
+    title: "Ready when you are.",
+    primary: { href: "/carriers", label: "Find drivers" },
+    secondary: { href: "/login?role=driver", label: "Sign up to drive, free" },
+  },
+};
+
 /** The carriers page. Every filter and pricing line was checked against the product (2026-10-15). */
 export const CARRIERS = {
   status: "draft" as CopyStatus,

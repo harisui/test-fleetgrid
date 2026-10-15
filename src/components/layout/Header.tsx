@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { Container } from "@/components/layout/Container";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { MobileMenu } from "@/components/marketing/MobileMenu";
 import { Button } from "@/components/ui/button";
@@ -63,7 +64,7 @@ function MarketingHeader() {
       data-slot="site-header"
       className="sticky top-0 z-40 border-b border-border bg-background text-foreground shadow-0 transition-shadow duration-(--motion-base) ease-motion data-scrolled:shadow-1"
     >
-      <div className="mx-auto flex h-16 w-full max-w-5xl items-center gap-4 px-4">
+      <Container className="flex h-16 items-center gap-4">
         <Link href="/" className="flex items-center rounded-badge">
           <Logo height={32} surface="page" />
         </Link>
@@ -93,7 +94,7 @@ function MarketingHeader() {
           </Button>
           <MobileMenu />
         </div>
-      </div>
+      </Container>
     </header>
   );
 }

@@ -12,6 +12,7 @@ interface RevealProps {
   id?: string;
   "aria-labelledby"?: string;
   "aria-label"?: string;
+  "data-slot"?: string;
 }
 
 /**

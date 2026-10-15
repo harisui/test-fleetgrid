@@ -1,6 +1,7 @@
 "use client";
 
 import { X } from "lucide-react";
+import { Container } from "@/components/layout/Container";
 import { Button } from "@/components/ui/button";
 import { LAUNCH_STRIP } from "@/content/marketing";
 import {
@@ -31,7 +32,7 @@ export function LaunchStrip() {
       role="region"
       aria-label="Launch area"
     >
-      <div className="mx-auto flex min-h-target w-full max-w-5xl items-center gap-2 pl-4 pr-1">
+      <Container className="flex min-h-target items-center gap-2">
         <p className="flex-1 py-2 font-heading text-eyebrow leading-eyebrow font-semibold tracking-eyebrow uppercase">
           {LAUNCH_STRIP.text}
         </p>
@@ -45,7 +46,7 @@ export function LaunchStrip() {
         >
           <X aria-hidden="true" className="size-5" />
         </Button>
-      </div>
+      </Container>
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Container } from "@/components/layout/Container";
 import { Logo } from "@/components/shared/Logo";
 import { FOOTER, SMS_SENDER_NUMBER, type SiteLink } from "@/content/marketing";
 import { getSiteEnv } from "@/lib/env";
@@ -43,7 +44,7 @@ export function Footer() {
 
   return (
     <footer className="mt-auto border-t-4 border-sign-panel-border bg-sign-panel text-sign-panel-foreground text-helper leading-helper">
-      <div className="mx-auto grid w-full max-w-5xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
+      <Container className="grid grid-cols-1 gap-8 py-10 md:grid-cols-2 lg:grid-cols-4">
         <div className="flex flex-col gap-3">
           <Logo height={28} />
           <p className="text-sign-panel-muted">{FOOTER.description}</p>
@@ -77,10 +78,10 @@ export function Footer() {
             <FooterLinks links={FOOTER.legal} />
           </nav>
         </div>
-      </div>
+      </Container>
 
       <div className="border-t border-sign-panel-muted/30">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 px-4 py-6 text-small leading-small text-sign-panel-muted">
+        <Container className="flex flex-col gap-2 py-6 text-small leading-small text-sign-panel-muted">
           <p data-slot="footer-legal-line">
             &copy; {new Date().getFullYear()} {BUSINESS_NAME}. {FOOTER.legalLine}
           </p>
@@ -89,7 +90,7 @@ export function Footer() {
               ? FOOTER.smsLine.withNumber(smsNumber)
               : FOOTER.smsLine.withoutNumber}
           </p>
-        </div>
+        </Container>
       </div>
     </footer>
   );

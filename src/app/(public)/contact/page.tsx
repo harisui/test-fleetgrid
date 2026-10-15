@@ -44,14 +44,14 @@ export default function ContactPage() {
           <p className="text-body-lg leading-body-lg text-muted-foreground">{CONTACT.intro}</p>
         </div>
 
-        <div className="grid gap-8 lg:grid-cols-5 lg:gap-12">
-          <div className="lg:col-span-3">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-5 md:gap-10 lg:gap-12">
+          <div className="w-full max-w-xl md:col-span-3">
             <ContactForm token={token} supportEmail={contact.email} />
           </div>
 
           <aside
             aria-labelledby="contact-details"
-            className="h-fit rounded-sign border-t-4 border-sign-panel-border bg-sign-panel p-6 text-sign-panel-foreground lg:col-span-2"
+            className="h-fit rounded-sign border-t-4 border-sign-panel-border bg-sign-panel p-6 text-sign-panel-foreground md:col-span-2"
           >
             <h2 id="contact-details" className="font-heading text-h2 leading-h2 font-semibold">
               {CONTACT.details.heading}

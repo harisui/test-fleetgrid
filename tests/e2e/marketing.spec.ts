@@ -8,6 +8,7 @@ import { expect, test, type Page } from "@playwright/test";
  */
 
 const PAGES = [
+  { path: "/", heading: "Local CDL drivers. Shifts filled by text." },
   { path: "/carriers", heading: "Fill open shifts with local drivers who already said yes to texts." },
   { path: "/drivers", heading: "Local shifts near home. Sent to your phone." },
   { path: "/faq", heading: "Questions and answers" },
@@ -174,6 +175,69 @@ test.describe("marketing pages", () => {
     await page.keyboard.press("Enter");
     await expect(next).toHaveAttribute("aria-expanded", "false");
     expect((await next.boundingBox())!.height).toBeGreaterThanOrEqual(56);
+  });
+
+  test("under reduced motion the home page shows every block and the hero's final frame at once", async ({
+    page,
+  }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await page.goto("/");
+    await expect(page.locator("html")).not.toHaveClass(/js-motion/);
+    const hero = page.locator("[data-slot=hero]");
+    await expect(hero.locator("[data-slot=hero-bubble][data-bubble='3']")).toBeVisible();
+    await expect(hero.locator("[data-slot=hero-badge]")).toBeVisible();
+    await expect(hero.locator("[data-slot=hero-badge]")).toContainText("Shift filled");
+    const styles = await page.evaluate(() => {
+      const of = (selector: string) => {
+        const element = document.querySelector(selector)!;
+        const style = getComputedStyle(element);
+        return { opacity: style.opacity, transition: style.transitionDuration, animation: style.animationDuration };
+      };
+      return {
+        bubble: of("[data-slot=hero-bubble][data-bubble='3']"),
+        reveal: of("[data-reveal]"),
+        fill: of("[data-slot=hero-fill]"),
+      };
+    });
+    expect(styles.bubble.opacity).toBe("1");
+    expect(styles.reveal.opacity).toBe("1");
+    expect(styles.reveal.transition).toBe("0s");
+    expect(styles.fill.animation).toBe("0s");
+    // Every reveal block is visible without scrolling anywhere.
+    const hidden = await page.evaluate(() =>
+      [...document.querySelectorAll("[data-reveal]")].filter((el) => getComputedStyle(el).opacity !== "1").length,
+    );
+    expect(hidden).toBe(0);
+  });
+
+  test("the hero plays once with motion on, and the page does not shift while it plays", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.addInitScript(() => {
+      const shifts: number[] = [];
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          const shift = entry as PerformanceEntry & { value: number; hadRecentInput: boolean };
+          if (!shift.hadRecentInput) shifts.push(shift.value);
+        }
+      }).observe({ type: "layout-shift", buffered: true });
+      (window as unknown as { __shifts: number[] }).__shifts = shifts;
+    });
+    await page.goto("/");
+    await expect(page.locator("html")).toHaveClass(/js-motion/);
+    const hero = page.locator("[data-slot=hero]");
+    // On a phone the scene sits under the hero text, below the fold: it plays once scrolled to.
+    await hero.scrollIntoViewIfNeeded();
+    await expect(hero).toHaveClass(/is-playing/, { timeout: 5_000 });
+    await expect(hero.locator("[data-slot=hero-badge]")).toBeVisible();
+    await page.waitForTimeout(2_600);
+    const bubbleOpacity = await hero
+      .locator("[data-slot=hero-bubble][data-bubble='3']")
+      .evaluate((el) => getComputedStyle(el).opacity);
+    expect(bubbleOpacity).toBe("1");
+    const cls = await page.evaluate(() =>
+      (window as unknown as { __shifts: number[] }).__shifts.reduce((sum, value) => sum + value, 0),
+    );
+    expect(cls).toBeLessThan(0.01);
   });
 
   test("an empty contact submit lists the errors at the top and focuses the list", async ({ page }) => {

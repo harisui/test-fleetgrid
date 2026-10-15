@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
 const PUBLIC_PAGES = [
-  { path: "/", heading: "Local freight shifts, filled fast" },
+  { path: "/", heading: "Local CDL drivers. Shifts filled by text." },
   { path: "/terms", heading: "Terms of Service" },
   { path: "/privacy", heading: "Privacy Policy" },
   { path: "/sms-terms", heading: "SMS Terms" },
@@ -50,14 +50,15 @@ test.describe("public pages", () => {
     });
   }
 
-  test("landing buttons lead to login with the role carried along", async ({ page }) => {
+  test("the hero buttons lead to the driver login and the carriers page", async ({ page }) => {
     await page.goto("/");
-    await page.getByRole("link", { name: "I'm a Driver" }).click();
+    const hero = page.getByRole("region", { name: "Local CDL drivers. Shifts filled by text." });
+    await hero.getByRole("link", { name: "Sign up to drive, free" }).click();
     await expect(page).toHaveURL(/\/login\?role=driver$/);
 
     await page.goto("/");
-    await page.getByRole("link", { name: "I'm a Carrier" }).click();
-    await expect(page).toHaveURL(/\/login\?role=carrier$/);
+    await hero.getByRole("link", { name: "Find drivers" }).click();
+    await expect(page).toHaveURL(/\/carriers$/);
   });
 
   test("footer links reach every legal page, and none of them is a placeholder", async ({
@@ -86,24 +87,19 @@ test.describe("public pages", () => {
     await expect(page.getByRole("heading", { level: 1, name: "SMS Terms" })).toBeVisible();
   });
 
-  test("the landing page shows the company, how it works, about and contact, as Twilio checks", async ({
+  test("the landing page shows the company, the legal line and the opt-in line, as Twilio checks", async ({
     page,
   }) => {
     await page.goto("/");
     const footer = page.getByRole("contentinfo");
     await expect(footer).toContainText("FleetGrid LLC");
     await expect(footer.getByRole("link", { name: /@fleetgridus\.com$/ })).toBeVisible();
+    await expect(footer).toContainText("8401 Mayland Dr. STE A");
     await expect(footer).toContainText("Richmond, VA 23294");
+    await expect(footer).toContainText("FleetGrid is not an employer, staffing agency or freight broker.");
+    await expect(footer.getByRole("link", { name: "Contact" })).toHaveAttribute("href", "/contact");
 
-    await expect(page.getByRole("region", { name: "How it works" })).toBeVisible();
-    await expect(page.getByRole("region", { name: "About FleetGrid" })).toContainText(
-      "FleetGrid LLC",
-    );
-    const contact = page.getByRole("region", { name: "Contact" });
-    await expect(contact.getByRole("link", { name: /@fleetgridus\.com$/ })).toBeVisible();
-    await expect(contact).toContainText("8401 Mayland Dr. STE A");
-
-    // The opt-in line under the driver button leads to the SMS Terms.
+    // The opt-in line under the hero buttons leads to the SMS Terms.
     const line = page.locator("[data-slot=sms-opt-in-line]");
     await expect(line).toContainText("Drivers can opt in to receive shift offers by text.");
     await line.getByRole("link", { name: "SMS Terms" }).click();
@@ -137,8 +133,8 @@ test.describe("public pages", () => {
     );
     expect(overflow).toBeLessThanOrEqual(0);
 
-    for (const name of ["I'm a Driver", "I'm a Carrier"]) {
-      const box = await page.getByRole("link", { name }).boundingBox();
+    for (const name of ["Find drivers", "Sign up to drive, free"]) {
+      const box = await page.getByRole("link", { name }).first().boundingBox();
       expect(box!.height).toBeGreaterThanOrEqual(44);
     }
   });
