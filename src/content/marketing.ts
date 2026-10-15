@@ -157,6 +157,105 @@ export const CARRIERS = {
   },
 };
 
+/** The drivers page. The card list matches the sign-up (src/lib/onboarding/steps.ts). */
+export const DRIVERS = {
+  status: "draft" as CopyStatus,
+  hero: {
+    eyebrow: "For drivers · Free",
+    title: "Local shifts near home. Sent to your phone.",
+    text: "Sign up free in a few minutes. FleetGrid texts you shifts from Houston-area carriers. You decide which ones to take.",
+    primary: { href: "/login?role=driver", label: "Sign up free" },
+    note: "No app. No password. We text you a code to log in.",
+  },
+  signUp: {
+    id: "sign-up",
+    eyebrow: "Sign up on your phone",
+    title: "Three steps, no paperwork.",
+    steps: [
+      {
+        title: "Enter your mobile number",
+        text: "We text you a code. That is your login, every time.",
+      },
+      {
+        title: "Answer the driver card",
+        text: "One mile at a time: About, CDL, Cards, Letters, Equipment, Finish.",
+      },
+      {
+        title: "Add your papers when you are ready",
+        text: "Photos of your CDL and medical card can be added from your profile. Carriers reviewing you for a shift can see them.",
+      },
+    ],
+  },
+  card: {
+    id: "the-card",
+    eyebrow: "What the card asks",
+    title: "Eleven answers, then one choice about texts.",
+    text: "Answer once. Carriers see the same card for every driver, so your experience speaks for itself.",
+    items: [
+      "Your name",
+      "Your ZIP code",
+      "How far you will travel for work",
+      "Your CDL class, A or B",
+      "Years driving with a CDL",
+      "Moving violations in the last 3 years",
+      "TWIC card",
+      "DOT medical card",
+      "Endorsements: H, N, T, X",
+      "Can you drive a manual",
+      "The equipment you run",
+    ],
+    consent: "Then one box, your choice: shift offers by text. You can finish without it and turn texts on later.",
+  },
+  texts: {
+    id: "shift-texts",
+    eyebrow: "How shift offers arrive",
+    title: "A text with the date, the time, the place and the work.",
+    text: "When a carrier near you posts a shift that matches your card, you get a text. Reply YES and the code to claim it. If someone claimed it first, we text you that it is filled. Texts go out in random order, so no one is always first.",
+    stopLine: "Reply STOP at any time to stop texts. Reply HELP for help.",
+  },
+  free: {
+    id: "free",
+    eyebrow: "Why it is free for drivers",
+    title: "Carriers pay. You never do.",
+    text: "Carriers pay a monthly subscription. Drivers never pay to be listed, to get texts or to take a shift. The carrier pays you directly for the work, at the rate you agree on.",
+  },
+  respect: {
+    id: "your-card-your-call",
+    eyebrow: "Your card, your call",
+    items: [
+      "Take only the shifts you want.",
+      "Your phone number is never shown to carriers. FleetGrid sends the texts.",
+      "We never sell your number.",
+      "Delete your profile at any time from your profile page.",
+    ],
+  },
+  outside: {
+    id: "outside-houston",
+    title: "Outside the Houston area?",
+    text: "You can still sign up. If you opted in to texts, we will text you when FleetGrid opens near you.",
+  },
+  faq: {
+    id: "faq",
+    eyebrow: "Questions",
+    title: "What drivers ask first.",
+    more: { href: "/faq#drivers", label: "All driver questions" },
+  },
+  finalCta: {
+    title: "Ready when you are.",
+    text: "Sign up on your phone and get listed for local shifts.",
+    primary: { href: "/login?role=driver", label: "Sign up free" },
+    secondary: { href: "/faq#drivers", label: "Read the driver FAQ" },
+  },
+};
+
+/** The FAQ page. */
+export const FAQ_PAGE = {
+  status: "draft" as CopyStatus,
+  title: "Questions and answers",
+  intro: "Plain answers for carriers and drivers. Anything missing? Send us a message.",
+  contact: { href: "/contact", label: "Contact FleetGrid" },
+};
+
 export const CONTACT = {
   status: "draft" as CopyStatus,
   title: "Contact FleetGrid.",

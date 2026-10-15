@@ -9,6 +9,8 @@ import { expect, test, type Page } from "@playwright/test";
 
 const PAGES = [
   { path: "/carriers", heading: "Fill open shifts with local drivers who already said yes to texts." },
+  { path: "/drivers", heading: "Local shifts near home. Sent to your phone." },
+  { path: "/faq", heading: "Questions and answers" },
   { path: "/contact", heading: "Contact FleetGrid." },
   { path: "/terms", heading: "Terms of Service" },
   { path: "/privacy", heading: "Privacy Policy" },
@@ -31,6 +33,9 @@ async function expectNoAccessibilityViolations(page: Page, label: string) {
 test.describe("marketing pages", () => {
   for (const { path, heading } of PAGES) {
     test(`${path} renders with one H1 and passes axe in light and dark`, async ({ page, baseURL }) => {
+      // Reduced motion: every section is visible at once, so axe sees the whole page, not
+      // the faded-out start of the blocks below the fold.
+      await page.emulateMedia({ reducedMotion: "reduce" });
       const response = await page.goto(path);
       expect(response?.status()).toBe(200);
       await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
@@ -150,6 +155,25 @@ test.describe("marketing pages", () => {
     }
     await expect(page).toHaveURL(/\/carriers$/);
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Fill open shifts");
+  });
+
+  test("a FAQ link from the drivers page opens that answer, and the accordion works by keyboard", async ({
+    page,
+  }) => {
+    await page.goto("/drivers");
+    await page.getByRole("link", { name: "Is FleetGrid really free for drivers?" }).click();
+    await expect(page).toHaveURL(/\/faq#driver-free$/);
+    const opened = page.getByRole("button", { name: "Is FleetGrid really free for drivers?" });
+    await expect(opened).toHaveAttribute("aria-expanded", "true");
+    await expect(page.getByText("Yes, always. Carriers pay the subscription.")).toBeVisible();
+
+    const next = page.getByRole("button", { name: "Do I need a CDL to sign up?" });
+    await next.focus();
+    await page.keyboard.press("Enter");
+    await expect(next).toHaveAttribute("aria-expanded", "true");
+    await page.keyboard.press("Enter");
+    await expect(next).toHaveAttribute("aria-expanded", "false");
+    expect((await next.boundingBox())!.height).toBeGreaterThanOrEqual(56);
   });
 
   test("an empty contact submit lists the errors at the top and focuses the list", async ({ page }) => {
