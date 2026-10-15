@@ -147,12 +147,13 @@ export const HOME = {
   },
   promises: {
     id: "plain-promises",
+    eyebrow: "Plain promises",
     items: [
-      "No contracts. Cancel anytime.",
-      "Free for drivers.",
-      "No wage markup.",
-      "Your phone number is never sold.",
-      "Reply STOP to stop texts.",
+      { title: "No contracts.", text: "Cancel anytime from your account." },
+      { title: "Free for drivers.", text: "Carriers pay the subscription." },
+      { title: "No wage markup.", text: "Carriers pay drivers directly." },
+      { title: "Your number is never sold.", text: "Carriers never see it. FleetGrid sends the texts." },
+      { title: "Reply STOP to stop texts.", text: "Any time, from any message." },
     ],
   },
   finalCta: {

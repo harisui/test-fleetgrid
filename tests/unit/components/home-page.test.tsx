@@ -142,7 +142,17 @@ describe("home page", () => {
     expect(screen.getByRole("list", { name: "Sample results" })).toHaveTextContent("Sample Driver A");
 
     const promises = screen.getByRole("region", { name: "Plain promises" });
-    expect(within(promises).getAllByRole("listitem").map((item) => item.textContent)).toEqual(HOME.promises.items);
+    const cards = within(promises).getAllByRole("listitem");
+    expect(cards.map((item) => item.textContent)).toEqual(HOME.promises.items.map((item) => `${item.title}${item.text}`));
+    // Each card is styled: an icon tile, the orange stripe that grows on hover, a firmer border on hover.
+    for (const card of cards) {
+      expect(card).toHaveAttribute("data-slot", "promise-card");
+      expect(card).toHaveClass("group", "hover:border-border-strong");
+      expect(card.querySelector("[data-slot=icon-tile] svg")).not.toBeNull();
+      expect(card.querySelector("[data-slot=icon-tile]")).toHaveClass("group-hover:bg-progress-fill");
+      expect(card.querySelector("[data-slot=promise-stripe]")).toHaveClass("w-0", "group-hover:w-full", "bg-progress-fill");
+      expect(card.querySelector("[data-slot=check-badge]")).toBeNull();
+    }
 
     const band = screen.getByRole("region", { name: "Ready when you are." });
     expect(within(band).getByRole("link", { name: "Find drivers" })).toHaveAttribute("href", "/carriers");

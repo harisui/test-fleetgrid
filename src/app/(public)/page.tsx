@@ -1,4 +1,15 @@
-import { Building2, Container, IdCard, MapPin, Truck } from "lucide-react";
+import {
+  BadgeDollarSign,
+  Building2,
+  Container,
+  FileX2,
+  IdCard,
+  MapPin,
+  MessageSquareOff,
+  ShieldCheck,
+  Truck,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { AppShell } from "@/components/layout/AppShell";
 import { DeviceFrame } from "@/components/marketing/DeviceFrame";
@@ -7,7 +18,6 @@ import { LanePreview } from "@/components/marketing/LanePreview";
 import { MilesRow } from "@/components/marketing/MilesRow";
 import {
   CheckItem,
-  CheckMark,
   CtaBand,
   Eyebrow,
   IconTile,
@@ -31,6 +41,8 @@ export const metadata = {
 };
 
 const WHO_ICONS = [IdCard, Truck, Container] as const;
+/** One icon per promise, in the order of HOME.promises.items. */
+const PROMISE_ICONS: readonly LucideIcon[] = [FileX2, BadgeDollarSign, BadgeDollarSign, ShieldCheck, MessageSquareOff];
 
 /** Three fictional rows, the way the carrier search lists drivers. Never real data. */
 const SAMPLE_RESULTS = [
@@ -208,14 +220,34 @@ export default function LandingPage() {
           </div>
         </Reveal>
 
-        {/* Plain promises. */}
-        <Reveal as="section" id={promises.id} aria-label="Plain promises" className="scroll-mt-24">
+        {/* Plain promises: five cards, each with its own icon. On hover the orange stripe
+            grows along the top, the tile turns orange and the border firms up. */}
+        <Reveal as="section" id={promises.id} aria-labelledby="promises-title" className="flex flex-col gap-6 scroll-mt-24">
+          <h2 id="promises-title" className="sr-only">
+            {promises.eyebrow}
+          </h2>
           <ul className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
             <Stagger>
-              {promises.items.map((item) => (
-                <Reveal as="li" key={item} className="flex items-start gap-3 rounded-card border border-border bg-card p-4 font-semibold">
-                  <CheckMark />
-                  <span>{item}</span>
+              {promises.items.map((item, index) => (
+                <Reveal
+                  as="li"
+                  key={item.title}
+                  data-slot="promise-card"
+                  className="group relative flex flex-col gap-4 overflow-hidden rounded-card border border-border bg-card p-5 transition-colors duration-(--motion-base) ease-motion hover:border-border-strong"
+                >
+                  <span
+                    aria-hidden="true"
+                    data-slot="promise-stripe"
+                    className="absolute top-0 left-0 h-1 w-0 bg-progress-fill transition-[width] duration-(--motion-base) ease-motion group-hover:w-full"
+                  />
+                  <IconTile
+                    icon={PROMISE_ICONS[index]}
+                    className="transition-colors duration-(--motion-base) ease-motion group-hover:border-progress-fill group-hover:bg-progress-fill group-hover:text-primary-foreground"
+                  />
+                  <span className="flex flex-col gap-1">
+                    <span className="text-label leading-label font-semibold">{item.title}</span>
+                    <span className="text-helper leading-helper text-muted-foreground">{item.text}</span>
+                  </span>
                 </Reveal>
               ))}
             </Stagger>
