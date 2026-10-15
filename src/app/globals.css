@@ -61,6 +61,12 @@
   --radius-badge: var(--radius-badge);
   --radius-sheet: var(--radius-sheet);
   --radius-sign: var(--radius-sign);
+  /* The illustrated phone only: rounded-phone, rounded-screen, rounded-bubble, rounded-round, aspect-phone. */
+  --radius-phone: var(--radius-phone);
+  --radius-screen: var(--radius-screen);
+  --radius-bubble: var(--radius-bubble);
+  --radius-round: var(--radius-round);
+  --aspect-phone: var(--phone-aspect);
   --radius-sm: var(--radius-badge);
   --radius-md: var(--radius-field);
   --radius-lg: var(--radius-card);

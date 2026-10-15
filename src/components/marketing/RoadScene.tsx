@@ -416,6 +416,7 @@ export function RoadScene({ random = Math.random, className }: RoadSceneProps) {
       viewBox={`0 0 ${ROAD_WIDTH} ${ROAD_HEIGHT}`}
       width={ROAD_WIDTH}
       height={ROAD_HEIGHT}
+      preserveAspectRatio="xMidYMid slice"
       className={className}
       data-slot="hero-road"
       data-paused={paused ? "" : undefined}

@@ -72,8 +72,9 @@ describe("home page", () => {
     expect(phone).toHaveTextContent(SMS_SAMPLE_OFFER);
     expect(phone).toHaveTextContent(SMS_SAMPLE_REPLY);
     expect(phone.querySelector("[data-slot=hero-badge]")).toHaveTextContent("Shift filled");
-    // A phone: graphite shell on the sheet radius, the screen inside, three bubbles in order.
-    expect(phone).toHaveClass("bg-sign-panel", "rounded-sheet");
+    // A handset: graphite shell in the phone shape and proportion, the screen inside, three bubbles in order.
+    expect(phone).toHaveClass("bg-sign-panel", "rounded-phone", "aspect-phone");
+    expect(phone.querySelector(".rounded-screen")).not.toBeNull();
     expect([...phone.querySelectorAll("[data-slot=hero-bubble]")].map((el) => el.getAttribute("data-bubble"))).toEqual(["1", "2", "3"]);
     expect(document.querySelector("[data-slot=hero-road]")).toHaveAttribute("aria-hidden", "true");
     expect(document.querySelector("[data-slot=hero-road]")).toHaveAttribute("width", "480");
@@ -119,9 +120,20 @@ describe("home page", () => {
     render(<LandingPage />);
     const map = screen.getByRole("img", { name: HOME.area.mapLabel });
     expect(map).toHaveAttribute("data-slot", "service-area-map");
-    for (const place of ["Houston", "Pasadena", "Port of Houston", "Baytown", "La Porte", "Beltway 8", "Grand Parkway"]) {
+    for (const place of ["Houston", "Pasadena", "Port of Houston", "Baytown", "La Porte", "Beltway 8", "Grand Parkway", "Galveston Bay"]) {
       expect(map).toHaveTextContent(place);
     }
+    // Every place label sits in its own spot: no two labels start within 20 units of each other.
+    const labels = [...map.querySelectorAll("[data-slot=map-place] text")].map((text) => ({
+      x: Number(text.getAttribute("x")),
+      y: Number(text.getAttribute("y")),
+    }));
+    for (const [index, a] of labels.entries()) {
+      for (const b of labels.slice(index + 1)) {
+        expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThan(20);
+      }
+    }
+    expect(map.querySelectorAll("[data-slot=map-place] line").length).toBeGreaterThanOrEqual(3);
     expect(screen.getByRole("link", { name: "Check your yard's ZIP" })).toHaveAttribute("href", "/carriers#service-area");
 
     const frames = document.querySelectorAll("[data-slot=device-frame]");

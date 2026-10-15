@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Smartphone } from "lucide-react";
+import { BatteryFull, Check, Signal, Smartphone, Wifi } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { RoadScene } from "@/components/marketing/RoadScene";
 import { HOME } from "@/content/marketing";
@@ -69,30 +69,50 @@ export function HeroScene({ phoneHeader, random = Math.random }: HeroSceneProps)
     <div
       ref={scene}
       data-slot="hero"
-      className="relative mx-auto aspect-3/2 w-full max-w-lg lg:max-w-xl"
+      className="relative mx-auto aspect-square w-full max-w-lg sm:aspect-4/3 lg:max-w-xl"
     >
-      {/* The highway. Decorative; the phone card carries the description. */}
+      {/* The highway, filling the box (its sides are cropped on a square). Decorative; the
+          phone carries the description. */}
       <RoadScene className="absolute inset-0 h-full w-full" />
 
-      {/* The phone, over the right side of the road: a graphite shell with the speaker slot
-          and the home bar, the thread on its screen. The thread plays on a loop with motion
-          (globals.css): the offer lands, the driver replies, the confirmation lands, the bar
-          fills and SHIFT FILLED appears, then it clears and starts over. */}
+      {/* The phone, over the right side of the road: a tall handset in the familiar shape,
+          graphite shell with the side buttons, the camera island, a status row, the thread
+          as a messages screen, the shift bar at the bottom and the home bar. The thread
+          plays on a loop with motion (globals.css): the offer lands, the driver replies, the
+          confirmation lands, the bar fills and SHIFT FILLED appears, then it clears and
+          starts over. */}
       <div
         role="img"
         aria-label={HOME.hero.sceneLabel}
         data-slot="hero-phone"
-        className="absolute top-2 right-2 flex w-56 flex-col rounded-sheet border border-border-strong bg-sign-panel p-1.5 shadow-1 sm:w-60"
+        className="absolute top-2 right-2 flex aspect-phone w-44 flex-col rounded-phone bg-sign-panel p-2 shadow-2 ring-1 ring-border-strong sm:w-48 lg:w-56"
       >
-        <div aria-hidden="true" className="flex h-5 items-center justify-center">
-          <span className="h-1 w-10 rounded-badge bg-sign-panel-muted" />
-        </div>
-        <div className="flex flex-col overflow-hidden rounded-card bg-card text-card-foreground">
-          <div className="flex items-center gap-2 border-b border-border px-3 py-2 text-small leading-small font-semibold">
-            <Smartphone aria-hidden="true" className="size-4 text-muted-foreground" />
-            {phoneHeader}
+        {/* The side buttons: mute and the two volume keys on the left, power on the right. */}
+        <span aria-hidden="true" className="absolute top-14 -left-1 h-4 w-1 rounded-round bg-sign-panel" />
+        <span aria-hidden="true" className="absolute top-22 -left-1 h-8 w-1 rounded-round bg-sign-panel" />
+        <span aria-hidden="true" className="absolute top-32 -left-1 h-8 w-1 rounded-round bg-sign-panel" />
+        <span aria-hidden="true" className="absolute top-26 -right-1 h-12 w-1 rounded-round bg-sign-panel" />
+
+        <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-screen bg-card text-card-foreground">
+          {/* The camera island. */}
+          <span aria-hidden="true" className="absolute top-2 left-1/2 h-4 w-12 -translate-x-1/2 rounded-round bg-sign-panel sm:h-5 sm:w-16" />
+          {/* The status row: the clock and the indicators. */}
+          <div aria-hidden="true" className="flex items-center justify-between px-3 pt-2 text-small leading-small font-semibold sm:px-4 sm:pt-2.5">
+            <span>6:02</span>
+            <span className="flex items-center gap-1 text-foreground">
+              <Signal className="size-3" strokeWidth={2.5} />
+              <Wifi className="size-3" strokeWidth={2.5} />
+              <BatteryFull className="size-3.5" strokeWidth={2.5} />
+            </span>
           </div>
-          <ol className="flex flex-col gap-2 p-3">
+          {/* The conversation header. */}
+          <div className="flex flex-col items-center gap-1 border-b border-border px-3 pt-2 pb-2">
+            <span aria-hidden="true" className="flex size-7 items-center justify-center rounded-round bg-progress-fill text-primary-foreground">
+              <Smartphone className="size-3.5" strokeWidth={2.5} />
+            </span>
+            <span className="text-small leading-small font-semibold">{phoneHeader}</span>
+          </div>
+          <ol className="flex flex-col gap-2 px-2.5 py-3">
             {thread.map((bubble, index) => (
               <li
                 key={index}
@@ -102,10 +122,10 @@ export function HeroScene({ phoneHeader, random = Math.random }: HeroSceneProps)
               >
                 <span
                   className={cn(
-                    "max-w-11/12 rounded-card px-2 py-1.5 text-small leading-small",
+                    "max-w-11/12 rounded-bubble px-2.5 py-1.5 text-small leading-small",
                     bubble.direction === "out"
-                      ? "bg-selection font-mono tracking-code text-selection-foreground"
-                      : "bg-muted text-foreground",
+                      ? "rounded-br-badge bg-selection font-mono tracking-code text-selection-foreground"
+                      : "rounded-bl-badge bg-muted text-foreground",
                   )}
                 >
                   {bubble.text}
@@ -113,24 +133,25 @@ export function HeroScene({ phoneHeader, random = Math.random }: HeroSceneProps)
               </li>
             ))}
           </ol>
-          <div className="flex items-center gap-2 border-t border-border px-3 py-2">
-            <span className="relative h-2 flex-1 overflow-hidden rounded-badge bg-progress-track">
+          {/* The shift bar, where the compose field would be, then the home bar. */}
+          <div className="mt-auto flex items-center gap-2 border-t border-border px-3 pt-2 pb-1">
+            <span className="relative h-2 flex-1 overflow-hidden rounded-round bg-progress-track">
               <span
                 data-slot="hero-fill"
-                className="absolute inset-y-0 left-0 w-full origin-left rounded-badge bg-progress-fill"
+                className="absolute inset-y-0 left-0 w-full origin-left rounded-round bg-progress-fill"
               />
             </span>
             <span
               data-slot="hero-badge"
-              className="flex items-center gap-1 rounded-badge bg-progress-fill px-1.5 py-0.5 font-heading text-small leading-small font-semibold tracking-eyebrow uppercase text-primary-foreground"
+              className="flex items-center gap-1 rounded-round bg-progress-fill px-2 py-0.5 font-heading text-small leading-small font-semibold tracking-eyebrow uppercase text-primary-foreground"
             >
               <Check aria-hidden="true" className="size-3.5" strokeWidth={3} />
               {HOME.hero.badge}
             </span>
           </div>
-        </div>
-        <div aria-hidden="true" className="flex h-4 items-center justify-center">
-          <span className="h-1 w-12 rounded-badge bg-sign-panel-muted" />
+          <div aria-hidden="true" className="flex h-4 items-center justify-center">
+            <span className="h-1 w-14 rounded-round bg-foreground opacity-40" />
+          </div>
         </div>
       </div>
     </div>
