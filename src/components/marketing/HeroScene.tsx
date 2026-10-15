@@ -69,33 +69,36 @@ export function HeroScene({ phoneHeader, random = Math.random }: HeroSceneProps)
     <div
       ref={scene}
       data-slot="hero"
-      className="relative mx-auto aspect-square w-full max-w-lg sm:aspect-4/3 lg:max-w-xl"
+      className="relative mx-auto flex w-full max-w-lg justify-end p-2 lg:max-w-xl"
     >
-      {/* The highway, filling the box (its sides are cropped on a square). Decorative; the
-          phone carries the description. */}
+      {/* The highway fills the box behind the phone, which sets the box's height; the road's
+          sides are cropped on narrow screens. Decorative; the phone carries the description. */}
       <RoadScene className="absolute inset-0 h-full w-full" />
 
-      {/* The phone, over the right side of the road: a tall handset in the familiar shape,
-          graphite shell with the side buttons, the camera island, a status row, the thread
-          as a messages screen, the shift bar at the bottom and the home bar. The thread
-          plays on a loop with motion (globals.css): the offer lands, the driver replies, the
-          confirmation lands, the bar fills and SHIFT FILLED appears, then it clears and
-          starts over. */}
+      {/* The phone, over the right side of the road, in the proportions of a 6.3-inch iPhone
+          18 Pro (71.9 by 150mm body, bezels under 3mm, the island about 13.5mm wide): the
+          graphite shell with the Action button and the volume keys on the left, the side
+          button and Camera Control on the right, the camera island, a status row, the
+          thread as a messages screen, the shift bar at the bottom and the home bar. The
+          thread plays on a loop with motion (globals.css): the offer lands, the driver
+          replies, the confirmation lands, the bar fills and SHIFT FILLED appears, then it
+          clears and starts over. */}
       <div
         role="img"
         aria-label={HOME.hero.sceneLabel}
         data-slot="hero-phone"
-        className="absolute top-2 right-2 flex aspect-phone w-44 flex-col rounded-phone bg-sign-panel p-2 shadow-2 ring-1 ring-border-strong sm:w-48 lg:w-56"
+        className="relative flex aspect-phone w-56 shrink-0 flex-col rounded-phone bg-sign-panel p-2 shadow-2 ring-1 ring-border-strong lg:w-64 lg:p-2.5"
       >
-        {/* The side buttons: mute and the two volume keys on the left, power on the right. */}
-        <span aria-hidden="true" className="absolute top-14 -left-1 h-4 w-1 rounded-round bg-sign-panel" />
-        <span aria-hidden="true" className="absolute top-22 -left-1 h-8 w-1 rounded-round bg-sign-panel" />
-        <span aria-hidden="true" className="absolute top-32 -left-1 h-8 w-1 rounded-round bg-sign-panel" />
-        <span aria-hidden="true" className="absolute top-26 -right-1 h-12 w-1 rounded-round bg-sign-panel" />
+        {/* The side buttons: Action and the two volume keys on the left, the side button and Camera Control on the right. */}
+        <span aria-hidden="true" className="absolute top-20 -left-1 h-6 w-1 rounded-round bg-sign-panel" />
+        <span aria-hidden="true" className="absolute top-30 -left-1 h-10 w-1 rounded-round bg-sign-panel" />
+        <span aria-hidden="true" className="absolute top-42 -left-1 h-10 w-1 rounded-round bg-sign-panel" />
+        <span aria-hidden="true" className="absolute top-32 -right-1 h-16 w-1 rounded-round bg-sign-panel" />
+        <span aria-hidden="true" className="absolute top-80 -right-1 h-9 w-1 rounded-round bg-sign-panel" />
 
         <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-screen bg-card text-card-foreground">
-          {/* The camera island. */}
-          <span aria-hidden="true" className="absolute top-2 left-1/2 h-4 w-12 -translate-x-1/2 rounded-round bg-sign-panel sm:h-5 sm:w-16" />
+          {/* The camera island, about a fifth of the width. */}
+          <span aria-hidden="true" className="absolute top-2 left-1/2 h-4 w-10 -translate-x-1/2 rounded-round bg-sign-panel sm:w-12" />
           {/* The status row: the clock and the indicators. */}
           <div aria-hidden="true" className="flex items-center justify-between px-3 pt-2 text-small leading-small font-semibold sm:px-4 sm:pt-2.5">
             <span>6:02</span>

@@ -25,7 +25,8 @@
   --radius-screen: 34px;
   --radius-bubble: 16px;
   --radius-round: 999px;
-  --phone-aspect: 9 / 19.5;
+  /* The body of a 6.3-inch iPhone 18 Pro: 71.9mm wide, 150.0mm tall (Apple's specifications). */
+  --phone-aspect: 71.9 / 150;
 
   --border-1: 1px;
   --border-2: 2px;
