@@ -8,6 +8,7 @@ import { expect, test, type Page } from "@playwright/test";
  */
 
 const PAGES = [
+  { path: "/carriers", heading: "Fill open shifts with local drivers who already said yes to texts." },
   { path: "/contact", heading: "Contact FleetGrid." },
   { path: "/terms", heading: "Terms of Service" },
   { path: "/privacy", heading: "Privacy Policy" },
@@ -108,6 +109,47 @@ test.describe("marketing pages", () => {
     await expect(status).toContainText("Thanks. Your message was sent.");
     await expect(status).toContainText("We will reply to sample@example.com.");
     await expect(page.getByRole("button", { name: "Send message" })).toHaveCount(0);
+  });
+
+  test("the carriers page answers a yard ZIP inside the area, outside it, and one it does not know", async ({
+    page,
+  }) => {
+    await page.goto("/carriers");
+    const zip = page.getByLabel("Your yard's ZIP code");
+    const check = page.getByRole("button", { name: "Check" });
+
+    await zip.fill("77506");
+    await check.click();
+    const inside = page.locator("[data-slot=zip-answer]");
+    await expect(inside).toHaveAttribute("data-area", "inside");
+    await expect(inside).toContainText("Pasadena, TX 77506. Good news, your yard is in the launch area.");
+    await expect(inside.getByRole("link", { name: "Create your carrier account" })).toHaveAttribute(
+      "href",
+      "/login?role=carrier",
+    );
+
+    await zip.fill("75201");
+    await check.click();
+    await expect(page.locator("[data-slot=zip-answer]")).toHaveAttribute("data-area", "outside");
+    await expect(page.getByRole("link", { name: "Join the waitlist" })).toBeVisible();
+
+    await zip.fill("00000");
+    await check.click();
+    await expect(page.getByRole("main").getByRole("alert")).toContainText(
+      "We do not know that ZIP code.",
+    );
+
+    // The nav link that used to bounce: it stays on the carriers page, signed in or not.
+    await page.goto("/");
+    const inline = page.getByRole("banner").getByRole("link", { name: "For Carriers" });
+    if (await inline.isVisible()) {
+      await inline.click();
+    } else {
+      await page.getByRole("button", { name: "Menu" }).click();
+      await page.getByRole("dialog").getByRole("link", { name: "For Carriers" }).click();
+    }
+    await expect(page).toHaveURL(/\/carriers$/);
+    await expect(page.getByRole("heading", { level: 1 })).toContainText("Fill open shifts");
   });
 
   test("an empty contact submit lists the errors at the top and focuses the list", async ({ page }) => {

@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import CarriersComingSoonPage from "@/app/(public)/carriers/page";
+import CarriersPage from "@/app/(public)/carriers/page";
 import LandingPage from "@/app/(public)/page";
 import PrivacyPage, { PRIVACY_SECTIONS } from "@/app/(public)/privacy/page";
 import SmsTermsPage, { SMS_TERMS_SECTIONS } from "@/app/(public)/sms-terms/page";
@@ -17,6 +17,10 @@ const navigation = vi.hoisted(() => ({
 const availability = vi.hoisted(() => ({ carrierDisabled: false }));
 
 vi.mock("next/navigation", () => ({ usePathname: () => "/", redirect: navigation.redirect }));
+vi.mock("@/server/actions/marketing.actions", () => ({
+  checkServiceAreaAction: vi.fn(),
+  sendContactMessageAction: vi.fn(),
+}));
 vi.mock("@/lib/carrier/availability", () => ({
   CARRIER_COMING_SOON_PATH: "/carriers",
   isCarrierDisabled: () => availability.carrierDisabled,
@@ -81,10 +85,10 @@ describe("landing page", () => {
   });
 });
 
-describe("/carriers (coming soon)", () => {
-  it("with CARRIER_DISABLED it says carriers are coming soon and offers the support email", () => {
+describe("/carriers with CARRIER_DISABLED", () => {
+  it("says carriers are coming soon and offers the support email, instead of the marketing page", () => {
     availability.carrierDisabled = true;
-    render(<CarriersComingSoonPage />);
+    render(<CarriersPage />);
     const main = screen.getByRole("main");
     expect(within(main).getByRole("heading", { level: 1 })).toHaveTextContent(
       "Carriers: coming soon",
@@ -98,12 +102,16 @@ describe("/carriers (coming soon)", () => {
       "href",
       "/",
     );
+    expect(main).not.toHaveTextContent(/\$399/);
     expect(navigation.redirect).not.toHaveBeenCalled();
   });
 
-  it("with the carrier side open it sends the visitor to the carrier login", () => {
-    expect(() => render(<CarriersComingSoonPage />)).toThrow("NEXT_REDIRECT:/login?role=carrier");
-    expect(navigation.redirect).toHaveBeenCalledWith("/login?role=carrier");
+  it("with the carrier side open it is the marketing page, with no redirect", () => {
+    render(<CarriersPage />);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent(
+      "Fill open shifts with local drivers who already said yes to texts.",
+    );
+    expect(navigation.redirect).not.toHaveBeenCalled();
   });
 
   it("says under the driver button that drivers can opt in to texts, with the SMS Terms link", () => {

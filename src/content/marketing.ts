@@ -38,6 +38,125 @@ export const NAV_LINKS: readonly SiteLink[] = [
 export const LOGIN_LINK: SiteLink = { href: "/login", label: "Log in" };
 export const HEADER_CTA: SiteLink = { href: "/carriers", label: "Find drivers" };
 
+/** The carriers page. Every filter and pricing line was checked against the product (2026-10-15). */
+export const CARRIERS = {
+  status: "draft" as CopyStatus,
+  hero: {
+    eyebrow: "For carriers · Houston area",
+    title: "Fill open shifts with local drivers who already said yes to texts.",
+    text: "Search approved Class A and B CDL drivers near your yard. Broadcast a shift and get a reply by text.",
+    primary: { href: "#service-area", label: "Check your yard's ZIP" },
+    secondary: { href: "#pricing", label: "See pricing" },
+  },
+  search: {
+    id: "how-it-works",
+    eyebrow: "Find qualified drivers",
+    title: "Every card answers the same questions, so you can filter on them.",
+    text: "You see what each driver entered, and the papers they chose to add.",
+    filters: [
+      { label: "Distance from your yard", detail: "5 to 250 miles, nearest first" },
+      { label: "CDL class", detail: "A, or B and up" },
+      { label: "Years of experience", detail: "With a CDL" },
+      { label: "Driving record", detail: "Clean, 1 or 2 minor, or 3 or more" },
+      { label: "Active TWIC card", detail: "For the port and the terminals" },
+      { label: "Current DOT medical card", detail: "Yes or no" },
+      { label: "Manual transmission", detail: "Only drivers who can drive one" },
+      { label: "Endorsements", detail: "H, N, T and X" },
+      { label: "Equipment", detail: "Container drayage, dry van, flatbed, reefer" },
+    ],
+  },
+  broadcast: {
+    id: "broadcast",
+    eyebrow: "Broadcast Shift",
+    title: "One step sends the shift to every matching driver in range.",
+    steps: [
+      {
+        title: "Post the shift",
+        text: "The date, the time, the yard and the work. One screen.",
+      },
+      {
+        title: "FleetGrid texts the matches",
+        text: "Texts go out in random order so the same people are not always first.",
+      },
+      {
+        title: "The first YES claims it",
+        text: "The first driver to reply YES and the code gets the shift. You see who claimed it right away.",
+      },
+      {
+        title: "Everyone else is told",
+        text: "The other drivers get a text saying the shift is filled.",
+      },
+    ],
+  },
+  pricing: {
+    id: "pricing",
+    eyebrow: "Pricing",
+    title: "One plan, one price.",
+    header: "FleetGrid Carrier",
+    price: "$399",
+    period: "/month",
+    included: [
+      "Unlimited driver searches",
+      "Unlimited shift broadcasts",
+      "Driver profiles with the papers drivers add",
+      "Search up to 250 miles from your yard",
+      "Email support at support@fleetgridus.com",
+    ],
+    terms: "Billed monthly through Stripe. No contract. Cancel anytime from your account.",
+    cta: { href: "#service-area", label: "Check your yard's ZIP" },
+    framing:
+      "Compare $399 to what one missed shift costs you: a parked truck, a late load, overtime for whoever covers. You know those numbers better than we do.",
+  },
+  serviceArea: {
+    id: "service-area",
+    eyebrow: "Service area",
+    title: "Is your yard in the launch area?",
+    text: "FleetGrid starts within 50 miles of Houston or Pasadena, Texas. Enter your yard's ZIP code to see where you stand.",
+    label: "Your yard's ZIP code",
+    button: "Check",
+    inside: "Good news, your yard is in the launch area.",
+    insideCta: { href: "/login?role=carrier", label: "Create your carrier account" },
+    outside:
+      "FleetGrid is not in your area yet. Create an account to join the waitlist and we will email you when it opens.",
+    outsideCta: { href: "/login?role=carrier", label: "Join the waitlist" },
+    unknown: "We do not know that ZIP code. Check the five digits.",
+    failed: "We could not check that ZIP just now. Please try again.",
+  },
+  isAndIsNot: {
+    id: "what-fleetgrid-is",
+    eyebrow: "Plain terms",
+    is: {
+      title: "FleetGrid is",
+      items: [
+        "a directory of approved local CDL drivers",
+        "a shift-text tool",
+        "a monthly subscription",
+      ],
+    },
+    /** LEGAL REVIEW */
+    isNot: {
+      title: "FleetGrid is not",
+      items: [
+        "an employer, staffing agency, broker or payroll service",
+        "a party to the work: you decide who to work with, you set and pay the rate",
+        "a keeper of your driver qualification files: those stay with you",
+      ],
+    },
+  },
+  faq: {
+    id: "faq",
+    eyebrow: "Questions",
+    title: "What carriers ask first.",
+    more: { href: "/faq#carriers", label: "All carrier questions" },
+  },
+  finalCta: {
+    title: "Ready when you are.",
+    text: "Check your yard's ZIP, create your account, and search drivers today.",
+    primary: { href: "#service-area", label: "Check your yard's ZIP" },
+    secondary: { href: "/contact", label: "Ask us a question" },
+  },
+};
+
 export const CONTACT = {
   status: "draft" as CopyStatus,
   title: "Contact FleetGrid.",
