@@ -72,6 +72,9 @@ describe("home page", () => {
     expect(phone).toHaveTextContent(SMS_SAMPLE_OFFER);
     expect(phone).toHaveTextContent(SMS_SAMPLE_REPLY);
     expect(phone.querySelector("[data-slot=hero-badge]")).toHaveTextContent("Shift filled");
+    // A phone: graphite shell on the sheet radius, the screen inside, three bubbles in order.
+    expect(phone).toHaveClass("bg-sign-panel", "rounded-sheet");
+    expect([...phone.querySelectorAll("[data-slot=hero-bubble]")].map((el) => el.getAttribute("data-bubble"))).toEqual(["1", "2", "3"]);
     expect(document.querySelector("[data-slot=hero-road]")).toHaveAttribute("aria-hidden", "true");
     expect(document.querySelector("[data-slot=hero-road]")).toHaveAttribute("width", "480");
   });

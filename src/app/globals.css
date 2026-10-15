@@ -222,26 +222,95 @@ html.js-motion [data-slot="road-static"] {
   animation-play-state: paused;
 }
 
-/* The phone card in the hero (src/components/marketing/HeroScene.tsx). The server HTML is
-   the final frame. With the page marked for motion, the card waits at frame zero until the
-   trigger adds `is-playing`, then every part runs once on its own delay. Durations fall to
-   0s under reduced motion through the safety net below, so the final frame shows at once. */
-@keyframes hero-rise {
-  from {
+/* The phone in the hero (src/components/marketing/HeroScene.tsx). The server HTML is the
+   final frame. With the page marked for motion, the thread waits empty until the trigger
+   adds `is-playing`, then loops every 9s (--hero-cycle): the offer lands at 0.5s, the reply
+   at 2.3s, the confirmation at 3.8s, the bar fills from 4.7s and SHIFT FILLED lands at
+   5.4s; everything holds, clears between 8.0s and 8.5s, and the loop starts again. Each
+   part is one keyframe set over the whole cycle, so they never drift apart. */
+[data-slot="hero"] {
+  --hero-cycle: 9s;
+}
+@keyframes hero-bubble-1 {
+  0%,
+  5% {
     opacity: 0;
     transform: translateY(var(--motion-distance-sm));
   }
-  to {
+  10%,
+  89% {
     opacity: 1;
+    transform: translateY(0);
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+}
+@keyframes hero-bubble-2 {
+  0%,
+  25% {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-sm));
+  }
+  30%,
+  89% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+}
+@keyframes hero-bubble-3 {
+  0%,
+  42% {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-sm));
+  }
+  47%,
+  89% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  94%,
+  100% {
+    opacity: 0;
     transform: translateY(0);
   }
 }
 @keyframes hero-fill {
-  from {
+  0%,
+  52% {
     transform: scaleX(0);
   }
-  to {
+  60%,
+  89% {
     transform: scaleX(1);
+  }
+  94%,
+  100% {
+    transform: scaleX(0);
+  }
+}
+@keyframes hero-badge {
+  0%,
+  60% {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-sm));
+  }
+  65%,
+  89% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: translateY(0);
   }
 }
 html.js-motion [data-slot="hero"]:not(.is-playing) [data-slot="hero-bubble"],
@@ -251,23 +320,20 @@ html.js-motion [data-slot="hero"]:not(.is-playing) [data-slot="hero-badge"] {
 html.js-motion [data-slot="hero"]:not(.is-playing) [data-slot="hero-fill"] {
   transform: scaleX(0);
 }
-[data-slot="hero"].is-playing [data-slot="hero-bubble"] {
-  animation: hero-rise var(--motion-slow) var(--motion-ease) 1 both;
-}
 [data-slot="hero"].is-playing [data-slot="hero-bubble"][data-bubble="1"] {
-  animation-delay: 1100ms;
+  animation: hero-bubble-1 var(--hero-cycle) var(--motion-ease) infinite;
 }
 [data-slot="hero"].is-playing [data-slot="hero-bubble"][data-bubble="2"] {
-  animation-delay: 1500ms;
+  animation: hero-bubble-2 var(--hero-cycle) var(--motion-ease) infinite;
 }
 [data-slot="hero"].is-playing [data-slot="hero-bubble"][data-bubble="3"] {
-  animation-delay: 1900ms;
+  animation: hero-bubble-3 var(--hero-cycle) var(--motion-ease) infinite;
 }
 [data-slot="hero"].is-playing [data-slot="hero-fill"] {
-  animation: hero-fill var(--motion-slow) var(--motion-ease) 2100ms 1 both;
+  animation: hero-fill var(--hero-cycle) var(--motion-ease) infinite;
 }
 [data-slot="hero"].is-playing [data-slot="hero-badge"] {
-  animation: hero-rise var(--motion-slow) var(--motion-ease) 2100ms 1 both;
+  animation: hero-badge var(--hero-cycle) var(--motion-ease) infinite;
 }
 
 /* The four-mile row on the home page: the fill and the truck travel the whole bar over four

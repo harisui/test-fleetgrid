@@ -1,8 +1,11 @@
 import { act, render } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  BODY_PAINTS,
+  CAB_PAINTS,
   freshSpawnTimes,
   LANES,
+  randomLook,
   ROAD_SPEED,
   RoadScene,
   spawnRoadside,
@@ -10,6 +13,7 @@ import {
   STILL_FRAME,
   TRUCK_LENGTH,
   TRUCK_TICK,
+  VEHICLES,
 } from "@/components/marketing/RoadScene";
 import { MOTION_CLASS } from "@/lib/motion";
 
@@ -86,16 +90,16 @@ describe("the lanes", () => {
 });
 
 describe("RoadScene", () => {
-  it("without the motion mark it is the still frame: four trucks, the yard and the trees, nothing live, no observer", () => {
+  it("without the motion mark it is the still frame: one of each body, the yard and the trees, nothing live, no observer", () => {
     const observers = stubIntersectionObserver();
     render(<RoadScene random={steady} />);
     const still = document.querySelector("[data-slot=road-static]")!;
-    expect(still.querySelectorAll("[data-slot=road-truck]")).toHaveLength(4);
+    const trucks = still.querySelectorAll("[data-slot=road-truck]");
+    expect([...trucks].map((truck) => truck.getAttribute("data-vehicle")).sort()).toEqual([...VEHICLES].sort());
     expect(still.querySelector("[data-slot=road-yard]")).toHaveTextContent("YARD");
     expect(still.querySelector("[data-slot=road-trees]")).not.toBeNull();
-    expect(STILL_FRAME.filter((mover) => mover.kind === "truck")).toHaveLength(4);
+    expect(STILL_FRAME.filter((mover) => mover.kind === "truck")).toHaveLength(VEHICLES.length);
     // Oncoming trucks face left.
-    const trucks = still.querySelectorAll("[data-slot=road-truck]");
     expect(trucks[0]).toHaveAttribute("transform", "scale(-1 1)");
     expect(trucks[2]).not.toHaveAttribute("transform");
     expect(live()).toHaveLength(0);
@@ -170,6 +174,47 @@ describe("RoadScene", () => {
     expect(live()[0]).toHaveAttribute("data-kind", "truck");
     act(() => vi.advanceTimersByTime(1_050));
     expect(live()).toHaveLength(2);
+  });
+
+  it("draws every body from the roof: no wheels, a cab with a windshield, and paint from the tokens only", () => {
+    render(<RoadScene random={steady} />);
+    const still = document.querySelector("[data-slot=road-static]")!;
+    for (const truck of still.querySelectorAll("[data-slot=road-truck]")) {
+      // Nothing sticks out sideways beyond the mirrors: no wheel rectangles at y -11 or 7 wider than 2.
+      const wheels = [...truck.querySelectorAll("rect")].filter(
+        (rect) => ["-11", "7"].includes(rect.getAttribute("y") ?? "") && rect.getAttribute("width") !== "2",
+      );
+      expect(wheels).toHaveLength(0);
+      expect(truck.querySelectorAll("rect, circle").length).toBeGreaterThan(3);
+      for (const shape of truck.querySelectorAll("rect, circle")) {
+        expect(shape.getAttribute("class")).toMatch(/^fill-[a-z-]+( stroke-[a-z-]+)?$/);
+        expect(shape).not.toHaveAttribute("fill");
+      }
+    }
+    expect(still.querySelector("[data-vehicle=reefer] rect[x='10']")).toHaveClass("fill-info");
+    expect(still.querySelectorAll("[data-vehicle=flatbed] circle")).toHaveLength(6);
+    expect(still.querySelectorAll("[data-vehicle=container] rect").length).toBeGreaterThan(10);
+    expect(still.querySelector("[data-vehicle=box-truck] rect[width='26']")).toHaveClass("fill-warning");
+  });
+
+  it("gives each live truck a random body and paint", () => {
+    // Three draws a look (body, cab, paint); a four-value sequence makes each look different.
+    const values = [0.05, 0.5, 0.95, 0.3];
+    let calls = 0;
+    const looks = Array.from({ length: 2 }, () => randomLook(() => values[calls++ % values.length]));
+    expect(looks[0]).toEqual({ vehicle: "dry-van", cab: "fill-success", body: "fill-muted-foreground" });
+    expect(looks[1]).toEqual({ vehicle: "reefer", cab: "fill-foreground", body: "fill-sign-panel" });
+    expect(VEHICLES).toEqual(["dry-van", "reefer", "flatbed", "container", "box-truck"]);
+    expect(CAB_PAINTS.length).toBeGreaterThanOrEqual(5);
+    expect(BODY_PAINTS.length).toBeGreaterThanOrEqual(5);
+
+    document.documentElement.classList.add(MOTION_CLASS);
+    const observers = stubIntersectionObserver();
+    render(<RoadScene random={() => 0.95} />);
+    act(() => observers[0].callback([{ isIntersecting: true }]));
+    const truck = document.querySelector("[data-slot=road-live] [data-slot=road-truck]")!;
+    expect(truck).toHaveAttribute("data-vehicle", "box-truck");
+    expect(truck.querySelector("rect[width='26']")).toHaveClass("fill-muted-foreground");
   });
 
   it("runs straight away where there is no IntersectionObserver", () => {

@@ -206,7 +206,7 @@ test.describe("marketing pages", () => {
     expect(styles.fill.animation).toBe("0s");
     // The highway stands still on its drawn frame: four trucks, no live movers.
     expect(styles.road.animation).toBe("0s");
-    await expect(hero.locator("[data-slot=road-static] [data-slot=road-truck]")).toHaveCount(4);
+    await expect(hero.locator("[data-slot=road-static] [data-slot=road-truck]")).toHaveCount(5);
     await expect(hero.locator("[data-slot=road-static]")).toBeVisible();
     await expect(hero.locator("[data-slot=road-mover]")).toHaveCount(0);
     // Every reveal block is visible without scrolling anywhere.
@@ -216,7 +216,7 @@ test.describe("marketing pages", () => {
     expect(hidden).toBe(0);
   });
 
-  test("the hero plays once with motion on, and the page does not shift while it plays", async ({ page }) => {
+  test("the hero's road rolls and its phone thread loops with motion on, and the page does not shift", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "no-preference" });
     await page.addInitScript(() => {
       const shifts: number[] = [];
@@ -234,7 +234,22 @@ test.describe("marketing pages", () => {
     // On a phone the scene sits under the hero text, below the fold: it plays once scrolled to.
     await hero.scrollIntoViewIfNeeded();
     await expect(hero).toHaveClass(/is-playing/, { timeout: 5_000 });
-    await expect(hero.locator("[data-slot=hero-badge]")).toBeVisible();
+    // The thread starts empty and fills in order over the nine-second loop: the offer, the
+    // reply, the confirmation, then the badge; every part is on the same infinite cycle.
+    const opacity = (selector: string) => hero.locator(selector).evaluate((el) => getComputedStyle(el).opacity);
+    expect(await opacity("[data-slot=hero-bubble][data-bubble='3']")).toBe("0");
+    await expect.poll(() => opacity("[data-slot=hero-bubble][data-bubble='1']"), { timeout: 3_000 }).toBe("1");
+    expect(await opacity("[data-slot=hero-bubble][data-bubble='3']")).toBe("0");
+    await expect.poll(() => opacity("[data-slot=hero-bubble][data-bubble='3']"), { timeout: 6_000 }).toBe("1");
+    await expect.poll(() => opacity("[data-slot=hero-badge]"), { timeout: 4_000 }).toBe("1");
+    const cycle = await hero.locator("[data-slot=hero-bubble][data-bubble='1']").evaluate((el) => {
+      const style = getComputedStyle(el);
+      return { count: style.animationIterationCount, duration: style.animationDuration };
+    });
+    expect(cycle).toEqual({ count: "infinite", duration: "9s" });
+    expect(
+      await hero.locator("[data-slot=hero-badge]").evaluate((el) => getComputedStyle(el).animationDuration),
+    ).toBe("9s");
     // The highway rolls and trucks drive by: the ground is animated, the still frame is
     // hidden, and the live layer has traffic from the first frame on.
     const road = hero.locator("[data-slot=hero-road]");
@@ -245,13 +260,9 @@ test.describe("marketing pages", () => {
     await expect(road.locator("[data-slot=road-mover][data-kind=truck]").first()).toBeAttached();
     expect(await road.locator("[data-slot=road-mover]").count()).toBeGreaterThanOrEqual(3);
     const before = await road.locator("[data-slot=road-mover]").first().evaluate((el) => getComputedStyle(el).transform);
-    await page.waitForTimeout(2_600);
+    await page.waitForTimeout(600);
     const after = await road.locator("[data-slot=road-mover]").first().evaluate((el) => getComputedStyle(el).transform);
     expect(after).not.toBe(before);
-    const bubbleOpacity = await hero
-      .locator("[data-slot=hero-bubble][data-bubble='3']")
-      .evaluate((el) => getComputedStyle(el).opacity);
-    expect(bubbleOpacity).toBe("1");
     const cls = await page.evaluate(() =>
       (window as unknown as { __shifts: number[] }).__shifts.reduce((sum, value) => sum + value, 0),
     );

@@ -7,9 +7,11 @@ import { MOTION_CLASS } from "@/lib/motion";
  * The hero's highway, seen from above with the camera riding along it. The ground and the
  * lane dashes scroll left at the road speed (globals.css, `road-scroll`), and trucks drive
  * by: two oncoming lanes across the centre line, a fast lane that overtakes the camera and a
- * slow lane the camera overtakes. A yard sign, a warehouse or a stand of trees passes on the
- * shoulder now and then. Each lane has one speed, and a truck joins a lane only once the
- * previous one is clear of it, so nothing ever drives through anything.
+ * slow lane the camera overtakes. Each truck gets a random body (dry van, reefer, flatbed,
+ * container on a chassis, or a Class B box truck) and random paint from the theme tokens.
+ * A yard sign, a warehouse or a stand of trees passes on the shoulder now and then. Each
+ * lane has one speed, and a truck joins a lane only once the previous one is clear of it, so
+ * nothing ever drives through anything.
  *
  * The server HTML is a still frame with four trucks and the yard sign. With the page marked
  * for motion the still frame is hidden, the ground starts rolling and the scheduler spawns
@@ -50,6 +52,37 @@ export type RoadsideKind = "yard" | "warehouse" | "trees";
 const ROADSIDE_WIDTH: Record<RoadsideKind, number> = { yard: 64, warehouse: 96, trees: 72 };
 const ROADSIDE_KINDS: readonly RoadsideKind[] = ["yard", "warehouse", "trees"];
 
+/**
+ * The bodies on the road: the four kinds of equipment the sign-up asks about, pulled by a
+ * Class A tractor, and a straight box truck for Class B.
+ */
+export type VehicleKind = "dry-van" | "reefer" | "flatbed" | "container" | "box-truck";
+export const VEHICLES: readonly VehicleKind[] = ["dry-van", "reefer", "flatbed", "container", "box-truck"];
+
+/** Paint comes from the theme tokens, so every truck holds in light and dark. */
+export const CAB_PAINTS = [
+  "fill-foreground",
+  "fill-progress-fill",
+  "fill-info",
+  "fill-success",
+  "fill-destructive",
+  "fill-sign-panel",
+] as const;
+export const BODY_PAINTS = [
+  "fill-progress-fill",
+  "fill-info",
+  "fill-success",
+  "fill-sign-panel",
+  "fill-warning",
+  "fill-muted-foreground",
+] as const;
+
+export interface Look {
+  vehicle: VehicleKind;
+  cab: (typeof CAB_PAINTS)[number];
+  body: (typeof BODY_PAINTS)[number];
+}
+
 export interface Mover {
   id: number;
   kind: "truck" | RoadsideKind;
@@ -60,6 +93,15 @@ export interface Mover {
   duration: number;
   /** When the drive is over (ms, Date.now), and the mover can go. */
   endsAt: number;
+  look?: Look;
+}
+
+function pick<T>(random: () => number, list: readonly T[]): T {
+  return list[Math.min(list.length - 1, Math.floor(random() * list.length))];
+}
+
+export function randomLook(random: () => number): Look {
+  return { vehicle: pick(random, VEHICLES), cab: pick(random, CAB_PAINTS), body: pick(random, BODY_PAINTS) };
 }
 
 export interface SpawnTimes {
@@ -84,14 +126,21 @@ function travel(speed: number, startX?: number) {
   return { from, to, duration: Math.abs(to - from) / Math.abs(speed) };
 }
 
-/** A truck in a lane. Returns null when the lane is not clear yet. */
-export function spawnTruck(lane: number, now: number, times: SpawnTimes, id: number, startX?: number): Mover | null {
+/** A truck in a lane, with a random body and paint. Returns null when the lane is not clear yet. */
+export function spawnTruck(
+  lane: number,
+  now: number,
+  times: SpawnTimes,
+  id: number,
+  startX?: number,
+  random: () => number = Math.random,
+): Mover | null {
   if (now < times.lanes[lane]) return null;
   const { speed } = LANES[lane];
   const { from, to, duration } = travel(speed, startX);
   // The lane is clear once this truck and the gap behind it have passed the entry edge.
   times.lanes[lane] = now + ((TRUCK_LENGTH + TRUCK_GAP) / Math.abs(speed)) * 1000;
-  return { id, kind: "truck", lane, from, to, duration, endsAt: now + duration * 1000 };
+  return { id, kind: "truck", lane, from, to, duration, endsAt: now + duration * 1000, look: randomLook(random) };
 }
 
 /** Something on the shoulder, rolling by at the road speed. */
@@ -106,28 +155,95 @@ export function freshSpawnTimes(): SpawnTimes {
   return { lanes: LANES.map(() => 0), roadside: 0 };
 }
 
-/** A tractor and trailer from above, 64 long and 22 wide including the wheels, facing right. */
-function Truck({ flip }: { flip?: boolean }) {
+const DEFAULT_LOOK: Look = { vehicle: "dry-van", cab: "fill-foreground", body: "fill-progress-fill" };
+
+/** A Class A tractor from above: roof with its sleeper seam, windshield, mirrors, facing right. */
+function Tractor({ paint, x }: { paint: Look["cab"]; x: number }) {
   return (
-    <g transform={flip ? "scale(-1 1)" : undefined} data-slot="road-truck">
-      {/* The shadow, offset down and right. */}
-      <rect x={-30} y={-6} width={62} height={18} rx={3} className="fill-foreground" opacity={0.12} />
-      {/* Wheels: three axles on the trailer, two on the tractor. */}
-      {[-26, -18, -10, 12, 26].map((x) => (
-        <g key={x}>
-          <rect x={x} y={-11} width={6} height={4} rx={1} className="fill-foreground" />
-          <rect x={x} y={7} width={6} height={4} rx={1} className="fill-foreground" />
+    <g transform={`translate(${x} 0)`}>
+      <rect x={0} y={-8} width={16} height={16} rx={3} className={paint} />
+      <rect x={2} y={-6} width={7} height={12} rx={1.5} className="fill-background" opacity={0.18} />
+      <rect x={9} y={-6} width={4} height={12} rx={1} className="fill-background" opacity={0.85} />
+      <rect x={5} y={-11} width={2} height={3} className={paint} />
+      <rect x={5} y={8} width={2} height={3} className={paint} />
+    </g>
+  );
+}
+
+/** The trailer or body behind the cab, in the roof view: no wheels show from above. */
+function Body({ look }: { look: Look }) {
+  switch (look.vehicle) {
+    case "reefer":
+      return (
+        <g>
+          {/* A white box with the reefer unit on its nose and a roof rib. */}
+          <rect x={-32} y={-9} width={46} height={18} rx={2} className="fill-card stroke-border-strong" strokeWidth={1} />
+          <rect x={-30} y={-0.5} width={38} height={1} className="fill-border-strong" />
+          <rect x={10} y={-7} width={5} height={14} rx={1} className={look.body} />
         </g>
-      ))}
-      {/* The trailer, orange like the logo, with its roof seam. */}
-      <rect x={-32} y={-9} width={46} height={18} rx={2} className="fill-progress-fill" />
-      <rect x={-30} y={-0.5} width={42} height={1} className="fill-primary-foreground" opacity={0.35} />
-      {/* The tractor: cab, roof, windshield and mirrors. */}
-      <rect x={16} y={-8} width={16} height={16} rx={3} className="fill-foreground" />
-      <rect x={18} y={-6} width={7} height={12} rx={1.5} className="fill-muted-foreground" opacity={0.6} />
-      <rect x={25} y={-6} width={4} height={12} rx={1} className="fill-background" opacity={0.85} />
-      <rect x={21} y={-11} width={2} height={3} className="fill-foreground" />
-      <rect x={21} y={8} width={2} height={3} className="fill-foreground" />
+      );
+    case "flatbed":
+      return (
+        <g>
+          {/* A low deck with three strapped coils. */}
+          <rect x={-32} y={-7} width={46} height={14} rx={1} className="fill-sign-panel-muted" />
+          {[-24, -10, 4].map((x) => (
+            <g key={x}>
+              <circle cx={x} cy={0} r={6} className={look.body} />
+              <circle cx={x} cy={0} r={2} className="fill-background" opacity={0.6} />
+              <rect x={x - 1} y={-8} width={2} height={16} className="fill-foreground" opacity={0.5} />
+            </g>
+          ))}
+        </g>
+      );
+    case "container":
+      return (
+        <g>
+          {/* A container on its chassis: corrugated roof, corner castings. */}
+          <rect x={-30} y={-3} width={44} height={6} className="fill-foreground" opacity={0.7} />
+          <rect x={-32} y={-9} width={42} height={18} className={look.body} />
+          {Array.from({ length: 9 }, (_, index) => -29 + index * 4.5).map((x) => (
+            <rect key={x} x={x} y={-8} width={1} height={16} className="fill-foreground" opacity={0.22} />
+          ))}
+          {[-32, 8].map((x) =>
+            [-9, 7].map((y) => <rect key={`${x}${y}`} x={x} y={y} width={2} height={2} className="fill-foreground" opacity={0.6} />),
+          )}
+        </g>
+      );
+    case "box-truck":
+      return (
+        // A Class B straight truck: the box sits right behind a shorter cab.
+        <rect x={-12} y={-8} width={26} height={16} rx={2} className={look.body} />
+      );
+    default:
+      return (
+        <g>
+          {/* The dry van, with its roof seam and the rear door split. */}
+          <rect x={-32} y={-9} width={46} height={18} rx={2} className={look.body} />
+          <rect x={-30} y={-0.5} width={42} height={1} className="fill-background" opacity={0.35} />
+          <rect x={-31} y={-7} width={1} height={14} className="fill-background" opacity={0.35} />
+        </g>
+      );
+  }
+}
+
+/** A truck from above, 64 long, facing right. The look picks the body and the paint. */
+function Truck({ flip, look = DEFAULT_LOOK }: { flip?: boolean; look?: Look }) {
+  const boxTruck = look.vehicle === "box-truck";
+  return (
+    <g transform={flip ? "scale(-1 1)" : undefined} data-slot="road-truck" data-vehicle={look.vehicle}>
+      {/* The shadow, offset down and right. */}
+      <rect
+        x={boxTruck ? -10 : -30}
+        y={-6}
+        width={boxTruck ? 42 : 62}
+        height={18}
+        rx={3}
+        className="fill-foreground"
+        opacity={0.12}
+      />
+      <Body look={look} />
+      <Tractor paint={look.cab} x={16} />
     </g>
   );
 }
@@ -184,7 +300,11 @@ function MoverView({ mover, animated }: { mover: Mover; animated: boolean }) {
   return (
     <g transform={`translate(0 ${y})`}>
       <g data-slot={animated ? "road-mover" : undefined} data-kind={mover.kind} style={style}>
-        {mover.kind === "truck" ? <Truck flip={LANES[mover.lane].oncoming} /> : <Roadside kind={mover.kind} />}
+        {mover.kind === "truck" ? (
+          <Truck flip={LANES[mover.lane].oncoming} look={mover.look} />
+        ) : (
+          <Roadside kind={mover.kind} />
+        )}
       </g>
     </g>
   );
@@ -192,12 +312,13 @@ function MoverView({ mover, animated }: { mover: Mover; animated: boolean }) {
 
 /** The still frame: what the page shows without motion, and what the HTML carries. */
 export const STILL_FRAME: readonly Mover[] = [
-  { id: 1, kind: "truck", lane: 0, from: 96, to: 96, duration: 0, endsAt: 0 },
-  { id: 2, kind: "truck", lane: 1, from: 330, to: 330, duration: 0, endsAt: 0 },
-  { id: 3, kind: "truck", lane: 2, from: 212, to: 212, duration: 0, endsAt: 0 },
-  { id: 4, kind: "truck", lane: 3, from: 70, to: 70, duration: 0, endsAt: 0 },
-  { id: 5, kind: "yard", lane: -1, from: 150, to: 150, duration: 0, endsAt: 0 },
-  { id: 6, kind: "trees", lane: -1, from: 30, to: 30, duration: 0, endsAt: 0 },
+  { id: 1, kind: "truck", lane: 0, from: 96, to: 96, duration: 0, endsAt: 0, look: { vehicle: "reefer", cab: "fill-info", body: "fill-info" } },
+  { id: 2, kind: "truck", lane: 1, from: 330, to: 330, duration: 0, endsAt: 0, look: { vehicle: "container", cab: "fill-foreground", body: "fill-success" } },
+  { id: 3, kind: "truck", lane: 2, from: 212, to: 212, duration: 0, endsAt: 0, look: { vehicle: "dry-van", cab: "fill-foreground", body: "fill-progress-fill" } },
+  { id: 4, kind: "truck", lane: 3, from: 70, to: 70, duration: 0, endsAt: 0, look: { vehicle: "flatbed", cab: "fill-destructive", body: "fill-muted-foreground" } },
+  { id: 5, kind: "truck", lane: 3, from: 400, to: 400, duration: 0, endsAt: 0, look: { vehicle: "box-truck", cab: "fill-progress-fill", body: "fill-warning" } },
+  { id: 6, kind: "yard", lane: -1, from: 150, to: 150, duration: 0, endsAt: 0 },
+  { id: 7, kind: "trees", lane: -1, from: 30, to: 30, duration: 0, endsAt: 0 },
 ];
 
 interface RoadSceneProps {
@@ -236,7 +357,7 @@ export function RoadScene({ random = Math.random, className }: RoadSceneProps) {
       truckTimer = undefined;
       if (!running()) return;
       sweep();
-      add(spawnTruck(Math.floor(random() * LANES.length), Date.now(), times, nextId++));
+      add(spawnTruck(Math.floor(random() * LANES.length), Date.now(), times, nextId++, undefined, random));
       truckTimer = setTimeout(truckTick, between(random, TRUCK_TICK.min, TRUCK_TICK.max));
     };
     const roadsideTick = () => {
@@ -252,8 +373,8 @@ export function RoadScene({ random = Math.random, className }: RoadSceneProps) {
         // The first frame already has traffic: two trucks and the yard sign in view.
         started = true;
         const now = Date.now();
-        add(spawnTruck(1, now, times, nextId++, 300));
-        add(spawnTruck(3, now, times, nextId++, 120));
+        add(spawnTruck(1, now, times, nextId++, 300, random));
+        add(spawnTruck(3, now, times, nextId++, 120, random));
         add(spawnRoadside("yard", now, times, nextId++, 150));
       }
       if (!truckTimer) truckTimer = setTimeout(truckTick, between(random, TRUCK_TICK.min, TRUCK_TICK.max));
