@@ -192,23 +192,40 @@ html.js-motion [data-reveal]:not([data-revealed]) {
   }
 }
 
-/* The home page hero (src/components/marketing/HeroScene.tsx). The server HTML is the final
-   frame. With the page marked for motion, the scene waits at frame zero until the trigger
-   adds `is-playing`, then every part runs once on its own delay. Durations fall to 0s under
-   reduced motion through the safety net below, so the final frame shows at once. */
-@keyframes hero-dashes {
+/* The home page highway (src/components/marketing/RoadScene.tsx). With the page marked for
+   motion the ground rolls left at 40 units a second (one 168-unit period every 4.2s) and
+   each mover drives from --from to --to over its own --duration, then is removed. Without
+   the mark the still frame in the HTML stays and nothing moves. */
+@keyframes road-scroll {
   to {
-    stroke-dashoffset: -14;
+    transform: translateX(-168px);
   }
 }
-@keyframes hero-truck {
+@keyframes road-drive {
   from {
-    transform: translateX(0);
+    transform: translateX(var(--from));
   }
   to {
-    transform: translateX(280px);
+    transform: translateX(var(--to));
   }
 }
+html.js-motion [data-slot="road-world"] {
+  animation: road-scroll 4.2s linear infinite;
+}
+html.js-motion [data-slot="road-static"] {
+  display: none;
+}
+[data-slot="road-mover"] {
+  animation: road-drive var(--duration) linear 1 forwards;
+}
+[data-slot="hero-road"][data-paused] * {
+  animation-play-state: paused;
+}
+
+/* The phone card in the hero (src/components/marketing/HeroScene.tsx). The server HTML is
+   the final frame. With the page marked for motion, the card waits at frame zero until the
+   trigger adds `is-playing`, then every part runs once on its own delay. Durations fall to
+   0s under reduced motion through the safety net below, so the final frame shows at once. */
 @keyframes hero-rise {
   from {
     opacity: 0;
@@ -227,24 +244,12 @@ html.js-motion [data-reveal]:not([data-revealed]) {
     transform: scaleX(1);
   }
 }
-[data-slot="hero-truck"] {
-  transform: translateX(280px);
-}
-html.js-motion [data-slot="hero"]:not(.is-playing) [data-slot="hero-truck"] {
-  transform: translateX(0);
-}
 html.js-motion [data-slot="hero"]:not(.is-playing) [data-slot="hero-bubble"],
 html.js-motion [data-slot="hero"]:not(.is-playing) [data-slot="hero-badge"] {
   opacity: 0;
 }
 html.js-motion [data-slot="hero"]:not(.is-playing) [data-slot="hero-fill"] {
   transform: scaleX(0);
-}
-[data-slot="hero"].is-playing [data-slot="hero-dashes"] {
-  animation: hero-dashes 600ms linear 1 both;
-}
-[data-slot="hero"].is-playing [data-slot="hero-truck"] {
-  animation: hero-truck 1000ms var(--motion-ease) 100ms 1 both;
 }
 [data-slot="hero"].is-playing [data-slot="hero-bubble"] {
   animation: hero-rise var(--motion-slow) var(--motion-ease) 1 both;

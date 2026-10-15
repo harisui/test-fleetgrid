@@ -197,12 +197,18 @@ test.describe("marketing pages", () => {
         bubble: of("[data-slot=hero-bubble][data-bubble='3']"),
         reveal: of("[data-reveal]"),
         fill: of("[data-slot=hero-fill]"),
+        road: of("[data-slot=road-world]"),
       };
     });
     expect(styles.bubble.opacity).toBe("1");
     expect(styles.reveal.opacity).toBe("1");
     expect(styles.reveal.transition).toBe("0s");
     expect(styles.fill.animation).toBe("0s");
+    // The highway stands still on its drawn frame: four trucks, no live movers.
+    expect(styles.road.animation).toBe("0s");
+    await expect(hero.locator("[data-slot=road-static] [data-slot=road-truck]")).toHaveCount(4);
+    await expect(hero.locator("[data-slot=road-static]")).toBeVisible();
+    await expect(hero.locator("[data-slot=road-mover]")).toHaveCount(0);
     // Every reveal block is visible without scrolling anywhere.
     const hidden = await page.evaluate(() =>
       [...document.querySelectorAll("[data-reveal]")].filter((el) => getComputedStyle(el).opacity !== "1").length,
@@ -229,7 +235,19 @@ test.describe("marketing pages", () => {
     await hero.scrollIntoViewIfNeeded();
     await expect(hero).toHaveClass(/is-playing/, { timeout: 5_000 });
     await expect(hero.locator("[data-slot=hero-badge]")).toBeVisible();
+    // The highway rolls and trucks drive by: the ground is animated, the still frame is
+    // hidden, and the live layer has traffic from the first frame on.
+    const road = hero.locator("[data-slot=hero-road]");
+    expect(await road.locator("[data-slot=road-world]").evaluate((el) => getComputedStyle(el).animationName)).toBe(
+      "road-scroll",
+    );
+    await expect(road.locator("[data-slot=road-static]")).toBeHidden();
+    await expect(road.locator("[data-slot=road-mover][data-kind=truck]").first()).toBeAttached();
+    expect(await road.locator("[data-slot=road-mover]").count()).toBeGreaterThanOrEqual(3);
+    const before = await road.locator("[data-slot=road-mover]").first().evaluate((el) => getComputedStyle(el).transform);
     await page.waitForTimeout(2_600);
+    const after = await road.locator("[data-slot=road-mover]").first().evaluate((el) => getComputedStyle(el).transform);
+    expect(after).not.toBe(before);
     const bubbleOpacity = await hero
       .locator("[data-slot=hero-bubble][data-bubble='3']")
       .evaluate((el) => getComputedStyle(el).opacity);

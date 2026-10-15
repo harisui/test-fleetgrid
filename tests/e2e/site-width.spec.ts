@@ -12,13 +12,14 @@ const WIDTHS = [320, 390, 768, 1024, 1280, 1440, 1920];
 
 /**
  * The widest box on the page, measured from the viewport's left edge. Screen-reader-only
- * wrappers clip their children to 1px, so what is inside them does not count.
+ * wrappers clip their children to 1px, and an SVG clips its drawing to its own box (the
+ * highway's ground is drawn wider than its view), so what is inside those does not count.
  */
 const widestEdge = () =>
   Math.max(
     document.documentElement.scrollWidth,
     ...[...document.querySelectorAll("body *")]
-      .filter((el) => !el.closest(".sr-only"))
+      .filter((el) => !el.closest(".sr-only") && !(el as SVGElement).ownerSVGElement)
       .map((el) => Math.ceil(el.getBoundingClientRect().right)),
   );
 

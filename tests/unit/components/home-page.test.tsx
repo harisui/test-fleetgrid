@@ -151,18 +151,20 @@ describe("HeroScene playback", () => {
     render(<HeroScene phoneHeader="FleetGrid" />);
     const scene = document.querySelector("[data-slot=hero]") as HTMLElement;
     expect(scene).not.toHaveClass(HERO_PLAYING_CLASS);
-    expect(observers).toHaveLength(1);
+    // One observer for the phone card's trigger, one for the road underneath.
+    expect(observers).toHaveLength(2);
+    const trigger = observers.find((observer) => observer.observed.includes(scene))!;
 
-    act(() => observers[0].callback([{ isIntersecting: false }]));
+    act(() => trigger.callback([{ isIntersecting: false }]));
     act(() => vi.advanceTimersByTime(1000));
     expect(scene).not.toHaveClass(HERO_PLAYING_CLASS);
 
-    act(() => observers[0].callback([{ isIntersecting: true }]));
+    act(() => trigger.callback([{ isIntersecting: true }]));
     act(() => vi.advanceTimersByTime(299));
     expect(scene).not.toHaveClass(HERO_PLAYING_CLASS);
     act(() => vi.advanceTimersByTime(1));
     expect(scene).toHaveClass(HERO_PLAYING_CLASS);
-    expect(observers[0].observed).toEqual([]);
+    expect(trigger.observed).toEqual([]);
   });
 
   it("stays on the final frame when the page is not marked for motion (reduced motion, no script)", () => {
