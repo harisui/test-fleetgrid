@@ -126,6 +126,32 @@ describe("SubscriptionService", () => {
       expect(privilegedBuilds).toBe(1);
     });
 
+    it("brings the Stripe customer's email and name up to date before every later checkout", async () => {
+      const carrier = await readyToPay();
+      await service.startCheckout(CARRIER_USER_ID);
+      // The carrier fixes the billing email after the first visit (the user's report: Stripe
+      // kept pre-filling the old, rejected address).
+      await carrierService.updateCarrier(
+        CARRIER_USER_ID,
+        validCarrierDetails({ billingEmail: "accounts@bayoufreight.com", companyName: "Bayou Freight Co" }),
+      );
+      await service.startCheckout(CARRIER_USER_ID);
+      expect(payments.customers.get("cus_test_0001")).toEqual({
+        email: "accounts@bayoufreight.com",
+        name: "Bayou Freight Co",
+        carrierId: carrier.id,
+      });
+      expect(payments.customers.size).toBe(1);
+    });
+
+    it("does not open checkout when the customer cannot be updated", async () => {
+      await readyToPay();
+      await service.startCheckout(CARRIER_USER_ID);
+      payments.customers.clear();
+      expect((await expectAppError(service.startCheckout(CARRIER_USER_ID))).code).toBe("NOT_FOUND");
+      expect(payments.checkouts).toHaveLength(1);
+    });
+
     it("needs the company saved, the Terms accepted and a yard in the launch area", async () => {
       expect((await expectAppError(service.startCheckout(CARRIER_USER_ID))).code).toBe("NOT_FOUND");
 
@@ -163,6 +189,17 @@ describe("SubscriptionService", () => {
       expect(payments.portals).toEqual([
         { customerId: "cus_test_0001", returnUrl: `${APP_URL}/carrier/billing` },
       ]);
+    });
+
+    it("sends the current billing email to Stripe before opening the portal", async () => {
+      await readyToPay();
+      await service.startCheckout(CARRIER_USER_ID);
+      await carrierService.updateCarrier(
+        CARRIER_USER_ID,
+        validCarrierDetails({ billingEmail: "accounts@bayoufreight.com" }),
+      );
+      await service.openBillingPortal(CARRIER_USER_ID);
+      expect(payments.customers.get("cus_test_0001")?.email).toBe("accounts@bayoufreight.com");
     });
 
     it("needs a customer, so a carrier who never paid is told to subscribe first", async () => {
@@ -211,6 +248,7 @@ describe("SubscriptionService", () => {
       const withoutTestCheckout: IPaymentProvider = {
         mode: "stripe",
         createCustomer: (input) => payments.createCustomer(input),
+        updateCustomer: (id, input) => payments.updateCustomer(id, input),
         createCheckoutSession: (input) => payments.createCheckoutSession(input),
         createPortalSession: (input) => payments.createPortalSession(input),
         getSubscription: (id) => payments.getSubscription(id),
