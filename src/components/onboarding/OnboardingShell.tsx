@@ -36,8 +36,8 @@ export function OnboardingShell({ stepId, children, support }: OnboardingShellPr
           <div className="mx-auto flex h-14 w-full max-w-content items-center justify-between px-4">
             <Logo height={34} />
             <div className="flex items-center gap-1">
-              <HelpSheet support={support} />
               <LogoutButton compact />
+              <HelpSheet support={support} />
             </div>
           </div>
         </div>
