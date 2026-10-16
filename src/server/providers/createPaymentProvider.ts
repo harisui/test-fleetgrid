@@ -47,6 +47,11 @@ export function getPaymentProvider(env: ServerEnv): IPaymentProvider {
 }
 
 export function createPaymentProvider(env: ServerEnv): IPaymentProvider {
+  // The browser tests' switch: the test checkout wins over Stripe, but only where test
+  // login is on (never in production against a hosted project, see env.ts).
+  if (env.ENABLE_TEST_LOGIN && env.PAYMENT_TEST_MODE) {
+    return new TestPaymentProvider(env.NEXT_PUBLIC_APP_URL);
+  }
   if (env.STRIPE_SECRET_KEY && env.STRIPE_PRICE_ID_MONTHLY && env.STRIPE_WEBHOOK_SECRET) {
     return new StripeProvider(createStripeClient(env.STRIPE_SECRET_KEY), {
       priceId: env.STRIPE_PRICE_ID_MONTHLY,
