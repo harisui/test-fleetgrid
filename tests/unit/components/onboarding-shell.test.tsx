@@ -196,6 +196,9 @@ describe("OnboardingShell", () => {
     expect(logout).toHaveAttribute("type", "submit");
     expect(logout.closest("form")).not.toBeNull();
     expect(within(logout).getByText("Log out")).toHaveClass("sr-only", "sm:not-sr-only");
+    // Log out comes first, Help last at the edge (user request, 2026-10-16).
+    const buttons = within(screen.getByRole("banner")).getAllByRole("button").map((button) => button.textContent);
+    expect(buttons.indexOf("Log out")).toBeLessThan(buttons.indexOf("Help"));
     expect(screen.queryByRole("button", { name: "Toggle dark mode" })).not.toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
     expect(screen.queryByText(/Set up your profile/)).not.toBeInTheDocument();
