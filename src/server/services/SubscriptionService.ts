@@ -81,6 +81,13 @@ export class SubscriptionService {
         carrierId: access.carrier.id,
       });
       await this.privileged.carriers().update(access.carrier.id, { stripeCustomerId: customerId });
+    } else {
+      // Checkout pre-fills the email from the Stripe customer, so a billing email changed
+      // since the first visit must reach Stripe before each new session.
+      await this.payments.updateCustomer(customerId, {
+        email: access.carrier.billingEmail,
+        name: access.carrier.companyName,
+      });
     }
 
     const url = await this.payments.createCheckoutSession({
@@ -99,6 +106,11 @@ export class SubscriptionService {
     if (!carrier.stripeCustomerId) {
       throw AppError.validation("Subscribe first; there is no billing account yet");
     }
+    // Receipts and the portal show the customer's email: keep it the carrier's current one.
+    await this.payments.updateCustomer(carrier.stripeCustomerId, {
+      email: carrier.billingEmail,
+      name: carrier.companyName,
+    });
     const url = await this.payments.createPortalSession({
       customerId: carrier.stripeCustomerId,
       returnUrl: `${this.appUrl}/carrier/billing`,

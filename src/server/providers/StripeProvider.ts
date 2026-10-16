@@ -90,6 +90,10 @@ export class StripeProvider implements IPaymentProvider {
     return customer.id;
   }
 
+  async updateCustomer(customerId: string, input: { email: string; name: string }): Promise<void> {
+    await this.stripe.customers.update(customerId, { email: input.email, name: input.name });
+  }
+
   async createCheckoutSession(input: CheckoutSessionInput): Promise<string> {
     const session = await this.stripe.checkout.sessions.create({
       mode: "subscription",

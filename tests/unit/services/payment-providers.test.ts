@@ -35,6 +35,9 @@ describe("TestPaymentProvider", () => {
     const payments = new TestPaymentProvider("https://app.test", () => NOW);
     const customerId = await payments.createCustomer({ email: "a@b.c", name: "Co", carrierId: "c1" });
     expect(customerId).toBe("cus_test_0001");
+    await payments.updateCustomer(customerId, { email: "d@e.com", name: "Co 2" });
+    expect(payments.customers.get(customerId)).toEqual({ email: "d@e.com", name: "Co 2", carrierId: "c1" });
+    await expect(payments.updateCustomer("cus_nobody", { email: "x@y.com", name: "X" })).rejects.toMatchObject({ code: "NOT_FOUND" });
 
     const url = await payments.createCheckoutSession({
       customerId,
@@ -170,7 +173,10 @@ describe("StripeProvider", () => {
         return result;
       });
     const stripe = {
-      customers: { create: record("customers.create", { id: "cus_new" }) },
+      customers: {
+        create: record("customers.create", { id: "cus_new" }),
+        update: record("customers.update", { id: "cus_new" }),
+      },
       checkout: { sessions: { create: record("checkout.create", { url: "https://checkout.stripe.test/s" }) } },
       billingPortal: { sessions: { create: record("portal.create", { url: "https://billing.stripe.test/p" }) } },
       subscriptions: {
@@ -182,6 +188,9 @@ describe("StripeProvider", () => {
 
     await expect(provider.createCustomer({ email: "a@b.c", name: "Co", carrierId: "c1" })).resolves.toBe("cus_new");
     expect(calls["customers.create"][0]).toEqual({ email: "a@b.c", name: "Co", metadata: { carrier_id: "c1" } });
+
+    await provider.updateCustomer("cus_new", { email: "new@b.com", name: "Co 2" });
+    expect(calls["customers.update"]).toEqual(["cus_new", { email: "new@b.com", name: "Co 2" }]);
 
     await expect(
       provider.createCheckoutSession({ customerId: "cus_new", carrierId: "c1", successUrl: "s", cancelUrl: "c" }),
@@ -302,6 +311,7 @@ describe("createPaymentProvider", () => {
     expect(provider.simulateCheckoutPaid).toBeUndefined();
     for (const call of [
       () => provider.createCustomer({ email: "a", name: "b", carrierId: "c" }),
+      () => provider.updateCustomer("a", { email: "b", name: "c" }),
       () => provider.createCheckoutSession({ customerId: "a", carrierId: "b", successUrl: "c", cancelUrl: "d" }),
       () => provider.createPortalSession({ customerId: "a", returnUrl: "b" }),
       () => provider.getSubscription("a"),

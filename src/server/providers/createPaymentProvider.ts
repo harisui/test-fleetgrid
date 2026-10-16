@@ -16,6 +16,9 @@ class UnconfiguredPaymentProvider implements IPaymentProvider {
   createCustomer(): Promise<string> {
     return this.fail();
   }
+  updateCustomer(): Promise<void> {
+    return this.fail();
+  }
   createCheckoutSession(): Promise<string> {
     return this.fail();
   }

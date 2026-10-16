@@ -48,6 +48,11 @@ export interface PortalSessionInput {
 export interface IPaymentProvider {
   readonly mode: "stripe" | "test";
   createCustomer(input: CreateCustomerInput): Promise<string>;
+  /**
+   * Brings an existing customer's email and name up to date. Stripe pre-fills checkout and
+   * sends receipts from the customer record, so it must follow the carrier's billing email.
+   */
+  updateCustomer(customerId: string, input: Pick<CreateCustomerInput, "email" | "name">): Promise<void>;
   /** The URL the carrier is sent to for payment. */
   createCheckoutSession(input: CheckoutSessionInput): Promise<string>;
   /** The URL of the hosted page where the carrier manages their card and plan. */

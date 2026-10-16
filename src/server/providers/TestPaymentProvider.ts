@@ -44,6 +44,12 @@ export class TestPaymentProvider implements IPaymentProvider {
     return id;
   }
 
+  async updateCustomer(customerId: string, input: { email: string; name: string }): Promise<void> {
+    const customer = this.customers.get(customerId);
+    if (!customer) throw AppError.notFound("Unknown customer");
+    this.customers.set(customerId, { ...customer, ...input });
+  }
+
   async createCheckoutSession(input: CheckoutSessionInput): Promise<string> {
     if (!this.customers.has(input.customerId)) throw AppError.notFound("Unknown customer");
     this.checkouts.push(input);
