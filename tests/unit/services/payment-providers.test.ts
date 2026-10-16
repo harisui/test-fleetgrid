@@ -275,6 +275,27 @@ describe("createPaymentProvider", () => {
     ).not.toBeInstanceOf(TestPaymentProvider);
   });
 
+  it("PAYMENT_TEST_MODE keeps the test checkout over Stripe, but only with the test-login flag", () => {
+    const stripeKeys = {
+      STRIPE_SECRET_KEY: "sk_test_x",
+      STRIPE_PRICE_ID_MONTHLY: "price_x",
+      STRIPE_WEBHOOK_SECRET: "whsec_x",
+    };
+    expect(
+      createPaymentProvider(
+        parseServerEnv({ ...BASE, ...stripeKeys, ENABLE_TEST_LOGIN: "true", PAYMENT_TEST_MODE: "true" }),
+      ),
+    ).toBeInstanceOf(TestPaymentProvider);
+    // Without test login the switch does nothing: Stripe stays.
+    expect(
+      createPaymentProvider(parseServerEnv({ ...BASE, ...stripeKeys, PAYMENT_TEST_MODE: "true" })),
+    ).toBeInstanceOf(StripeProvider);
+    // Without the switch, the Stripe keys win as before.
+    expect(
+      createPaymentProvider(parseServerEnv({ ...BASE, ...stripeKeys, ENABLE_TEST_LOGIN: "true" })),
+    ).toBeInstanceOf(StripeProvider);
+  });
+
   it("otherwise says payments are not set up, on every call", async () => {
     const provider = createPaymentProvider(parseServerEnv(BASE));
     expect(provider.mode).toBe("stripe");

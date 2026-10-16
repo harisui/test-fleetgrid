@@ -58,6 +58,10 @@ export const serverEnvSchema = clientEnvSchema
     // Test conveniences, all behind one flag that is off unless set to "true": the login and
     // code forms start filled with TEST_PHONE_DRIVER and TEST_OTP (src/lib/auth/prefill.ts).
     ENABLE_TEST_LOGIN: flag,
+    // "true" keeps the in-memory test checkout even when the Stripe keys are set, so the
+    // browser tests can run on a machine that also tries the Stripe sandbox by hand. Only
+    // with ENABLE_TEST_LOGIN (src/server/providers/createPaymentProvider.ts).
+    PAYMENT_TEST_MODE: flag,
     // "true" hides the carrier side: /carrier/* and the carrier sign-up go to a "coming soon"
     // page (src/lib/carrier/availability.ts). Off unless set to exactly "true".
     CARRIER_DISABLED: flag,

@@ -227,6 +227,7 @@ describe("contactSettingsFrom and createContactService", () => {
     SUPABASE_SERVICE_ROLE_KEY: "service",
     ENABLE_TEST_LOGIN: false,
     CARRIER_DISABLED: false,
+    PAYMENT_TEST_MODE: false,
   };
 
   it("defaults the addresses, and uses the built-in secret outside production only", () => {

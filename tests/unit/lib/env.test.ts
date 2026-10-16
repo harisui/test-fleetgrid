@@ -66,10 +66,11 @@ describe("parseClientEnv", () => {
 });
 
 describe("parseServerEnv", () => {
-  it("accepts a valid server environment, with the test login and carrier flags off by default", () => {
+  it("accepts a valid server environment, with the test login, payment test mode and carrier flags off by default", () => {
     expect(parseServerEnv(validServer)).toEqual({
       ...validServer,
       ENABLE_TEST_LOGIN: false,
+      PAYMENT_TEST_MODE: false,
       CARRIER_DISABLED: false,
     });
   });
