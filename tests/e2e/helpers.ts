@@ -10,13 +10,18 @@ if (existsSync(envFile) && !process.env.SUPABASE_SERVICE_ROLE_KEY) loadEnvFile(e
 
 /**
  * Test numbers with a fixed code, from `[auth.sms.test_otp]` in supabase/config.toml. Real SMS
- * is never sent to them. TEST_PHONE_* and TEST_OTP in .env.local can point at other entries of
- * that table; the defaults are the ones checked in.
+ * is never sent to them.
+ *
+ * The browser tests delete and recreate the accounts behind these numbers, so they must never
+ * be the numbers a person signs in with by hand: those are TEST_PHONE_DRIVER, _CARRIER and
+ * _ADMIN (…0100 to …0102, prefilled on the login form). Deleting one of those under an open
+ * browser leaves a session for a user that no longer exists, and every page then sends that
+ * person to /login. The tests use …0110 to …0112 instead; E2E_PHONE_* can override them.
  */
 export const PHONES = {
-  driver: process.env.TEST_PHONE_DRIVER ?? "+15555550100",
-  carrier: process.env.TEST_PHONE_CARRIER ?? "+15555550101",
-  admin: process.env.TEST_PHONE_ADMIN ?? "+15555550102",
+  driver: process.env.E2E_PHONE_DRIVER ?? "+15555550110",
+  carrier: process.env.E2E_PHONE_CARRIER ?? "+15555550111",
+  admin: process.env.E2E_PHONE_ADMIN ?? "+15555550112",
   /** Extra number reserved for e2e tests that need a second driver. */
   secondDriver: "+15555550108",
 };

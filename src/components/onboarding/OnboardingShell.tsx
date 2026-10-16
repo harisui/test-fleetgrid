@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { LogoutButton } from "@/components/auth/LogoutButton";
 import { HelpSheet } from "@/components/onboarding/HelpSheet";
 import { LaneProgress } from "@/components/onboarding/LaneProgress";
 import { Logo } from "@/components/shared/Logo";
@@ -14,10 +15,11 @@ interface OnboardingShellProps {
 }
 
 /**
- * The frame around every onboarding screen: wordmark and Help in a graphite header, the
- * lane progress bar, then the screen. No app navigation, no log out, no page title. Nothing
- * competes with the question. The shell stays mounted while screens change inside it, so
- * the road animates from one step to the next instead of being redrawn.
+ * The frame around every onboarding screen: wordmark, Help and Log out in a graphite header,
+ * the lane progress bar, then the screen. No app navigation, no page title. Nothing else
+ * competes with the question. Log out was added on 2026-10-16 (the user's request): a driver
+ * on a shared phone must be able to leave mid-way. The shell stays mounted while screens
+ * change inside it, so the road animates from one step to the next instead of being redrawn.
  */
 export function OnboardingShell({ stepId, children, support }: OnboardingShellProps) {
   return (
@@ -33,7 +35,10 @@ export function OnboardingShell({ stepId, children, support }: OnboardingShellPr
         <div className="bg-sign-panel text-sign-panel-foreground">
           <div className="mx-auto flex h-14 w-full max-w-content items-center justify-between px-4">
             <Logo height={34} />
-            <HelpSheet support={support} />
+            <div className="flex items-center gap-1">
+              <HelpSheet support={support} />
+              <LogoutButton compact />
+            </div>
           </div>
         </div>
         <div className="border-b border-border bg-card text-foreground">

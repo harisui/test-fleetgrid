@@ -7,6 +7,8 @@ import { OnboardingContent, OnboardingShell } from "@/components/onboarding/Onbo
 import { SignHeader } from "@/components/onboarding/SignHeader";
 import { MILES, progressFor, STEPS } from "@/lib/onboarding/steps";
 
+vi.mock("@/server/actions/auth.actions", () => ({ signOutAction: vi.fn() }));
+
 describe("LaneProgress", () => {
   it.each(STEPS.map((step) => [step.id] as const))(
     "%s: mile, label, fill and truck position all come from steps.ts",
@@ -188,7 +190,12 @@ describe("OnboardingShell", () => {
     expect(screen.getByRole("button", { name: "Next" })).toBeInTheDocument();
 
     expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Log out" })).not.toBeInTheDocument();
+    // Log out sits in the header beside Help (user request, 2026-10-16): a plain form posting
+    // to the sign-out action, the words hidden on narrow phones but the name always there.
+    const logout = within(screen.getByRole("banner")).getByRole("button", { name: "Log out" });
+    expect(logout).toHaveAttribute("type", "submit");
+    expect(logout.closest("form")).not.toBeNull();
+    expect(within(logout).getByText("Log out")).toHaveClass("sr-only", "sm:not-sr-only");
     expect(screen.queryByRole("button", { name: "Toggle dark mode" })).not.toBeInTheDocument();
     expect(screen.queryByRole("contentinfo")).not.toBeInTheDocument();
     expect(screen.queryByText(/Set up your profile/)).not.toBeInTheDocument();
