@@ -1,7 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * Visual snapshots of the marketing pages at 390, 1280 and 1440px in light, and at 1280 in
+ * Visual snapshots of the marketing pages at 390, 1280 and 1440px in light, and at 390 and 1280 in
  * dark, with motion off so every block is drawn and the hero sits on its final frame. The
  * baselines live in tests/e2e/__screenshots__ and were rendered on Windows Chromium; CI
  * (Linux) skips the comparison (ignoreSnapshots in playwright.config.ts). Refresh them with
@@ -40,12 +40,14 @@ test.describe("visual snapshots", () => {
       });
     }
 
-    test(`${path} at 1280px, dark`, async ({ page, baseURL }) => {
-      await page.context().addCookies([{ name: "fleetgrid-theme", value: "dark", url: baseURL! }]);
-      await page.setViewportSize({ width: 1280, height: 900 });
-      await page.goto(path);
-      await expect(page.locator("html")).toHaveClass(/\bdark\b/);
-      await expect(page).toHaveScreenshot(`${slug(path)}-1280-dark.png`, { fullPage: true });
-    });
+    for (const width of [390, 1280]) {
+      test(`${path} at ${width}px, dark`, async ({ page, baseURL }) => {
+        await page.context().addCookies([{ name: "fleetgrid-theme", value: "dark", url: baseURL! }]);
+        await page.setViewportSize({ width, height: width < 768 ? 844 : 900 });
+        await page.goto(path);
+        await expect(page.locator("html")).toHaveClass(/\bdark\b/);
+        await expect(page).toHaveScreenshot(`${slug(path)}-${width}-dark.png`, { fullPage: true });
+      });
+    }
   }
 });

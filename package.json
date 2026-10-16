@@ -21,7 +21,8 @@
     "screenshots:opt-in": "playwright test -c playwright.design-review.config.ts opt-in.review",
     "test:all": "pnpm lint && pnpm typecheck && pnpm test:coverage && pnpm test:db && pnpm test:integration && pnpm test:e2e",
     "db:types": "supabase gen types typescript --local > src/types/database.types.ts",
-    "db:reset": "supabase db reset"
+    "db:reset": "supabase db reset",
+    "lighthouse": "node .github/scripts/lighthouse.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
@@ -49,6 +50,7 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@lhci/cli": "0.15.1",
     "@playwright/test": "^1.63.0",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^7.0.1",

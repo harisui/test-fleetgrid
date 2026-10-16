@@ -6,6 +6,7 @@ import {
   YEARS_EXPERIENCE_MAX,
 } from "@/lib/constants";
 import { normalizeEndorsements } from "@/lib/onboarding/options";
+import { normalizeZip } from "@/lib/zip-format";
 import type { SavableStepId } from "@/lib/onboarding/steps";
 import {
   CDL_HELD_CLASSES,
@@ -43,12 +44,8 @@ export const nameScreenSchema = z.object({
 
 export const ZIP_MESSAGE = "Enter a 5-digit ZIP code, like 60601";
 
-/** Accepts "60601", "60601-1234", "60601 1234" and spaces. Keeps the first five digits. */
-export function normalizeZip(value: unknown): unknown {
-  if (typeof value !== "string") return value;
-  const digits = value.replace(/\D/g, "");
-  return digits.length === 9 ? digits.slice(0, 5) : digits;
-}
+/** In src/lib/zip-format.ts, free of zod, so browser components can import it cheaply. */
+export { normalizeZip };
 
 export const zipSchema = z.preprocess(
   normalizeZip,

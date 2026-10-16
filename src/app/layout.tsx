@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Geist, Geist_Mono } from "next/font/google";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { Toaster } from "@/components/ui/sonner";
 import { getSiteEnv } from "@/lib/env";
 import { SITE_INIT_SCRIPT } from "@/lib/motion";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/seo";
@@ -17,6 +16,8 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  // Only the shift codes and SMS replies use it: not worth a high-priority download on every page.
+  preload: false,
 });
 
 // Headings, eyebrows and numbers. Condensed like US highway signage.
@@ -61,7 +62,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* Who runs the site and what the site is, on every page. */}
         <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
         {children}
-        <Toaster position="top-center" richColors={false} />
       </body>
     </html>
   );

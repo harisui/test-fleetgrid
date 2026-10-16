@@ -1,0 +1,45 @@
+name: Lighthouse
+
+# Runs the website budgets (brief section 8) against every successful Vercel preview
+# deployment. Vercel reports deployments to GitHub as deployment_status events; the
+# preview URL is the event's target_url. If the preview is behind Vercel Authentication,
+# set VERCEL_AUTOMATION_BYPASS_SECRET in the repository secrets so the run can see it.
+
+on:
+  deployment_status:
+
+jobs:
+  lighthouse:
+    if: github.event.deployment_status.state == 'success' && github.event.deployment.environment == 'Preview'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Lighthouse CI on the preview
+        env:
+          PREVIEW_URL: ${{ github.event.deployment_status.target_url }}
+          BYPASS: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: |
+          if [ -n "$BYPASS" ]; then
+            export LHCI_COLLECT__SETTINGS__EXTRA_HEADERS="{\"x-vercel-protection-bypass\":\"$BYPASS\"}"
+          fi
+          pnpm lighthouse "$PREVIEW_URL"
+
+      - name: Keep the reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: .lighthouseci

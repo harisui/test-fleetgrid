@@ -57,3 +57,6 @@ supabase/.branches
 /AGENTS.md
 /.claude/
 /Artifacts/
+
+# Lighthouse CI reports
+/.lighthouseci

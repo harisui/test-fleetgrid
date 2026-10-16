@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CARRIERS } from "@/content/marketing";
-import { normalizeZip } from "@/lib/validation/onboarding.schema";
+import { normalizeZip } from "@/lib/zip-format";
 import { checkServiceAreaAction } from "@/server/actions/marketing.actions";
 import type { ZipLookup } from "@/server/services/ZipLookupService";
 
