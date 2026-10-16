@@ -1,7 +1,8 @@
-import { ChevronLeft, ChevronRight, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, Users } from "lucide-react";
 import Link from "next/link";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { formatMiles, summarizeDriver } from "@/lib/carrier/driverSummary";
 import type { DriverSearchPage } from "@/server/services/DriverSearchService";
 
@@ -17,6 +18,27 @@ function pageHref(query: URLSearchParams, page: number): string {
   const next = new URLSearchParams(query);
   next.set("page", String(page));
   return `/carrier/search?${next.toString()}`;
+}
+
+/** Stands in for the results while a search loads: a spinner with the words, and placeholder rows. */
+export function DriverResultsLoading() {
+  return (
+    <div className="flex flex-col gap-4" data-slot="results-loading">
+      <p
+        role="status"
+        aria-live="polite"
+        className="flex items-center gap-2 text-helper leading-helper text-muted-foreground"
+      >
+        <Loader2 aria-hidden="true" className="size-5 animate-spin" />
+        Finding drivers...
+      </p>
+      <div aria-hidden="true" className="flex flex-col gap-3 rounded-card border border-border bg-card p-4">
+        {Array.from({ length: 6 }, (_, index) => (
+          <Skeleton key={index} className="h-10 w-full" />
+        ))}
+      </div>
+    </div>
+  );
 }
 
 /**
@@ -76,47 +98,36 @@ export function DriverResults({ page, query }: DriverResultsProps) {
         <table className="w-full text-helper leading-helper">
           <thead className="border-b border-border text-left text-small leading-small text-muted-foreground">
             <tr>
-              <th scope="col" className="px-4 py-3 font-semibold">
-                Driver
-              </th>
-              <th scope="col" className="px-4 py-3 font-semibold">
-                Distance
-              </th>
-              <th scope="col" className="px-4 py-3 font-semibold">
-                Class
-              </th>
-              <th scope="col" className="px-4 py-3 font-semibold">
-                Experience
-              </th>
-              <th scope="col" className="px-4 py-3 font-semibold">
-                Endorsements
-              </th>
-              <th scope="col" className="px-4 py-3 font-semibold">
-                Equipment
-              </th>
-              <th scope="col" className="px-4 py-3 font-semibold">
-                Cards
-              </th>
-              <th scope="col" className="px-4 py-3 font-semibold">
-                Record
-              </th>
+              {["Driver", "Distance", "Class", "Experience", "Endorsements", "Equipment", "Cards", "Record"].map(
+                (heading) => (
+                  <th key={heading} scope="col" className="px-3 py-3 font-semibold whitespace-nowrap">
+                    {heading}
+                  </th>
+                ),
+              )}
             </tr>
           </thead>
-          <tbody className="divide-y divide-border">
+          <tbody className="divide-y divide-border align-top">
             {rows.map(({ match, summary }) => (
               <tr key={match.driver.id} className="hover:bg-muted">
-                <th scope="row" className="px-4 py-3 font-semibold">
+                <th scope="row" className="px-3 py-3 text-left font-semibold whitespace-nowrap">
                   <Link href={driverPath(match.driver.id)} className="underline underline-offset-4">
                     {match.driver.fullName}
                   </Link>
                 </th>
-                <td className="px-4 py-3 whitespace-nowrap">{formatMiles(match.distanceMiles)}</td>
-                <td className="px-4 py-3 whitespace-nowrap">{summary.cdlClass}</td>
-                <td className="px-4 py-3 whitespace-nowrap">{summary.experience}</td>
-                <td className="px-4 py-3">{summary.endorsements}</td>
-                <td className="px-4 py-3">{summary.equipment}</td>
-                <td className="px-4 py-3">{summary.cards}</td>
-                <td className="px-4 py-3">{summary.record}</td>
+                <td className="px-3 py-3 whitespace-nowrap">{formatMiles(match.distanceMiles)}</td>
+                <td className="px-3 py-3 whitespace-nowrap">{summary.cdlClass}</td>
+                <td className="px-3 py-3 whitespace-nowrap">{summary.experience}</td>
+                <td className="px-3 py-3">{summary.endorsements}</td>
+                <td className="px-3 py-3">{summary.equipment}</td>
+                <td className="px-3 py-3">
+                  {summary.cardLines.map((line, index) => (
+                    <span key={index} className="block whitespace-nowrap first-letter:uppercase">
+                      {line}
+                    </span>
+                  ))}
+                </td>
+                <td className="px-3 py-3">{summary.record}</td>
               </tr>
             ))}
           </tbody>

@@ -6,7 +6,7 @@ import { CarrierDetailsForm } from "@/components/carrier/CarrierDetailsForm";
 import { CarrierStatusCard } from "@/components/carrier/CarrierStatusCard";
 import { DriverCardView } from "@/components/carrier/DriverCardView";
 import { DriverResults } from "@/components/carrier/DriverResults";
-import { SearchFilters } from "@/components/carrier/SearchFilters";
+import { countActiveFilters, countMoreFilters, SearchFilters } from "@/components/carrier/SearchFilters";
 import { TermsAcceptance, TERMS_STATEMENT } from "@/components/carrier/TermsAcceptance";
 import { TestCheckout } from "@/components/carrier/TestCheckout";
 import { WaitlistCard } from "@/components/carrier/WaitlistCard";
@@ -396,11 +396,12 @@ describe("TestCheckout", () => {
 });
 
 describe("SearchFilters", () => {
-  it("is a GET form to the search page with every filter named for the schema", () => {
+  it("is a form to the search page with every filter named for the schema", () => {
     render(<SearchFilters filters={driverSearchSchema.parse({})} />);
     const form = screen.getByRole("form", { name: "Search filters" });
-    expect(form).toHaveAttribute("method", "get");
+    // next/form: a GET to the search page, made as a client-side navigation.
     expect(form).toHaveAttribute("action", "/carrier/search");
+    expect(form).not.toHaveAttribute("method", "post");
     for (const name of ["H", "N", "T", "X"]) {
       expect(within(form).getByRole("checkbox", { name: new RegExp(`^${name}`) })).not.toBeChecked();
     }
@@ -426,7 +427,50 @@ describe("SearchFilters", () => {
     expect(screen.getByRole("checkbox", { name: /^N/ })).not.toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Reefer" })).toBeChecked();
     expect(screen.getByRole("checkbox", { name: "Must drive a manual" })).toBeChecked();
-    expect(screen.getByRole("combobox", { name: /Distance from your yard/ })).toHaveTextContent("100 miles");
+    expect(screen.getByRole("combobox", { name: /Distance from yard/ })).toHaveTextContent("100 miles");
+  });
+
+  it("folds the box filters under More filters, open when one is on, with the counts", async () => {
+    const { unmount } = render(<SearchFilters filters={driverSearchSchema.parse({})} />);
+    const more = screen.getByRole("button", { name: "More filters" });
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    const panel = document.getElementById(more.getAttribute("aria-controls")!);
+    expect(panel).toHaveAttribute("data-slot", "more-filters");
+    expect(panel).toHaveClass("hidden");
+    expect(document.querySelector("[data-slot=active-filters]")).toBeNull();
+    await userEvent.click(more);
+    expect(more).toHaveAttribute("aria-expanded", "true");
+    expect(panel).not.toHaveClass("hidden");
+    unmount();
+
+    render(
+      <SearchFilters
+        filters={driverSearchSchema.parse({ radiusMiles: "100", cdlClass: "A", endorsements: ["H"], manualOnly: "true" })}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "More filters (2 on)" })).toHaveAttribute("aria-expanded", "true");
+    expect(document.querySelector("[data-slot=active-filters]")).toHaveTextContent("(4 on)");
+  });
+
+  it("folds the whole form behind Filters on a phone", async () => {
+    render(<SearchFilters filters={driverSearchSchema.parse({})} />);
+    const toggle = screen.getByRole("button", { name: /^Filters/ });
+    expect(toggle).toHaveClass("md:hidden");
+    const panel = document.getElementById(toggle.getAttribute("aria-controls")!);
+    expect(panel).toHaveClass("max-md:hidden");
+    await userEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(panel).not.toHaveClass("max-md:hidden");
+  });
+
+  it("counts the filters that differ from the plain search", () => {
+    expect(countActiveFilters(driverSearchSchema.parse({}))).toBe(0);
+    expect(
+      countActiveFilters(
+        driverSearchSchema.parse({ twicActive: "false", minYears: "3", equipmentTypes: ["reefer", "flatbed"] }),
+      ),
+    ).toBe(4);
+    expect(countMoreFilters(driverSearchSchema.parse({ equipmentTypes: ["reefer"], manualOnly: "true" }))).toBe(2);
   });
 });
 
@@ -463,7 +507,12 @@ describe("DriverResults", () => {
     expect(screen.getAllByText("3.2 miles")).toHaveLength(2);
     expect(screen.getByRole("columnheader", { name: "Endorsements" })).toBeInTheDocument();
     expect(screen.getByRole("cell", { name: "H, T" })).toBeInTheDocument();
-    expect(screen.getByRole("cell", { name: "TWIC, medical card current" })).toBeInTheDocument();
+    // The two card answers sit one per line in the table.
+    const cards = screen.getByRole("cell", { name: /^TWIC\s*medical card current$/ });
+    expect([...cards.querySelectorAll("span")].map((line) => line.textContent)).toEqual([
+      "TWIC",
+      "medical card current",
+    ]);
     // Never the phone number.
     expect(document.body.textContent).not.toMatch(/555-0100|\+1555/);
     expect(screen.queryByRole("navigation", { name: "Pages" })).not.toBeInTheDocument();

@@ -8,6 +8,8 @@ export interface DriverSummary {
   experience: string;
   record: string;
   cards: string;
+  /** The same two card answers apart, TWIC first, for a table cell with one per line. */
+  cardLines: [string, string];
   endorsements: string;
   transmission: string;
   equipment: string;
@@ -17,11 +19,16 @@ const labelOf = <T extends string>(options: readonly { value: T; label: string }
   options.find((option) => option.value === value)?.label ?? value;
 
 export function summarizeDriver(driver: Driver): DriverSummary {
+  const cardLines: [string, string] = [
+    checkSummary("twicActive", driver.twicActive),
+    checkSummary("medicalCardActive", driver.medicalCardActive),
+  ];
   return {
     cdlClass: driver.cdlClass === "none" ? "Not answered" : labelOf(CDL_CLASS_OPTIONS, driver.cdlClass),
     experience: experienceSummary(driver.yearsExperience),
     record: mvrSummary(driver.mvrStatus),
-    cards: `${checkSummary("twicActive", driver.twicActive)}, ${checkSummary("medicalCardActive", driver.medicalCardActive)}`,
+    cards: cardLines.join(", "),
+    cardLines,
     endorsements: driver.endorsements.length > 0 ? driver.endorsements.join(", ") : "None",
     transmission: driver.transmission
       ? labelOf(TRANSMISSION_OPTIONS, driver.transmission)

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BUSINESS_NAME, getSupportContact } from "@/lib/support";
+import { cn } from "@/lib/utils";
 
 const LEGAL_LINKS = [
   { href: "/terms", label: "Terms" },
@@ -8,11 +9,16 @@ const LEGAL_LINKS = [
 ] as const;
 
 /** The company, how to reach it, and the legal links. Reads the contact details on the server. */
-export function Footer() {
+export function Footer({ widthClass = "max-w-5xl" }: { widthClass?: string }) {
   const contact = getSupportContact();
   return (
     <footer className="border-border text-muted-foreground border-t text-sm">
-      <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-4 px-4 py-6 sm:flex-row sm:items-start sm:justify-between">
+      <div
+        className={cn(
+          "mx-auto flex w-full flex-col items-center gap-4 px-4 py-6 sm:flex-row sm:items-start sm:justify-between",
+          widthClass,
+        )}
+      >
         <div className="flex flex-col gap-1 text-center sm:text-left">
           <p>
             &copy; {new Date().getFullYear()} {BUSINESS_NAME}

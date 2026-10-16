@@ -12,7 +12,7 @@ const NAV_ITEMS: NavItem[] = [
 /** Search, billing, account and the waitlist, after the sign-up: header, navigation, log out and the bottom tab bar. */
 export default function CarrierAppLayout({ children }: LayoutProps<"/carrier">) {
   return (
-    <AppShell navItems={NAV_ITEMS} headerActions={<LogoutButton />}>
+    <AppShell navItems={NAV_ITEMS} headerActions={<LogoutButton />} width="full">
       {children}
     </AppShell>
   );

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { Logo } from "@/components/shared/Logo";
+import { cn } from "@/lib/utils";
 import type { NavItem } from "@/types/domain";
 
 interface HeaderProps {
@@ -9,12 +10,14 @@ interface HeaderProps {
   navItems?: NavItem[];
   /** Extra controls on the right, such as a logout button. */
   actions?: ReactNode;
+  /** The column's max width, matching the page below. */
+  widthClass?: string;
 }
 
-export function Header({ navItems = [], actions }: HeaderProps) {
+export function Header({ navItems = [], actions, widthClass = "max-w-5xl" }: HeaderProps) {
   return (
     <header className="bg-sign-panel text-sign-panel-foreground sticky top-0 z-40">
-      <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-4 px-4">
+      <div className={cn("mx-auto flex h-14 w-full items-center gap-4 px-4", widthClass)}>
         <Link href="/" className="flex items-center rounded-badge">
           <Logo height={32} />
         </Link>

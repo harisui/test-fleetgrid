@@ -9,8 +9,11 @@ interface AppShellProps {
   children: ReactNode;
   navItems?: NavItem[];
   headerActions?: ReactNode;
-  /** Narrow column for forms and driver screens, wide for tables and dashboards. */
-  width?: "narrow" | "wide";
+  /**
+   * Narrow column for forms and driver screens, wide for tables and dashboards, full for
+   * pages built around a wide table (the carrier app). The header and footer follow wide or full.
+   */
+  width?: "narrow" | "wide" | "full";
   showFooter?: boolean;
 }
 
@@ -22,6 +25,7 @@ export function AppShell({
   showFooter = true,
 }: AppShellProps) {
   const hasMobileNav = navItems.length > 0;
+  const frame = width === "full" ? "max-w-7xl" : "max-w-5xl";
 
   return (
     <div className="flex min-h-dvh flex-1 flex-col">
@@ -31,12 +35,12 @@ export function AppShell({
       >
         Skip to content
       </a>
-      <Header navItems={navItems} actions={headerActions} />
+      <Header navItems={navItems} actions={headerActions} widthClass={frame} />
       <main
         id="main-content"
         className={cn(
           "mx-auto w-full flex-1 px-4 py-6",
-          width === "narrow" ? "max-w-xl" : "max-w-5xl",
+          width === "narrow" ? "max-w-xl" : frame,
           hasMobileNav && "pb-24 md:pb-6",
         )}
       >
@@ -44,7 +48,7 @@ export function AppShell({
       </main>
       {showFooter && (
         <div className={cn(hasMobileNav && "hidden md:block")}>
-          <Footer />
+          <Footer widthClass={frame} />
         </div>
       )}
       <MobileNav navItems={navItems} />
