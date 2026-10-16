@@ -58,6 +58,15 @@ describe("TestPaymentProvider", () => {
       canceledAt: null,
     });
     await expect(payments.getSubscription("sub_test_0002")).resolves.toEqual(subscription);
+    const second = await payments.simulateCheckoutPaid(customerId);
+    const other = await payments.createCustomer({ email: "o@b.c", name: "Other", carrierId: "c2" });
+    await payments.simulateCheckoutPaid(other);
+    // Newest first, and only this customer's.
+    expect((await payments.listSubscriptions(customerId)).map((s) => s.stripeSubscriptionId)).toEqual([
+      second.stripeSubscriptionId,
+      "sub_test_0002",
+    ]);
+    await expect(payments.listSubscriptions("cus_nobody")).resolves.toEqual([]);
 
     await payments.cancelSubscription("sub_test_0002");
     expect((await payments.getSubscription("sub_test_0002")).status).toBe("canceled");
@@ -181,10 +190,14 @@ describe("StripeProvider", () => {
       billingPortal: { sessions: { create: record("portal.create", { url: "https://billing.stripe.test/p" }) } },
       subscriptions: {
         retrieve: record("subscriptions.retrieve", stripeSubscription()),
+        list: record("subscriptions.list", { data: [stripeSubscription()] }),
         cancel: record("subscriptions.cancel", {}),
       },
     } as unknown as Stripe;
     const provider = new StripeProvider(stripe, { priceId: "price_1", webhookSecret: "whsec" });
+
+    await expect(provider.listSubscriptions("cus_new")).resolves.toEqual([snapshotOf(stripeSubscription())]);
+    expect(calls["subscriptions.list"][0]).toEqual({ customer: "cus_new", status: "all", limit: 10 });
 
     await expect(provider.createCustomer({ email: "a@b.c", name: "Co", carrierId: "c1" })).resolves.toBe("cus_new");
     expect(calls["customers.create"][0]).toEqual({ email: "a@b.c", name: "Co", metadata: { carrier_id: "c1" } });
@@ -315,6 +328,7 @@ describe("createPaymentProvider", () => {
       () => provider.createCheckoutSession({ customerId: "a", carrierId: "b", successUrl: "c", cancelUrl: "d" }),
       () => provider.createPortalSession({ customerId: "a", returnUrl: "b" }),
       () => provider.getSubscription("a"),
+      () => provider.listSubscriptions("a"),
       () => provider.cancelSubscription("a"),
       () => provider.parseWebhookEvent("{}", "sig"),
     ]) {

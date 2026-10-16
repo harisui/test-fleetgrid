@@ -83,6 +83,20 @@ export async function openBillingPortalAction(): Promise<Result<{ url: string }>
   });
 }
 
+/**
+ * Asks the payment provider whether the carrier's subscription is live. The billing page
+ * polls it after checkout, so access opens even when the webhook is late or lost.
+ */
+export async function refreshSubscriptionAction(): Promise<Result<{ subscribed: boolean }>> {
+  return runAction(async () => {
+    const { user } = await requireRole("carrier");
+    const { subscriptionService } = await getContainer();
+    const billing = await subscriptionService.syncFromProvider(user.id);
+    if (billing.subscribed) revalidatePath("/carrier", "layout");
+    return { subscribed: billing.subscribed };
+  });
+}
+
 /** Test mode only: the Pay button of the in-app checkout page. */
 export async function completeTestCheckoutAction(customerId: unknown): Promise<Result<Subscription>> {
   return runAction(async () => {

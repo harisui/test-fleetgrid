@@ -228,6 +228,66 @@ describe("SubscriptionService", () => {
     });
   });
 
+  describe("syncFromProvider", () => {
+    /** Paid at the provider, but no webhook ever reached the app. */
+    async function paidWithoutWebhook() {
+      const carrier = await readyToPay();
+      await service.startCheckout(CARRIER_USER_ID);
+      await payments.simulateCheckoutPaid("cus_test_0001");
+      return carrier;
+    }
+
+    it("stores the subscription the provider reports, so a lost webhook does not lock a paying carrier out", async () => {
+      const carrier = await paidWithoutWebhook();
+      expect((await service.getBilling(CARRIER_USER_ID)).subscribed).toBe(false);
+
+      const billing = await service.syncFromProvider(CARRIER_USER_ID);
+      expect(billing.subscribed).toBe(true);
+      expect(billing.subscription).toMatchObject({ carrierId: carrier.id, status: "active" });
+      expect((await carrierService.getAccess(CARRIER_USER_ID)).subscribed).toBe(true);
+      // A second read changes nothing.
+      await service.syncFromProvider(CARRIER_USER_ID);
+      expect(subscriptions.rows.size).toBe(1);
+    });
+
+    it("prefers the subscription that grants access over a newer one that does not", async () => {
+      await paidWithoutWebhook();
+      const failed = await payments.simulateCheckoutPaid("cus_test_0001");
+      payments.subscriptions.set(failed.stripeSubscriptionId, { ...failed, status: "incomplete_expired" });
+
+      const billing = await service.syncFromProvider(CARRIER_USER_ID);
+      expect(billing.subscribed).toBe(true);
+      expect(billing.subscription?.stripeSubscriptionId).toBe("sub_test_0002");
+    });
+
+    it("records a cancellation the webhook missed", async () => {
+      const carrier = await paidWithoutWebhook();
+      await subscriptions.upsert({ carrierId: carrier.id, ...(await payments.getSubscription("sub_test_0002")) });
+      await payments.cancelSubscription("sub_test_0002");
+
+      const billing = await service.syncFromProvider(CARRIER_USER_ID);
+      expect(billing.subscribed).toBe(false);
+      expect(billing.subscription?.status).toBe("canceled");
+    });
+
+    it("does nothing before the first checkout", async () => {
+      await readyToPay();
+      expect(await service.syncFromProvider(CARRIER_USER_ID)).toMatchObject({ subscription: null, subscribed: false });
+      expect(subscriptions.rows.size).toBe(0);
+    });
+
+    it("keeps the stored state and logs when the provider cannot be reached", async () => {
+      const carrier = await paidWithoutWebhook();
+      await subscriptions.upsert({ carrierId: carrier.id, ...snapshot() });
+      payments.listSubscriptions = async () => {
+        throw new Error("Stripe is down");
+      };
+      const billing = await service.syncFromProvider(CARRIER_USER_ID);
+      expect(billing.subscribed).toBe(true);
+      expect(logged).toEqual(["Could not read the subscription from the payment provider"]);
+    });
+  });
+
   describe("completeTestCheckout", () => {
     it("writes an active subscription for the carrier's own customer only", async () => {
       const carrier = await readyToPay();
@@ -252,6 +312,7 @@ describe("SubscriptionService", () => {
         createCheckoutSession: (input) => payments.createCheckoutSession(input),
         createPortalSession: (input) => payments.createPortalSession(input),
         getSubscription: (id) => payments.getSubscription(id),
+        listSubscriptions: (id) => payments.listSubscriptions(id),
         cancelSubscription: (id) => payments.cancelSubscription(id),
         parseWebhookEvent: (body, signature) => payments.parseWebhookEvent(body, signature),
       };

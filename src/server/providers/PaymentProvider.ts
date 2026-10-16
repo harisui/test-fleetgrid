@@ -58,6 +58,11 @@ export interface IPaymentProvider {
   /** The URL of the hosted page where the carrier manages their card and plan. */
   createPortalSession(input: PortalSessionInput): Promise<string>;
   getSubscription(subscriptionId: string): Promise<SubscriptionSnapshot>;
+  /**
+   * The customer's subscriptions, newest first, whatever their status. Lets the app read the
+   * state from the provider itself when a webhook is late or never arrives.
+   */
+  listSubscriptions(customerId: string): Promise<SubscriptionSnapshot[]>;
   cancelSubscription(subscriptionId: string): Promise<void>;
   /** Verifies the signature and reduces the event. Throws a VALIDATION AppError when it is not genuine. */
   parseWebhookEvent(rawBody: string, signature: string | null): Promise<PaymentEvent>;

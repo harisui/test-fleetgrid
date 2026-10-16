@@ -69,6 +69,12 @@ export class TestPaymentProvider implements IPaymentProvider {
     return subscription;
   }
 
+  async listSubscriptions(customerId: string): Promise<SubscriptionSnapshot[]> {
+    return [...this.subscriptions.values()]
+      .filter((subscription) => subscription.stripeCustomerId === customerId)
+      .reverse();
+  }
+
   async cancelSubscription(subscriptionId: string): Promise<void> {
     const subscription = this.subscriptions.get(subscriptionId);
     if (!subscription) return;
