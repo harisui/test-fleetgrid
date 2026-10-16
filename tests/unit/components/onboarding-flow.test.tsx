@@ -26,6 +26,7 @@ const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 vi.mock("@/server/actions/driver.actions", () => actions);
+vi.mock("@/server/actions/auth.actions", () => ({ signOutAction: vi.fn() }));
 vi.mock("sonner", () => ({ toast }));
 
 const PHONE = "+15555550100";
@@ -90,7 +91,8 @@ describe("one page per mile, on every device", () => {
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
       expect(document.querySelectorAll("[aria-invalid='true']")).toHaveLength(0);
       expect(screen.queryByRole("navigation")).not.toBeInTheDocument();
-      expect(screen.queryByRole("button", { name: "Log out" })).not.toBeInTheDocument();
+      // No app navigation; Log out is in the header since 2026-10-16 (user request).
+      expect(within(screen.getByRole("banner")).getByRole("button", { name: "Log out" })).toBeInTheDocument();
       expect(screen.getByRole("progressbar", { name: "Progress" })).toHaveAttribute(
         "aria-valuetext",
         `Step ${mile} of ${MILES.length}: ${label}`,

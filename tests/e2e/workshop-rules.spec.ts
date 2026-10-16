@@ -18,7 +18,7 @@ import {
  * - a selected option card uses the graphite selection border and tint, carries
  *   aria-checked="true" and shows the check badge;
  * - no error is visible when a page first loads;
- * - onboarding routes render no app navigation, log out or theme toggle;
+ * - onboarding routes render no app navigation or theme toggle; Log out sits in the header;
  * - every page's eyebrow, stage highlight and truck position come from steps.ts;
  * - every control is at least 48px, the main action 56px;
  * - reduced motion turns the transitions off.
@@ -148,10 +148,11 @@ test.describe("Workshop rules", () => {
     });
   }
 
-  test("onboarding routes render no app navigation, log out or theme toggle", async ({ page }) => {
+  test("onboarding routes render no app navigation or theme toggle, and Log out signs the driver out", async ({
+    page,
+  }) => {
     await openStep(page, 4);
     await expect(page.getByRole("navigation")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Log out" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Toggle dark mode" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Profile" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Documents" })).toHaveCount(0);
@@ -161,6 +162,16 @@ test.describe("Workshop rules", () => {
     await expect(page.getByRole("main").getByText("Set up your profile")).toHaveCount(0);
     await expect(page.getByRole("banner").getByRole("img", { name: "FleetGrid" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Help" })).toBeVisible();
+
+    // Log out in the header (user request, 2026-10-16): 48px tall like every control, and it really
+    // ends the session, so the onboarding page sends the driver to sign in again.
+    const logout = page.getByRole("banner").getByRole("button", { name: "Log out" });
+    await expect(logout).toBeVisible();
+    expect((await logout.boundingBox())!.height).toBeGreaterThanOrEqual(48);
+    await logout.click();
+    await expect(page).not.toHaveURL(/\/driver\/onboarding/);
+    await page.goto("/driver/onboarding");
+    await expect(page).toHaveURL(/\/login$/);
   });
 
   for (const stepNumber of [1, 5, 8, 11, 12]) {

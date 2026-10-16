@@ -118,7 +118,9 @@ test.describe("role routing", () => {
   });
 
   test("the seeded admin lands in the admin area", async ({ page }) => {
-    await login(page, PHONES.admin);
+    // The admin from supabase/seed.sql, on a number people also use by hand. Signing in only
+    // reads the account, so this never disturbs their session; nothing here resets it.
+    await login(page, "+15555550102");
     await expect(page).toHaveURL(/\/admin$/);
     await expect(page.getByRole("heading", { name: "Driver review" })).toBeVisible();
   });
@@ -203,6 +205,33 @@ test.describe("session", () => {
     await context.clearCookies();
     await page.goto("/driver/profile");
     await expect(page).toHaveURL(/\/login$/);
+  });
+
+  test("a session whose account was deleted goes to /login once, with its dead cookie cleared", async ({
+    page,
+    context,
+  }) => {
+    await seedDriverAtStep(PHONES.driver, 12);
+    await login(page, PHONES.driver);
+    await expect(page).toHaveURL(/\/driver\/profile$/);
+    const authCookies = async () =>
+      (await context.cookies()).filter((cookie) => cookie.name.startsWith("sb-") && cookie.value);
+    expect((await authCookies()).length).toBeGreaterThan(0);
+
+    // The account disappears while the browser stays signed in, as when the test suite or an
+    // admin deletes it.
+    await resetUser(PHONES.driver);
+    await page.goto("/driver/profile");
+    await expect(page).toHaveURL(/\/login$/);
+    // The proxy cleared the dead session, so the login page is a clean start, not a loop.
+    expect(await authCookies()).toEqual([]);
+    await expect(page.getByRole("heading", { level: 1, name: "What is your mobile number?" })).toBeVisible();
+  });
+
+  test("the browser tests never use the numbers people sign in with by hand", () => {
+    for (const manual of ["+15555550100", "+15555550101", "+15555550102"]) {
+      expect(Object.values(PHONES)).not.toContain(manual);
+    }
   });
 
   test("the session survives a reload", async ({ page }) => {

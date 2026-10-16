@@ -276,6 +276,11 @@ max_frequency = "1s"
 15555550107 = "123456"
 15555550108 = "123456"
 15555550109 = "123456"
+# The browser tests' own driver, carrier and admin. Never sign in with these by hand: every
+# e2e run deletes and recreates them. Use 0100 to 0102 for that (tests/e2e/helpers.ts).
+15555550110 = "123456"
+15555550111 = "123456"
+15555550112 = "123456"
 
 # Configure logged in session timeouts.
 # [auth.sessions]

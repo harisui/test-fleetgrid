@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { decideRoute, needsAuthCheck } from "@/lib/auth/routes";
+import { classifyAuthError } from "@/lib/auth/session-errors";
 import { isCarrierDisabled } from "@/lib/carrier/availability";
 import { getClientEnv } from "@/lib/env";
 import { ProfileRepository } from "@/server/repositories/ProfileRepository";
@@ -41,15 +42,34 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   // Always call getUser(): it validates the token with the auth server and refreshes it.
   const {
     data: { user },
+    error,
   } = await supabase.auth.getUser();
+
+  // A session cookie whose user or session no longer exists (an account deleted while the
+  // browser stayed open, a revoked refresh) is dead: clear it here, the one place that can
+  // write cookies, so the person gets one clean trip to /login instead of a loop.
+  const hasAuthCookie = request.cookies.getAll().some((cookie) => cookie.name.startsWith("sb-"));
+  if (error && hasAuthCookie && classifyAuthError(error) === "signed-out") {
+    await supabase.auth.signOut({ scope: "local" }).catch(() => undefined);
+  }
 
   const { pathname } = request.nextUrl;
   if (!needsAuthCheck(pathname)) return response;
 
+  // The auth server could not answer: the person may be signed in. Let the page's own guard
+  // decide, which shows the error screen rather than /login.
+  if (error && classifyAuthError(error) === "unavailable") return response;
+
   let role: UserRole | null = null;
   if (user) {
-    const profile = await new ProfileRepository(supabase).findById(user.id).catch(() => null);
-    role = profile?.role ?? null;
+    try {
+      const profile = await new ProfileRepository(supabase).findById(user.id);
+      role = profile?.role ?? null;
+    } catch {
+      // The profile could not be read (a database hiccup), which is not the same as having
+      // no profile: do not send a signed-in person to the role picker. The page decides.
+      return response;
+    }
   }
 
   const decision = decideRoute({

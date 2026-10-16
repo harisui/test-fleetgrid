@@ -1,3 +1,4 @@
+import { classifyAuthError } from "@/lib/auth/session-errors";
 import { AppError } from "@/server/errors/AppError";
 import { BaseRepository } from "@/server/repositories/BaseRepository";
 import type { SessionUser } from "@/types/domain";
@@ -36,9 +37,18 @@ export class AuthRepository extends BaseRepository implements IAuthRepository {
     return { id: data.user.id, phone: toE164(data.user.phone) };
   }
 
+  /**
+   * The signed-in user, or null when there is no usable session. When the auth server cannot
+   * answer, this throws instead: a hiccup must show the error page, not send a signed-in
+   * person to /login (src/lib/auth/session-errors.ts).
+   */
   async getUser(): Promise<SessionUser | null> {
     const { data, error } = await this.supabase.auth.getUser();
-    if (error || !data.user?.phone) return null;
+    if (error) {
+      if (classifyAuthError(error) === "unavailable") throw AppError.internal(error);
+      return null;
+    }
+    if (!data.user?.phone) return null;
     return { id: data.user.id, phone: toE164(data.user.phone) };
   }
 

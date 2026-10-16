@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from "vitest";
 import { DoneScreen } from "@/components/driver/DoneScreen";
 import { buildDriver } from "../../setup/factories";
 
+vi.mock("@/server/actions/auth.actions", () => ({ signOutAction: vi.fn() }));
+
 const PHONE = "+15555550100";
 const nextSteps = () => within(screen.getByRole("list", { name: "What happens next" }));
 
