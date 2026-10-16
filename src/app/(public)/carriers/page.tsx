@@ -29,14 +29,11 @@ import { ZipCheck } from "@/components/marketing/ZipCheck";
 import { Button } from "@/components/ui/button";
 import { CARRIER_FAQ_EXCERPT } from "@/content/faq";
 import { CARRIERS } from "@/content/marketing";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { isCarrierDisabled } from "@/lib/carrier/availability";
+import { breadcrumbJsonLd, carrierServiceJsonLd, pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Find CDL Drivers in Houston for Open Shifts",
-  description:
-    "Search approved local drivers near your Houston or Pasadena yard and broadcast shifts by text. $399 a month, no contract, cancel anytime.",
-  alternates: { canonical: "/carriers" },
-};
+export const metadata: Metadata = pageMetadata("/carriers");
 
 const FILTER_ICONS: readonly LucideIcon[] = [
   Route,
@@ -63,6 +60,7 @@ export default function CarriersPage() {
 
   return (
     <AppShell variant="marketing">
+      <JsonLd data={[breadcrumbJsonLd("/carriers"), carrierServiceJsonLd()]} />
       <div className="flex flex-col gap-16 py-4 sm:gap-24 sm:py-8">
         {/* Hero. Server-rendered, never animated. */}
         <section aria-labelledby="hero-title" className="flex max-w-3xl flex-col gap-5">

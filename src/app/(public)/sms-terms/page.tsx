@@ -4,8 +4,9 @@ import { LegalHeading, LegalPage } from "@/components/layout/LegalPage";
 import { SMS_CONSENT_TEXT, SMS_PROGRAM_NAME } from "@/lib/constants";
 import { formatE164ForDisplay } from "@/lib/phone";
 import { BUSINESS_NAME, getSupportContact } from "@/lib/support";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "SMS Terms" };
+export const metadata: Metadata = pageMetadata("/sms-terms");
 
 const linkClass = "text-foreground underline underline-offset-4";
 
@@ -26,7 +27,7 @@ export const SMS_TERMS_SECTIONS = [
 export default function SmsTermsPage() {
   const support = getSupportContact();
   return (
-    <LegalPage title="SMS Terms" sections={SMS_TERMS_SECTIONS}>
+    <LegalPage path="/sms-terms" title="SMS Terms" sections={SMS_TERMS_SECTIONS}>
       <LegalHeading>Program name</LegalHeading>
       <p>
         {SMS_PROGRAM_NAME}, sent by {BUSINESS_NAME}.

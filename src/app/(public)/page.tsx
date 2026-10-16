@@ -30,15 +30,11 @@ import { SmsThread } from "@/components/marketing/SmsThread";
 import { Button } from "@/components/ui/button";
 import { HOME, SMS_SENDER_NUMBER } from "@/content/marketing";
 import { getSiteEnv } from "@/lib/env";
+import { pageMetadata } from "@/lib/seo";
 import { LAUNCH_LINE } from "@/lib/launch";
 import { formatE164ForDisplay } from "@/lib/phone";
 
-export const metadata = {
-  title: { absolute: "FleetGrid: Local CDL Drivers for Open Shifts in Houston" },
-  description:
-    "Houston-area carriers find approved Class A and B CDL drivers within 50 miles of the yard and fill shifts by text. Free for drivers.",
-  alternates: { canonical: "/" },
-};
+export const metadata = pageMetadata("/");
 
 const WHO_ICONS = [IdCard, Truck, Container] as const;
 /** One icon per promise, in the order of HOME.promises.items. */

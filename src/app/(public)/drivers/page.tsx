@@ -10,19 +10,17 @@ import { SmsThread } from "@/components/marketing/SmsThread";
 import { Button } from "@/components/ui/button";
 import { DRIVER_FAQ_EXCERPT } from "@/content/faq";
 import { DRIVERS } from "@/content/marketing";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "CDL Driver Shifts in Houston and Pasadena, TX",
-  description:
-    "Sign up free on your phone. Get local shift offers by text from Houston-area carriers, including the Port of Houston, Baytown and La Porte.",
-  alternates: { canonical: "/drivers" },
-};
+export const metadata: Metadata = pageMetadata("/drivers");
 
 export default function DriversPage() {
   const { hero, signUp, card, texts, free, respect, outside, faq, finalCta } = DRIVERS;
 
   return (
     <AppShell variant="marketing">
+      <JsonLd data={breadcrumbJsonLd("/drivers")} />
       <div className="flex flex-col gap-16 py-4 sm:gap-24 sm:py-8">
         <section aria-labelledby="hero-title" className="flex max-w-3xl flex-col gap-5">
           <Eyebrow>{hero.eyebrow}</Eyebrow>

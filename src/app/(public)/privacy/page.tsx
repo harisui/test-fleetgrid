@@ -4,8 +4,9 @@ import { LegalHeading, LegalPage } from "@/components/layout/LegalPage";
 import { LEGAL_EFFECTIVE_DATE } from "@/lib/constants";
 import { formatE164ForDisplay } from "@/lib/phone";
 import { BUSINESS_NAME, getSupportContact } from "@/lib/support";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Privacy Policy" };
+export const metadata: Metadata = pageMetadata("/privacy");
 
 const linkClass = "text-foreground underline underline-offset-4";
 
@@ -35,6 +36,7 @@ export default function PrivacyPage() {
   const contact = getSupportContact();
   return (
     <LegalPage
+      path="/privacy"
       title="Privacy Policy"
       effective={LEGAL_EFFECTIVE_DATE}
       sections={PRIVACY_SECTIONS}

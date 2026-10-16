@@ -1,8 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Geist, Geist_Mono } from "next/font/google";
+import { JsonLd } from "@/components/seo/JsonLd";
 import { Toaster } from "@/components/ui/sonner";
 import { getSiteEnv } from "@/lib/env";
 import { SITE_INIT_SCRIPT } from "@/lib/motion";
+import { organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -30,7 +32,11 @@ export const metadata: Metadata = {
     default: "FleetGrid",
     template: "%s | FleetGrid",
   },
-  description: "FleetGrid connects local freight carriers with certified transport operators.",
+  description:
+    "FleetGrid connects Houston-area carriers with approved local Class A and B CDL drivers and fills open shifts by text.",
+  applicationName: "FleetGrid",
+  openGraph: { type: "website", siteName: "FleetGrid", locale: "en_US" },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {
@@ -52,6 +58,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script dangerouslySetInnerHTML={{ __html: SITE_INIT_SCRIPT }} />
       </head>
       <body className="flex min-h-full flex-col">
+        {/* Who runs the site and what the site is, on every page. */}
+        <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
         {children}
         <Toaster position="top-center" richColors={false} />
       </body>

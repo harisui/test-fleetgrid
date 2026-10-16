@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 import { AppShell } from "@/components/layout/AppShell";
+import { JsonLd } from "@/components/seo/JsonLd";
+import type { SeoPath } from "@/content/seo";
+import { breadcrumbJsonLd } from "@/lib/seo";
 
 /** "13. Governing law and dispute resolution" becomes "governing-law-and-dispute-resolution". */
 export function legalSectionId(title: string): string {
@@ -23,6 +26,8 @@ export function LegalHeading({ children }: { children: string }) {
 }
 
 interface LegalPageProps {
+  /** The page's own path, for its breadcrumb in the structured data. */
+  path?: SeoPath;
   title: string;
   /** The date the text took effect, shown as "Last updated" under the title. */
   effective?: string;
@@ -37,9 +42,10 @@ interface LegalPageProps {
  * desktop, above it on phones); a 70ch reading column at the body size. The text itself is
  * the client's and never changes here. Prints as the text alone (globals.css).
  */
-export function LegalPage({ title, effective, sections = [], children }: LegalPageProps) {
+export function LegalPage({ path, title, effective, sections = [], children }: LegalPageProps) {
   return (
     <AppShell variant="marketing">
+      {path && <JsonLd data={breadcrumbJsonLd(path)} />}
       <article className="flex flex-col gap-8">
         {/* A div, not a header: the page already has its banner, and a second one confuses landmarks. */}
         <div

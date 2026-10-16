@@ -5,17 +5,15 @@ import { Faq } from "@/components/marketing/Faq";
 import { Button } from "@/components/ui/button";
 import { FAQ_GROUPS } from "@/content/faq";
 import { FAQ_PAGE } from "@/content/marketing";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbJsonLd, faqPageJsonLd, pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "FAQ for Carriers and Drivers",
-  description:
-    "Plain answers about pricing, the service area, profile review, shift texts, STOP and HELP, and how payment works on FleetGrid.",
-  alternates: { canonical: "/faq" },
-};
+export const metadata: Metadata = pageMetadata("/faq");
 
 export default function FaqPage() {
   return (
     <AppShell variant="marketing">
+      <JsonLd data={[breadcrumbJsonLd("/faq"), faqPageJsonLd(FAQ_GROUPS)]} />
       {/* One centred column: accordion rows read badly at the full site width. */}
       <div className="mx-auto flex w-full max-w-4xl flex-col gap-10 py-4 sm:py-8">
         <div className="flex max-w-reading flex-col gap-3">

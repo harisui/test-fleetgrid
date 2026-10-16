@@ -6,13 +6,10 @@ import { getSiteEnv } from "@/lib/env";
 import { formatE164ForDisplay } from "@/lib/phone";
 import { BUSINESS_NAME, getSupportContact } from "@/lib/support";
 import { getContactService } from "@/server/contact";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { breadcrumbJsonLd, pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Contact FleetGrid",
-  description:
-    "Questions about FleetGrid in the Houston area? Send a message or email support@fleetgridus.com. FleetGrid LLC.",
-  alternates: { canonical: "/contact" },
-};
+export const metadata: Metadata = pageMetadata("/contact");
 
 /** Rendered per request: the form's signed timestamp must be fresh, or the time trap means nothing. */
 export const dynamic = "force-dynamic";
@@ -36,6 +33,7 @@ export default function ContactPage() {
 
   return (
     <AppShell variant="marketing">
+      <JsonLd data={breadcrumbJsonLd("/contact")} />
       <div className="flex flex-col gap-8 py-4 sm:py-8">
         <div className="flex max-w-reading flex-col gap-3">
           <h1 className="font-heading text-h1 leading-h1 font-bold sm:text-4xl sm:leading-tight">

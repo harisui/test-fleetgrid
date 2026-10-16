@@ -4,8 +4,9 @@ import { LegalHeading, LegalPage } from "@/components/layout/LegalPage";
 import { LEGAL_EFFECTIVE_DATE } from "@/lib/constants";
 import { formatE164ForDisplay } from "@/lib/phone";
 import { BUSINESS_NAME, getSupportContact } from "@/lib/support";
+import { pageMetadata } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Terms of Service" };
+export const metadata: Metadata = pageMetadata("/terms");
 
 const linkClass = "text-foreground underline underline-offset-4";
 
@@ -31,6 +32,7 @@ export default function TermsPage() {
   const contact = getSupportContact();
   return (
     <LegalPage
+      path="/terms"
       title="Terms of Service"
       effective={LEGAL_EFFECTIVE_DATE}
       sections={TERMS_SECTIONS}

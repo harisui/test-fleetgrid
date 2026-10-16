@@ -31,6 +31,9 @@ export default defineConfig({
         "src/app/**/page.tsx",
         "src/app/**/error.tsx",
         "src/app/**/not-found.tsx",
+        // Share image entry points: one line each over src/lib/og, checked by the e2e SEO spec
+        "src/app/**/opengraph-image.tsx",
+        "src/app/**/twitter-image.tsx",
       ],
       thresholds: {
         lines: 85,
