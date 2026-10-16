@@ -5,7 +5,10 @@ import {
   type SubscriptionSnapshot,
 } from "@/server/providers/PaymentProvider";
 import type { ICarrierRepository } from "@/server/repositories/CarrierRepository";
-import type { ISubscriptionRepository } from "@/server/repositories/SubscriptionRepository";
+import {
+  isAccessStatus,
+  type ISubscriptionRepository,
+} from "@/server/repositories/SubscriptionRepository";
 import type { IWebhookEventRepository } from "@/server/repositories/WebhookEventRepository";
 import type { CarrierService } from "@/server/services/CarrierService";
 import type { Subscription } from "@/types/domain";
@@ -58,6 +61,29 @@ export class SubscriptionService {
       portalAvailable: access.carrier?.stripeCustomerId !== null && access.carrier !== null,
       testMode: this.payments.mode === "test",
     };
+  }
+
+  /**
+   * Reads the carrier's subscription from the payment provider and stores it, then returns
+   * the billing view. The webhook stays the main path; this covers a webhook that is late,
+   * misconfigured or lost, so a carrier who paid is never left locked out. The one stored
+   * is the newest that grants access, or else the newest. A provider failure is logged and
+   * the stored state is returned.
+   */
+  async syncFromProvider(userId: string): Promise<BillingView> {
+    const carrier = await this.carrierService.getCarrier(userId);
+    if (carrier?.stripeCustomerId) {
+      try {
+        const snapshots = await this.payments.listSubscriptions(carrier.stripeCustomerId);
+        const current = snapshots.find((s) => isAccessStatus(s.status)) ?? snapshots[0];
+        if (current) {
+          await this.privileged.subscriptions().upsert({ carrierId: carrier.id, ...current });
+        }
+      } catch (error) {
+        this.log("Could not read the subscription from the payment provider", error);
+      }
+    }
+    return this.getBilling(userId);
   }
 
   /**

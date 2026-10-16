@@ -123,6 +123,12 @@ export class StripeProvider implements IPaymentProvider {
     return snapshotOf(await this.stripe.subscriptions.retrieve(subscriptionId));
   }
 
+  async listSubscriptions(customerId: string): Promise<SubscriptionSnapshot[]> {
+    // Stripe lists newest first; "all" includes cancelled and incomplete ones.
+    const page = await this.stripe.subscriptions.list({ customer: customerId, status: "all", limit: 10 });
+    return page.data.map(snapshotOf);
+  }
+
   async cancelSubscription(subscriptionId: string): Promise<void> {
     try {
       await this.stripe.subscriptions.cancel(subscriptionId);

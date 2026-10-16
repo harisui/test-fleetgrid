@@ -2,13 +2,23 @@
 
 import { format } from "date-fns";
 import { CircleCheck, CreditCard, TriangleAlert } from "lucide-react";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { InlineNote } from "@/components/shared/InlineNote";
 import { LoadingButton } from "@/components/shared/LoadingButton";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { PLAN, SUBSCRIPTION_STATUS_HELP, SUBSCRIPTION_STATUS_LABELS } from "@/lib/carrier/options";
-import { openBillingPortalAction, startCheckoutAction } from "@/server/actions/carrier.actions";
+import {
+  openBillingPortalAction,
+  refreshSubscriptionAction,
+  startCheckoutAction,
+} from "@/server/actions/carrier.actions";
 import type { Subscription } from "@/types/domain";
+
+/** After checkout, how often and how many times the page asks whether the subscription is live. */
+export const CONFIRM_INTERVAL_MS = 3000;
+export const CONFIRM_ATTEMPTS = 20;
 
 interface BillingCardProps {
   subscription: Subscription | null;
@@ -27,8 +37,41 @@ export function BillingCard({
   testMode,
   checkoutResult,
 }: BillingCardProps) {
+  const router = useRouter();
   const [pending, setPending] = useState<"checkout" | "portal">();
   const [error, setError] = useState<string>();
+  // Back from a paid checkout but not active yet: ask the provider until it is, then reload.
+  const [confirm, setConfirm] = useState<"checking" | "late" | undefined>(
+    checkoutResult === "success" && !subscribed ? "checking" : undefined,
+  );
+
+  useEffect(() => {
+    if (confirm !== "checking" || subscribed) return;
+    let stopped = false;
+    let attempts = 0;
+    let timer: ReturnType<typeof setTimeout>;
+    const check = async () => {
+      attempts += 1;
+      const result = await refreshSubscriptionAction();
+      if (stopped) return;
+      if (result.ok && result.data.subscribed) {
+        router.refresh();
+        return;
+      }
+      if (attempts >= CONFIRM_ATTEMPTS) {
+        setConfirm("late");
+        return;
+      }
+      timer = setTimeout(check, CONFIRM_INTERVAL_MS);
+    };
+    timer = setTimeout(check, CONFIRM_INTERVAL_MS);
+    return () => {
+      stopped = true;
+      clearTimeout(timer);
+    };
+  }, [confirm, subscribed, router]);
+
+  const confirming = confirm === "checking" && !subscribed;
 
   async function go(kind: "checkout" | "portal") {
     setPending(kind);
@@ -52,9 +95,25 @@ export function BillingCard({
       className="flex flex-col gap-5 rounded-card border border-border bg-card p-5"
       data-slot="billing"
     >
-      {checkoutResult === "success" && (
+      {checkoutResult === "success" && subscribed && (
         <InlineNote variant="success" data-slot="checkout-result">
-          Payment received. Thank you. Your subscription is being confirmed.
+          Payment received. Thank you. Your subscription is active.
+        </InlineNote>
+      )}
+      {confirming && (
+        <InlineNote variant="info" role="status" data-slot="checkout-result" data-confirm="checking">
+          Payment received. Confirming your subscription with Stripe. This takes a few seconds.
+        </InlineNote>
+      )}
+      {checkoutResult === "success" && !subscribed && confirm === "late" && (
+        <InlineNote variant="warning" role="status" data-slot="checkout-result" data-confirm="late">
+          <span className="flex flex-col items-start gap-2">
+            Stripe has not confirmed your payment yet. Check again in a minute before you try to
+            pay again, and contact support if this does not change.
+            <Button type="button" variant="link" onClick={() => setConfirm("checking")}>
+              Check again
+            </Button>
+          </span>
         </InlineNote>
       )}
       {checkoutResult === "cancelled" && (
@@ -135,7 +194,7 @@ export function BillingCard({
             onClick={() => go("checkout")}
             loading={pending === "checkout"}
             loadingText="Opening checkout..."
-            disabled={pending !== undefined}
+            disabled={pending !== undefined || confirming}
           >
             {subscription ? "Subscribe again" : "Subscribe"}
           </LoadingButton>

@@ -1,7 +1,7 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
-import { BillingCard } from "@/components/carrier/BillingCard";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { BillingCard, CONFIRM_ATTEMPTS, CONFIRM_INTERVAL_MS } from "@/components/carrier/BillingCard";
 import { CarrierDetailsForm } from "@/components/carrier/CarrierDetailsForm";
 import { CarrierStatusCard } from "@/components/carrier/CarrierStatusCard";
 import { DriverCardView } from "@/components/carrier/DriverCardView";
@@ -38,6 +38,7 @@ const actions = vi.hoisted(() => ({
   startCheckoutAction: vi.fn(),
   openBillingPortalAction: vi.fn(),
   completeTestCheckoutAction: vi.fn(),
+  refreshSubscriptionAction: vi.fn(),
 }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 
@@ -253,7 +254,8 @@ describe("BillingCard", () => {
       />,
     );
     expect(screen.getByText("Active")).toHaveAttribute("data-subscription", "active");
-    expect(screen.getByText("Payment received. Thank you. Your subscription is being confirmed.")).toBeInTheDocument();
+    expect(screen.getByText("Payment received. Thank you. Your subscription is active.")).toBeInTheDocument();
+    expect(actions.refreshSubscriptionAction).not.toHaveBeenCalled();
     expect(screen.getByText(/Next billing date/)).toBeInTheDocument();
     expect(document.querySelector("[data-slot=period-end]")).toHaveTextContent("November 13, 2026");
     expect(screen.queryByRole("button", { name: "Subscribe" })).not.toBeInTheDocument();
@@ -290,6 +292,76 @@ describe("BillingCard", () => {
       />,
     );
     expect(screen.getByText(/Access ends on/)).toBeInTheDocument();
+  });
+
+  describe("after a paid checkout the webhook has not recorded yet", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    const renderReturned = () =>
+      render(
+        <BillingCard
+          subscription={null}
+          subscribed={false}
+          portalAvailable
+          testMode={false}
+          checkoutResult="success"
+        />,
+      );
+
+    it("asks the provider until the subscription is live, then reloads, with Subscribe held meanwhile", async () => {
+      actions.refreshSubscriptionAction
+        .mockResolvedValueOnce(ok({ subscribed: false }))
+        .mockResolvedValueOnce(failure("Network"))
+        .mockResolvedValueOnce(ok({ subscribed: true }));
+      renderReturned();
+      expect(document.querySelector("[data-confirm=checking]")).toHaveTextContent(
+        "Confirming your subscription with Stripe",
+      );
+      expect(screen.queryByText(/Your subscription is active/)).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Subscribe" })).toBeDisabled();
+      expect(actions.refreshSubscriptionAction).not.toHaveBeenCalled();
+
+      await act(() => vi.advanceTimersByTimeAsync(CONFIRM_INTERVAL_MS * 3));
+      expect(actions.refreshSubscriptionAction).toHaveBeenCalledTimes(3);
+      expect(router.refresh).toHaveBeenCalledTimes(1);
+
+      await act(() => vi.advanceTimersByTimeAsync(CONFIRM_INTERVAL_MS * 5));
+      expect(actions.refreshSubscriptionAction).toHaveBeenCalledTimes(3);
+    });
+
+    it("stops after the last attempt, says not to pay twice, and checks again on request", async () => {
+      actions.refreshSubscriptionAction.mockResolvedValue(ok({ subscribed: false }));
+      renderReturned();
+
+      await act(() => vi.advanceTimersByTimeAsync(CONFIRM_INTERVAL_MS * (CONFIRM_ATTEMPTS + 5)));
+      expect(actions.refreshSubscriptionAction).toHaveBeenCalledTimes(CONFIRM_ATTEMPTS);
+      expect(router.refresh).not.toHaveBeenCalled();
+      const late = document.querySelector("[data-confirm=late]");
+      expect(late).toHaveTextContent("Stripe has not confirmed your payment yet");
+      expect(late).toHaveTextContent("before you try to pay again");
+      expect(screen.getByRole("button", { name: "Subscribe" })).toBeEnabled();
+
+      act(() => screen.getByRole("button", { name: "Check again" }).click());
+      expect(document.querySelector("[data-confirm=checking]")).toBeInTheDocument();
+      await act(() => vi.advanceTimersByTimeAsync(CONFIRM_INTERVAL_MS));
+      expect(actions.refreshSubscriptionAction).toHaveBeenCalledTimes(CONFIRM_ATTEMPTS + 1);
+    });
+
+    it("does not ask after a cancelled checkout", async () => {
+      render(
+        <BillingCard
+          subscription={null}
+          subscribed={false}
+          portalAvailable
+          testMode={false}
+          checkoutResult="cancelled"
+        />,
+      );
+      await act(() => vi.advanceTimersByTimeAsync(CONFIRM_INTERVAL_MS * 3));
+      expect(actions.refreshSubscriptionAction).not.toHaveBeenCalled();
+      expect(screen.getByRole("button", { name: "Subscribe" })).toBeEnabled();
+    });
   });
 
   it("shows a checkout error in place", async () => {
