@@ -38,6 +38,8 @@ export interface ICarrierRepository {
   findByProfileId(profileId: string): Promise<Carrier | null>;
   findById(id: string): Promise<Carrier | null>;
   findByStripeCustomerId(customerId: string): Promise<Carrier | null>;
+  /** Every carrier that has a Stripe customer, so their subscriptions can be reconciled. */
+  listWithStripeCustomer(): Promise<Carrier[]>;
   create(profileId: string, input: CreateCarrierInput): Promise<Carrier>;
   update(carrierId: string, patch: CarrierPatch): Promise<Carrier>;
 }
@@ -110,6 +112,15 @@ export class CarrierRepository extends BaseRepository implements ICarrierReposit
       .maybeSingle();
     const row = this.unwrapMaybe(result);
     return row ? mapCarrier(row) : null;
+  }
+
+  async listWithStripeCustomer(): Promise<Carrier[]> {
+    const result = await this.supabase
+      .from("carriers")
+      .select("*")
+      .not("stripe_customer_id", "is", null)
+      .order("created_at", { ascending: true });
+    return this.unwrap(result).map(mapCarrier);
   }
 
   async create(profileId: string, input: CreateCarrierInput): Promise<Carrier> {

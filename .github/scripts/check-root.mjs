@@ -19,6 +19,7 @@ const ALLOWED = new Set([
   "src",
   "public",
   "next.config.ts",
+  "vercel.json",
   "package.json",
   "pnpm-lock.yaml",
   "pnpm-workspace.yaml",

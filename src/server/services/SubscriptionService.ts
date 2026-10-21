@@ -1,3 +1,4 @@
+import { SUBSCRIPTION_RECHECK_HOURS } from "@/lib/constants";
 import { AppError } from "@/server/errors/AppError";
 import {
   isSubscriptionEventType,
@@ -10,8 +11,25 @@ import {
   type ISubscriptionRepository,
 } from "@/server/repositories/SubscriptionRepository";
 import type { IWebhookEventRepository } from "@/server/repositories/WebhookEventRepository";
-import type { CarrierService } from "@/server/services/CarrierService";
-import type { Subscription } from "@/types/domain";
+import type { CarrierAccess, CarrierService } from "@/server/services/CarrierService";
+import type { Carrier, Subscription } from "@/types/domain";
+
+const RECHECK_MS = SUBSCRIPTION_RECHECK_HOURS * 3_600_000;
+
+/**
+ * True when the stored subscription should be read from Stripe again: it was last written
+ * more than SUBSCRIPTION_RECHECK_HOURS ago, or its paid period has ended and nothing has
+ * said whether the renewal went through. Null (never paid) needs nothing.
+ */
+export function isSubscriptionStale(subscription: Subscription | null, now: Date): boolean {
+  if (!subscription) return false;
+  if (Date.parse(subscription.updatedAt) + RECHECK_MS < now.getTime()) return true;
+  return (
+    isAccessStatus(subscription.status) &&
+    subscription.currentPeriodEnd !== null &&
+    Date.parse(subscription.currentPeriodEnd) < now.getTime()
+  );
+}
 
 export interface WebhookOutcome {
   /** True when the event changed a subscription. */
@@ -29,6 +47,18 @@ export interface BillingView {
   portalAvailable: boolean;
   /** Whether the test checkout page, not Stripe, handles payment. */
   testMode: boolean;
+}
+
+/** What the reconcile did, for its log line. */
+export interface ReconcileOutcome {
+  /** Carriers with a Stripe customer. */
+  carriers: number;
+  /** Those whose subscription was stale and was read from Stripe. */
+  checked: number;
+  /** Those whose stored status changed. */
+  changed: number;
+  /** Those the provider could not be asked about (logged, left as they were). */
+  failed: number;
 }
 
 /** The repositories the webhook writes with: they need the service role, so they are built on demand. */
@@ -51,39 +81,94 @@ export class SubscriptionService {
     private readonly payments: IPaymentProvider,
     private readonly appUrl: string,
     private readonly log: (message: string, detail?: unknown) => void = () => undefined,
+    private readonly now: () => Date = () => new Date(),
   ) {}
 
   async getBilling(userId: string): Promise<BillingView> {
-    const access = await this.carrierService.getAccess(userId);
+    return this.toBilling(await this.carrierService.getAccess(userId));
+  }
+
+  /**
+   * Whether the access just read should be checked against Stripe before it is trusted: the
+   * carrier has paid at some point and the stored subscription is stale (see
+   * isSubscriptionStale). The page guard calls refreshAccess when this is true, so a webhook
+   * that never arrived (a cancellation, a declined renewal) still closes or opens the search
+   * within SUBSCRIPTION_RECHECK_HOURS of the carrier's next visit.
+   */
+  needsRecheck(access: CarrierAccess): boolean {
+    return (
+      access.carrier?.stripeCustomerId != null && isSubscriptionStale(access.subscription, this.now())
+    );
+  }
+
+  /**
+   * Reads the carrier's subscription from the payment provider, stores it and returns the
+   * access decided from it. The webhook stays the main path; this covers a webhook that is
+   * late, misconfigured or lost, so a carrier who paid is never left locked out and a
+   * cancellation is never missed for long. A provider failure is logged and the stored state
+   * is returned.
+   */
+  async refreshAccess(userId: string): Promise<CarrierAccess> {
+    const carrier = await this.carrierService.getCarrier(userId);
+    if (carrier?.stripeCustomerId) {
+      try {
+        await this.pullFromProvider(carrier);
+      } catch (error) {
+        this.log("Could not read the subscription from the payment provider", error);
+      }
+    }
+    return this.carrierService.getAccess(userId);
+  }
+
+  /** refreshAccess as the billing page shows it. */
+  async syncFromProvider(userId: string): Promise<BillingView> {
+    return this.toBilling(await this.refreshAccess(userId));
+  }
+
+  /**
+   * The scheduled pass over every carrier with a Stripe customer: those whose stored
+   * subscription is stale (or who have none) are read from Stripe and stored. It runs with
+   * the service role, with no carrier signed in, so a cancellation or a declined renewal is
+   * recorded even for a carrier who never opens the app again.
+   */
+  async reconcileAll(): Promise<ReconcileOutcome> {
+    const carriers = await this.privileged.carriers().listWithStripeCustomer();
+    const subscriptions = this.privileged.subscriptions();
+    const outcome: ReconcileOutcome = { carriers: carriers.length, checked: 0, changed: 0, failed: 0 };
+    for (const carrier of carriers) {
+      const before = await subscriptions.findCurrentByCarrierId(carrier.id);
+      if (before && !isSubscriptionStale(before, this.now())) continue;
+      outcome.checked += 1;
+      try {
+        const after = await this.pullFromProvider(carrier);
+        if (after?.status !== before?.status) outcome.changed += 1;
+      } catch (error) {
+        outcome.failed += 1;
+        this.log(`Could not reconcile the subscription of carrier ${carrier.id}`, error);
+      }
+    }
+    return outcome;
+  }
+
+  /**
+   * Stores what the provider holds for the carrier: the newest subscription that grants
+   * access, or else the newest. Returns it, or null when the customer has none yet.
+   */
+  private async pullFromProvider(carrier: Carrier): Promise<SubscriptionSnapshot | null> {
+    if (!carrier.stripeCustomerId) return null;
+    const snapshots = await this.payments.listSubscriptions(carrier.stripeCustomerId);
+    const current = snapshots.find((s) => isAccessStatus(s.status)) ?? snapshots[0] ?? null;
+    if (current) await this.privileged.subscriptions().upsert({ carrierId: carrier.id, ...current });
+    return current;
+  }
+
+  private toBilling(access: CarrierAccess): BillingView {
     return {
       subscription: access.subscription,
       subscribed: access.subscribed,
       portalAvailable: access.carrier?.stripeCustomerId !== null && access.carrier !== null,
       testMode: this.payments.mode === "test",
     };
-  }
-
-  /**
-   * Reads the carrier's subscription from the payment provider and stores it, then returns
-   * the billing view. The webhook stays the main path; this covers a webhook that is late,
-   * misconfigured or lost, so a carrier who paid is never left locked out. The one stored
-   * is the newest that grants access, or else the newest. A provider failure is logged and
-   * the stored state is returned.
-   */
-  async syncFromProvider(userId: string): Promise<BillingView> {
-    const carrier = await this.carrierService.getCarrier(userId);
-    if (carrier?.stripeCustomerId) {
-      try {
-        const snapshots = await this.payments.listSubscriptions(carrier.stripeCustomerId);
-        const current = snapshots.find((s) => isAccessStatus(s.status)) ?? snapshots[0];
-        if (current) {
-          await this.privileged.subscriptions().upsert({ carrierId: carrier.id, ...current });
-        }
-      } catch (error) {
-        this.log("Could not read the subscription from the payment provider", error);
-      }
-    }
-    return this.getBilling(userId);
   }
 
   /**
@@ -146,9 +231,11 @@ export class SubscriptionService {
 
   /**
    * A Stripe event. The signature is checked first, the event id is recorded so a replay
-   * does nothing, then the subscription it concerns is fetched (when the event carries only
-   * an id) and written as a whole. A failure after the record is undone, so Stripe's retry
-   * is processed.
+   * does nothing, then the subscription it concerns is fetched from the provider and written
+   * as a whole. The event's own copy of the subscription is not used: Stripe does not
+   * deliver events in order, so an old "created: incomplete" arriving after "updated:
+   * active" must not roll access back; the provider's current state is always right. A
+   * failure after the record is undone, so Stripe's retry is processed.
    */
   async handleWebhook(rawBody: string, signature: string | null): Promise<WebhookOutcome> {
     const event = await this.payments.parseWebhookEvent(rawBody, signature);
@@ -165,11 +252,9 @@ export class SubscriptionService {
     if (!isNew) return { handled: false, duplicate: true };
 
     try {
-      const snapshot =
-        event.subscription ??
-        (event.subscriptionId ? await this.payments.getSubscription(event.subscriptionId) : null);
-      if (!snapshot) return { handled: false, duplicate: false, reason: "no_subscription" };
-      return await this.applySnapshot(snapshot);
+      const subscriptionId = event.subscription?.stripeSubscriptionId ?? event.subscriptionId;
+      if (!subscriptionId) return { handled: false, duplicate: false, reason: "no_subscription" };
+      return await this.applySnapshot(await this.payments.getSubscription(subscriptionId));
     } catch (error) {
       await events.forget(this.payments.mode, event.id).catch(() => undefined);
       throw error;

@@ -257,6 +257,30 @@ describe("CarrierService", () => {
       expect((await service.getAccess(CARRIER_USER_ID)).stage).toBe("billing");
     });
 
+    it("an active subscription keeps access even when an older cancelled one is written later, as the database rules", async () => {
+      const carrier = await service.createCarrier(CARRIER_USER_ID, validCarrierDetails());
+      await service.acceptTerms(CARRIER_USER_ID, { accepted: true }, CONTEXT);
+      await subscriptions.upsert({ ...buildSubscription({ carrierId: carrier.id, stripeSubscriptionId: "sub_old" }) });
+      await subscriptions.upsert({ ...buildSubscription({ carrierId: carrier.id, stripeSubscriptionId: "sub_new" }) });
+      // A late webhook for the old one, after the new one was stored.
+      await subscriptions.upsert({
+        ...buildSubscription({ carrierId: carrier.id, stripeSubscriptionId: "sub_old", status: "canceled" }),
+      });
+      const access = await service.getAccess(CARRIER_USER_ID);
+      expect(access.subscribed).toBe(true);
+      expect(access.stage).toBe("ready");
+      expect(access.subscription?.stripeSubscriptionId).toBe("sub_new");
+
+      // With no access subscription left, the latest one is what the billing page shows.
+      await subscriptions.upsert({
+        ...buildSubscription({ carrierId: carrier.id, stripeSubscriptionId: "sub_new", status: "past_due" }),
+      });
+      const lapsed = await service.getAccess(CARRIER_USER_ID);
+      expect(lapsed.subscribed).toBe(false);
+      expect(lapsed.subscription?.stripeSubscriptionId).toBe("sub_new");
+      expect(lapsed.subscription?.status).toBe("past_due");
+    });
+
     it("a trialing subscription grants access like an active one", async () => {
       const carrier = await service.createCarrier(CARRIER_USER_ID, validCarrierDetails());
       await service.acceptTerms(CARRIER_USER_ID, { accepted: true }, CONTEXT);
