@@ -6,9 +6,10 @@ import type {
   PaymentEvent,
   SubscriptionSnapshot,
 } from "@/server/providers/PaymentProvider";
+import { SUBSCRIPTION_RECHECK_HOURS } from "@/lib/constants";
 import { TestPaymentProvider } from "@/server/providers/TestPaymentProvider";
 import { CarrierService } from "@/server/services/CarrierService";
-import { SubscriptionService } from "@/server/services/SubscriptionService";
+import { isSubscriptionStale, SubscriptionService } from "@/server/services/SubscriptionService";
 import { FakeCarrierRepository } from "../../fakes/FakeCarrierRepository";
 import { FakeProfileRepository } from "../../fakes/FakeProfileRepository";
 import { FakeServiceAreaRepository } from "../../fakes/FakeServiceAreaRepository";
@@ -57,6 +58,8 @@ describe("SubscriptionService", () => {
   let service: SubscriptionService;
   let logged: string[];
   let privilegedBuilds: number;
+  /** The service's clock. Tests move it to make the stored subscription stale. */
+  let clock: Date;
 
   beforeEach(() => {
     carriers = new FakeCarrierRepository();
@@ -65,6 +68,7 @@ describe("SubscriptionService", () => {
     payments = new TestPaymentProvider(APP_URL, () => NOW);
     logged = [];
     privilegedBuilds = 0;
+    clock = NOW;
     carrierService = new CarrierService(
       carriers,
       new FakeProfileRepository([buildCarrierProfile()]),
@@ -88,6 +92,7 @@ describe("SubscriptionService", () => {
       payments,
       APP_URL,
       (message) => logged.push(message),
+      () => clock,
     );
   });
 
@@ -288,6 +293,123 @@ describe("SubscriptionService", () => {
     });
   });
 
+  describe("needsRecheck and isSubscriptionStale (the fallback when a webhook never comes)", () => {
+    const later = (hours: number) => new Date(NOW.getTime() + hours * 3_600_000);
+
+    it("a subscription written less than the recheck window ago is trusted", async () => {
+      const carrier = await readyToPay();
+      await service.startCheckout(CARRIER_USER_ID);
+      await subscriptions.upsert({ carrierId: carrier.id, ...snapshot() });
+      clock = later(SUBSCRIPTION_RECHECK_HOURS - 1);
+      expect(service.needsRecheck(await carrierService.getAccess(CARRIER_USER_ID))).toBe(false);
+    });
+
+    it("one older than the window is read again, whatever its status", async () => {
+      const carrier = await readyToPay();
+      await service.startCheckout(CARRIER_USER_ID);
+      await subscriptions.upsert({ carrierId: carrier.id, ...snapshot() });
+      clock = later(SUBSCRIPTION_RECHECK_HOURS + 1);
+      expect(service.needsRecheck(await carrierService.getAccess(CARRIER_USER_ID))).toBe(true);
+
+      await subscriptions.upsert({ carrierId: carrier.id, ...snapshot({ status: "past_due" }) });
+      // The store stamped it now; move past the window again.
+      clock = later(2 * SUBSCRIPTION_RECHECK_HOURS + 2);
+      expect(service.needsRecheck(await carrierService.getAccess(CARRIER_USER_ID))).toBe(true);
+    });
+
+    it("an active subscription whose paid period has ended is read again at once", async () => {
+      const carrier = await readyToPay();
+      await service.startCheckout(CARRIER_USER_ID);
+      await subscriptions.upsert({
+        carrierId: carrier.id,
+        ...snapshot({ currentPeriodEnd: later(1).toISOString() }),
+      });
+      clock = later(2);
+      expect(service.needsRecheck(await carrierService.getAccess(CARRIER_USER_ID))).toBe(true);
+    });
+
+    it("never paid, or no Stripe customer: nothing to ask about", async () => {
+      await readyToPay();
+      clock = later(100);
+      expect(service.needsRecheck(await carrierService.getAccess(CARRIER_USER_ID))).toBe(false);
+      expect(isSubscriptionStale(null, clock)).toBe(false);
+    });
+
+    it("refreshAccess is what the guard uses: a missed cancellation closes the search on the next visit", async () => {
+      const carrier = await readyToPay();
+      await service.startCheckout(CARRIER_USER_ID);
+      const live = await payments.simulateCheckoutPaid("cus_test_0001");
+      await subscriptions.upsert({ carrierId: carrier.id, ...live });
+      expect((await carrierService.getAccess(CARRIER_USER_ID)).subscribed).toBe(true);
+
+      // Cancelled at Stripe; the webhook was lost; the window passes.
+      await payments.cancelSubscription(live.stripeSubscriptionId);
+      clock = later(SUBSCRIPTION_RECHECK_HOURS + 1);
+      const access = await carrierService.getAccess(CARRIER_USER_ID);
+      expect(service.needsRecheck(access)).toBe(true);
+      const refreshed = await service.refreshAccess(CARRIER_USER_ID);
+      expect(refreshed.subscribed).toBe(false);
+      expect(refreshed.stage).toBe("billing");
+      expect(refreshed.subscription?.status).toBe("canceled");
+    });
+  });
+
+  describe("reconcileAll (the scheduled pass)", () => {
+    it("re-reads only the stale subscriptions and the carriers with no row yet, and counts what changed", async () => {
+      // Carrier A: paid, webhook lost, no row at all.
+      const a = await readyToPay();
+      await service.startCheckout(CARRIER_USER_ID);
+      await payments.simulateCheckoutPaid("cus_test_0001");
+      // Carrier B: fresh row, left alone.
+      const b = await carriers.create("profile-b", { ...validCarrierDetails(), ...PLACES.houston, usdot: null, mc: null });
+      await carriers.update(b.id, { stripeCustomerId: "cus_b" });
+      payments.customers.set("cus_b", { email: "b@x.com", name: "B", carrierId: b.id });
+      const liveB = await payments.simulateCheckoutPaid("cus_b");
+      await subscriptions.upsert({ carrierId: b.id, ...liveB });
+      // Carrier C: active row gone stale, cancelled at Stripe meanwhile.
+      const c = await carriers.create("profile-c", { ...validCarrierDetails(), ...PLACES.houston, usdot: null, mc: null });
+      await carriers.update(c.id, { stripeCustomerId: "cus_c" });
+      payments.customers.set("cus_c", { email: "c@x.com", name: "C", carrierId: c.id });
+      const liveC = await payments.simulateCheckoutPaid("cus_c");
+      await subscriptions.upsert({ carrierId: c.id, ...liveC });
+      await payments.cancelSubscription(liveC.stripeSubscriptionId);
+      // Carrier D: no customer, never looked at.
+      await carriers.create("profile-d", { ...validCarrierDetails(), ...PLACES.houston, usdot: null, mc: null });
+
+      // Only C's row is old enough: B's was written at the same moment, so make B's fresh
+      // by writing it after the clock moves.
+      clock = new Date(NOW.getTime() + (SUBSCRIPTION_RECHECK_HOURS + 1) * 3_600_000);
+      subscriptions.rows.set(liveB.stripeSubscriptionId, {
+        ...subscriptions.rows.get(liveB.stripeSubscriptionId)!,
+        updatedAt: clock.toISOString(),
+      });
+
+      const outcome = await service.reconcileAll();
+      expect(outcome).toEqual({ carriers: 3, checked: 2, changed: 2, failed: 0 });
+      expect((await subscriptions.findActiveByCarrierId(a.id))?.status).toBe("active");
+      expect((await subscriptions.findCurrentByCarrierId(c.id))?.status).toBe("canceled");
+      expect(await subscriptions.findActiveByCarrierId(c.id)).toBeNull();
+      expect((await subscriptions.findCurrentByCarrierId(b.id))?.updatedAt).toBe(clock.toISOString());
+    });
+
+    it("logs a carrier the provider fails on and carries on with the rest", async () => {
+      const a = await readyToPay();
+      await service.startCheckout(CARRIER_USER_ID);
+      await payments.simulateCheckoutPaid("cus_test_0001");
+      const b = await carriers.create("profile-b", { ...validCarrierDetails(), ...PLACES.houston, usdot: null, mc: null });
+      await carriers.update(b.id, { stripeCustomerId: "cus_broken" });
+      const list = payments.listSubscriptions.bind(payments);
+      payments.listSubscriptions = async (customerId) => {
+        if (customerId === "cus_broken") throw new Error("Stripe is down");
+        return list(customerId);
+      };
+      const outcome = await service.reconcileAll();
+      expect(outcome).toEqual({ carriers: 2, checked: 2, changed: 1, failed: 1 });
+      expect((await subscriptions.findActiveByCarrierId(a.id))?.status).toBe("active");
+      expect(logged).toEqual([`Could not reconcile the subscription of carrier ${b.id}`]);
+    });
+  });
+
   describe("completeTestCheckout", () => {
     it("writes an active subscription for the carrier's own customer only", async () => {
       const carrier = await readyToPay();
@@ -350,8 +472,9 @@ describe("SubscriptionService", () => {
       expect(events.recorded.size).toBe(0);
     });
 
-    it("writes the subscription the event carries, and ignores a replay of the same event", async () => {
+    it("writes the subscription the event names, and ignores a replay of the same event", async () => {
       const carrier = await customerExists();
+      payments.subscriptions.set("sub_1", snapshot());
       payments.events.set("sig_1", event("evt_1", { subscription: snapshot() }));
 
       await expect(service.handleWebhook("{}", "sig_1")).resolves.toEqual({
@@ -393,18 +516,36 @@ describe("SubscriptionService", () => {
 
     it("a cancellation ends access", async () => {
       await customerExists();
+      payments.subscriptions.set("sub_1", snapshot());
       payments.events.set("sig_on", event("evt_4", { subscription: snapshot() }));
       await service.handleWebhook("{}", "sig_on");
+      expect((await carrierService.getAccess(CARRIER_USER_ID)).subscribed).toBe(true);
+
+      const cancelled = snapshot({ status: "canceled", canceledAt: NOW.toISOString() });
+      payments.subscriptions.set("sub_1", cancelled);
       payments.events.set(
         "sig_off",
-        event("evt_5", {
-          type: "customer.subscription.deleted",
-          subscription: snapshot({ status: "canceled", canceledAt: NOW.toISOString() }),
-        }),
+        event("evt_5", { type: "customer.subscription.deleted", subscription: cancelled }),
       );
       await service.handleWebhook("{}", "sig_off");
       expect((await carrierService.getAccess(CARRIER_USER_ID)).subscribed).toBe(false);
       expect(subscriptions.rows.get("sub_1")?.canceledAt).toBe(NOW.toISOString());
+    });
+
+    it("writes the provider's current state, not the event's copy, so events out of order cannot roll access back", async () => {
+      await customerExists();
+      // Stripe holds "active"; the late "created: incomplete" event arrives afterwards.
+      payments.subscriptions.set("sub_1", snapshot());
+      payments.events.set(
+        "sig_late",
+        event("evt_late", {
+          type: "customer.subscription.created",
+          subscription: snapshot({ status: "incomplete" }),
+        }),
+      );
+      await expect(service.handleWebhook("{}", "sig_late")).resolves.toMatchObject({ handled: true });
+      expect(subscriptions.rows.get("sub_1")?.status).toBe("active");
+      expect((await carrierService.getAccess(CARRIER_USER_ID)).subscribed).toBe(true);
     });
 
     it("acknowledges event types it does not act on without recording them", async () => {
@@ -422,10 +563,9 @@ describe("SubscriptionService", () => {
       await expect(service.handleWebhook("{}", "sig_none")).resolves.toMatchObject({
         reason: "no_subscription",
       });
-      payments.events.set(
-        "sig_stranger",
-        event("evt_8", { subscription: snapshot({ stripeCustomerId: "cus_stranger" }) }),
-      );
+      const stranger = snapshot({ stripeSubscriptionId: "sub_stranger", stripeCustomerId: "cus_stranger" });
+      payments.subscriptions.set("sub_stranger", stranger);
+      payments.events.set("sig_stranger", event("evt_8", { subscription: stranger }));
       await expect(service.handleWebhook("{}", "sig_stranger")).resolves.toMatchObject({
         reason: "unknown_customer",
       });

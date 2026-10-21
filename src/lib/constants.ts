@@ -5,6 +5,12 @@ export const SMS_CONSENT_TEXT =
 /** Bump when the Terms of Service change in a way carriers must accept again. */
 export const TOS_VERSION = "2026-10-v1";
 export const ALLOWED_SUB_STATUSES = ["active", "trialing"] as const;
+/**
+ * How long the stored subscription is trusted without asking Stripe again. Webhooks keep it
+ * current at once; this is the fallback for a webhook that never arrived (checked when the
+ * carrier uses the app and by the daily reconcile).
+ */
+export const SUBSCRIPTION_RECHECK_HOURS = 6;
 /** The carrier plan as shown on the billing page. Stripe holds the real price. */
 export const SUBSCRIPTION_PRICE_LABEL = "$399 a month";
 export const SUBSCRIPTION_PLAN_NAME = "FleetGrid Carrier";

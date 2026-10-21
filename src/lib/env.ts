@@ -55,6 +55,9 @@ export const serverEnvSchema = clientEnvSchema
     STRIPE_SECRET_KEY: optionalString,
     STRIPE_WEBHOOK_SECRET: optionalString,
     STRIPE_PRICE_ID_MONTHLY: optionalString,
+    // The bearer token the scheduled jobs must send (Vercel Cron sends it when the variable
+    // is set). Without it /api/cron/* refuses every call.
+    CRON_SECRET: optionalString,
     // Test conveniences, all behind one flag that is off unless set to "true": the login and
     // code forms start filled with TEST_PHONE_DRIVER and TEST_OTP (src/lib/auth/prefill.ts).
     ENABLE_TEST_LOGIN: flag,

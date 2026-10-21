@@ -32,6 +32,10 @@ export class FakeCarrierRepository implements ICarrierRepository {
     return [...this.rows.values()].find((row) => row.stripeCustomerId === customerId) ?? null;
   }
 
+  async listWithStripeCustomer(): Promise<Carrier[]> {
+    return [...this.rows.values()].filter((row) => row.stripeCustomerId !== null);
+  }
+
   async create(profileId: string, input: CreateCarrierInput): Promise<Carrier> {
     if (this.failNextCreateWith) {
       const error = this.failNextCreateWith;

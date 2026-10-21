@@ -82,13 +82,18 @@ export class CarrierService {
         stage: "onboarding",
       };
     }
-    const [acceptance, subscription, entry] = await Promise.all([
+    const [acceptance, active, current, entry] = await Promise.all([
       this.tos.findAcceptance(userId, TOS_VERSION),
+      this.subscriptions.findActiveByCarrierId(carrier.id),
       this.subscriptions.findCurrentByCarrierId(carrier.id),
       this.waitlist.findByCarrierId(carrier.id),
     ]);
     const termsAccepted = acceptance !== null;
-    const subscribed = subscription !== null && isAccessStatus(subscription.status);
+    // The same rule as the database (carrier_has_active_subscription): any subscription that
+    // grants access does, whatever happened to an older one since. The one shown is the
+    // access one, or else the latest.
+    const subscription = active ?? current;
+    const subscribed = active !== null && isAccessStatus(active.status);
     const stage: CarrierStage = !termsAccepted
       ? "terms"
       : subscribed

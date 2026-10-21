@@ -24,9 +24,10 @@ const authService = vi.hoisted(() => ({
   signOut: vi.fn(),
 }));
 const carrierService = vi.hoisted(() => ({ getAccess: vi.fn() }));
+const subscriptionService = vi.hoisted(() => ({ needsRecheck: vi.fn(), refreshAccess: vi.fn() }));
 
 vi.mock("@/server/container", () => ({
-  getContainer: async () => ({ authService, carrierService }),
+  getContainer: async () => ({ authService, carrierService, subscriptionService }),
 }));
 vi.mock("next/navigation", () => ({
   redirect: (to: string) => {
@@ -55,6 +56,8 @@ beforeEach(() => {
   authService.getSession.mockReset().mockResolvedValue(null);
   authService.signOut.mockReset().mockResolvedValue(undefined);
   carrierService.getAccess.mockReset();
+  subscriptionService.needsRecheck.mockReset().mockReturnValue(false);
+  subscriptionService.refreshAccess.mockReset();
 });
 
 describe("requireCarrierStage", () => {
@@ -112,6 +115,30 @@ describe("requireCarrierStage", () => {
     signedInAs(buildProfile({ role: "carrier", status: "approved" }));
     carrierService.getAccess.mockResolvedValue(accessAt("billing"));
     await expect(requireCarrierStage("terms", "billing", "ready")).resolves.toBeTruthy();
+  });
+
+  it("reads a stale subscription from Stripe first, and decides from what comes back", async () => {
+    signedInAs(buildProfile({ role: "carrier", status: "approved" }));
+    carrierService.getAccess.mockResolvedValue(accessAt("ready"));
+    subscriptionService.needsRecheck.mockReturnValue(true);
+    // Cancelled at Stripe, webhook never arrived: the search closes on this visit.
+    subscriptionService.refreshAccess.mockResolvedValue(accessAt("billing"));
+    await expect(redirectOf(requireActiveSubscription())).resolves.toBe("/carrier/billing");
+    expect(subscriptionService.needsRecheck).toHaveBeenCalledWith(accessAt("ready"));
+    expect(subscriptionService.refreshAccess).toHaveBeenCalledWith(user.id);
+
+    // Paid at Stripe, webhook never arrived: the billing page lets them through to the search.
+    carrierService.getAccess.mockResolvedValue(accessAt("billing"));
+    subscriptionService.refreshAccess.mockResolvedValue(accessAt("ready"));
+    await expect(redirectOf(requireCarrierStage("billing"))).resolves.toBe("/carrier/search");
+    await expect(requireActiveSubscription()).resolves.toMatchObject({ access: accessAt("ready") });
+  });
+
+  it("does not ask Stripe when the stored subscription is fresh", async () => {
+    signedInAs(buildProfile({ role: "carrier", status: "approved" }));
+    carrierService.getAccess.mockResolvedValue(accessAt("ready"));
+    await expect(requireActiveSubscription()).resolves.toBeTruthy();
+    expect(subscriptionService.refreshAccess).not.toHaveBeenCalled();
   });
 
   it("requireActiveSubscription is the ready stage", async () => {

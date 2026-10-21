@@ -89,6 +89,10 @@ describe("carrier-side repositories", () => {
       await admin.update(created.id, { stripeCustomerId: "cus_repo_1" });
       expect((await admin.findByStripeCustomerId("cus_repo_1"))?.id).toBe(created.id);
       expect(await admin.findByStripeCustomerId("cus_nobody")).toBeNull();
+      // The reconcile's list: every carrier with a customer, and only those.
+      const withCustomer = await admin.listWithStripeCustomer();
+      expect(withCustomer.map((row) => row.id)).toContain(created.id);
+      expect(withCustomer.every((row) => row.stripeCustomerId !== null)).toBe(true);
     });
 
     it("translates a second row into a CONFLICT", async () => {
