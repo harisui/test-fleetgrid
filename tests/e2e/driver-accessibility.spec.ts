@@ -189,9 +189,10 @@ for (const colorScheme of ["light", "dark"] as const) {
       await login(page, PHONES.driver);
       await expect(screenHeading(page)).toHaveText("About");
 
-      // Skip link and Help come first; in dev React Strict Mode has already moved focus to
-      // the sign title, so the number of stops before the field is not fixed.
-      await tabTo(page, page.getByLabel("Full name"), 3);
+      // Skip link, Log out and Help come first (a production build, as in CI); in dev React
+      // Strict Mode has already moved focus to the sign title, so the number of stops before
+      // the field is not fixed.
+      await tabTo(page, page.getByLabel("Full name"), 4);
       await page.keyboard.type("Pat Driver");
 
       await page.keyboard.press("Tab");

@@ -16,6 +16,10 @@ jobs:
       CI: "true"
       NEXT_PUBLIC_APP_URL: http://localhost:3000
       NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      # The in-memory test checkout the carrier specs pay through needs the test-login flag
+      # (src/server/providers/createPaymentProvider.ts). A production build accepts it only
+      # against the local stack above, so it can never reach a hosted deployment from here.
+      ENABLE_TEST_LOGIN: "true"
 
     steps:
       - uses: actions/checkout@v4
