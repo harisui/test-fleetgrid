@@ -63,6 +63,11 @@ export interface IPaymentProvider {
    * state from the provider itself when a webhook is late or never arrives.
    */
   listSubscriptions(customerId: string): Promise<SubscriptionSnapshot[]>;
+  /**
+   * Clears a scheduled cancellation (the carrier changed their mind before the paid period
+   * ended) and returns the subscription as it stands after.
+   */
+  resumeSubscription(subscriptionId: string): Promise<SubscriptionSnapshot>;
   cancelSubscription(subscriptionId: string): Promise<void>;
   /** Verifies the signature and reduces the event. Throws a VALIDATION AppError when it is not genuine. */
   parseWebhookEvent(rawBody: string, signature: string | null): Promise<PaymentEvent>;

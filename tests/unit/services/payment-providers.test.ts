@@ -68,6 +68,11 @@ describe("TestPaymentProvider", () => {
     ]);
     await expect(payments.listSubscriptions("cus_nobody")).resolves.toEqual([]);
 
+    payments.subscriptions.set("sub_test_0002", { ...subscription, cancelAtPeriodEnd: true, canceledAt: NOW.toISOString() });
+    await expect(payments.resumeSubscription("sub_test_0002")).resolves.toEqual(subscription);
+    expect(payments.subscriptions.get("sub_test_0002")).toEqual(subscription);
+    await expect(payments.resumeSubscription("sub_nobody")).rejects.toMatchObject({ code: "NOT_FOUND" });
+
     await payments.cancelSubscription("sub_test_0002");
     expect((await payments.getSubscription("sub_test_0002")).status).toBe("canceled");
     expect(payments.cancelled).toEqual(["sub_test_0002"]);
@@ -199,6 +204,10 @@ describe("StripeProvider", () => {
     await expect(provider.listSubscriptions("cus_new")).resolves.toEqual([snapshotOf(stripeSubscription())]);
     expect(calls["subscriptions.list"][0]).toEqual({ customer: "cus_new", status: "all", limit: 10 });
 
+    // Nothing scheduled: nothing to clear, no update sent.
+    await expect(provider.resumeSubscription("sub_123")).resolves.toMatchObject({ cancelAtPeriodEnd: false });
+    expect(calls["subscriptions.update"]).toBeUndefined();
+
     await expect(provider.createCustomer({ email: "a@b.c", name: "Co", carrierId: "c1" })).resolves.toBe("cus_new");
     expect(calls["customers.create"][0]).toEqual({ email: "a@b.c", name: "Co", metadata: { carrier_id: "c1" } });
 
@@ -225,6 +234,42 @@ describe("StripeProvider", () => {
     await expect(provider.getSubscription("sub_123")).resolves.toMatchObject({ stripeSubscriptionId: "sub_123" });
     await provider.cancelSubscription("sub_123");
     expect(calls["subscriptions.cancel"][0]).toBe("sub_123");
+  });
+
+  it("reads a scheduled cancellation from either field Stripe uses", () => {
+    expect(snapshotOf(stripeSubscription()).cancelAtPeriodEnd).toBe(false);
+    expect(snapshotOf(stripeSubscription({ cancel_at: null })).cancelAtPeriodEnd).toBe(false);
+    expect(snapshotOf(stripeSubscription({ cancel_at_period_end: true })).cancelAtPeriodEnd).toBe(true);
+    // The Dashboard and the portal on this API version: a timestamp, the boolean left false.
+    expect(
+      snapshotOf(stripeSubscription({ cancel_at: PERIOD_END, canceled_at: PERIOD_END - 86_400 })),
+    ).toMatchObject({ cancelAtPeriodEnd: true, status: "active", canceledAt: "2026-11-12T12:00:00.000Z" });
+  });
+
+  it("clears a scheduled cancellation with the one parameter Stripe accepts for how it was set", async () => {
+    const updates: unknown[][] = [];
+    let live = stripeSubscription({ cancel_at: PERIOD_END });
+    const stripe = {
+      subscriptions: {
+        retrieve: async () => live,
+        update: async (...args: unknown[]) => {
+          updates.push(args);
+          live = stripeSubscription();
+          return live;
+        },
+      },
+    } as unknown as Stripe;
+    const provider = new StripeProvider(stripe, { priceId: "price_1", webhookSecret: "whsec" });
+
+    // Set by timestamp: the timestamp is unset with an empty string.
+    await expect(provider.resumeSubscription("sub_123")).resolves.toMatchObject({ cancelAtPeriodEnd: false });
+    expect(updates).toEqual([["sub_123", { cancel_at: "" }]]);
+
+    // Set by the boolean (Stripe fills the timestamp too): the boolean is what is cleared.
+    live = stripeSubscription({ cancel_at_period_end: true, cancel_at: PERIOD_END });
+    await expect(provider.resumeSubscription("sub_123")).resolves.toMatchObject({ cancelAtPeriodEnd: false });
+    expect(updates[1]).toEqual(["sub_123", { cancel_at_period_end: false }]);
+    expect(updates).toHaveLength(2);
   });
 
   it("fails plainly when checkout returns no URL, and ignores cancelling a subscription Stripe no longer has", async () => {
@@ -329,6 +374,7 @@ describe("createPaymentProvider", () => {
       () => provider.createPortalSession({ customerId: "a", returnUrl: "b" }),
       () => provider.getSubscription("a"),
       () => provider.listSubscriptions("a"),
+      () => provider.resumeSubscription("a"),
       () => provider.cancelSubscription("a"),
       () => provider.parseWebhookEvent("{}", "sig"),
     ]) {

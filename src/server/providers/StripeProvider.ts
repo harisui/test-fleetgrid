@@ -31,7 +31,11 @@ function toStatus(status: string): SubscriptionStatus {
     : "unpaid";
 }
 
-/** The fields the app keeps, from a Stripe subscription object. */
+/**
+ * The fields the app keeps, from a Stripe subscription object. A cancellation scheduled for
+ * later shows as either `cancel_at_period_end` or a `cancel_at` timestamp (the Dashboard and
+ * the portal set the timestamp on this API version), so "ending" means either.
+ */
 export function snapshotOf(subscription: Stripe.Subscription): SubscriptionSnapshot {
   const item = subscription.items.data[0];
   return {
@@ -40,7 +44,7 @@ export function snapshotOf(subscription: Stripe.Subscription): SubscriptionSnaps
     status: toStatus(subscription.status),
     priceId: item?.price?.id ?? null,
     currentPeriodEnd: isoFromSeconds(item?.current_period_end),
-    cancelAtPeriodEnd: subscription.cancel_at_period_end,
+    cancelAtPeriodEnd: subscription.cancel_at_period_end || Boolean(subscription.cancel_at),
     canceledAt: isoFromSeconds(subscription.canceled_at),
   };
 }
@@ -127,6 +131,19 @@ export class StripeProvider implements IPaymentProvider {
     // Stripe lists newest first; "all" includes cancelled and incomplete ones.
     const page = await this.stripe.subscriptions.list({ customer: customerId, status: "all", limit: 10 });
     return page.data.map(snapshotOf);
+  }
+
+  async resumeSubscription(subscriptionId: string): Promise<SubscriptionSnapshot> {
+    // Whichever field scheduled the cancellation is the one to clear; Stripe refuses both
+    // in one request, and an empty string is how a timestamp is unset.
+    const current = await this.stripe.subscriptions.retrieve(subscriptionId);
+    if (current.cancel_at_period_end) {
+      return snapshotOf(await this.stripe.subscriptions.update(subscriptionId, { cancel_at_period_end: false }));
+    }
+    if (current.cancel_at) {
+      return snapshotOf(await this.stripe.subscriptions.update(subscriptionId, { cancel_at: "" }));
+    }
+    return snapshotOf(current);
   }
 
   async cancelSubscription(subscriptionId: string): Promise<void> {

@@ -354,6 +354,60 @@ describe("SubscriptionService", () => {
     });
   });
 
+  describe("keepSubscription (Keep my subscription)", () => {
+    /** Paid, then set to end at the period end, as the portal or the Dashboard would. */
+    async function endingAtPeriodEnd() {
+      const carrier = await readyToPay();
+      await service.startCheckout(CARRIER_USER_ID);
+      const live = await payments.simulateCheckoutPaid("cus_test_0001");
+      const ending = { ...live, cancelAtPeriodEnd: true, canceledAt: NOW.toISOString() };
+      payments.subscriptions.set(live.stripeSubscriptionId, ending);
+      await subscriptions.upsert({ carrierId: carrier.id, ...ending });
+      return { carrier, live };
+    }
+
+    it("clears the scheduled cancellation at the provider and in the stored row", async () => {
+      const { carrier, live } = await endingAtPeriodEnd();
+      expect((await carrierService.getAccess(CARRIER_USER_ID)).subscription?.cancelAtPeriodEnd).toBe(true);
+
+      const kept = await service.keepSubscription(CARRIER_USER_ID);
+      expect(kept).toMatchObject({
+        carrierId: carrier.id,
+        stripeSubscriptionId: live.stripeSubscriptionId,
+        status: "active",
+        cancelAtPeriodEnd: false,
+        canceledAt: null,
+      });
+      expect(payments.subscriptions.get(live.stripeSubscriptionId)?.cancelAtPeriodEnd).toBe(false);
+      const access = await carrierService.getAccess(CARRIER_USER_ID);
+      expect(access.subscribed).toBe(true);
+      expect(access.subscription?.cancelAtPeriodEnd).toBe(false);
+    });
+
+    it("refuses when nothing is ending: no company, no access subscription, or one not set to end", async () => {
+      expect((await expectAppError(service.keepSubscription(CARRIER_USER_ID))).code).toBe("NOT_FOUND");
+
+      await readyToPay();
+      const none = await expectAppError(service.keepSubscription(CARRIER_USER_ID));
+      expect(none.code).toBe("VALIDATION");
+      expect(none.message).toMatch(/no subscription to keep/);
+
+      await service.startCheckout(CARRIER_USER_ID);
+      await service.completeTestCheckout(CARRIER_USER_ID, "cus_test_0001");
+      const notEnding = await expectAppError(service.keepSubscription(CARRIER_USER_ID));
+      expect(notEnding.message).toMatch(/not set to end/);
+    });
+
+    it("leaves the row as it was when the provider fails", async () => {
+      await endingAtPeriodEnd();
+      payments.resumeSubscription = async () => {
+        throw new Error("Stripe is down");
+      };
+      await expect(service.keepSubscription(CARRIER_USER_ID)).rejects.toThrow("Stripe is down");
+      expect((await carrierService.getAccess(CARRIER_USER_ID)).subscription?.cancelAtPeriodEnd).toBe(true);
+    });
+  });
+
   describe("reconcileAll (the scheduled pass)", () => {
     it("re-reads only the stale subscriptions and the carriers with no row yet, and counts what changed", async () => {
       // Carrier A: paid, webhook lost, no row at all.
@@ -435,6 +489,7 @@ describe("SubscriptionService", () => {
         createPortalSession: (input) => payments.createPortalSession(input),
         getSubscription: (id) => payments.getSubscription(id),
         listSubscriptions: (id) => payments.listSubscriptions(id),
+        resumeSubscription: (id) => payments.resumeSubscription(id),
         cancelSubscription: (id) => payments.cancelSubscription(id),
         parseWebhookEvent: (body, signature) => payments.parseWebhookEvent(body, signature),
       };

@@ -75,6 +75,14 @@ export class TestPaymentProvider implements IPaymentProvider {
       .reverse();
   }
 
+  async resumeSubscription(subscriptionId: string): Promise<SubscriptionSnapshot> {
+    const subscription = this.subscriptions.get(subscriptionId);
+    if (!subscription) throw AppError.notFound("Unknown subscription");
+    const resumed = { ...subscription, cancelAtPeriodEnd: false, canceledAt: null };
+    this.subscriptions.set(subscriptionId, resumed);
+    return resumed;
+  }
+
   async cancelSubscription(subscriptionId: string): Promise<void> {
     const subscription = this.subscriptions.get(subscriptionId);
     if (!subscription) return;

@@ -210,6 +210,20 @@ export class SubscriptionService {
     return { url };
   }
 
+  /**
+   * The carrier set their subscription to end at the period end and has changed their
+   * mind: the scheduled cancellation is cleared at the provider and the stored row follows.
+   */
+  async keepSubscription(userId: string): Promise<Subscription> {
+    const carrier = await this.carrierService.getCarrier(userId);
+    if (!carrier) throw AppError.notFound("Save your company details first");
+    const current = await this.subscriptions.findActiveByCarrierId(carrier.id);
+    if (!current) throw AppError.validation("There is no subscription to keep. Subscribe to open driver search.");
+    if (!current.cancelAtPeriodEnd) throw AppError.validation("Your subscription is not set to end.");
+    const snapshot = await this.payments.resumeSubscription(current.stripeSubscriptionId);
+    return this.privileged.subscriptions().upsert({ carrierId: carrier.id, ...snapshot });
+  }
+
   /** Opens the hosted page where the carrier changes their card or cancels. */
   async openBillingPortal(userId: string): Promise<{ url: string }> {
     const carrier = await this.carrierService.getCarrier(userId);
