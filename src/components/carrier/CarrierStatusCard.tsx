@@ -1,8 +1,9 @@
-import { CircleCheck, CreditCard, MapPinOff, TriangleAlert } from "lucide-react";
+import { format } from "date-fns";
+import { CalendarClock, CircleCheck, CreditCard, MapPinOff, TriangleAlert } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { SUBSCRIPTION_STATUS_LABELS } from "@/lib/carrier/options";
+import { isEnding, SUBSCRIPTION_ENDING_LABEL, SUBSCRIPTION_STATUS_LABELS } from "@/lib/carrier/options";
 import type { CarrierAccess } from "@/server/services/CarrierService";
 import type { LocatedCarrier } from "@/types/domain";
 
@@ -13,6 +14,11 @@ interface CarrierStatusCardProps {
 
 /** The company, the yard and the subscription at a glance, with a link to billing. */
 export function CarrierStatusCard({ carrier, access }: CarrierStatusCardProps) {
+  const ending = isEnding(access.subscription, access.subscribed);
+  const endsOn =
+    ending && access.subscription?.currentPeriodEnd
+      ? format(new Date(access.subscription.currentPeriodEnd), "MMMM d, yyyy")
+      : null;
   return (
     <section
       aria-label="Company status"
@@ -36,7 +42,12 @@ export function CarrierStatusCard({ carrier, access }: CarrierStatusCardProps) {
       <div className="flex flex-col gap-2 border-t border-border pt-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-label leading-label font-semibold">Subscription</h2>
-          {access.subscription ? (
+          {access.subscription && ending ? (
+            <Badge variant="warning" data-subscription={access.subscription.status} data-ending="true">
+              <CalendarClock aria-hidden="true" />
+              {SUBSCRIPTION_ENDING_LABEL}
+            </Badge>
+          ) : access.subscription ? (
             <Badge
               variant={access.subscribed ? "success" : "warning"}
               data-subscription={access.subscription.status}
@@ -52,9 +63,11 @@ export function CarrierStatusCard({ carrier, access }: CarrierStatusCardProps) {
           )}
         </div>
         <p className="text-helper leading-helper text-muted-foreground">
-          {access.subscribed
-            ? "Driver search is open."
-            : "Driver search opens with an active subscription."}{" "}
+          {endsOn
+            ? `Driver search is open until ${endsOn}.`
+            : access.subscribed
+              ? "Driver search is open."
+              : "Driver search opens with an active subscription."}{" "}
           <Button asChild variant="link">
             <Link href="/carrier/billing">Billing</Link>
           </Button>

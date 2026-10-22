@@ -1,15 +1,22 @@
 "use client";
 
 import { format } from "date-fns";
-import { CircleCheck, CreditCard, TriangleAlert } from "lucide-react";
+import { CalendarClock, CircleCheck, CreditCard, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { InlineNote } from "@/components/shared/InlineNote";
 import { LoadingButton } from "@/components/shared/LoadingButton";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { PLAN, SUBSCRIPTION_STATUS_HELP, SUBSCRIPTION_STATUS_LABELS } from "@/lib/carrier/options";
 import {
+  isEnding,
+  PLAN,
+  SUBSCRIPTION_ENDING_LABEL,
+  SUBSCRIPTION_STATUS_HELP,
+  SUBSCRIPTION_STATUS_LABELS,
+} from "@/lib/carrier/options";
+import {
+  keepSubscriptionAction,
   openBillingPortalAction,
   refreshSubscriptionAction,
   startCheckoutAction,
@@ -38,8 +45,11 @@ export function BillingCard({
   checkoutResult,
 }: BillingCardProps) {
   const router = useRouter();
-  const [pending, setPending] = useState<"checkout" | "portal">();
+  const [pending, setPending] = useState<"checkout" | "portal" | "keep">();
   const [error, setError] = useState<string>();
+  // The carrier cleared a cancellation on this visit: said once, kept through the reload.
+  const [kept, setKept] = useState(false);
+  const ending = isEnding(subscription, subscribed);
   // Back from a paid checkout but not active yet: ask the provider until it is, then reload.
   const [confirm, setConfirm] = useState<"checking" | "late" | undefined>(
     checkoutResult === "success" && !subscribed ? "checking" : undefined,
@@ -85,6 +95,19 @@ export function BillingCard({
     window.location.assign(result.data.url);
   }
 
+  async function keep() {
+    setPending("keep");
+    setError(undefined);
+    const result = await keepSubscriptionAction();
+    setPending(undefined);
+    if (!result.ok) {
+      setError(result.error.message);
+      return;
+    }
+    setKept(true);
+    router.refresh();
+  }
+
   const periodEnd = subscription?.currentPeriodEnd
     ? format(new Date(subscription.currentPeriodEnd), "MMMM d, yyyy")
     : null;
@@ -121,6 +144,11 @@ export function BillingCard({
           Checkout was cancelled. Nothing was charged.
         </InlineNote>
       )}
+      {kept && (
+        <InlineNote variant="success" role="status" data-slot="kept">
+          Your subscription continues. Nothing changes until the next billing date.
+        </InlineNote>
+      )}
 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex flex-col gap-1">
@@ -131,7 +159,12 @@ export function BillingCard({
             {PLAN.price}
           </p>
         </div>
-        {subscription ? (
+        {subscription && ending ? (
+          <Badge variant="warning" size="lg" data-subscription={subscription.status} data-ending="true">
+            <CalendarClock aria-hidden="true" />
+            {SUBSCRIPTION_ENDING_LABEL}
+          </Badge>
+        ) : subscription ? (
           <Badge
             variant={subscribed ? "success" : "warning"}
             size="lg"
@@ -160,11 +193,13 @@ export function BillingCard({
       {subscription && (
         <div className="flex flex-col gap-2 border-t border-border pt-4" data-slot="subscription">
           <p className="text-helper leading-helper text-muted-foreground">
-            {SUBSCRIPTION_STATUS_HELP[subscription.status]}
+            {ending
+              ? "Your subscription is set to end. Driver search stays open until then; keep it to carry on without a break."
+              : SUBSCRIPTION_STATUS_HELP[subscription.status]}
           </p>
           {periodEnd && subscribed && (
             <p className="text-helper leading-helper">
-              {subscription.cancelAtPeriodEnd ? "Access ends on" : "Next billing date:"}{" "}
+              {ending ? "Access ends on" : "Next billing date:"}{" "}
               <span className="font-semibold" data-slot="period-end">
                 {periodEnd}
               </span>
@@ -188,6 +223,17 @@ export function BillingCard({
       )}
 
       <div className="flex flex-col gap-3 sm:flex-row">
+        {ending && (
+          <LoadingButton
+            type="button"
+            onClick={keep}
+            loading={pending === "keep"}
+            loadingText="Keeping..."
+            disabled={pending !== undefined}
+          >
+            Keep my subscription
+          </LoadingButton>
+        )}
         {!subscribed && (
           <LoadingButton
             type="button"

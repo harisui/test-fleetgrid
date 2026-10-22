@@ -31,6 +31,9 @@ class UnconfiguredPaymentProvider implements IPaymentProvider {
   listSubscriptions(): Promise<SubscriptionSnapshot[]> {
     return this.fail();
   }
+  resumeSubscription(): Promise<SubscriptionSnapshot> {
+    return this.fail();
+  }
   cancelSubscription(): Promise<void> {
     return this.fail();
   }

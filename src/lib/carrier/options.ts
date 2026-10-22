@@ -3,7 +3,7 @@ import {
   SUBSCRIPTION_PLAN_NAME,
   SUBSCRIPTION_PRICE_LABEL,
 } from "@/lib/constants";
-import type { SubscriptionStatus } from "@/types/domain";
+import type { Subscription, SubscriptionStatus } from "@/types/domain";
 
 /** Words of the carrier side: the plan, the subscription states, the search filters. */
 
@@ -28,6 +28,13 @@ export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {
   incomplete_expired: "Payment expired",
   paused: "Paused",
 };
+
+/** The badge while a subscription that still grants access is set to end at the period end. */
+export const SUBSCRIPTION_ENDING_LABEL = "Ending";
+
+/** True while the subscription grants access but a cancellation is scheduled for its end. */
+export const isEnding = (subscription: Pick<Subscription, "cancelAtPeriodEnd"> | null, subscribed: boolean) =>
+  subscribed && subscription !== null && subscription.cancelAtPeriodEnd;
 
 export const SUBSCRIPTION_STATUS_HELP: Record<SubscriptionStatus, string> = {
   trialing: "Your trial is running. Driver search is open.",

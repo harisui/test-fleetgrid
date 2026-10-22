@@ -215,6 +215,27 @@ test.describe("the paywall", () => {
     await expect(page).toHaveURL(/\/carrier\/billing$/);
   });
 
+  test("a cancellation set for the period end shows as Ending with the date, keeps the search open, and offers Keep", async ({
+    page,
+  }) => {
+    // Cancelled from the portal or the Dashboard: the webhook (or the next visit) stored it.
+    await seedCarrier(PHONES.carrier, { terms: true, subscription: "active", cancelAtPeriodEnd: true });
+    await login(page, PHONES.carrier);
+    await expect(page).toHaveURL(/\/carrier\/search$/);
+    await page.goto("/carrier/billing");
+    const badge = page.locator("[data-ending=true]");
+    await expect(badge).toHaveText("Ending");
+    await expect(badge).toHaveAttribute("data-subscription", "active");
+    await expect(page.getByText(/Access ends on/)).toBeVisible();
+    await expect(page.locator("[data-slot=period-end]")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Keep my subscription" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Manage billing" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /Subscribe/ })).toHaveCount(0);
+    await page.goto("/carrier/account");
+    await expect(page.locator("[data-ending=true]")).toHaveText("Ending");
+    await expect(page.getByText(/Driver search is open until/)).toBeVisible();
+  });
+
   test("a trial opens the search like an active subscription", async ({ page }) => {
     await seedCarrier(PHONES.carrier, { terms: true, subscription: "trialing" });
     await login(page, PHONES.carrier);

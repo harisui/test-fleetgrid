@@ -39,6 +39,7 @@ const actions = vi.hoisted(() => ({
   openBillingPortalAction: vi.fn(),
   completeTestCheckoutAction: vi.fn(),
   refreshSubscriptionAction: vi.fn(),
+  keepSubscriptionAction: vi.fn(),
 }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 
@@ -292,6 +293,43 @@ describe("BillingCard", () => {
       />,
     );
     expect(screen.getByText(/Access ends on/)).toBeInTheDocument();
+  });
+
+  it("a subscription set to end shows Ending with the date and a Keep button, which clears it", async () => {
+    actions.keepSubscriptionAction.mockResolvedValue(ok(buildSubscription()));
+    render(
+      <BillingCard
+        subscription={buildSubscription({ cancelAtPeriodEnd: true, canceledAt: "2026-10-16T06:56:24.000Z" })}
+        subscribed
+        portalAvailable
+        testMode={false}
+      />,
+    );
+    const badge = screen.getByText("Ending");
+    expect(badge).toHaveAttribute("data-subscription", "active");
+    expect(badge).toHaveAttribute("data-ending", "true");
+    expect(screen.getByText(/set to end/)).toBeInTheDocument();
+    expect(screen.getByText(/Access ends on/)).toBeInTheDocument();
+    expect(document.querySelector("[data-slot=period-end]")).toHaveTextContent("November 13, 2026");
+    expect(screen.queryByText(/Next billing date/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Subscribe/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Manage billing" })).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "Keep my subscription" }));
+    await waitFor(() => expect(actions.keepSubscriptionAction).toHaveBeenCalledOnce());
+    expect(await screen.findByRole("status")).toHaveTextContent("Your subscription continues");
+    expect(router.refresh).toHaveBeenCalledOnce();
+  });
+
+  it("shows the provider's refusal in place when keeping fails", async () => {
+    actions.keepSubscriptionAction.mockResolvedValue(failure("Your subscription is not set to end."));
+    render(
+      <BillingCard subscription={buildSubscription({ cancelAtPeriodEnd: true })} subscribed portalAvailable testMode={false} />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Keep my subscription" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("not set to end");
+    expect(router.refresh).not.toHaveBeenCalled();
+    expect(screen.getByText("Ending")).toBeInTheDocument();
   });
 
   describe("after a paid checkout the webhook has not recorded yet", () => {
@@ -586,6 +624,20 @@ describe("DriverCardView", () => {
 });
 
 describe("CarrierStatusCard", () => {
+  it("says Ending with the date while a cancellation is scheduled, and the search stays open", () => {
+    render(
+      <CarrierStatusCard
+        carrier={buildCarrier()}
+        access={{ subscription: buildSubscription({ cancelAtPeriodEnd: true }), subscribed: true }}
+      />,
+    );
+    const badge = screen.getByText("Ending");
+    expect(badge).toHaveAttribute("data-ending", "true");
+    expect(badge).toHaveAttribute("data-subscription", "active");
+    expect(screen.getByText(/Driver search is open until November 13, 2026/)).toBeInTheDocument();
+    expect(screen.queryByText("Active")).not.toBeInTheDocument();
+  });
+
   it("shows the company, the yard, the launch-area badge and the subscription", () => {
     const { unmount } = render(
       <CarrierStatusCard

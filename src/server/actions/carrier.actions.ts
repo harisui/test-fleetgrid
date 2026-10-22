@@ -83,6 +83,17 @@ export async function openBillingPortalAction(): Promise<Result<{ url: string }>
   });
 }
 
+/** "Keep my subscription": clears a cancellation scheduled for the end of the paid period. */
+export async function keepSubscriptionAction(): Promise<Result<Subscription>> {
+  return runAction(async () => {
+    const { user } = await requireRole("carrier");
+    const { subscriptionService } = await getContainer();
+    const subscription = await subscriptionService.keepSubscription(user.id);
+    revalidatePath("/carrier", "layout");
+    return subscription;
+  });
+}
+
 /**
  * Asks the payment provider whether the carrier's subscription is live. The billing page
  * polls it after checkout, so access opens even when the webhook is late or lost.

@@ -261,6 +261,8 @@ export async function seedCarrier(
     place?: keyof typeof PLACES;
     terms?: boolean;
     subscription?: "active" | "trialing" | "past_due" | "canceled" | null;
+    /** The subscription is set to end at the period end (a cancellation from the portal or the Dashboard). */
+    cancelAtPeriodEnd?: boolean;
     status?: Status;
   } = {},
 ): Promise<{ userId: string; carrierId: string }> {
@@ -300,6 +302,7 @@ export async function seedCarrier(
       status: options.subscription,
       price_id: "price_e2e_monthly",
       current_period_end: new Date(Date.now() + 30 * 86_400_000).toISOString(),
+      cancel_at_period_end: options.cancelAtPeriodEnd ?? false,
     });
     if (subscriptionError) throw new Error(`seedCarrier subscription failed: ${subscriptionError.message}`);
   }
