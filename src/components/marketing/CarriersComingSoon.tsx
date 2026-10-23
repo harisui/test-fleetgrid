@@ -13,7 +13,7 @@ export function CarriersComingSoon() {
         <h1 className="text-3xl font-semibold tracking-tight text-balance">Carriers: coming soon</h1>
         <p className="text-muted-foreground">
           Carrier sign-up is not open yet. Drivers are building their qualification cards now, so
-          there will be certified CDL drivers ready to search when it opens.
+          there will be local CDL drivers ready to search when it opens.
         </p>
         <p className="text-muted-foreground">
           Want to hear when it does? Email{" "}

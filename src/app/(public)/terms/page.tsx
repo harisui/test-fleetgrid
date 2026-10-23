@@ -46,7 +46,7 @@ export default function TermsPage() {
 
       <LegalHeading>1. What is FleetGrid?</LegalHeading>
       <p>
-        FleetGrid is a confidential directory that connects local freight carriers with certified
+        FleetGrid is a confidential directory that connects local freight carriers with local
         CDL drivers. Drivers create a qualification card and can receive shift offers by text.
         Carriers with an active subscription can search driver cards and send shift offers to
         matching drivers.

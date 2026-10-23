@@ -20,7 +20,7 @@ export const ROLE_OPTIONS: readonly CardOption<SignupRole>[] = [
   {
     value: "carrier",
     label: "I hire for my company",
-    description: "Carriers. Find certified operators and fill shifts fast.",
+    description: "Carriers. Find local CDL drivers and connect fast.",
     icon: Building2,
   },
 ];

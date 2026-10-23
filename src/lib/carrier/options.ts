@@ -11,8 +11,8 @@ export const PLAN = {
   name: SUBSCRIPTION_PLAN_NAME,
   price: SUBSCRIPTION_PRICE_LABEL,
   includes: [
-    "Search certified CDL drivers near your yard",
-    "See each driver's class, endorsements, cards, record and papers",
+    "Search local CDL drivers near your yard",
+    "See driver CDL class, endorsements, experience, and contact info",
     "Broadcast shifts by text (coming in the next release)",
   ],
 } as const;
