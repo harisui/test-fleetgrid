@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     default: "FleetGrid",
     template: "%s | FleetGrid",
   },
-  description: "FleetGrid connects local freight carriers with certified transport operators.",
+  description: "FleetGrid connects local freight carriers with local CDL drivers.",
 };
 
 export const viewport: Viewport = {

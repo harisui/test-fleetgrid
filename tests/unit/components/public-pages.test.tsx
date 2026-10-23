@@ -38,7 +38,9 @@ describe("landing page", () => {
     expect(within(main).getByRole("heading", { level: 1 })).toHaveTextContent(
       "Local freight shifts, filled fast",
     );
-    expect(within(main).getByText(/find certified transport operators/)).toBeInTheDocument();
+    // Client decision of 2026-10-22: never "certified", which would imply FleetGrid vetted the drivers.
+    expect(within(main).getByText(/find local CDL drivers near you/)).toBeInTheDocument();
+    expect(main.textContent).not.toMatch(/certified/i);
     expect(within(main).getByText(/get matching shift offers by text/)).toBeInTheDocument();
   });
 

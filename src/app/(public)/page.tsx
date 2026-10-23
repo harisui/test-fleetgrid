@@ -18,7 +18,7 @@ import { BUSINESS_NAME, getSupportContact } from "@/lib/support";
 const POINTS = [
   {
     icon: ShieldCheck,
-    title: "Certified drivers",
+    title: "CDL drivers",
     text: "CDL drivers with their class, endorsements, cards and record on file.",
   },
   {
@@ -50,7 +50,7 @@ const HOW_IT_WORKS = [
 ] as const;
 
 const ABOUT = [
-  `${BUSINESS_NAME} runs a confidential directory that connects local freight carriers with certified CDL drivers.`,
+  `${BUSINESS_NAME} runs a confidential directory that connects local freight carriers with local CDL drivers.`,
   "FleetGrid is launching in the Houston, Texas area first, with more areas to follow as carriers join.",
   "It serves carriers who need a qualified driver for a shift today, and drivers who want local work offered straight to their phone.",
 ] as const;
@@ -69,8 +69,8 @@ export default function LandingPage() {
             Local freight shifts, filled fast
           </h1>
           <p className="text-muted-foreground text-lg">
-            <strong className="text-foreground font-semibold">Carriers:</strong> find certified
-            transport operators near you and fill open shifts in minutes.
+            <strong className="text-foreground font-semibold">Carriers:</strong> find local CDL
+            drivers near you and fill open shifts in minutes.
           </p>
           <p className="text-muted-foreground text-lg">
             <strong className="text-foreground font-semibold">Drivers:</strong> build your
