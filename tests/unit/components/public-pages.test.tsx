@@ -42,6 +42,11 @@ describe("landing page", () => {
     expect(line).toHaveAttribute("data-slot", "launch-line");
   });
 
+  it("never says certified, which would imply FleetGrid vetted the drivers (client decision of 2026-10-22)", () => {
+    render(<LandingPage />);
+    expect(document.body.textContent).not.toMatch(/certified/i);
+  });
+
   it("the carrier button goes to the carriers page, which the CARRIER_DISABLED switch turns into coming soon", () => {
     availability.carrierDisabled = true;
     render(<LandingPage />);

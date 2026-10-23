@@ -6,6 +6,7 @@ import { MobileMenu } from "@/components/marketing/MobileMenu";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/shared/Logo";
 import { HEADER_CTA, LOGIN_LINK, NAV_LINKS } from "@/content/marketing";
+import { cn } from "@/lib/utils";
 import type { NavItem } from "@/types/domain";
 
 export type HeaderVariant = "app" | "marketing";
@@ -17,14 +18,21 @@ interface HeaderProps {
   navItems?: NavItem[];
   /** Extra controls on the right, such as a logout button. */
   actions?: ReactNode;
+  /** The app bar's column max width, matching the page below. The marketing header ignores it. */
+  widthClass?: string;
 }
 
-export function Header({ variant = "app", navItems = [], actions }: HeaderProps) {
+export function Header({
+  variant = "app",
+  navItems = [],
+  actions,
+  widthClass = "max-w-5xl",
+}: HeaderProps) {
   if (variant === "marketing") return <MarketingHeader />;
 
   return (
     <header className="bg-sign-panel text-sign-panel-foreground sticky top-0 z-40">
-      <div className="mx-auto flex h-14 w-full max-w-5xl items-center gap-4 px-4">
+      <div className={cn("mx-auto flex h-14 w-full items-center gap-4 px-4", widthClass)}>
         <Link href="/" className="flex items-center rounded-badge">
           <Logo height={32} />
         </Link>

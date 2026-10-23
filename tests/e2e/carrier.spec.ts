@@ -36,6 +36,14 @@ async function expectNoAccessibilityViolations(page: Page, label: string) {
   expect(summary, label).toEqual([]);
 }
 
+/** On a phone the search filters fold behind "Filters": open them. A desktop shows them already. */
+async function openFilters(page: Page) {
+  const toggle = page.getByRole("button", { name: /^Filters/ });
+  if ((await toggle.isVisible()) && (await toggle.getAttribute("aria-expanded")) !== "true") {
+    await toggle.click();
+  }
+}
+
 /** The seed drivers a subscribed Houston carrier sees: approved, complete, in area (texts or not). */
 async function listedSeedDriverIds(): Promise<string[]> {
   const admin = adminClient();
@@ -326,7 +334,22 @@ test.describe("driver search and a driver's page", () => {
     await expect(page.locator("[data-slot=result-count]")).toContainText(`of ${listed.length} drivers`);
     await expect(page.locator("[data-slot=result-count]")).toContainText("nearest first");
 
-    // Every endorsement picked must be on the card: H and T narrows the list.
+    // The table has the page's width: the filters sit above it, and on a phone they fold
+    // behind "Filters". The boxes fold under "More filters" until one is on.
+    const filtersToggle = page.getByRole("button", { name: /^Filters/ });
+    if (await filtersToggle.isVisible()) {
+      await expect(page.getByRole("combobox", { name: "CDL class" })).toBeHidden();
+    }
+    await openFilters(page);
+    await expect(page.getByRole("combobox", { name: "CDL class" })).toBeVisible();
+    await expect(page.getByRole("checkbox", { name: /^H/ })).toBeHidden();
+    await page.getByRole("button", { name: /^More filters/ }).click();
+
+    // Every endorsement picked must be on the card: H and T narrows the list. Search is a
+    // client-side navigation: the URL takes the query, the page does not reload.
+    await page.evaluate(() => {
+      (window as Window & { notReloaded?: boolean }).notReloaded = true;
+    });
     await page.getByRole("checkbox", { name: /^H/ }).click();
     await page.getByRole("checkbox", { name: /^T/ }).click();
     await page.getByRole("button", { name: "Search" }).click();
@@ -342,7 +365,22 @@ test.describe("driver search and a driver's page", () => {
     } else {
       await expect(page.locator("[data-slot=result-count]")).toContainText(`of ${expected} driver`);
     }
+    expect(await page.evaluate(() => (window as Window & { notReloaded?: boolean }).notReloaded)).toBe(true);
+    // The boxes that are on keep "More filters" open, with the count.
+    await openFilters(page);
+    await expect(page.getByRole("button", { name: /^More filters \(2 on\)/ })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
     await expect(page.getByRole("checkbox", { name: /^H/ })).toBeChecked();
+
+    // The URL is the search: a reload shows the same filters and results.
+    await page.reload();
+    await openFilters(page);
+    await expect(page.getByRole("checkbox", { name: /^T/ })).toBeChecked();
+    if (expected > 0) {
+      await expect(page.locator("[data-slot=result-count]")).toContainText(`of ${expected} driver`);
+    }
 
     // Class A only, from a fresh search.
     await page.goto("/carrier/search?cdlClass=A");
@@ -359,10 +397,13 @@ test.describe("driver search and a driver's page", () => {
     await expect(formAlert(page)).toContainText("Distance must be 250 miles or less");
     await expect(page.locator("[data-slot=result-count]")).toContainText(`of ${listed.length} drivers`);
 
-    // Clear filters is the plain search.
-    await page.goto("/carrier/search?twicActive=true");
+    // Clear filters is the plain search, and every field starts over.
+    await page.goto("/carrier/search?cdlClass=A");
+    await openFilters(page);
     await page.getByRole("link", { name: "Clear filters" }).click();
     await expect(page).toHaveURL(/\/carrier\/search$/);
+    await openFilters(page);
+    await expect(page.getByRole("combobox", { name: "CDL class" })).toHaveText(/A or B/);
   });
 
   test("a driver's page shows the card, the distance and the papers, never the phone", async ({

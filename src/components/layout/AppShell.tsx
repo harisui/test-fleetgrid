@@ -15,17 +15,19 @@ interface AppShellProps {
   navItems?: NavItem[];
   headerActions?: ReactNode;
   /**
-   * Narrow column for forms and driver screens, wide for tables and dashboards, site for the
-   * marketing pages (the Container column: 80rem with the responsive gutter). Marketing pages
-   * default to site.
+   * Narrow column for forms and driver screens, wide for tables and dashboards, full for
+   * pages built around a wide table (the carrier app; the app header follows it), site for
+   * the marketing pages (the Container column: 80rem with the responsive gutter). Marketing
+   * pages default to site.
    */
-  width?: "narrow" | "wide" | "site";
+  width?: "narrow" | "wide" | "full" | "site";
   showFooter?: boolean;
 }
 
 const MAIN_WIDTH = {
   narrow: "mx-auto w-full max-w-xl px-4",
   wide: "mx-auto w-full max-w-5xl px-4",
+  full: "mx-auto w-full max-w-7xl px-4",
   site: CONTAINER_CLASS,
 } as const;
 
@@ -51,7 +53,12 @@ export function AppShell({
       </a>
       {marketing && <HeaderShadow />}
       {marketing && <LaunchStrip />}
-      <Header variant={variant} navItems={navItems} actions={headerActions} />
+      <Header
+        variant={variant}
+        navItems={navItems}
+        actions={headerActions}
+        widthClass={mainWidth === "full" ? "max-w-7xl" : "max-w-5xl"}
+      />
       <main
         id="main-content"
         className={cn("flex-1 py-6", MAIN_WIDTH[mainWidth], hasMobileNav && "pb-24 md:pb-6")}
