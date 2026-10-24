@@ -300,6 +300,8 @@ max_frequency = "1s"
 # uri = "pg-functions://<database>/<schema>/<hook_name>"
 
 # Configure one of the supported SMS providers: `twilio`, `twilio_verify`, `messagebird`, `textlocal`, `vonage`.
+# The hosted project picks its provider in the Supabase dashboard (Twilio Verify until the
+# toll-free number is approved, then Twilio with the Messaging Service; README, "Login codes").
 [auth.sms.twilio]
 # A provider must be enabled for phone auth to work. These are dummy local values:
 # test_otp numbers never reach Twilio, and any other number fails instead of sending.

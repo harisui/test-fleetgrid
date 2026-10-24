@@ -49,7 +49,7 @@ Copy `.env.example` to `.env.local`. The app validates these at startup (`src/li
 | `SUPABASE_SERVICE_ROLE_KEY`                      | Milestone 1 | `SERVICE_ROLE_KEY` from the same command. Server only. |
 | `SUPPORT_EMAIL`, `SUPPORT_PHONE`, `BUSINESS_ADDRESS` | Milestone 1 | optional overrides of the client's contact details in `src/lib/support.ts` (footer, Contact, Help, SMS Terms); address lines separated by ` \| ` |
 | `CARRIER_DISABLED`                               | Milestone 2 | optional. `true` hides the carrier side: the landing page button, `/login?role=carrier`, the role picker and every `/carrier` page lead to a "Carriers: coming soon" page at `/carriers`, and no carrier profile can be created. Off unless set to exactly `true`. |
-| `TWILIO_*`                                       | Milestone 3 | not needed yet                                         |
+| `TWILIO_*`                                       | Milestone 3 | not needed yet. Login codes are sent and checked by Supabase Auth, whose SMS provider (Twilio Verify or a Twilio Messaging Service) is chosen in the Supabase dashboard, not here; see "Login codes" under Deploying. |
 | `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID_MONTHLY`, `STRIPE_WEBHOOK_SECRET` | Milestone 2 | the Stripe dashboard (test mode locally). With all three set, checkout and the webhook use Stripe. Leave them empty locally: with `ENABLE_TEST_LOGIN=true` an in-memory provider stands in and checkout goes to a page inside the app. Server only. |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`             | Milestone 2 | not used yet (Checkout is hosted by Stripe)            |
 
@@ -215,7 +215,7 @@ The user must have logged in once and chosen a role first, so that a profile row
 ## Deploying to Vercel
 
 1. Create a hosted Supabase project.
-2. In Supabase: enable phone sign-in and configure Twilio as the SMS provider (Authentication, Providers, Phone).
+2. In Supabase: enable phone sign-in and pick the SMS provider (Authentication, Sign In / Providers, Phone). See "Login codes" below.
 3. Apply the migrations to the hosted database:
    ```bash
    pnpm exec supabase link --project-ref <project-ref>
@@ -227,6 +227,29 @@ The user must have logged in once and chosen a role first, so that a profile row
 6. In Supabase, set the Site URL to the deployed URL (Authentication, URL Configuration).
 7. In Stripe, add a webhook endpoint at `https://<your-domain>/api/stripe/webhook` for `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `customer.subscription.paused`, `customer.subscription.resumed`, `invoice.paid` and `invoice.payment_failed`, and turn on the Customer Portal (Settings, Billing) with cancellation allowed.
 8. Deploy, then check `https://<your-domain>/api/health` returns `{"ok":true}`.
+
+### Login codes (Twilio Verify now, the toll-free number later)
+
+The app never sends the login SMS itself: `signInWithOtp` asks Supabase Auth to send the code
+and `verifyOtp` asks it to check the code, through whichever SMS provider the Supabase
+dashboard names (Authentication, Sign In / Providers, Phone, "SMS provider"). Switching
+providers is that one setting; no deploy, no environment variable, no code change, and
+signed-in users stay signed in.
+
+- **Until the toll-free number is approved (client decision, 2026-10-23):** provider
+  **Twilio Verify**, with the Twilio Account SID, the Auth Token and the Verify Service SID
+  (`VA...`, Twilio console, Verify, Services). Verify sends from Twilio's own numbers, so it
+  works before any number of ours is approved. The text reads "Your FleetGrid verification
+  code is: 123456", so the Verify Service's friendly name must be `FleetGrid` and its code
+  length 6 (the defaults). The Supabase SMS template is not used on this path. About $0.05 a
+  successful check plus the SMS.
+- **Once Twilio approves the toll-free number:** provider **Twilio**, with the same Account
+  SID and Auth Token and the Messaging Service SID (`MG...`) that holds the number. Codes then
+  come from (888) 869-2040 with the Supabase template "Your FleetGrid code is {{ .Code }}".
+
+The test numbers in `supabase/config.toml` never reach either provider; locally the provider
+block there is a dummy. The `TWILIO_*` variables in `.env.example` are for the app's own
+texts in Milestone 3 (shift offers), not for login codes.
 
 ## Data
 
