@@ -551,8 +551,8 @@ describe("DriverResults", () => {
       "TWIC",
       "medical card current",
     ]);
-    // Never the phone number.
-    expect(document.body.textContent).not.toMatch(/555-0100|\+1555/);
+    // Never the phone number, in any form.
+    expect(document.body.innerHTML).not.toMatch(/555-0100|5555550100|\+1555|tel:/);
     expect(screen.queryByRole("navigation", { name: "Pages" })).not.toBeInTheDocument();
     // Opted in: no mark, and the table says so.
     expect(document.querySelector("[data-slot=no-shift-texts]")).toBeNull();
@@ -634,7 +634,8 @@ describe("DriverCardView", () => {
     expect(paper).toHaveAttribute("href", `/api/documents/${document_.id}/url`);
     expect(paper).toHaveAttribute("target", "_blank");
     expect(paper).toHaveTextContent("cdl-front.jpg");
-    expect(document.body.textContent).not.toMatch(/555-0100|\+1555/);
+    // Never the phone number, in any form: not in the text, not as a tel: link.
+    expect(document.body.innerHTML).not.toMatch(/555-0100|5555550100|\+1555|tel:/);
   });
 
   it("leaves out the optional answers that were not given, and says when there are no papers", () => {

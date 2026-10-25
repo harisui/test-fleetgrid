@@ -155,6 +155,32 @@ export async function signUp(page: Page, phone: string, role: "driver" | "carrie
   await expect(page).not.toHaveURL(/\/choose-role/);
 }
 
+/**
+ * Every driver's phone number in every form a page could print it (E.164, the ten digits,
+ * "(555) 555-1001", "555-555-1001"), so a carrier page can be checked for all of them.
+ */
+export async function driverPhoneForms(): Promise<string[]> {
+  const { data, error } = await adminClient().from("profiles").select("phone").eq("role", "driver");
+  if (error) throw new Error(`driverPhoneForms failed: ${error.message}`);
+  return (data ?? []).flatMap(({ phone }) => {
+    const digits = phone.replace(/\D/g, "").slice(-10);
+    return [
+      phone,
+      digits,
+      `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`,
+      `${digits.slice(0, 3)}-${digits.slice(3, 6)}-${digits.slice(6)}`,
+    ];
+  });
+}
+
+/** Fails if the page's HTML carries any driver's phone number in any form. */
+export async function expectNoDriverPhone(page: Page): Promise<void> {
+  const html = await page.content();
+  const forms = await driverPhoneForms();
+  expect(forms.length).toBeGreaterThan(0);
+  for (const form of forms) expect(html, `driver phone ${form} on ${page.url()}`).not.toContain(form);
+}
+
 /** ZIP centres from src/data/us-zips.tsv: one inside the launch areas, one outside. */
 export const PLACES = {
   houston: { city: "Houston", state: "TX", zip: "77002", lat: 29.7594, lng: -95.3594 },
