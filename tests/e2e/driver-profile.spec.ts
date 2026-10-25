@@ -115,7 +115,7 @@ test.describe("driver profile", () => {
     const status = page.getByRole("region", { name: "Account status" });
     await expect(status.getByText("Outside launch area")).toBeVisible();
     await expect(status.locator("[data-slot=launch-area-help]")).toHaveText(
-      "FleetGrid is launching in the Houston area first. We'll text you when we launch near you.",
+      "FleetGrid isn't in your area yet. We've saved your profile and will let you know when we launch near you.",
     );
     await expect(status.getByText("Pending review")).toBeVisible();
   });

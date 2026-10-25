@@ -147,7 +147,7 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) }).click();
       await expectNoAccessibilityViolations(page, "consent checked");
       await nextButton(page, "Find local shifts").click();
-      await expect(page.getByRole("heading", { level: 1 })).toHaveText("You are listed.");
+      await expect(page.getByRole("heading", { level: 1 })).toHaveText("You're in!");
       await expectNoAccessibilityViolations(page, "done");
     });
 

@@ -127,11 +127,12 @@ test.describe("driver onboarding, a page per mile", () => {
     const before = Date.now();
     await nextButton(page, FINISH).click();
 
-    await expect(screenHeading(page)).toHaveText("You are listed.");
+    await expect(screenHeading(page)).toHaveText("You're in!");
     await expect(page.getByText("Profile complete", { exact: true })).toBeVisible();
-    await expect(
-      page.getByText(/Once your profile is approved, carriers near 77002 can find you/),
-    ).toBeVisible();
+    // The client's words (2026-10-25), with the SMS line because texts are on.
+    await expect(page.locator("[data-slot=done-text]")).toHaveText(
+      "Your profile is being reviewed for the Houston FleetGrid Network. Once approved, carriers can find you daily. Keep an eye out for SMS shift alerts on your phone.",
+    );
     await expect(page.getByText(/Shift offers arrive by text/)).toBeVisible();
     expect(Date.now() - started).toBeLessThan(FIVE_MINUTES_MS);
 
@@ -204,7 +205,7 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(checkChip(page, MVR_QUESTION, "None")).toHaveAttribute("aria-pressed", "true");
     await expect(card(page, "radio", /Class A/)).toHaveAttribute("aria-checked", "true");
     await page.goto("/driver/onboarding");
-    await expect(screenHeading(page)).toHaveText("You are listed.");
+    await expect(screenHeading(page)).toHaveText("You're in!");
     await page.getByRole("link", { name: "Go to my profile" }).click();
     await expect(page).toHaveURL(/\/driver\/profile$/);
   });
@@ -250,9 +251,9 @@ test.describe("driver onboarding, a page per mile", () => {
 
     await expect(screenHeading(page)).toHaveText("You're on the list.");
     await expect(page.getByText("Profile complete", { exact: true })).toBeVisible();
-    await expect(
-      page.getByText("FleetGrid isn't in your area yet. We'll text you when it is."),
-    ).toBeVisible();
+    await expect(page.locator("[data-slot=done-text]")).toHaveText(
+      "FleetGrid isn't in your area yet. We've saved your profile and will let you know when we launch near you.",
+    );
     await expect(page.getByText(/Shift offers arrive by text/)).toHaveCount(0);
     await expect(page.locator("[data-slot=summary-card]")).toBeVisible();
     expect(await driverRow()).toMatchObject({ card_completed: true, onboarding_step: 12 });
@@ -262,7 +263,7 @@ test.describe("driver onboarding, a page per mile", () => {
     const status = page.getByRole("region", { name: "Account status" });
     await expect(status.getByText("Outside launch area")).toBeVisible();
     await expect(status.locator("[data-slot=launch-area-help]")).toHaveText(
-      "FleetGrid is launching in the Houston area first. We'll text you when we launch near you.",
+      "FleetGrid isn't in your area yet. We've saved your profile and will let you know when we launch near you.",
     );
   });
 
@@ -485,8 +486,12 @@ test.describe("driver onboarding, a page per mile", () => {
     }
     await nextButton(page, FINISH).click();
 
-    await expect(screenHeading(page)).toHaveText("You are listed.");
+    await expect(screenHeading(page)).toHaveText("You're in!");
     await expect(formAlert(page)).toHaveCount(0);
+    // Without the SMS line: this driver declined texts (client wording of 2026-10-25).
+    await expect(page.locator("[data-slot=done-text]")).toHaveText(
+      "Your profile is being reviewed for the Houston FleetGrid Network. Once approved, carriers can find you daily.",
+    );
     await expect(page.getByText(/You chose not to receive shift texts/)).toBeVisible();
     await expect(page.getByText(/Shift offers arrive by text/)).toHaveCount(0);
     const row = await driverRow();

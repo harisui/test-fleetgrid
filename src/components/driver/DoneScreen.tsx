@@ -1,17 +1,21 @@
-import { FileText, MessageSquareOff, MessageSquareText, Search } from "lucide-react";
+import { FileText, MessageSquareOff, MessageSquareText } from "lucide-react";
 import { SummaryCard } from "@/components/driver/SummaryCard";
 import { ActionBar } from "@/components/onboarding/ActionBar";
 import { OnboardingContent } from "@/components/onboarding/OnboardingShell";
 import { SignHeader } from "@/components/onboarding/SignHeader";
 import { ROLE_HOME } from "@/lib/auth/routes";
-import { OUT_OF_AREA_DONE_TEXT, OUT_OF_AREA_DONE_TITLE } from "@/lib/launch";
+import {
+  DONE_TEXT,
+  DONE_TEXT_SMS,
+  DONE_TITLE,
+  OUT_OF_AREA_DONE_TEXT,
+  OUT_OF_AREA_DONE_TITLE,
+} from "@/lib/launch";
 import { MILES, type StepId } from "@/lib/onboarding/steps";
-import { maskPhone } from "@/lib/phone";
 import type { LocatedDriver } from "@/types/domain";
 
 interface DoneScreenProps {
   driver: LocatedDriver;
-  phone: string;
   onEdit: (stepId: StepId) => void;
 }
 
@@ -21,68 +25,55 @@ export const NO_TEXTS_NEXT_STEP =
 
 const NEXT_STEPS = [
   {
-    icon: Search,
-    text: "A FleetGrid reviewer will check your profile.",
-    /** Shift offers only come where FleetGrid is live. */
-    inAreaOnly: false,
-    textsOnly: false,
-  },
-  {
     icon: MessageSquareText,
     text: "Shift offers arrive by text. Reply YES to claim one.",
-    inAreaOnly: true,
-    textsOnly: true,
+    /** Only where FleetGrid is live, and only for drivers who said yes to texts. */
+    when: "texts" as const,
   },
   {
     icon: MessageSquareOff,
     text: NO_TEXTS_NEXT_STEP,
-    inAreaOnly: false,
-    textsOnly: null,
+    /** Only for drivers who left the shift-text box unticked. */
+    when: "declined" as const,
   },
   {
     icon: FileText,
     text: "You can add your CDL and medical card any time from Documents.",
-    inAreaOnly: false,
-    textsOnly: false,
+    when: "always" as const,
   },
-] as const;
+];
 
 /**
- * The end of the road, rendered inside the onboarding shell. A plain statement of what
- * happened and what comes next. No animation. A driver outside every launch area is told
- * so, and keeps the summary and the way to the profile.
+ * The end of the road, rendered inside the onboarding shell, in the client's words
+ * (2026-10-25): the profile is under review, carriers find approved drivers, and the SMS
+ * line only for drivers who said yes to shift texts. No animation. A driver outside every
+ * launch area is told so, and keeps the summary and the way to the profile.
  */
-export function DoneScreen({ driver, phone, onEdit }: DoneScreenProps) {
+export function DoneScreen({ driver, onEdit }: DoneScreenProps) {
   const outOfArea = driver.inServiceArea === false;
-  const texts = driver.smsOptIn;
-  const nextSteps = NEXT_STEPS.filter(
-    (item) =>
-      (!outOfArea || !item.inAreaOnly) &&
-      (item.textsOnly === null ? !texts : !item.textsOnly || texts),
-  );
+  const textsOn = driver.smsOptIn && !driver.smsOptedOut;
+  const nextSteps = NEXT_STEPS.filter((item) => {
+    if (item.when === "texts") return !outOfArea && textsOn;
+    if (item.when === "declined") return !driver.smsOptIn;
+    return true;
+  });
   return (
     <>
       <OnboardingContent>
         <div
           data-slot="done-screen"
           data-area={outOfArea ? "outside" : "inside"}
+          data-texts={textsOn ? "on" : "off"}
           className="contents"
         >
           <SignHeader
             eyebrow="Profile complete"
-            title={outOfArea ? OUT_OF_AREA_DONE_TITLE : "You are listed."}
+            title={outOfArea ? OUT_OF_AREA_DONE_TITLE : DONE_TITLE}
             srText={`Step ${MILES.length} of ${MILES.length}: Finish. Profile complete.`}
           />
-          {outOfArea ? (
-            <p>{OUT_OF_AREA_DONE_TEXT}</p>
-          ) : texts ? (
-            <p>
-              Once your profile is approved, carriers near {driver.zip} can find you. We will text
-              you at {maskPhone(phone)} when a carrier sends a shift.
-            </p>
-          ) : (
-            <p>Once your profile is approved, carriers near {driver.zip} can find you.</p>
-          )}
+          <p data-slot="done-text">
+            {outOfArea ? OUT_OF_AREA_DONE_TEXT : textsOn ? `${DONE_TEXT} ${DONE_TEXT_SMS}` : DONE_TEXT}
+          </p>
           <SummaryCard driver={driver} onEdit={onEdit} />
           <ul className="flex flex-col gap-3" aria-label="What happens next">
             {nextSteps.map((item) => (

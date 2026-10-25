@@ -5,91 +5,72 @@ import { buildDriver } from "../../setup/factories";
 
 vi.mock("@/server/actions/auth.actions", () => ({ signOutAction: vi.fn() }));
 
-const PHONE = "+15555550100";
-const nextSteps = () => within(screen.getByRole("list", { name: "What happens next" }));
+const nextSteps = () =>
+  within(screen.getByRole("list", { name: "What happens next" }))
+    .getAllByRole("listitem")
+    .map((item) => item.textContent);
+const doneText = () => document.querySelector("[data-slot=done-text]");
+const doneScreen = () => document.querySelector("[data-slot=done-screen]");
+
+/** The client's words of 2026-10-25, with the SMS line for drivers who said yes to texts. */
+const REVIEW_TEXT =
+  "Your profile is being reviewed for the Houston FleetGrid Network. Once approved, carriers can find you daily.";
+const SMS_LINE = "Keep an eye out for SMS shift alerts on your phone.";
+const DOCUMENTS_STEP = "You can add your CDL and medical card any time from Documents.";
 
 describe("DoneScreen", () => {
-  it("tells a driver inside the launch area they are listed, with every next step", () => {
-    render(
-      <DoneScreen driver={buildDriver({ inServiceArea: true })} phone={PHONE} onEdit={vi.fn()} />,
-    );
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("You are listed.");
-    expect(
-      screen.getByText(/Once your profile is approved, carriers near 75201 can find you/),
-    ).toBeInTheDocument();
-    expect(
-      nextSteps()
-        .getAllByRole("listitem")
-        .map((item) => item.textContent),
-    ).toEqual([
-      "A FleetGrid reviewer will check your profile.",
-      "Shift offers arrive by text. Reply YES to claim one.",
-      "You can add your CDL and medical card any time from Documents.",
-    ]);
-    expect(document.querySelector("[data-slot=done-screen]")).toHaveAttribute(
-      "data-area",
-      "inside",
-    );
+  it("tells a driver inside the launch area, with texts on, they are in, with the SMS line", () => {
+    render(<DoneScreen driver={buildDriver({ inServiceArea: true })} onEdit={vi.fn()} />);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("You're in!");
+    expect(doneText()).toHaveTextContent(`${REVIEW_TEXT} ${SMS_LINE}`);
+    expect(nextSteps()).toEqual(["Shift offers arrive by text. Reply YES to claim one.", DOCUMENTS_STEP]);
+    expect(doneScreen()).toHaveAttribute("data-area", "inside");
+    expect(doneScreen()).toHaveAttribute("data-texts", "on");
     expect(screen.queryByText(/isn't in your area/)).not.toBeInTheDocument();
+    // Nothing promises an immediate listing: the profile is reviewed first.
+    expect(document.body.textContent).not.toMatch(/now active|can now find you/);
   });
 
-  it("tells a driver who declined texts how to turn them on, and promises no texts", () => {
+  it("leaves the SMS line out for a driver who declined texts, and says how to turn them on", () => {
     render(
-      <DoneScreen
-        driver={buildDriver({ inServiceArea: true, smsOptIn: false })}
-        phone={PHONE}
-        onEdit={vi.fn()}
-      />,
+      <DoneScreen driver={buildDriver({ inServiceArea: true, smsOptIn: false })} onEdit={vi.fn()} />,
     );
-    expect(
-      screen.getByText("Once your profile is approved, carriers near 75201 can find you."),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("You're in!");
+    expect(doneText()).toHaveTextContent(REVIEW_TEXT);
+    expect(doneText()).not.toHaveTextContent(SMS_LINE);
     expect(screen.queryByText(/We will text you/)).not.toBeInTheDocument();
-    expect(
-      nextSteps()
-        .getAllByRole("listitem")
-        .map((item) => item.textContent),
-    ).toEqual([
-      "A FleetGrid reviewer will check your profile.",
-      NO_TEXTS_NEXT_STEP,
-      "You can add your CDL and medical card any time from Documents.",
-    ]);
+    expect(nextSteps()).toEqual([NO_TEXTS_NEXT_STEP, DOCUMENTS_STEP]);
+    expect(doneScreen()).toHaveAttribute("data-texts", "off");
+  });
+
+  it("leaves the SMS line and the text step out for a driver who replied STOP", () => {
+    render(
+      <DoneScreen driver={buildDriver({ inServiceArea: true, smsOptedOut: true })} onEdit={vi.fn()} />,
+    );
+    expect(doneText()).toHaveTextContent(REVIEW_TEXT);
+    expect(doneText()).not.toHaveTextContent(SMS_LINE);
+    expect(nextSteps()).toEqual([DOCUMENTS_STEP]);
+    expect(doneScreen()).toHaveAttribute("data-texts", "off");
   });
 
   it("treats a card without coordinates like one inside the area", () => {
-    render(
-      <DoneScreen driver={buildDriver({ inServiceArea: null })} phone={PHONE} onEdit={vi.fn()} />,
-    );
-    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("You are listed.");
+    render(<DoneScreen driver={buildDriver({ inServiceArea: null })} onEdit={vi.fn()} />);
+    expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("You're in!");
   });
 
   it("puts a driver outside the launch area on the list, keeping the summary and the profile link", () => {
     render(
-      <DoneScreen
-        driver={buildDriver({ inServiceArea: false, zip: "75201" })}
-        phone={PHONE}
-        onEdit={vi.fn()}
-      />,
+      <DoneScreen driver={buildDriver({ inServiceArea: false, zip: "75201" })} onEdit={vi.fn()} />,
     );
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("You're on the list.");
     expect(screen.getByText("Profile complete", { exact: true })).toBeInTheDocument();
-    expect(
-      screen.getByText("FleetGrid isn't in your area yet. We'll text you when it is."),
-    ).toBeInTheDocument();
-    expect(screen.queryByText(/carriers near 75201/)).not.toBeInTheDocument();
-    // No promise of shift offers where FleetGrid is not live.
-    expect(
-      nextSteps()
-        .getAllByRole("listitem")
-        .map((item) => item.textContent),
-    ).toEqual([
-      "A FleetGrid reviewer will check your profile.",
-      "You can add your CDL and medical card any time from Documents.",
-    ]);
-    expect(document.querySelector("[data-slot=done-screen]")).toHaveAttribute(
-      "data-area",
-      "outside",
+    expect(doneText()).toHaveTextContent(
+      "FleetGrid isn't in your area yet. We've saved your profile and will let you know when we launch near you.",
     );
+    expect(doneText()).not.toHaveTextContent(REVIEW_TEXT);
+    // No promise of shift offers where FleetGrid is not live.
+    expect(nextSteps()).toEqual([DOCUMENTS_STEP]);
+    expect(doneScreen()).toHaveAttribute("data-area", "outside");
     expect(document.querySelector("[data-slot=summary-card]")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Go to my profile" })).toHaveAttribute(
       "href",

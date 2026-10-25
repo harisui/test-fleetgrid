@@ -94,7 +94,7 @@ describe("AccountStatusCard", () => {
     expect(badge).toHaveAttribute("data-variant", "info");
     expect(
       within(card()).getByText(
-        "FleetGrid is launching in the Houston area first. We'll text you when we launch near you.",
+        "FleetGrid isn't in your area yet. We've saved your profile and will let you know when we launch near you.",
       ),
     ).toHaveAttribute("data-slot", "launch-area-help");
     // The account status itself is unchanged.

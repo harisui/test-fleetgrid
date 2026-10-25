@@ -494,16 +494,17 @@ describe("Finish page: consent and done", () => {
     // Finishing without the box: no error, the card completes without texts.
     await userEvent.click(screen.getByRole("button", { name: "Find local shifts" }));
     await waitFor(() =>
-      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("You are listed."),
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("You're in!"),
     );
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("consent", { consent: false });
     expect(screen.getByText(NO_TEXTS_NEXT_STEP)).toBeInTheDocument();
     expect(screen.queryByText(/Shift offers arrive by text/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/We will text you at/)).not.toBeInTheDocument();
-    expect(
-      screen.getByText("Once your profile is approved, carriers near 75201 can find you."),
-    ).toBeInTheDocument();
+    // The client's words (2026-10-25) without the SMS line: this driver declined texts.
+    expect(document.querySelector("[data-slot=done-text]")).toHaveTextContent(
+      "Your profile is being reviewed for the Houston FleetGrid Network. Once approved, carriers can find you daily.",
+    );
+    expect(document.body.textContent).not.toMatch(/SMS shift alerts|We will text you/);
   });
 
   it("ticking the box, then Find local shifts shows the done screen and refreshes", async () => {
@@ -520,16 +521,15 @@ describe("Finish page: consent and done", () => {
     );
     await userEvent.click(finish);
     await waitFor(() =>
-      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("You are listed."),
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("You're in!"),
     );
     expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("consent", { consent: true });
     expect(router.refresh).toHaveBeenCalledOnce();
-    // Drivers start as pending: the done screen promises nothing that depends on approval.
-    expect(
-      screen.getByText(/Once your profile is approved, carriers near 75201 can find you/),
-    ).toBeInTheDocument();
-    expect(screen.getByText("A FleetGrid reviewer will check your profile.")).toBeInTheDocument();
-    expect(document.body.textContent).not.toMatch(/can now find you|business day|within \d/);
+    // Drivers start as pending: the done screen says so, in the client's words (2026-10-25).
+    expect(document.querySelector("[data-slot=done-text]")).toHaveTextContent(
+      "Your profile is being reviewed for the Houston FleetGrid Network. Once approved, carriers can find you daily. Keep an eye out for SMS shift alerts on your phone.",
+    );
+    expect(document.body.textContent).not.toMatch(/now active|can now find you|business day|within \d/);
     expect(screen.getByRole("link", { name: "Go to my profile" })).toHaveAttribute(
       "href",
       "/driver/profile",

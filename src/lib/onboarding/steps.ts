@@ -9,6 +9,8 @@
  * Clearinghouse, about you) stay on the profile page, filled in later or never.
  */
 
+import { DONE_TITLE } from "@/lib/launch";
+
 export const MILES = [
   { mile: 1, label: "About" },
   { mile: 2, label: "CDL" },
@@ -48,7 +50,7 @@ export const STEPS = [
   { id: "transmission", mile: 4, question: "Can you drive a manual?" },
   { id: "equipment", mile: 5, question: "What equipment do you run?" },
   { id: "consent", mile: 6, question: "Can we text you about shifts?" },
-  { id: "done", mile: 6, question: "You are listed." },
+  { id: "done", mile: 6, question: DONE_TITLE },
 ] as const;
 
 export type Step = (typeof STEPS)[number];
