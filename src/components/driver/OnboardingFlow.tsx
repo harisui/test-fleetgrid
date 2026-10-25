@@ -71,7 +71,7 @@ export function OnboardingFlow({ initialStepId, initialDriver, phone, support }:
   if (stepId === "done" && driver) {
     return (
       <OnboardingShell stepId="done" support={support}>
-        <DoneScreen driver={driver} phone={phone} onEdit={setStepId} />
+        <DoneScreen driver={driver} onEdit={setStepId} />
       </OnboardingShell>
     );
   }

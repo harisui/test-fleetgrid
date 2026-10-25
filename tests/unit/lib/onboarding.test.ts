@@ -98,7 +98,7 @@ describe("steps config", () => {
 
   it("every sign header is a question, except the done screen", () => {
     for (const step of STEPS) {
-      if (step.id === "done") expect(step.question).toBe("You are listed.");
+      if (step.id === "done") expect(step.question).toBe("You're in!");
       else expect(step.question.endsWith("?"), step.id).toBe(true);
     }
   });

@@ -495,16 +495,15 @@ describe("Finish page: consent and done", () => {
     );
     await userEvent.click(finish);
     await waitFor(() =>
-      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("You are listed."),
+      expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("You're in!"),
     );
     expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("consent", { consent: true });
     expect(router.refresh).toHaveBeenCalledOnce();
-    // Drivers start as pending: the done screen promises nothing that depends on approval.
-    expect(
-      screen.getByText(/Once your profile is approved, carriers near 75201 can find you/),
-    ).toBeInTheDocument();
-    expect(screen.getByText("A FleetGrid reviewer will check your profile.")).toBeInTheDocument();
-    expect(document.body.textContent).not.toMatch(/can now find you|business day|within \d/);
+    // Drivers start as pending: the done screen says so, in the client's words (2026-10-25).
+    expect(document.querySelector("[data-slot=done-text]")).toHaveTextContent(
+      "Your profile is being reviewed for the Houston FleetGrid Network. Once approved, carriers can find you daily. Keep an eye out for SMS shift alerts on your phone.",
+    );
+    expect(document.body.textContent).not.toMatch(/now active|can now find you|business day|within \d/);
     expect(screen.getByRole("link", { name: "Go to my profile" })).toHaveAttribute(
       "href",
       "/driver/profile",
