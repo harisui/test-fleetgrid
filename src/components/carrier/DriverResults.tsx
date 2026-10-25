@@ -71,8 +71,9 @@ export function DriverResultsLoading() {
 
 /**
  * The results: cards on a phone, a table from the md breakpoint up. Every row opens the
- * driver's page. The phone number is never here; FleetGrid sends the texts. A driver who
- * declined shift texts, or replied STOP, is listed with the "No shift texts" mark.
+ * driver's page. The phone number is never here: a driver's number reaches a carrier only
+ * through a shift the driver claims (Milestone 3). A driver who declined shift texts, or
+ * replied STOP, is listed with the "No shift texts" mark.
  */
 export function DriverResults({ page, query }: DriverResultsProps) {
   if (page.total === 0) {

@@ -297,6 +297,11 @@ describe("/terms", () => {
       "supplying appropriate commercial insurance",
       "setting pay rates, managing tax classifications (W-2 or 1099) and paying drivers directly",
       "You are fully responsible for your shifts, equipment, operations and the personnel you engage.",
+      // Section 4, her decisions of 2026-10-25: contact details from a claimed shift, no-shows.
+      "Driver contact details you receive from a claimed shift may be used only to arrange that shift. You may not store, share or resell them, or use them to recruit drivers outside FleetGrid.",
+      "If a driver does not show up for a claimed shift, release the shift in FleetGrid so it can be offered again. No-shows are recorded against the driver.",
+      // Section 3, her sentence of 2026-10-25 on the phone number.
+      "Your phone number is shared only with the carrier whose shift you claim, when you reply YES.",
       // Section 3, Drivers, her sentence of 2026-10-13.
       "FleetGrid does not pay wages, withhold taxes, manage schedules, or issue tax forms (W-2/1099) to drivers. All work, payment, and engagement terms are strictly between you and the carrier.",
       // Section 13, her expanded version of 2026-10-13: AAA arbitration, no class actions.
@@ -308,7 +313,7 @@ describe("/terms", () => {
     ]) {
       expect(main, text).toHaveTextContent(text);
     }
-    expect(main).not.toHaveTextContent(/for good|ticking/);
+    expect(main).not.toHaveTextContent(/for good|ticking|never shown to carriers/);
     expect(within(main).getByRole("link", { name: "SMS Terms" })).toHaveAttribute(
       "href",
       "/sms-terms",
@@ -332,7 +337,11 @@ describe("/privacy", () => {
     ]) {
       expect(within(main).getByRole("heading", { name: heading })).toBeInTheDocument();
     }
-    expect(main).toHaveTextContent(/phone number is never shown to carriers/);
+    // The client's sentence of 2026-10-25, replacing "never shown to carriers".
+    expect(main).toHaveTextContent(
+      "Your phone number is shared only with the carrier whose shift you claim, when you reply YES.",
+    );
+    expect(main).not.toHaveTextContent(/never shown to carriers/);
     expect(main).toHaveTextContent(/do not sell your personal information/);
     // Twilio's verbatim clause (2026-10-14), in section 3.
     expect(main.querySelector("[data-slot=opt-in-data-clause]")).toHaveTextContent(

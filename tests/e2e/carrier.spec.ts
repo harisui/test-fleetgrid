@@ -11,6 +11,7 @@ import {
   resetUser,
   seedCarrier,
   signUp,
+  TOS_VERSION,
 } from "./helpers";
 
 /**
@@ -148,7 +149,7 @@ test.describe("carrier sign-up, Terms and payment", () => {
       .select("version, ip, user_agent")
       .eq("profile_id", profile!.id)
       .single();
-    expect(acceptance?.version).toBe("2026-10-v1");
+    expect(acceptance?.version).toBe(TOS_VERSION);
     expect(acceptance?.user_agent).toContain("Mozilla");
     const { data: subscription } = await admin
       .from("subscriptions")
