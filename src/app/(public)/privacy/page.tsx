@@ -68,8 +68,8 @@ export default function PrivacyPage() {
         <li>
           <strong>Carriers with an active subscription</strong> can see a driver&apos;s
           qualification card and, when reviewing that driver for a shift, the documents the driver
-          uploaded. A driver&apos;s phone number is never shown to carriers; FleetGrid sends the
-          texts.
+          uploaded. Your phone number is shared only with the carrier whose shift you claim, when
+          you reply YES.
         </li>
         <li>
           <strong>FleetGrid staff</strong> can see accounts, cards and documents to review profiles

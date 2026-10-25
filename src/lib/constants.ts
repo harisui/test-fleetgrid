@@ -2,8 +2,11 @@
 export const SMS_CONSENT_VERSION = "2026-10-v1";
 export const SMS_CONSENT_TEXT =
   "I agree to receive text messages from FleetGrid about available shifts at this number. Message frequency varies. Message and data rates may apply. Reply STOP to opt out, HELP for help.";
-/** Bump when the Terms of Service change in a way carriers must accept again. */
-export const TOS_VERSION = "2026-10-v1";
+/**
+ * Bump when the Terms of Service change in a way carriers must accept again. v2 (2026-10-25):
+ * contact details from a claimed shift are for that shift only, plus the no-show line.
+ */
+export const TOS_VERSION = "2026-10-v2";
 export const ALLOWED_SUB_STATUSES = ["active", "trialing"] as const;
 /**
  * How long the stored subscription is trusted without asking Stripe again. Webhooks keep it
@@ -38,7 +41,7 @@ export const DEFAULT_TIMEZONE = "America/Chicago";
 
 export const SMS_PROGRAM_NAME = "FleetGrid Shift Alerts";
 /** The date the public Terms and Privacy pages took effect. */
-export const LEGAL_EFFECTIVE_DATE = "October 12, 2026";
+export const LEGAL_EFFECTIVE_DATE = "October 25, 2026";
 
 export const DOCUMENTS_BUCKET = "driver-documents";
 /** "Other papers" (document type certification) a driver can keep at once. */

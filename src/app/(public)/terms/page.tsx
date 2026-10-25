@@ -55,7 +55,8 @@ export default function TermsPage() {
         </li>
         <li>
           By completing your card you allow FleetGrid to show it to carriers with an active
-          subscription. Your phone number is never shown to carriers; FleetGrid sends the texts.
+          subscription. Your phone number is shared only with the carrier whose shift you claim,
+          when you reply YES.
         </li>
         <li>
           Documents you upload (for example your CDL and medical card) can be seen by you, by
@@ -82,6 +83,15 @@ export default function TermsPage() {
         <li>
           Driver information may be used only to fill your own shifts. You may not copy, scrape,
           resell or share driver data, or contact drivers for any other purpose.
+        </li>
+        <li>
+          Driver contact details you receive from a claimed shift may be used only to arrange that
+          shift. You may not store, share or resell them, or use them to recruit drivers outside
+          FleetGrid.
+        </li>
+        <li>
+          If a driver does not show up for a claimed shift, release the shift in FleetGrid so it
+          can be offered again. No-shows are recorded against the driver.
         </li>
         <li>
           Carriers maintain sole responsibility for evaluating, qualifying and managing all

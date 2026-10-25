@@ -3,7 +3,10 @@ import { resolve } from "node:path";
 import { loadEnvFile } from "node:process";
 import { expect, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+import { TOS_VERSION } from "../../src/lib/constants";
 import type { Database } from "../../src/types/database.types";
+
+export { TOS_VERSION };
 
 const envFile = resolve(process.cwd(), ".env.local");
 if (existsSync(envFile) && !process.env.SUPABASE_SERVICE_ROLE_KEY) loadEnvFile(envFile);
@@ -291,7 +294,7 @@ export async function seedCarrier(
   if (options.terms) {
     const { error: tosError } = await admin
       .from("tos_acceptances")
-      .insert({ profile_id: userId, version: "2026-10-v1" });
+      .insert({ profile_id: userId, version: TOS_VERSION });
     if (tosError) throw new Error(`seedCarrier terms failed: ${tosError.message}`);
   }
   if (options.subscription) {
