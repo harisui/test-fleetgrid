@@ -188,6 +188,17 @@ describe("DriverSearchService", () => {
       expect(bad.code).toBe("VALIDATION");
     });
 
+    it("hands the carrier nothing about the driver's account: no phone, no profile", async () => {
+      await subscribedCarrier();
+      search.listed.set(id(1), listed(1));
+      const page = await service.search(CARRIER_USER_ID, {});
+      const view = await service.getDriver(CARRIER_USER_ID, { driverId: id(1) });
+      for (const result of [page.matches[0], view]) {
+        expect(Object.keys(result.driver)).not.toContain("phone");
+        expect(JSON.stringify(result)).not.toMatch(/phone|\+1\d{10}/);
+      }
+    });
+
     it("treats a card without coordinates as not found", async () => {
       await subscribedCarrier();
       search.listed.set(id(1), listed(1, { lat: null, lng: null }));

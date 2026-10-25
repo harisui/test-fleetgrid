@@ -4,6 +4,7 @@ import {
   adminClient,
   CARRIER_DETAILS,
   chooseRole,
+  expectNoDriverPhone,
   formAlert,
   login,
   PHONES,
@@ -169,8 +170,10 @@ test.describe("carrier sign-up, Terms and payment", () => {
       `of ${listed.length} drivers`,
     );
     await expect(page.getByRole("link", { name: /Marcus Hill/ }).first()).toBeVisible();
-    // The phone number of a driver is never on the page.
+    // No driver's phone number is anywhere in the search page (client decision of 2026-10-25:
+    // a number reaches a carrier only through a claimed shift, in Milestone 3).
     await expect(page.getByText(/555-1001|\+1555555/)).toHaveCount(0);
+    await expectNoDriverPhone(page);
   });
 
   test("the checkout page is only the carrier's own, and cancelling charges nothing", async ({
@@ -448,6 +451,7 @@ test.describe("driver search and a driver's page", () => {
     await expect(card).toContainText("CDL class");
     await expect(card).toContainText("Equipment");
     await expect(page.getByText(/555-1001|\+1555555/)).toHaveCount(0);
+    await expectNoDriverPhone(page);
 
     const paper = page.getByRole("link", { name: /CDL \(front\)/ });
     await expect(paper).toHaveAttribute("href", `/api/documents/${document!.id}/url`);
