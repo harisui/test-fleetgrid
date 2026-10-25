@@ -60,7 +60,11 @@ describe("/drivers", () => {
     render(<DriversPage />);
     const respect = screen.getByRole("region", { name: "Your card, your call" });
     expect(within(respect).getAllByRole("listitem").map((item) => item.textContent)).toEqual(DRIVERS.respect.items);
-    expect(respect).toHaveTextContent("Your phone number is never shown to carriers.");
+    // The client's sentence of 2026-10-25, replacing "never shown to carriers".
+    expect(respect).toHaveTextContent(
+      "Your phone number is shared only with the carrier whose shift you claim, when you reply YES.",
+    );
+    expect(respect).not.toHaveTextContent(/never shown to carriers/);
     expect(screen.getByRole("region", { name: "Outside the Houston area?" })).toHaveTextContent(
       "If you opted in to texts, we will text you",
     );

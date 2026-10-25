@@ -5,7 +5,7 @@ import { siteUrl } from "@/lib/seo";
 /** When the marketing pages last changed in substance. Bump it with the copy. */
 export const MARKETING_LAST_MODIFIED = "2026-10-16";
 /** LEGAL_EFFECTIVE_DATE (src/lib/constants.ts) as a date: the Terms and Privacy took effect then. */
-export const LEGAL_EFFECTIVE_DATE_ISO = "2026-10-12";
+export const LEGAL_EFFECTIVE_DATE_ISO = "2026-10-25";
 
 /**
  * The public marketing and legal pages only. Sign-in, onboarding, the driver and carrier

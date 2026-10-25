@@ -152,7 +152,10 @@ export const HOME = {
       { title: "No contracts.", text: "Cancel anytime from your account." },
       { title: "Free for drivers.", text: "Carriers pay the subscription." },
       { title: "No wage markup.", text: "Carriers pay drivers directly." },
-      { title: "Your number is never sold.", text: "Carriers never see it. FleetGrid sends the texts." },
+      {
+        title: "Your number is never sold.",
+        text: "Your phone number is shared only with the carrier whose shift you claim, when you reply YES.",
+      },
       { title: "Reply STOP to stop texts.", text: "Any time, from any message." },
     ],
   },
@@ -349,7 +352,7 @@ export const DRIVERS = {
     eyebrow: "Your card, your call",
     items: [
       "Take only the shifts you want.",
-      "Your phone number is never shown to carriers. FleetGrid sends the texts.",
+      "Your phone number is shared only with the carrier whose shift you claim, when you reply YES.",
       "We never sell your number.",
       "Delete your profile at any time from your profile page.",
     ],

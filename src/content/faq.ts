@@ -218,7 +218,7 @@ export const FAQ_TEXTS: FaqGroup = {
       id: "texts-documents",
       question: "Will carriers see my documents?",
       answer:
-        "Only a carrier with an active subscription who is reviewing you for a shift, and FleetGrid staff. Your phone number is never shown to carriers; FleetGrid sends the texts.",
+        "Only a carrier with an active subscription who is reviewing you for a shift, and FleetGrid staff. Your phone number is shared only with the carrier whose shift you claim, when you reply YES.",
     },
     {
       id: "texts-rates",
