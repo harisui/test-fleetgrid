@@ -554,6 +554,28 @@ describe("DriverResults", () => {
     // Never the phone number, in any form.
     expect(document.body.innerHTML).not.toMatch(/555-0100|5555550100|\+1555|tel:/);
     expect(screen.queryByRole("navigation", { name: "Pages" })).not.toBeInTheDocument();
+    // Opted in: no mark, and the table says so.
+    expect(document.querySelector("[data-slot=no-shift-texts]")).toBeNull();
+    expect(screen.getByRole("cell", { name: "Shift texts on" })).toBeInTheDocument();
+  });
+
+  it.each([
+    ["declined texts", { smsOptIn: false }],
+    ["replied STOP", { smsOptedOut: true }],
+  ] as const)("marks a driver who %s with No shift texts, on the card and in the table", (_label, overrides) => {
+    render(
+      <DriverResults
+        page={page({ matches: [{ driver: buildDriver(overrides), distanceMiles: 1 }], total: 1 })}
+        query={new URLSearchParams()}
+      />,
+    );
+    const marks = document.querySelectorAll("[data-slot=no-shift-texts]");
+    expect(marks).toHaveLength(2);
+    for (const mark of marks) {
+      expect(mark).toHaveTextContent("No shift texts");
+      expect(mark).toHaveAttribute("data-variant", "warning");
+    }
+    expect(screen.getByRole("columnheader", { name: "Texts" })).toBeInTheDocument();
   });
 
   it("pages, keeping the filters in the links", () => {
@@ -630,6 +652,24 @@ describe("DriverCardView", () => {
       expect(screen.queryByText(label)).not.toBeInTheDocument();
     }
     expect(document.querySelector("[data-slot=no-papers]")).toHaveTextContent("No papers uploaded yet");
+  });
+
+  it("says when a broadcast would not reach the driver", () => {
+    const { unmount } = render(
+      <DriverCardView driver={buildDriver()} distanceMiles={0} documents={[]} />,
+    );
+    expect(document.querySelector("[data-slot=texts-status]")).toHaveTextContent(
+      "Shift offers reach this driver by text through FleetGrid.",
+    );
+    expect(document.querySelector("[data-slot=no-shift-texts]")).toBeNull();
+    unmount();
+    render(
+      <DriverCardView driver={buildDriver({ smsOptIn: false })} distanceMiles={0} documents={[]} />,
+    );
+    expect(document.querySelector("[data-slot=no-shift-texts]")).toHaveTextContent("No shift texts");
+    expect(document.querySelector("[data-slot=texts-status]")).toHaveTextContent(
+      "has not turned on shift texts, so a broadcast will not reach them",
+    );
   });
 });
 

@@ -39,6 +39,14 @@ export function summarizeDriver(driver: Driver): DriverSummary {
   };
 }
 
+/** The mark a carrier sees on a listed driver who gets no shift texts. */
+export const NO_SHIFT_TEXTS_LABEL = "No shift texts";
+
+/** True when a shift broadcast would reach this driver: opted in and never replied STOP. */
+export function receivesShiftTexts(driver: Pick<Driver, "smsOptIn" | "smsOptedOut">): boolean {
+  return driver.smsOptIn && !driver.smsOptedOut;
+}
+
 /** "12.4 miles" or "0.0 miles", as the search reports it. */
 export function formatMiles(miles: number): string {
   return `${miles.toFixed(1)} miles`;

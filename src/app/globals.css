@@ -61,6 +61,12 @@
   --radius-badge: var(--radius-badge);
   --radius-sheet: var(--radius-sheet);
   --radius-sign: var(--radius-sign);
+  /* The illustrated phone only: rounded-phone, rounded-screen, rounded-bubble, rounded-round, aspect-phone. */
+  --radius-phone: var(--radius-phone);
+  --radius-screen: var(--radius-screen);
+  --radius-bubble: var(--radius-bubble);
+  --radius-round: var(--radius-round);
+  --aspect-phone: var(--phone-aspect);
   --radius-sm: var(--radius-badge);
   --radius-md: var(--radius-field);
   --radius-lg: var(--radius-card);
@@ -71,11 +77,13 @@
   --shadow-1: var(--shadow-1);
   --shadow-2: var(--shadow-2);
 
-  /* Sizes: h-target, h-target-lg, min-h-card-min, max-w-content */
+  /* Sizes: h-target, h-target-lg, min-h-card-min, max-w-content, max-w-site, max-w-reading */
   --spacing-target: var(--target-min);
   --spacing-target-lg: var(--target-primary);
   --spacing-card-min: var(--card-min-h);
   --container-content: var(--content-max);
+  --container-site: var(--site-max);
+  --container-reading: var(--reading-max);
 
   /* Type: text-body, text-body-lg, text-label, text-helper, text-button, text-eyebrow, text-h1, text-h2, text-code, text-small */
   --text-body: var(--text-body);
@@ -120,8 +128,10 @@
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-barlow-condensed);
 
-  /* Motion: duration-(--dur-press) etc., ease-standard */
+  /* Motion: duration-(--dur-press) etc., ease-standard; the site's ease-motion and
+     duration-(--motion-fast) and so on. */
   --ease-standard: var(--ease-standard);
+  --ease-motion: var(--motion-ease);
   --default-transition-duration: var(--dur-state);
   --default-transition-timing-function: var(--ease-standard);
 
@@ -146,6 +156,214 @@
     var(--lane-line) 0 var(--lane-dash),
     transparent var(--lane-dash) calc(var(--lane-dash) + var(--lane-gap))
   );
+}
+
+/* Section reveals on the marketing site (src/components/marketing/Reveal.tsx). Content is
+   visible in the server HTML; the hidden start applies only once the inline script in the
+   root layout has marked the page `js-motion`, which it never does under reduced motion.
+   Children of a Stagger carry --i, so each one waits a step longer. */
+[data-reveal] {
+  transition:
+    opacity var(--motion-slow) var(--motion-ease),
+    transform var(--motion-slow) var(--motion-ease);
+  transition-delay: calc(var(--i, 0) * var(--motion-stagger));
+}
+html.js-motion [data-reveal]:not([data-revealed]) {
+  opacity: 0;
+  transform: translateY(var(--motion-distance-md));
+}
+
+/* Printing a legal page: the text alone, black on white, with the links' addresses. */
+@media print {
+  [data-slot="launch-strip"],
+  [data-slot="site-header"],
+  [data-slot="legal-toc"],
+  [data-slot="scroll-sentinel"],
+  footer {
+    display: none !important;
+  }
+  body {
+    background: white;
+    color: black;
+    font-size: 12pt;
+  }
+  [data-slot="legal-header"] {
+    background: white;
+    color: black;
+    border: 0;
+    padding: 0;
+  }
+  main a[href^="http"]::after {
+    content: " (" attr(href) ")";
+  }
+}
+
+/* The home page highway (src/components/marketing/RoadScene.tsx). With the page marked for
+   motion the ground rolls left at 40 units a second (one 168-unit period every 4.2s) and
+   each mover drives from --from to --to over its own --duration, then is removed. Without
+   the mark the still frame in the HTML stays and nothing moves. */
+@keyframes road-scroll {
+  to {
+    transform: translateX(-168px);
+  }
+}
+@keyframes road-drive {
+  from {
+    transform: translateX(var(--from));
+  }
+  to {
+    transform: translateX(var(--to));
+  }
+}
+html.js-motion [data-slot="road-world"] {
+  animation: road-scroll 4.2s linear infinite;
+}
+html.js-motion [data-slot="road-static"] {
+  display: none;
+}
+[data-slot="road-mover"] {
+  animation: road-drive var(--duration) linear 1 forwards;
+}
+[data-slot="hero-road"][data-paused] * {
+  animation-play-state: paused;
+}
+
+/* The phone in the hero (src/components/marketing/HeroScene.tsx). The server HTML is the
+   final frame. With the page marked for motion, the thread waits empty until the trigger
+   adds `is-playing`, then loops every 9s (--hero-cycle): the offer lands at 0.5s, the reply
+   at 2.3s, the confirmation at 3.8s, the bar fills from 4.7s and SHIFT FILLED lands at
+   5.4s; everything holds, clears between 8.0s and 8.5s, and the loop starts again. Each
+   part is one keyframe set over the whole cycle, so they never drift apart. */
+[data-slot="hero"] {
+  --hero-cycle: 9s;
+}
+@keyframes hero-bubble-1 {
+  0%,
+  5% {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-sm));
+  }
+  10%,
+  89% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+}
+@keyframes hero-bubble-2 {
+  0%,
+  25% {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-sm));
+  }
+  30%,
+  89% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+}
+@keyframes hero-bubble-3 {
+  0%,
+  42% {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-sm));
+  }
+  47%,
+  89% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+}
+@keyframes hero-fill {
+  0%,
+  52% {
+    transform: scaleX(0);
+  }
+  60%,
+  89% {
+    transform: scaleX(1);
+  }
+  94%,
+  100% {
+    transform: scaleX(0);
+  }
+}
+@keyframes hero-badge {
+  0%,
+  60% {
+    opacity: 0;
+    transform: translateY(var(--motion-distance-sm));
+  }
+  65%,
+  89% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  94%,
+  100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+}
+html.js-motion [data-slot="hero"]:not(.is-playing) [data-slot="hero-bubble"],
+html.js-motion [data-slot="hero"]:not(.is-playing) [data-slot="hero-badge"] {
+  opacity: 0;
+}
+html.js-motion [data-slot="hero"]:not(.is-playing) [data-slot="hero-fill"] {
+  transform: scaleX(0);
+}
+[data-slot="hero"].is-playing [data-slot="hero-bubble"][data-bubble="1"] {
+  animation: hero-bubble-1 var(--hero-cycle) var(--motion-ease) infinite;
+}
+[data-slot="hero"].is-playing [data-slot="hero-bubble"][data-bubble="2"] {
+  animation: hero-bubble-2 var(--hero-cycle) var(--motion-ease) infinite;
+}
+[data-slot="hero"].is-playing [data-slot="hero-bubble"][data-bubble="3"] {
+  animation: hero-bubble-3 var(--hero-cycle) var(--motion-ease) infinite;
+}
+[data-slot="hero"].is-playing [data-slot="hero-fill"] {
+  animation: hero-fill var(--hero-cycle) var(--motion-ease) infinite;
+}
+[data-slot="hero"].is-playing [data-slot="hero-badge"] {
+  animation: hero-badge var(--hero-cycle) var(--motion-ease) infinite;
+}
+
+/* The four-mile row on the home page: the fill and the truck travel the whole bar over four
+   reveal steps once the row is in view; without motion they sit at the end. */
+[data-slot="miles-fill"] {
+  transform: scaleX(1);
+  transform-origin: left;
+  transition: transform calc(var(--motion-slow) * 4) var(--motion-ease);
+}
+[data-slot="miles-truck"] {
+  left: 100%;
+  transition: left calc(var(--motion-slow) * 4) var(--motion-ease);
+}
+html.js-motion [data-slot="miles"]:not([data-revealed]) [data-slot="miles-fill"] {
+  transform: scaleX(0);
+}
+html.js-motion [data-slot="miles"]:not([data-revealed]) [data-slot="miles-truck"] {
+  left: 0%;
+}
+
+/* The launch strip above the site header, dismissed once and remembered in localStorage.
+   The same inline script hides it before first paint, so nothing jumps. */
+html.launch-strip-dismissed [data-slot="launch-strip"] {
+  display: none;
 }
 
 @layer base {

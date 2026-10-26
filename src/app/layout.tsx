@@ -1,6 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Geist, Geist_Mono } from "next/font/google";
-import { Toaster } from "@/components/ui/sonner";
+import { JsonLd } from "@/components/seo/JsonLd";
+import { getSiteEnv } from "@/lib/env";
+import { SITE_INIT_SCRIPT } from "@/lib/motion";
+import { organizationJsonLd, websiteJsonLd } from "@/lib/seo";
 import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
@@ -13,6 +16,8 @@ const geistSans = Geist({
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
   subsets: ["latin"],
+  // Only the shift codes and SMS replies use it: not worth a high-priority download on every page.
+  preload: false,
 });
 
 // Headings, eyebrows and numbers. Condensed like US highway signage.
@@ -23,11 +28,16 @@ const barlowCondensed = Barlow_Condensed({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteEnv().NEXT_PUBLIC_SITE_URL),
   title: {
     default: "FleetGrid",
     template: "%s | FleetGrid",
   },
-  description: "FleetGrid connects local freight carriers with local CDL drivers.",
+  description:
+    "FleetGrid connects Houston-area carriers with approved local Class A and B CDL drivers and fills open shifts by text.",
+  applicationName: "FleetGrid",
+  openGraph: { type: "website", siteName: "FleetGrid", locale: "en_US" },
+  twitter: { card: "summary_large_image" },
 };
 
 export const viewport: Viewport = {
@@ -45,10 +55,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <head>
         {/* Applies the saved dark mode choice before first paint (no flash, pages stay static). */}
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+        {/* Marks the page for section reveals (not under reduced motion) and hides a dismissed launch strip. */}
+        <script dangerouslySetInnerHTML={{ __html: SITE_INIT_SCRIPT }} />
       </head>
       <body className="flex min-h-full flex-col">
+        {/* Who runs the site and what the site is, on every page. */}
+        <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
         {children}
-        <Toaster position="top-center" richColors={false} />
       </body>
     </html>
   );

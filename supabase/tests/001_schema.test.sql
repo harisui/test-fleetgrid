@@ -310,10 +310,6 @@ select lives_ok(
   'the check answers are filled in'
 );
 select throws_ok(
-  pg_temp.update_driver($$card_completed = true, operator_types = '{cdl_driver}', years_experience = 5$$),
-  '23514', null, 'card cannot be completed without SMS consent'
-);
-select throws_ok(
   pg_temp.update_driver($$card_completed = true, operator_types = '{}', years_experience = 5,
     sms_opt_in = true, sms_opt_in_at = now(), sms_opt_in_text = 'I agree'$$),
   '23514', null, 'card cannot be completed without an operator type'
@@ -338,9 +334,18 @@ select lives_ok(
     operator_types = '{cdl_driver}', years_experience = 5, sms_opt_in = true, sms_opt_in_at = now(), sms_opt_in_text = 'I agree'$$),
   'a full card can be completed; availability, W-2 or 1099 and the Clearinghouse are not needed'
 );
-select throws_ok(
-  pg_temp.update_driver($$sms_opt_in = false$$),
-  '23514', null, 'a completed card cannot drop SMS consent'
+-- Shift-text consent is optional since 0016 (Twilio: never a condition of signing up).
+select lives_ok(
+  pg_temp.update_driver($$sms_opt_in = false, sms_opt_in_at = null, sms_opt_in_text = null$$),
+  'a completed card may drop SMS consent'
+);
+select lives_ok(
+  pg_temp.update_driver($$card_completed = false$$),
+  'reopen the card'
+);
+select lives_ok(
+  pg_temp.update_driver($$card_completed = true$$),
+  'a card completes without SMS consent'
 );
 
 -- ---------------------------------------------------------------------------

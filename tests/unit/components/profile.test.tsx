@@ -3,6 +3,8 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountStatusCard } from "@/components/driver/AccountStatusCard";
 import { ProfileEditor } from "@/components/driver/ProfileEditor";
+import { SmsConsentControl, TURN_ON_PROMPT } from "@/components/driver/SmsConsentControl";
+import { SMS_CONSENT_TEXT } from "@/lib/constants";
 import { CARD_CHECKS, MVR_QUESTION } from "@/lib/onboarding/options";
 import {
   EQUIPMENT_MESSAGE,
@@ -16,7 +18,10 @@ const actions = vi.hoisted(() => ({
   saveOnboardingScreenAction: vi.fn(),
   updateCardAction: vi.fn(),
   lookupZipAction: vi.fn(),
+  updateSmsConsentAction: vi.fn(),
 }));
+const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }));
+vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 /** The dataset as the profile sees it: Dallas, Chicago and nothing else. */
 const PLACES: Record<string, { city: string; state: string }> = {
@@ -46,7 +51,7 @@ describe("AccountStatusCard", () => {
 
   it.each([
     ["pending", "Pending review", /reviewing your profile/],
-    ["approved", "Approved", /Matching shift offers will be texted/],
+    ["approved", "Approved", /Carriers near you can see your card/],
     ["blocked", "Blocked", /Contact support/],
   ] as const)("explains the %s status", (status, label, help) => {
     render(<AccountStatusCard profile={buildProfile({ status })} driver={buildDriver()} />);
@@ -105,12 +110,88 @@ describe("AccountStatusCard", () => {
     expect(document.querySelector("[data-slot=launch-area-help]")).toBeNull();
   });
 
-  it("shows Not subscribed when consent was never given", () => {
+  it("shows Not subscribed when consent was never given, with the prompt to turn texts on", () => {
     render(
       <AccountStatusCard profile={buildProfile()} driver={buildDriver({ smsOptIn: false })} />,
     );
     expect(screen.getByText("Not subscribed")).toBeInTheDocument();
     expect(screen.queryByText(/You replied STOP/)).not.toBeInTheDocument();
+    expect(screen.getByText(TURN_ON_PROMPT)).toHaveAttribute("data-slot", "sms-consent-prompt");
+    expect(screen.getByRole("button", { name: "Turn on shift texts" })).toBeInTheDocument();
+  });
+
+  it("offers to turn texts off when subscribed, and nothing after a STOP reply", () => {
+    const { unmount } = render(
+      <AccountStatusCard profile={buildProfile()} driver={buildDriver()} />,
+    );
+    expect(screen.getByRole("button", { name: "Turn off shift texts" })).toBeInTheDocument();
+    expect(screen.queryByText(TURN_ON_PROMPT)).not.toBeInTheDocument();
+    unmount();
+    render(
+      <AccountStatusCard profile={buildProfile()} driver={buildDriver({ smsOptedOut: true })} />,
+    );
+    expect(screen.queryByRole("button", { name: /shift texts/ })).not.toBeInTheDocument();
+    expect(screen.queryByText(TURN_ON_PROMPT)).not.toBeInTheDocument();
+  });
+});
+
+describe("SmsConsentControl", () => {
+  const box = () => screen.getByRole("checkbox", { name: new RegExp(SMS_CONSENT_TEXT.slice(0, 20)) });
+  const turnOn = () => screen.getByRole("button", { name: "Turn on shift texts" });
+
+  it("shows the unchecked consent card with links to the three legal pages", () => {
+    render(<SmsConsentControl smsOptIn={false} />);
+    expect(box()).not.toBeChecked();
+    for (const [name, href] of [
+      ["SMS Terms", "/sms-terms"],
+      ["Terms of Service", "/terms"],
+      ["Privacy Policy", "/privacy"],
+    ]) {
+      expect(screen.getByRole("link", { name })).toHaveAttribute("href", href);
+    }
+    expect(turnOn()).toHaveClass("h-target");
+  });
+
+  it("needs the box ticked before it turns texts on", async () => {
+    render(<SmsConsentControl smsOptIn={false} />);
+    await userEvent.click(turnOn());
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Tap the box to agree before turning texts on",
+    );
+    expect(actions.updateSmsConsentAction).not.toHaveBeenCalled();
+  });
+
+  it("turns texts on with the ticked box, then refreshes the page", async () => {
+    actions.updateSmsConsentAction.mockResolvedValue(ok(buildDriver()));
+    render(<SmsConsentControl smsOptIn={false} />);
+    await userEvent.click(box());
+    await userEvent.click(turnOn());
+    await waitFor(() =>
+      expect(actions.updateSmsConsentAction).toHaveBeenCalledWith({ consent: true }),
+    );
+    await waitFor(() => expect(router.refresh).toHaveBeenCalled());
+    expect(toast.success).toHaveBeenCalledWith("Shift texts are on");
+  });
+
+  it("turns texts off from the link", async () => {
+    actions.updateSmsConsentAction.mockResolvedValue(ok(buildDriver({ smsOptIn: false })));
+    render(<SmsConsentControl smsOptIn />);
+    await userEvent.click(screen.getByRole("button", { name: "Turn off shift texts" }));
+    await waitFor(() =>
+      expect(actions.updateSmsConsentAction).toHaveBeenCalledWith({ consent: false }),
+    );
+    expect(toast.success).toHaveBeenCalledWith("Shift texts are off");
+  });
+
+  it("shows the server's message when it refuses", async () => {
+    actions.updateSmsConsentAction.mockResolvedValue(
+      failure("You replied STOP, so texts can only be turned back on by replying START."),
+    );
+    render(<SmsConsentControl smsOptIn={false} />);
+    await userEvent.click(box());
+    await userEvent.click(turnOn());
+    expect(await screen.findByRole("alert")).toHaveTextContent(/replying START/);
+    expect(router.refresh).not.toHaveBeenCalled();
   });
 });
 

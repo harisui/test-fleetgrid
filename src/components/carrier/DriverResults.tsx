@@ -1,9 +1,15 @@
-import { ChevronLeft, ChevronRight, Loader2, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Loader2, MessageSquareOff, Users } from "lucide-react";
 import Link from "next/link";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatMiles, summarizeDriver } from "@/lib/carrier/driverSummary";
+import {
+  formatMiles,
+  NO_SHIFT_TEXTS_LABEL,
+  receivesShiftTexts,
+  summarizeDriver,
+} from "@/lib/carrier/driverSummary";
 import type { DriverSearchPage } from "@/server/services/DriverSearchService";
 
 interface DriverResultsProps {
@@ -18,6 +24,28 @@ function pageHref(query: URLSearchParams, page: number): string {
   const next = new URLSearchParams(query);
   next.set("page", String(page));
   return `/carrier/search?${next.toString()}`;
+}
+
+const HEADINGS = [
+  "Driver",
+  "Distance",
+  "Class",
+  "Experience",
+  "Endorsements",
+  "Equipment",
+  "Cards",
+  "Record",
+  "Texts",
+] as const;
+
+/** The mark on a driver a broadcast would not reach. Shown by the icon and the words, not a colour. */
+function NoTextsBadge() {
+  return (
+    <Badge variant="warning" data-slot="no-shift-texts">
+      <MessageSquareOff aria-hidden="true" />
+      {NO_SHIFT_TEXTS_LABEL}
+    </Badge>
+  );
 }
 
 /** Stands in for the results while a search loads: a spinner with the words, and placeholder rows. */
@@ -44,7 +72,8 @@ export function DriverResultsLoading() {
 /**
  * The results: cards on a phone, a table from the md breakpoint up. Every row opens the
  * driver's page. The phone number is never here: a driver's number reaches a carrier only
- * through a shift the driver claims (Milestone 3).
+ * through a shift the driver claims (Milestone 3). A driver who declined shift texts, or
+ * replied STOP, is listed with the "No shift texts" mark.
  */
 export function DriverResults({ page, query }: DriverResultsProps) {
   if (page.total === 0) {
@@ -90,6 +119,11 @@ export function DriverResults({ page, query }: DriverResultsProps) {
               <span className="text-helper leading-helper text-muted-foreground">
                 {summary.equipment}. {summary.cards}.
               </span>
+              {!receivesShiftTexts(match.driver) && (
+                <span className="flex">
+                  <NoTextsBadge />
+                </span>
+              )}
             </Link>
           </li>
         ))}
@@ -99,13 +133,11 @@ export function DriverResults({ page, query }: DriverResultsProps) {
         <table className="w-full text-helper leading-helper">
           <thead className="border-b border-border text-left text-small leading-small text-muted-foreground">
             <tr>
-              {["Driver", "Distance", "Class", "Experience", "Endorsements", "Equipment", "Cards", "Record"].map(
-                (heading) => (
-                  <th key={heading} scope="col" className="px-3 py-3 font-semibold whitespace-nowrap">
-                    {heading}
-                  </th>
-                ),
-              )}
+              {HEADINGS.map((heading) => (
+                <th key={heading} scope="col" className="px-3 py-3 font-semibold whitespace-nowrap">
+                  {heading}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody className="divide-y divide-border align-top">
@@ -129,6 +161,9 @@ export function DriverResults({ page, query }: DriverResultsProps) {
                   ))}
                 </td>
                 <td className="px-3 py-3">{summary.record}</td>
+                <td className="px-3 py-3 whitespace-nowrap">
+                  {receivesShiftTexts(match.driver) ? "Shift texts on" : <NoTextsBadge />}
+                </td>
               </tr>
             ))}
           </tbody>

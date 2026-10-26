@@ -82,13 +82,29 @@ describe("themes.css shared tokens", () => {
     expect(parsed.shared.dark["--shadow-2"]).toBe("none");
   });
 
-  it("reduced motion sets every duration to 0ms", () => {
+  it("reduced motion sets every duration to 0ms and every travel to 0px", () => {
     expect(parsed.shared.reducedMotion).toEqual({
       "--dur-press": "0ms",
       "--dur-state": "0ms",
       "--dur-move": "0ms",
       "--dur-hint": "0ms",
+      "--motion-fast": "0ms",
+      "--motion-base": "0ms",
+      "--motion-slow": "0ms",
+      "--motion-distance-sm": "0px",
+      "--motion-distance-md": "0px",
+      "--motion-stagger": "0ms",
     });
+  });
+
+  it("the site's motion tokens: one easing, short durations, small distances, a 50ms stagger", () => {
+    expect(parsed.shared.root["--motion-ease"]).toBe("cubic-bezier(0.2, 0, 0, 1)");
+    expect(parsed.shared.root["--motion-fast"]).toBe("120ms");
+    expect(parsed.shared.root["--motion-base"]).toBe("160ms");
+    expect(parsed.shared.root["--motion-slow"]).toBe("200ms");
+    expect(parsed.shared.root["--motion-distance-sm"]).toBe("8px");
+    expect(parsed.shared.root["--motion-distance-md"]).toBe("12px");
+    expect(parsed.shared.root["--motion-stagger"]).toBe("50ms");
   });
 
   it("the scroll hint dips slowly and only a little", () => {

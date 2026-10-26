@@ -6,6 +6,7 @@ import {
   getServerEnv,
   parseClientEnv,
   parseServerEnv,
+  parseSiteEnv,
   resetEnvCache,
 } from "@/lib/env";
 
@@ -148,6 +149,36 @@ describe("parseServerEnv", () => {
   it("produces a clear, actionable error message", () => {
     expect(() => parseServerEnv({})).toThrowError(/Invalid environment variables:/);
     expect(() => parseServerEnv({})).toThrowError(/\.env\.example/);
+  });
+});
+
+describe("parseSiteEnv", () => {
+  it("defaults to the canonical host with both number switches off", () => {
+    expect(parseSiteEnv({})).toEqual({
+      NEXT_PUBLIC_SITE_URL: "https://fleetgridus.com",
+      NEXT_PUBLIC_SHOW_PHONE: false,
+      NEXT_PUBLIC_SHOW_SMS_NUMBER: false,
+    });
+    expect(parseSiteEnv({ NEXT_PUBLIC_SITE_URL: "" }).NEXT_PUBLIC_SITE_URL).toBe(
+      "https://fleetgridus.com",
+    );
+  });
+
+  it("reads the switches as flags and the host as a URL", () => {
+    expect(
+      parseSiteEnv({
+        NEXT_PUBLIC_SITE_URL: "http://localhost:3000",
+        NEXT_PUBLIC_SHOW_PHONE: "true",
+        NEXT_PUBLIC_SHOW_SMS_NUMBER: "TRUE",
+      }),
+    ).toEqual({
+      NEXT_PUBLIC_SITE_URL: "http://localhost:3000",
+      NEXT_PUBLIC_SHOW_PHONE: true,
+      NEXT_PUBLIC_SHOW_SMS_NUMBER: false,
+    });
+    expect(issuesOf(() => parseSiteEnv({ NEXT_PUBLIC_SITE_URL: "fleetgridus" }))).toEqual([
+      "NEXT_PUBLIC_SITE_URL must be a valid URL",
+    ]);
   });
 });
 

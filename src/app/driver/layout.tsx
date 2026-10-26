@@ -1,3 +1,4 @@
+import { ToastHost } from "@/components/layout/ToastHost";
 import { requireRole } from "@/lib/auth/guards";
 
 /**
@@ -6,5 +7,5 @@ import { requireRole } from "@/lib/auth/guards";
  */
 export default async function DriverLayout({ children }: LayoutProps<"/driver">) {
   await requireRole("driver");
-  return children;
+  return <ToastHost>{children}</ToastHost>;
 }

@@ -1,4 +1,4 @@
-import { FileText, MessageSquareText } from "lucide-react";
+import { FileText, MessageSquareOff, MessageSquareText } from "lucide-react";
 import { SummaryCard } from "@/components/driver/SummaryCard";
 import { ActionBar } from "@/components/onboarding/ActionBar";
 import { OnboardingContent } from "@/components/onboarding/OnboardingShell";
@@ -19,19 +19,29 @@ interface DoneScreenProps {
   onEdit: (stepId: StepId) => void;
 }
 
+/** Shown when the driver finished without ticking the shift-text box. */
+export const NO_TEXTS_NEXT_STEP =
+  "You chose not to receive shift texts. Turn them on from your profile when you want offers.";
+
 const NEXT_STEPS = [
   {
     icon: MessageSquareText,
     text: "Shift offers arrive by text. Reply YES to claim one.",
     /** Only where FleetGrid is live, and only for drivers who said yes to texts. */
-    textsOnly: true,
+    when: "texts" as const,
+  },
+  {
+    icon: MessageSquareOff,
+    text: NO_TEXTS_NEXT_STEP,
+    /** Only for drivers who left the shift-text box unticked. */
+    when: "declined" as const,
   },
   {
     icon: FileText,
     text: "You can add your CDL and medical card any time from Documents.",
-    textsOnly: false,
+    when: "always" as const,
   },
-] as const;
+];
 
 /**
  * The end of the road, rendered inside the onboarding shell, in the client's words
@@ -42,6 +52,11 @@ const NEXT_STEPS = [
 export function DoneScreen({ driver, onEdit }: DoneScreenProps) {
   const outOfArea = driver.inServiceArea === false;
   const textsOn = driver.smsOptIn && !driver.smsOptedOut;
+  const nextSteps = NEXT_STEPS.filter((item) => {
+    if (item.when === "texts") return !outOfArea && textsOn;
+    if (item.when === "declined") return !driver.smsOptIn;
+    return true;
+  });
   return (
     <>
       <OnboardingContent>
@@ -61,7 +76,7 @@ export function DoneScreen({ driver, onEdit }: DoneScreenProps) {
           </p>
           <SummaryCard driver={driver} onEdit={onEdit} />
           <ul className="flex flex-col gap-3" aria-label="What happens next">
-            {NEXT_STEPS.filter((item) => !item.textsOnly || (!outOfArea && textsOn)).map((item) => (
+            {nextSteps.map((item) => (
               <li key={item.text} className="flex items-start gap-3 text-helper leading-helper">
                 <item.icon
                   aria-hidden="true"

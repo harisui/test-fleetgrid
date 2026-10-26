@@ -19,6 +19,14 @@
   --radius-badge: 2px;
   --radius-sheet: 8px;
   --radius-sign: 4px;
+  /* The illustrated phone on the home page: its shell, its screen, its message bubbles,
+     and the pill shapes on it. The round radius also draws the site's "included" marks. */
+  --radius-phone: 44px;
+  --radius-screen: 34px;
+  --radius-bubble: 16px;
+  --radius-round: 999px;
+  /* The body of a 6.3-inch iPhone 18 Pro: 71.9mm wide, 150.0mm tall (Apple's specifications). */
+  --phone-aspect: 71.9 / 150;
 
   --border-1: 1px;
   --border-2: 2px;
@@ -41,6 +49,10 @@
   --target-primary: 56px;
   --card-min-h: 64px;
   --content-max: 560px;
+  /* The marketing site's page container (header, footer and every section). */
+  --site-max: 80rem;
+  /* The legal pages' reading column. */
+  --reading-max: 70ch;
   --lane-dash: 8px;
   --lane-gap: 6px;
 
@@ -76,6 +88,16 @@
   --dur-hint: 1800ms;
   --hint-travel: 8px;
   --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+
+  /* The marketing site's motion: hover and press, menus and accordions, section reveals.
+     One easing, three durations, two distances, one stagger step (at most five children). */
+  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
+  --motion-fast: 120ms;
+  --motion-base: 160ms;
+  --motion-slow: 200ms;
+  --motion-distance-sm: 8px;
+  --motion-distance-md: 12px;
+  --motion-stagger: 50ms;
 }
 
 .dark {
@@ -89,6 +111,12 @@
     --dur-state: 0ms;
     --dur-move: 0ms;
     --dur-hint: 0ms;
+    --motion-fast: 0ms;
+    --motion-base: 0ms;
+    --motion-slow: 0ms;
+    --motion-distance-sm: 0px;
+    --motion-distance-md: 0px;
+    --motion-stagger: 0ms;
   }
 }
 /* ==== SHARED END ==== */

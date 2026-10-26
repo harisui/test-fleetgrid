@@ -5,6 +5,7 @@ import { SAVABLE_STEP_IDS } from "@/lib/onboarding/steps";
 import {
   CDL_CLASS_MESSAGE,
   cdlClassScreenSchema,
+  CONSENT_MESSAGE,
   consentScreenSchema,
   credentialsScreenSchema,
   distanceScreenSchema,
@@ -18,6 +19,7 @@ import {
   normalizeZip,
   recordScreenSchema,
   SCREEN_SCHEMAS,
+  smsConsentSchema,
   TRANSMISSION_MESSAGE,
   transmissionScreenSchema,
   TWIC_MESSAGE,
@@ -210,12 +212,20 @@ describe("equipment", () => {
 });
 
 describe("consent", () => {
-  it("accepts only an explicit true", () => {
+  it("is optional: a ticked box is yes, an empty or missing box is no", () => {
     expect(consentScreenSchema.parse({ consent: true })).toEqual({ consent: true });
-    for (const consent of [false, undefined, null, "true", "on", 1]) {
-      expect(errorsOf(consentScreenSchema, { consent })).toEqual({
-        consent: "Tap the box to agree before you finish",
-      });
+    expect(consentScreenSchema.parse({ consent: false })).toEqual({ consent: false });
+    expect(consentScreenSchema.parse({})).toEqual({ consent: false });
+  });
+
+  it("rejects anything that is not a boolean", () => {
+    for (const consent of [null, "true", "on", 1]) {
+      expect(errorsOf(consentScreenSchema, { consent })).toEqual({ consent: CONSENT_MESSAGE });
     }
+  });
+
+  it("the profile switch needs an explicit answer", () => {
+    expect(smsConsentSchema.parse({ consent: false })).toEqual({ consent: false });
+    expect(errorsOf(smsConsentSchema, {})).toEqual({ consent: CONSENT_MESSAGE });
   });
 });

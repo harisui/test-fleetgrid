@@ -13,6 +13,14 @@ export default defineConfig({
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
   reporter: isCI ? [["github"], ["html", { open: "never" }]] : [["list"]],
+  // Visual baselines (tests/e2e/visual.spec.ts) are Windows Chromium renders, one file per
+  // name with no platform suffix. Linux draws text differently, so CI skips the comparison
+  // and the local run is the check.
+  snapshotPathTemplate: "{testDir}/__screenshots__/{arg}{ext}",
+  ignoreSnapshots: isCI,
+  expect: {
+    toHaveScreenshot: { animations: "disabled", caret: "hide", maxDiffPixelRatio: 0.002 },
+  },
   use: {
     baseURL,
     trace: "on-first-retry",

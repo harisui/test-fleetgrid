@@ -29,6 +29,7 @@ describe("RLS through real clients: carriers, subscriptions and what carriers se
   let listedPasadena: TestDriver;
   let pendingDriver: TestDriver;
   let optedOut: TestDriver;
+  let declined: TestDriver;
   let outOfArea: TestDriver;
   let incomplete: TestDriver;
   let driverOnly: TestDriver;
@@ -37,9 +38,16 @@ describe("RLS through real clients: carriers, subscriptions and what carriers se
   let pendingDoc: string;
 
   const testDriverIds = () =>
-    [listedHouston, listedPasadena, pendingDriver, optedOut, outOfArea, incomplete, driverOnly].map(
-      (driver) => driver.driverId,
-    );
+    [
+      listedHouston,
+      listedPasadena,
+      pendingDriver,
+      optedOut,
+      declined,
+      outOfArea,
+      incomplete,
+      driverOnly,
+    ].map((driver) => driver.driverId);
 
   const documentRow = (driverId: string, file: string) => ({
     driver_id: driverId,
@@ -57,8 +65,16 @@ describe("RLS through real clients: carriers, subscriptions and what carriers se
       createTestCarrier(),
       createTestCarrier({ subscription: "past_due" }),
     ]);
-    [listedHouston, listedPasadena, pendingDriver, optedOut, outOfArea, incomplete, driverOnly] =
-      await Promise.all([
+    [
+      listedHouston,
+      listedPasadena,
+      pendingDriver,
+      optedOut,
+      declined,
+      outOfArea,
+      incomplete,
+      driverOnly,
+    ] = await Promise.all([
         createListedDriver({ fullName: "Listed Houston" }),
         createListedDriver({
           fullName: "Listed Pasadena",
@@ -76,6 +92,13 @@ describe("RLS through real clients: carriers, subscriptions and what carriers se
           fullName: "Opted out",
           sms_opted_out: true,
           sms_opted_out_at: new Date().toISOString(),
+        }),
+        // Finished the card without ticking the shift-text box (optional since 0016).
+        createListedDriver({
+          fullName: "Declined texts",
+          sms_opt_in: false,
+          sms_opt_in_at: null,
+          sms_opt_in_text: null,
         }),
         createListedDriver({ fullName: "Dallas", place: TEST_PLACES.dallas }),
         createListedDriver({
@@ -174,15 +197,20 @@ describe("RLS through real clients: carriers, subscriptions and what carriers se
       expect(events.error).not.toBeNull();
     });
 
-    it("sees the listed cards only: approved, complete, opted in, inside a launch area", async () => {
+    it("sees the listed cards only: approved, complete, inside a launch area, texts or not", async () => {
       // The seed's Houston drivers are listed too, so look at this test's drivers only.
       const { data, error } = await subscribed.client
         .from("drivers")
-        .select("full_name")
+        .select("full_name, sms_opt_in, sms_opted_out")
         .in("id", testDriverIds())
         .order("full_name");
       expect(error).toBeNull();
-      expect(data?.map((row) => row.full_name)).toEqual(["Listed Houston", "Listed Pasadena"]);
+      expect(data).toEqual([
+        { full_name: "Declined texts", sms_opt_in: false, sms_opted_out: false },
+        { full_name: "Listed Houston", sms_opt_in: true, sms_opted_out: false },
+        { full_name: "Listed Pasadena", sms_opt_in: true, sms_opted_out: false },
+        { full_name: "Opted out", sms_opt_in: true, sms_opted_out: true },
+      ]);
     });
 
     it("never reads a driver's profile, so never the phone number", async () => {
@@ -238,7 +266,9 @@ describe("RLS through real clients: carriers, subscriptions and what carriers se
       const ids = rows.map((row) => row.driver_id);
       expect(ids).toContain(listedHouston.driverId);
       expect(ids).toContain(listedPasadena.driverId);
-      for (const hidden of [pendingDriver, optedOut, outOfArea, incomplete, driverOnly]) {
+      expect(ids).toContain(optedOut.driverId);
+      expect(ids).toContain(declined.driverId);
+      for (const hidden of [pendingDriver, outOfArea, incomplete, driverOnly]) {
         expect(ids).not.toContain(hidden.driverId);
       }
       expect(rows.find((row) => row.driver_id === listedHouston.driverId)).toMatchObject({
@@ -271,7 +301,12 @@ describe("RLS through real clients: carriers, subscriptions and what carriers se
     it("has the same access as an active one", async () => {
       const { data } = await trialing.client.from("drivers").select("id").in("id", testDriverIds());
       expect(data?.map((row) => row.id).sort()).toEqual(
-        [listedHouston.driverId, listedPasadena.driverId].sort(),
+        [
+          listedHouston.driverId,
+          listedPasadena.driverId,
+          optedOut.driverId,
+          declined.driverId,
+        ].sort(),
       );
     });
   });
@@ -361,11 +396,11 @@ describe("RLS through real clients: carriers, subscriptions and what carriers se
     });
   });
 
-  it("the out-of-area, pending, opted-out and incomplete cards exist but are not listed", async () => {
+  it("the out-of-area, pending and incomplete cards exist but are not listed", async () => {
     const { data } = await serviceClient()
       .from("drivers")
       .select("id")
-      .in("id", [outOfArea.driverId, pendingDriver.driverId, optedOut.driverId, incomplete.driverId]);
-    expect(data).toHaveLength(4);
+      .in("id", [outOfArea.driverId, pendingDriver.driverId, incomplete.driverId]);
+    expect(data).toHaveLength(3);
   });
 });

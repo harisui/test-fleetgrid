@@ -1,6 +1,11 @@
-import { ExternalLink, FileText, MapPin } from "lucide-react";
+import { ExternalLink, FileText, MapPin, MessageSquareOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { formatMiles, summarizeDriver } from "@/lib/carrier/driverSummary";
+import {
+  formatMiles,
+  NO_SHIFT_TEXTS_LABEL,
+  receivesShiftTexts,
+  summarizeDriver,
+} from "@/lib/carrier/driverSummary";
 import { formatFileSize } from "@/lib/image";
 import { AVAILABILITY_LABELS, DOCUMENT_TYPE_LABELS, type Driver, type DriverDocument } from "@/types/domain";
 import { DRIVING_STYLE_OPTIONS, EMPLOYMENT_TYPE_OPTIONS } from "@/lib/onboarding/options";
@@ -66,10 +71,26 @@ export function DriverCardView({ driver, distanceMiles, documents }: DriverCardV
             {formatMiles(distanceMiles)} from your yard
           </Badge>
         </p>
-        <p className="text-helper leading-helper text-muted-foreground">
-          Travels up to {driver.serviceRadiusMiles} miles for work. Shift offers reach this driver
-          by text through FleetGrid.
-        </p>
+        {receivesShiftTexts(driver) ? (
+          <p className="text-helper leading-helper text-muted-foreground" data-slot="texts-status">
+            Travels up to {driver.serviceRadiusMiles} miles for work. Shift offers reach this
+            driver by text through FleetGrid.
+          </p>
+        ) : (
+          <p
+            className="flex flex-wrap items-center gap-2 text-helper leading-helper text-muted-foreground"
+            data-slot="texts-status"
+          >
+            <Badge variant="warning" data-slot="no-shift-texts">
+              <MessageSquareOff aria-hidden="true" />
+              {NO_SHIFT_TEXTS_LABEL}
+            </Badge>
+            <span>
+              Travels up to {driver.serviceRadiusMiles} miles for work. This driver has not turned
+              on shift texts, so a broadcast will not reach them.
+            </span>
+          </p>
+        )}
       </div>
 
       <section aria-labelledby="card-title" className="flex flex-col gap-3">

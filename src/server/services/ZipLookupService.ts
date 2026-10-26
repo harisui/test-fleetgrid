@@ -1,4 +1,4 @@
-import { normalizeZip } from "@/lib/validation/onboarding.schema";
+import { normalizeZip } from "@/lib/zip-format";
 import type { IZipProvider } from "@/server/providers/ZipProvider";
 import type { IServiceAreaRepository } from "@/server/repositories/ServiceAreaRepository";
 

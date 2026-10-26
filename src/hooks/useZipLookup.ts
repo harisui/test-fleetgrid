@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { normalizeZip } from "@/lib/validation/onboarding.schema";
+import { normalizeZip } from "@/lib/zip-format";
 import type { Result } from "@/server/errors/AppError";
 import { lookupZipAction } from "@/server/actions/driver.actions";
 import type { ZipLookup } from "@/server/services/ZipLookupService";

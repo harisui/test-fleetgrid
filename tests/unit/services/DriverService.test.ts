@@ -4,6 +4,7 @@ import { SMS_CONSENT_TEXT } from "@/lib/constants";
 import { SAVABLE_STEP_IDS, stepNumber, type SavableStepId } from "@/lib/onboarding/steps";
 import {
   CDL_CLASS_MESSAGE,
+  CONSENT_MESSAGE,
   EQUIPMENT_MESSAGE,
   MEDICAL_CARD_MESSAGE,
   MVR_MESSAGE,
@@ -467,16 +468,36 @@ describe("DriverService", () => {
       expect(driver).toMatchObject(PROFILE_ONLY_EMPTY);
     });
 
-    it.each([{ consent: false }, {}, { consent: "true" }, undefined])(
-      "cannot finish without consent (%j)",
+    it.each([{ consent: false }, {}, undefined])(
+      "finishes without consent (%j): the card completes, no opt-in, no audit row",
       async (input) => {
-        const error = await expectAppError(service.saveScreen(USER_ID, "consent", input));
-        expect(error.code).toBe("VALIDATION");
-        expect(error.fieldErrors).toEqual({ consent: "Tap the box to agree before you finish" });
-        expect(card().cardCompleted).toBe(false);
-        expect(card().smsOptIn).toBe(false);
+        const driver = await service.saveScreen(USER_ID, "consent", input);
+        expect(driver.cardCompleted).toBe(true);
+        expect(driver.onboardingStep).toBe(12);
+        expect(driver.smsOptIn).toBe(false);
+        expect(driver.smsOptInAt).toBeNull();
+        expect(driver.smsOptInText).toBeNull();
+        expect(consentLog.entries).toEqual([]);
       },
     );
+
+    it("rejects an answer that is not a boolean", async () => {
+      const error = await expectAppError(service.saveScreen(USER_ID, "consent", { consent: "true" }));
+      expect(error.code).toBe("VALIDATION");
+      expect(error.fieldErrors).toEqual({ consent: CONSENT_MESSAGE });
+      expect(card().cardCompleted).toBe(false);
+    });
+
+    it("unticking the box after an earlier opt-in records the opt-out and keeps the card complete", async () => {
+      await service.saveScreen(USER_ID, "consent", { consent: true });
+      const driver = await service.saveScreen(USER_ID, "consent", { consent: false });
+      expect(driver.cardCompleted).toBe(true);
+      expect(driver.smsOptIn).toBe(false);
+      expect(driver.smsOptInAt).toBeNull();
+      expect(driver.smsOptInText).toBeNull();
+      expect(consentLog.entries.map((entry) => entry.event)).toEqual(["opt_in", "opt_out"]);
+      expect(consentLog.entries[1]).toMatchObject({ source: "onboarding" });
+    });
 
     it("writes the consent audit row, with the exact text and version, before completing", async () => {
       await service.saveScreen(USER_ID, "consent", { consent: true });
@@ -548,6 +569,66 @@ describe("DriverService", () => {
       );
       const error = await expectAppError(service.saveScreen(USER_ID, "consent", { consent: true }));
       expect(error.fieldErrors).toEqual({ cdlClass: "Required" });
+    });
+  });
+
+  describe("setSmsConsent (the profile page switch)", () => {
+    beforeEach(() => completeThrough("equipment"));
+
+    it("turns texts on with the audit row first, from the profile", async () => {
+      await service.saveScreen(USER_ID, "consent", { consent: false });
+      const driver = await service.setSmsConsent(USER_ID, { consent: true });
+      expect(driver.smsOptIn).toBe(true);
+      expect(driver.smsOptInText).toBe(SMS_CONSENT_TEXT);
+      expect(driver.smsOptInAt).toBe("2026-10-05T15:30:00.000Z");
+      expect(driver.inServiceArea).not.toBeUndefined();
+      expect(consentLog.entries).toEqual([
+        {
+          phone: buildProfile().phone,
+          event: "opt_in",
+          consentText: SMS_CONSENT_TEXT,
+          consentVersion: "2026-10-v1",
+          source: "profile",
+        },
+      ]);
+    });
+
+    it("turns texts off, recording the opt-out", async () => {
+      await service.saveScreen(USER_ID, "consent", { consent: true });
+      const driver = await service.setSmsConsent(USER_ID, { consent: false });
+      expect(driver.smsOptIn).toBe(false);
+      expect(consentLog.entries.map((entry) => [entry.event, entry.source])).toEqual([
+        ["opt_in", "onboarding"],
+        ["opt_out", "profile"],
+      ]);
+    });
+
+    it("does nothing when the answer matches what is on record", async () => {
+      await service.saveScreen(USER_ID, "consent", { consent: true });
+      const driver = await service.setSmsConsent(USER_ID, { consent: true });
+      expect(driver.smsOptIn).toBe(true);
+      expect(consentLog.entries).toHaveLength(1);
+    });
+
+    it("cannot undo a STOP reply: only START does", async () => {
+      await service.saveScreen(USER_ID, "consent", { consent: true });
+      drivers.rows.set(USER_ID, { ...card(), smsOptedOut: true, smsOptedOutAt: "2026-10-06T00:00:00Z" });
+      const error = await expectAppError(service.setSmsConsent(USER_ID, { consent: true }));
+      expect(error.code).toBe("VALIDATION");
+      expect(error.message).toMatch(/replying START/);
+      expect(consentLog.entries).toHaveLength(1);
+    });
+
+    it("does not turn texts on when the audit row cannot be written", async () => {
+      await service.saveScreen(USER_ID, "consent", { consent: false });
+      consentLog.failNextRecordWith = new Error("log down");
+      await expect(service.setSmsConsent(USER_ID, { consent: true })).rejects.toThrow("log down");
+      expect(card().smsOptIn).toBe(false);
+    });
+
+    it("needs an explicit answer", async () => {
+      const error = await expectAppError(service.setSmsConsent(USER_ID, {}));
+      expect(error.fieldErrors).toEqual({ consent: CONSENT_MESSAGE });
     });
   });
 

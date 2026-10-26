@@ -1,54 +1,73 @@
 import type { ReactNode } from "react";
+import { CONTAINER_CLASS } from "@/components/layout/Container";
 import { Footer } from "@/components/layout/Footer";
-import { Header } from "@/components/layout/Header";
+import { Header, type HeaderVariant } from "@/components/layout/Header";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { HeaderShadow } from "@/components/marketing/HeaderShadow";
+import { LaunchStrip } from "@/components/marketing/LaunchStrip";
 import { cn } from "@/lib/utils";
 import type { NavItem } from "@/types/domain";
 
 interface AppShellProps {
   children: ReactNode;
+  /** app (default): the signed-in pages. marketing: the public site with its strip, header and footer. */
+  variant?: HeaderVariant;
   navItems?: NavItem[];
   headerActions?: ReactNode;
   /**
    * Narrow column for forms and driver screens, wide for tables and dashboards, full for
-   * pages built around a wide table (the carrier app). The header and footer follow wide or full.
+   * pages built around a wide table (the carrier app; the app header follows it), site for
+   * the marketing pages (the Container column: 80rem with the responsive gutter). Marketing
+   * pages default to site.
    */
-  width?: "narrow" | "wide" | "full";
+  width?: "narrow" | "wide" | "full" | "site";
   showFooter?: boolean;
 }
 
+const MAIN_WIDTH = {
+  narrow: "mx-auto w-full max-w-xl px-4",
+  wide: "mx-auto w-full max-w-5xl px-4",
+  full: "mx-auto w-full max-w-7xl px-4",
+  site: CONTAINER_CLASS,
+} as const;
+
 export function AppShell({
   children,
+  variant = "app",
   navItems = [],
   headerActions,
-  width = "wide",
+  width,
   showFooter = true,
 }: AppShellProps) {
   const hasMobileNav = navItems.length > 0;
-  const frame = width === "full" ? "max-w-7xl" : "max-w-5xl";
+  const marketing = variant === "marketing";
+  const mainWidth = width ?? (marketing ? "site" : "wide");
 
   return (
-    <div className="flex min-h-dvh flex-1 flex-col">
+    <div className="relative flex min-h-dvh flex-1 flex-col">
       <a
         href="#main-content"
-        className="bg-background text-foreground focus:ring-ring sr-only z-50 rounded-md px-4 py-2 focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:ring-2"
+        className="bg-background text-foreground focus:ring-ring sr-only z-50 rounded-md px-4 py-2 focus:not-sr-only focus:fixed focus:top-2 focus:left-2"
       >
         Skip to content
       </a>
-      <Header navItems={navItems} actions={headerActions} widthClass={frame} />
+      {marketing && <HeaderShadow />}
+      {marketing && <LaunchStrip />}
+      <Header
+        variant={variant}
+        navItems={navItems}
+        actions={headerActions}
+        widthClass={mainWidth === "full" ? "max-w-7xl" : "max-w-5xl"}
+      />
       <main
         id="main-content"
-        className={cn(
-          "mx-auto w-full flex-1 px-4 py-6",
-          width === "narrow" ? "max-w-xl" : frame,
-          hasMobileNav && "pb-24 md:pb-6",
-        )}
+        className={cn("flex-1 py-6", MAIN_WIDTH[mainWidth], hasMobileNav && "pb-24 md:pb-6")}
       >
         {children}
       </main>
       {showFooter && (
-        <div className={cn(hasMobileNav && "hidden md:block")}>
-          <Footer widthClass={frame} />
+        <div className={cn("flex flex-col", hasMobileNav && "hidden md:flex")}>
+          <Footer />
         </div>
       )}
       <MobileNav navItems={navItems} />

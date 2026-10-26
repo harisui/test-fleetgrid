@@ -1,52 +1,96 @@
 import Link from "next/link";
+import { Container } from "@/components/layout/Container";
+import { Logo } from "@/components/shared/Logo";
+import { FOOTER, SMS_SENDER_NUMBER, type SiteLink } from "@/content/marketing";
+import { getSiteEnv } from "@/lib/env";
+import { formatE164ForDisplay } from "@/lib/phone";
 import { BUSINESS_NAME, getSupportContact } from "@/lib/support";
-import { cn } from "@/lib/utils";
 
-const LEGAL_LINKS = [
-  { href: "/terms", label: "Terms" },
-  { href: "/privacy", label: "Privacy" },
-  { href: "/sms-terms", label: "SMS Terms" },
-] as const;
+const linkClass =
+  "inline-flex min-h-target items-center text-sign-panel-muted underline-offset-4 hover:text-sign-panel-foreground hover:underline";
 
-/** The company, how to reach it, and the legal links. Reads the contact details on the server. */
-export function Footer({ widthClass = "max-w-5xl" }: { widthClass?: string }) {
-  const contact = getSupportContact();
+function FooterLinks({ links }: { links: readonly SiteLink[] }) {
   return (
-    <footer className="border-border text-muted-foreground border-t text-sm">
-      <div
-        className={cn(
-          "mx-auto flex w-full flex-col items-center gap-4 px-4 py-6 sm:flex-row sm:items-start sm:justify-between",
-          widthClass,
-        )}
-      >
-        <div className="flex flex-col gap-1 text-center sm:text-left">
-          <p>
-            &copy; {new Date().getFullYear()} {BUSINESS_NAME}
-          </p>
-          <address className="flex flex-col gap-1 not-italic" data-slot="footer-contact">
-            <a
-              href={`mailto:${contact.email}`}
-              className="hover:text-foreground underline-offset-4 hover:underline"
-            >
+    <ul className="flex flex-col">
+      {links.map((link) => (
+        <li key={link.href}>
+          <Link href={link.href} className={linkClass}>
+            {link.label}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+function ColumnTitle({ children }: { children: string }) {
+  return (
+    <h2 className="font-heading text-eyebrow leading-eyebrow font-semibold tracking-eyebrow uppercase">
+      {children}
+    </h2>
+  );
+}
+
+/**
+ * The graphite footer under every page, with the 4px orange stripe on top. The company
+ * and how to reach it, the carrier, driver and company columns, then the legal line and
+ * the texting line. The phone number for calls and the texting sender are shown only when
+ * their switches are on. Reads the contact details on the server.
+ */
+export function Footer() {
+  const contact = getSupportContact();
+  const site = getSiteEnv();
+  const smsNumber = formatE164ForDisplay(SMS_SENDER_NUMBER);
+
+  return (
+    <footer className="mt-auto border-t-4 border-sign-panel-border bg-sign-panel text-sign-panel-foreground text-helper leading-helper">
+      <Container className="grid grid-cols-1 gap-8 py-10 md:grid-cols-2 lg:grid-cols-4">
+        <div className="flex flex-col gap-3">
+          <Logo height={28} />
+          <p className="text-sign-panel-muted">{FOOTER.description}</p>
+          <p className="font-semibold">{FOOTER.launchLine}</p>
+          <address className="flex flex-col not-italic" data-slot="footer-contact">
+            <a href={`mailto:${contact.email}`} className={linkClass}>
               {contact.email}
             </a>
-            <span>{contact.address.join(", ")}</span>
+            {site.NEXT_PUBLIC_SHOW_PHONE && (
+              <a href={`tel:${SMS_SENDER_NUMBER}`} className={linkClass} data-slot="footer-phone">
+                {smsNumber}
+              </a>
+            )}
+            <span className="text-sign-panel-muted">{contact.address.join(", ")}</span>
           </address>
         </div>
-        <nav aria-label="Legal">
-          <ul className="flex items-center gap-1">
-            {LEGAL_LINKS.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="hover:text-foreground focus-visible:ring-ring inline-flex min-h-11 items-center rounded-md px-3 underline-offset-4 outline-none hover:underline focus-visible:ring-2"
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
+
+        {FOOTER.columns.map((column) => (
+          <nav key={column.title} aria-label={column.title} className="flex flex-col gap-2">
+            <ColumnTitle>{column.title}</ColumnTitle>
+            <FooterLinks links={column.links} />
+          </nav>
+        ))}
+
+        <div className="flex flex-col gap-2">
+          <ColumnTitle>{FOOTER.company.title}</ColumnTitle>
+          <nav aria-label={FOOTER.company.title}>
+            <FooterLinks links={FOOTER.company.links} />
+          </nav>
+          <nav aria-label="Legal">
+            <FooterLinks links={FOOTER.legal} />
+          </nav>
+        </div>
+      </Container>
+
+      <div className="border-t border-sign-panel-muted/30">
+        <Container className="flex flex-col gap-2 py-6 text-small leading-small text-sign-panel-muted">
+          <p data-slot="footer-legal-line">
+            &copy; {new Date().getFullYear()} {BUSINESS_NAME}. {FOOTER.legalLine}
+          </p>
+          <p data-slot="footer-sms-line">
+            {site.NEXT_PUBLIC_SHOW_SMS_NUMBER
+              ? FOOTER.smsLine.withNumber(smsNumber)
+              : FOOTER.smsLine.withoutNumber}
+          </p>
+        </Container>
       </div>
     </footer>
   );

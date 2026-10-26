@@ -6,6 +6,7 @@ import {
   YEARS_EXPERIENCE_MAX,
 } from "@/lib/constants";
 import { normalizeEndorsements } from "@/lib/onboarding/options";
+import { normalizeZip } from "@/lib/zip-format";
 import type { SavableStepId } from "@/lib/onboarding/steps";
 import {
   CDL_HELD_CLASSES,
@@ -43,12 +44,8 @@ export const nameScreenSchema = z.object({
 
 export const ZIP_MESSAGE = "Enter a 5-digit ZIP code, like 60601";
 
-/** Accepts "60601", "60601-1234", "60601 1234" and spaces. Keeps the first five digits. */
-export function normalizeZip(value: unknown): unknown {
-  if (typeof value !== "string") return value;
-  const digits = value.replace(/\D/g, "");
-  return digits.length === 9 ? digits.slice(0, 5) : digits;
-}
+/** In src/lib/zip-format.ts, free of zod, so browser components can import it cheaply. */
+export { normalizeZip };
 
 export const zipSchema = z.preprocess(
   normalizeZip,
@@ -119,8 +116,19 @@ export const equipmentScreenSchema = z.object({
     .transform(unique),
 });
 
+export const CONSENT_MESSAGE = "Tap the box to agree, or leave it empty to finish without texts";
+
+/**
+ * Shift texts are optional (Twilio: consent must never be a condition of signing up). An
+ * unchecked box, or no answer at all, finishes the card without texts.
+ */
 export const consentScreenSchema = z.object({
-  consent: z.literal(true, { error: "Tap the box to agree before you finish" }),
+  consent: z.boolean({ error: CONSENT_MESSAGE }).default(false),
+});
+
+/** The profile page's "Turn on shift texts" and "Turn off shift texts". */
+export const smsConsentSchema = z.object({
+  consent: z.boolean({ error: CONSENT_MESSAGE }),
 });
 
 export const SCREEN_SCHEMAS = {
