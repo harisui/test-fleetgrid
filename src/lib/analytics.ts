@@ -1,6 +1,7 @@
 /**
- * The Google Ads tag (gtag.js), so the client's ads can count sign-ups. Client request of
- * 2026-10-27 ("she wants to run google ads"). The tag id is public, not a secret.
+ * The Google Ads tag (gtag.js), so the client's ads can count sign-ups and subscriptions.
+ * Client request of 2026-10-27 ("she wants to run google ads"). The tag id is public, not a
+ * secret.
  *
  * Where it loads: the production deployment only (Vercel sets VERCEL_ENV there), or wherever
  * NEXT_PUBLIC_GOOGLE_ADS_ID is set by hand. Never in local development, the browser tests,
@@ -34,19 +35,35 @@ export function googleAdsSnippet(id: string): string {
 }
 
 /**
- * The "send_to" of the sign-up conversion: the tag id plus the conversion label from the
- * Google Ads conversion action ("Website", "Sign-up"). Null until the label is configured.
+ * The two conversions Google Ads counts, each its own conversion action there with its own
+ * label: a driver finishing the sign-up, and a carrier whose payment is confirmed.
  */
-export function signupConversionTarget(source: {
+export type ConversionEvent = "signup" | "subscribe";
+
+export interface ConversionEnvSource {
   NEXT_PUBLIC_GOOGLE_ADS_ID?: string;
   NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL?: string;
-}): string | null {
-  const label = source.NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL?.trim();
+  NEXT_PUBLIC_GOOGLE_ADS_SUBSCRIBE_LABEL?: string;
+}
+
+const LABEL_VARIABLES: Record<ConversionEvent, keyof ConversionEnvSource> = {
+  signup: "NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL",
+  subscribe: "NEXT_PUBLIC_GOOGLE_ADS_SUBSCRIBE_LABEL",
+};
+
+/**
+ * The "send_to" of a conversion: the tag id plus the label from the Google Ads conversion
+ * action (the part after the slash in "AW-18533050920/xxxx"). Null until the label is set.
+ */
+export function conversionTarget(event: ConversionEvent, source: ConversionEnvSource): string | null {
+  const label = source[LABEL_VARIABLES[event]]?.trim();
   if (!label) return null;
   const id = source.NEXT_PUBLIC_GOOGLE_ADS_ID?.trim();
   if (id === "off") return null;
   return `${id || GOOGLE_ADS_ID}/${label}`;
 }
 
-/** Remembers, per browser, that the sign-up conversion was sent, so a revisit does not count twice. */
-export const SIGNUP_CONVERSION_SENT_KEY = "fleetgrid-signup-counted";
+/** Remembers, per browser, that a conversion was sent, so a revisit does not count twice. */
+export function conversionSentKey(event: ConversionEvent): string {
+  return `fleetgrid-ads-${event}-counted`;
+}

@@ -3,7 +3,7 @@ import { SummaryCard } from "@/components/driver/SummaryCard";
 import { ActionBar } from "@/components/onboarding/ActionBar";
 import { OnboardingContent } from "@/components/onboarding/OnboardingShell";
 import { SignHeader } from "@/components/onboarding/SignHeader";
-import { SignupConversion } from "@/components/seo/SignupConversion";
+import { AdsConversion } from "@/components/seo/AdsConversion";
 import { ROLE_HOME } from "@/lib/auth/routes";
 import {
   DONE_TEXT,
@@ -68,7 +68,7 @@ export function DoneScreen({ driver, onEdit }: DoneScreenProps) {
           className="contents"
         >
           {/* Counts the finished sign-up for Google Ads, where that is configured. */}
-          <SignupConversion />
+          <AdsConversion event="signup" />
           <SignHeader
             eyebrow="Profile complete"
             title={outOfArea ? OUT_OF_AREA_DONE_TITLE : DONE_TITLE}

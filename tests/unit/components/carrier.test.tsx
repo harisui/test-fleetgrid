@@ -10,6 +10,7 @@ import { countActiveFilters, countMoreFilters, SearchFilters } from "@/component
 import { TermsAcceptance, TERMS_STATEMENT } from "@/components/carrier/TermsAcceptance";
 import { TestCheckout } from "@/components/carrier/TestCheckout";
 import { WaitlistCard } from "@/components/carrier/WaitlistCard";
+import { GOOGLE_ADS_ID } from "@/lib/analytics";
 import { CARRIER_OUT_OF_AREA_NOTE, CARRIER_WAITLIST_JOINED } from "@/lib/carrier/options";
 import { driverSearchSchema } from "@/lib/validation/carrier.schema";
 import {
@@ -241,6 +242,28 @@ describe("BillingCard", () => {
 
     await userEvent.click(screen.getByRole("button", { name: "Subscribe" }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith("https://checkout.test/s"));
+  });
+
+  it("reports the confirmed payment to Google Ads once, only back from checkout, when the label is set", () => {
+    vi.stubEnv("NEXT_PUBLIC_GOOGLE_ADS_SUBSCRIBE_LABEL", "SuBsCr");
+    const gtag = vi.fn();
+    window.gtag = gtag;
+    window.localStorage.clear();
+    const paid = () => (
+      <BillingCard subscription={buildSubscription()} subscribed portalAvailable testMode checkoutResult="success" />
+    );
+    const { unmount } = render(paid());
+    expect(gtag).toHaveBeenCalledExactlyOnceWith("event", "conversion", {
+      send_to: `${GOOGLE_ADS_ID}/SuBsCr`,
+    });
+    unmount();
+    // A reload of the same page, and a plain visit to the billing page later, count nothing more.
+    const second = render(paid());
+    second.unmount();
+    render(<BillingCard subscription={buildSubscription()} subscribed portalAvailable testMode />);
+    expect(gtag).toHaveBeenCalledTimes(1);
+    delete window.gtag;
+    vi.unstubAllEnvs();
   });
 
   it("shows an active subscription with the next billing date and the portal button", async () => {

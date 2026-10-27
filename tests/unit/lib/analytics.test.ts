@@ -1,10 +1,11 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import {
+  conversionSentKey,
+  conversionTarget,
   GOOGLE_ADS_ID,
   googleAdsId,
   googleAdsSnippet,
-  signupConversionTarget,
 } from "@/lib/analytics";
 
 describe("googleAdsId", () => {
@@ -33,18 +34,35 @@ describe("googleAdsSnippet", () => {
   });
 });
 
-describe("signupConversionTarget", () => {
-  it("is the tag id and the label, only once the label is configured", () => {
-    expect(signupConversionTarget({})).toBeNull();
-    expect(signupConversionTarget({ NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL: "" })).toBeNull();
-    expect(signupConversionTarget({ NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL: "AbCd" })).toBe(
+describe("conversionTarget", () => {
+  it("is the tag id and that event's label, only once the label is configured", () => {
+    expect(conversionTarget("signup", {})).toBeNull();
+    expect(conversionTarget("signup", { NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL: "" })).toBeNull();
+    expect(conversionTarget("signup", { NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL: "AbCd" })).toBe(
       `${GOOGLE_ADS_ID}/AbCd`,
     );
+    expect(conversionTarget("subscribe", { NEXT_PUBLIC_GOOGLE_ADS_SUBSCRIBE_LABEL: " SuB " })).toBe(
+      `${GOOGLE_ADS_ID}/SuB`,
+    );
+  });
+
+  it("keeps the two events apart", () => {
+    const both = {
+      NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL: "driver",
+      NEXT_PUBLIC_GOOGLE_ADS_SUBSCRIBE_LABEL: "carrier",
+    };
+    expect(conversionTarget("signup", both)).toBe(`${GOOGLE_ADS_ID}/driver`);
+    expect(conversionTarget("subscribe", both)).toBe(`${GOOGLE_ADS_ID}/carrier`);
+    expect(conversionTarget("subscribe", { NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL: "driver" })).toBeNull();
+    expect(conversionSentKey("signup")).not.toBe(conversionSentKey("subscribe"));
+  });
+
+  it("follows a tag set by hand, and sends nothing when the tag is off", () => {
     expect(
-      signupConversionTarget({ NEXT_PUBLIC_GOOGLE_ADS_ID: "AW-1", NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL: "x" }),
+      conversionTarget("signup", { NEXT_PUBLIC_GOOGLE_ADS_ID: "AW-1", NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL: "x" }),
     ).toBe("AW-1/x");
     expect(
-      signupConversionTarget({ NEXT_PUBLIC_GOOGLE_ADS_ID: "off", NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL: "x" }),
+      conversionTarget("signup", { NEXT_PUBLIC_GOOGLE_ADS_ID: "off", NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL: "x" }),
     ).toBeNull();
   });
 });

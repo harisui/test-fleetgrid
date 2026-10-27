@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { CalendarClock, CircleCheck, CreditCard, TriangleAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import { AdsConversion } from "@/components/seo/AdsConversion";
 import { InlineNote } from "@/components/shared/InlineNote";
 import { LoadingButton } from "@/components/shared/LoadingButton";
 import { Badge } from "@/components/ui/badge";
@@ -118,6 +119,8 @@ export function BillingCard({
       className="flex flex-col gap-5 rounded-card border border-border bg-card p-5"
       data-slot="billing"
     >
+      {/* Back from checkout with the payment confirmed: count it for Google Ads, where configured. */}
+      {checkoutResult === "success" && subscribed && <AdsConversion event="subscribe" />}
       {checkoutResult === "success" && subscribed && (
         <InlineNote variant="success" data-slot="checkout-result">
           Payment received. Thank you. Your subscription is active.

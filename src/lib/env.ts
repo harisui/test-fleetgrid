@@ -115,10 +115,12 @@ export const siteEnvSchema = z.object({
   NEXT_PUBLIC_SHOW_PHONE: flag,
   NEXT_PUBLIC_SHOW_SMS_NUMBER: flag,
   // The Google Ads tag (src/lib/analytics.ts): an id to load it anywhere, "off" to load it
-  // nowhere, unset to load the client's tag on the production deployment only. The label is
-  // the Google Ads conversion action for a finished driver sign-up; unset, nothing is sent.
+  // nowhere, unset to load the client's tag on the production deployment only. The labels are
+  // the Google Ads conversion actions for a finished driver sign-up and a confirmed carrier
+  // payment; unset, that conversion is not sent.
   NEXT_PUBLIC_GOOGLE_ADS_ID: optionalString,
   NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL: optionalString,
+  NEXT_PUBLIC_GOOGLE_ADS_SUBSCRIBE_LABEL: optionalString,
 });
 
 export type ClientEnv = z.infer<typeof clientEnvSchema>;
@@ -169,6 +171,7 @@ export function getSiteEnv(): SiteEnv {
     NEXT_PUBLIC_SHOW_SMS_NUMBER: process.env.NEXT_PUBLIC_SHOW_SMS_NUMBER,
     NEXT_PUBLIC_GOOGLE_ADS_ID: process.env.NEXT_PUBLIC_GOOGLE_ADS_ID,
     NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL: process.env.NEXT_PUBLIC_GOOGLE_ADS_SIGNUP_LABEL,
+    NEXT_PUBLIC_GOOGLE_ADS_SUBSCRIBE_LABEL: process.env.NEXT_PUBLIC_GOOGLE_ADS_SUBSCRIBE_LABEL,
   });
   return cachedSiteEnv;
 }
