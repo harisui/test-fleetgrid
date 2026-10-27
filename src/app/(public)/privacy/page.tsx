@@ -76,8 +76,10 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>Technical data</strong>: server logs with your IP address and browser, and two
-          cookies, one that keeps you signed in and one that remembers light or dark mode. We use
-          no advertising or analytics trackers.
+          cookies, one that keeps you signed in and one that remembers light or dark mode. The
+          site also loads the Google Ads tag, which sets Google&apos;s cookies so we can tell
+          whether an ad brought you here and whether you signed up. We use no other advertising
+          or analytics trackers.
         </li>
       </ul>
 
@@ -105,8 +107,9 @@ export default function PrivacyPage() {
         </li>
         <li>
           <strong>Service providers</strong> that run the service for us: Supabase (database,
-          sign-in and file storage), Vercel (hosting), Twilio (text messages) and Stripe (carrier
-          payments). They may only use your data to provide their service to us.
+          sign-in and file storage), Vercel (hosting), Twilio (text messages), Stripe (carrier
+          payments) and Google (ad measurement). They may only use your data to provide their
+          service to us.
         </li>
         <li>
           <strong>Legal requests</strong>: we may disclose information when the law requires it or

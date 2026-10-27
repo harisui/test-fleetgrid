@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Geist, Geist_Mono } from "next/font/google";
+import { GoogleAds } from "@/components/seo/GoogleAds";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { googleAdsId } from "@/lib/analytics";
 import { getSiteEnv } from "@/lib/env";
 import { SITE_INIT_SCRIPT } from "@/lib/motion";
 import { organizationJsonLd, websiteJsonLd } from "@/lib/seo";
@@ -46,6 +48,11 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  // The Google Ads tag, on the production deployment only (src/lib/analytics.ts).
+  const adsId = googleAdsId({
+    NEXT_PUBLIC_GOOGLE_ADS_ID: getSiteEnv().NEXT_PUBLIC_GOOGLE_ADS_ID,
+    VERCEL_ENV: process.env.VERCEL_ENV,
+  });
   return (
     <html
       lang="en"
@@ -61,6 +68,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="flex min-h-full flex-col">
         {/* Who runs the site and what the site is, on every page. */}
         <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
+        {adsId && <GoogleAds id={adsId} />}
         {children}
       </body>
     </html>

@@ -352,7 +352,10 @@ describe("/privacy", () => {
     expect(main).toHaveTextContent(
       /record of text-message consent and opt-outs, including the phone number and time/,
     );
-    expect(main).toHaveTextContent(/Supabase .* Vercel .* Twilio .* Stripe/);
+    expect(main).toHaveTextContent(/Supabase .* Vercel .* Twilio .* Stripe .* Google \(ad measurement\)/);
+    // The Google Ads tag is declared (client request of 2026-10-27); nothing else tracks.
+    expect(main).toHaveTextContent(/loads the Google Ads tag/);
+    expect(main).toHaveTextContent(/no other advertising or analytics trackers/);
     expect(within(main).getByRole("link", { name: "GeoNames" })).toHaveAttribute(
       "href",
       "https://www.geonames.org/",
