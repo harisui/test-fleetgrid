@@ -11,7 +11,6 @@ import {
 } from "@/lib/onboarding/steps";
 import { driverCardSchema } from "@/lib/validation/driver.schema";
 import {
-  cdlClassScreenSchema,
   consentScreenSchema,
   credentialsScreenSchema,
   distanceScreenSchema,
@@ -19,12 +18,11 @@ import {
   equipmentScreenSchema,
   experienceScreenSchema,
   heardFromScreenSchema,
-  nameScreenSchema,
+  leadScreenSchema,
   recordScreenSchema,
   smsConsentSchema,
   transmissionScreenSchema,
   ZIP_UNKNOWN_MESSAGE,
-  zipScreenSchema,
 } from "@/lib/validation/onboarding.schema";
 import { AppError, parseInput } from "@/server/errors/AppError";
 import type { IZipProvider } from "@/server/providers/ZipProvider";
@@ -50,8 +48,8 @@ export function missingCardFields(driver: Driver): { field: string; stepId: Step
   const need = (isMissing: boolean, field: string, stepId: StepId) => {
     if (isMissing) missing.push({ field, stepId });
   };
-  need(!driver.state || !driver.zip, "zip", "zip");
-  need(driver.cdlClass === "none", "cdlClass", "cdlClass");
+  need(!driver.state || !driver.zip, "zip", "lead");
+  need(driver.cdlClass === "none", "cdlClass", "lead");
   need(driver.yearsExperience === null, "yearsExperience", "experience");
   need(driver.mvrStatus === null, "mvrStatus", "record");
   need(driver.twicActive === null, "twicActive", "credentials");
@@ -124,7 +122,7 @@ export class DriverService {
     await this.requireDriverProfile(userId);
     const existing = await this.drivers.findByProfileId(userId);
 
-    if (stepId === "name") return this.locate(await this.saveName(userId, existing, input));
+    if (stepId === "lead") return this.locate(await this.saveLead(userId, existing, input));
 
     if (!existing) throw AppError.validation("Start with the first step");
     if (stepNumber(stepId) > existing.onboardingStep) {
@@ -143,17 +141,26 @@ export class DriverService {
     return this.locate(await this.drivers.update(userId, { ...data, ...this.placeFor(data.zip) }));
   }
 
-  private async saveName(userId: string, existing: Driver | null, input: unknown) {
-    const data = parseInput(nameScreenSchema, input);
-    const next = stepNumber(nextStepId("name"));
+  /**
+   * The lead (brief of 2026-10-28): the name, the ZIP with its place, the CDL class and the
+   * optional shift-text box. The card is created at once, unfinished; a ticked box records
+   * the opt-in before the card exists, so proof of consent never trails the data.
+   */
+  private async saveLead(userId: string, existing: Driver | null, input: unknown) {
+    const { consent, ...data } = parseInput(leadScreenSchema, input);
+    const place = this.placeFor(data.zip);
+    const next = stepNumber(nextStepId("lead"));
+    const consentFields = await this.consentPatch(userId, existing ?? { smsOptIn: false }, consent, "onboarding");
     if (existing) {
-      return this.drivers.update(userId, { ...data, ...this.advance(existing, next) });
+      return this.drivers.update(userId, { ...data, ...place, ...consentFields, ...this.advance(existing, next) });
     }
     try {
       // FleetGrid lists CDL drivers only at launch (client decision of 2026-10-09), so the
       // work type is set here, not asked.
       return await this.drivers.create(userId, {
         ...data,
+        ...place,
+        ...consentFields,
         operatorTypes: [CDL_WORK_TYPE],
         onboardingStep: next,
       });
@@ -162,7 +169,7 @@ export class DriverService {
       if (error instanceof AppError && error.code === "CONFLICT") {
         const created = await this.drivers.findByProfileId(userId);
         if (created) {
-          return this.drivers.update(userId, { ...data, ...this.advance(created, next) });
+          return this.drivers.update(userId, { ...data, ...place, ...consentFields, ...this.advance(created, next) });
         }
       }
       throw error;
@@ -172,7 +179,7 @@ export class DriverService {
   private async saveLater(
     userId: string,
     existing: Driver,
-    stepId: Exclude<SavableStepId, "name">,
+    stepId: Exclude<SavableStepId, "lead">,
     input: unknown,
   ): Promise<Driver> {
     const advanceTo = (patch: DriverPatch) => ({
@@ -181,14 +188,8 @@ export class DriverService {
     });
 
     switch (stepId) {
-      case "zip": {
-        const data = parseInput(zipScreenSchema, input);
-        return this.drivers.update(userId, advanceTo({ ...data, ...this.placeFor(data.zip) }));
-      }
       case "distance":
         return this.drivers.update(userId, advanceTo(parseInput(distanceScreenSchema, input)));
-      case "cdlClass":
-        return this.drivers.update(userId, advanceTo(parseInput(cdlClassScreenSchema, input)));
       case "experience":
         return this.drivers.update(userId, advanceTo(parseInput(experienceScreenSchema, input)));
       case "record":
@@ -204,21 +205,31 @@ export class DriverService {
         );
       case "equipment":
         return this.drivers.update(userId, advanceTo(parseInput(equipmentScreenSchema, input)));
-      case "heardFrom":
-        return this.drivers.update(userId, advanceTo(parseInput(heardFromScreenSchema, input)));
+      case "heardFrom": {
+        const data = parseInput(heardFromScreenSchema, input);
+        // A driver who ticked the box on the lead is not asked again: this is their last
+        // screen, and the card completes here.
+        if (existing.smsOptIn) return this.completeCard(userId, existing, data);
+        return this.drivers.update(userId, advanceTo(data));
+      }
       case "consent":
         return this.saveConsent(userId, existing, input);
     }
   }
 
   /**
-   * The last screen. The card completes whether or not the box is ticked: shift texts are
-   * optional, never a condition of signing up (Twilio). A ticked box records the opt-in;
-   * an unticked box after an earlier opt-in records the opt-out.
+   * The last screen for a driver who left the box empty on the lead. The card completes
+   * whether or not the box is ticked now: shift texts are optional, never a condition of
+   * signing up (Twilio). A ticked box records the opt-in; an unticked box after an earlier
+   * opt-in records the opt-out.
    */
   private async saveConsent(userId: string, existing: Driver, input: unknown): Promise<Driver> {
     const { consent } = parseInput(consentScreenSchema, input);
+    return this.completeCard(userId, existing, await this.consentPatch(userId, existing, consent, "onboarding"));
+  }
 
+  /** Marks the card finished with `patch`, once every required answer is there. */
+  private async completeCard(userId: string, existing: Driver, patch: DriverPatch): Promise<Driver> {
     const missing = missingCardFields(existing);
     if (missing.length > 0) {
       throw AppError.validation(
@@ -226,13 +237,7 @@ export class DriverService {
         Object.fromEntries(missing.map(({ field }) => [field, "Required"])),
       );
     }
-
-    const patch: DriverPatch = {
-      onboardingStep: DONE_STEP_NUMBER,
-      cardCompleted: true,
-      ...(await this.consentPatch(userId, existing, consent, "onboarding")),
-    };
-    return this.drivers.update(userId, patch);
+    return this.drivers.update(userId, { ...patch, onboardingStep: DONE_STEP_NUMBER, cardCompleted: true });
   }
 
   /** Turns shift texts on or off from the profile page. A STOP reply can only be undone by START. */
@@ -259,7 +264,7 @@ export class DriverService {
    */
   private async consentPatch(
     userId: string,
-    existing: Driver,
+    existing: Pick<Driver, "smsOptIn">,
     consent: boolean,
     source: "onboarding" | "profile",
   ): Promise<DriverPatch> {

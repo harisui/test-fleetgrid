@@ -60,4 +60,6 @@ export const heardFromScreen: ScreenDefinition = {
     heardFromOther: driver?.heardFromOther ?? "",
   }),
   Fields: HeardFromFields,
+  // The last screen shown when the lead already took the consent: the client's button.
+  nextLabel: (_values, { driver }) => (driver?.smsOptIn ? "Find local shifts" : "Next"),
 };

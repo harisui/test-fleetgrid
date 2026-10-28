@@ -131,7 +131,7 @@ test.describe("admin drivers", () => {
 
   test("an unfinished card cannot be approved, and the filters single it out", async ({ page }) => {
     await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
-    const { driverId } = await seedDriverAtStep(PHONES.secondDriver, 5);
+    const { driverId } = await seedDriverAtStep(PHONES.secondDriver, 3);
     await login(page, PHONES.admin);
 
     await page.goto("/admin/drivers?complete=incomplete");

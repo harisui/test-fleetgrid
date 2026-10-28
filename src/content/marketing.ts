@@ -306,7 +306,7 @@ export const DRIVERS = {
       },
       {
         title: "Answer the driver card",
-        text: "One mile at a time: About, CDL, Cards, Letters, Equipment, Finish.",
+        text: "Your name, ZIP and CDL class first, then one mile at a time: Driving, Cards, Letters, Equipment, Finish.",
       },
       {
         title: "Add your papers when you are ready",
@@ -322,8 +322,8 @@ export const DRIVERS = {
     items: [
       "Your name",
       "Your ZIP code",
-      "How far you will travel for work",
       "Your CDL class, A or B",
+      "How far you will travel for work",
       "Years driving with a CDL",
       "Moving violations in the last 3 years",
       "TWIC card",

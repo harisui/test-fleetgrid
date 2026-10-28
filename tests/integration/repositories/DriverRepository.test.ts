@@ -85,6 +85,30 @@ describe("DriverRepository (local Supabase)", () => {
     expect(created.id).toMatch(/^[0-9a-f-]{36}$/);
   });
 
+  it("create stores the lead's class, coordinates and consent in the one insert", async () => {
+    const lead = await createTestUser({ role: "driver" });
+    const created = await new DriverRepository(lead.client).create(lead.id, {
+      ...basics,
+      operatorTypes: ["cdl_driver"],
+      lat: 32.78111,
+      lng: -96.79722,
+      cdlClass: "B",
+      smsOptIn: true,
+      smsOptInAt: "2026-10-05T15:30:00.000Z",
+      smsOptInText: SMS_CONSENT_TEXT,
+    });
+    expect(created).toMatchObject({
+      cdlClass: "B",
+      lat: 32.78111,
+      lng: -96.79722,
+      smsOptIn: true,
+      smsOptInText: SMS_CONSENT_TEXT,
+      cardCompleted: false,
+      onboardingStep: 2,
+    });
+    expect(new Date(created.smsOptInAt!).toISOString()).toBe("2026-10-05T15:30:00.000Z");
+  });
+
   it("findByProfileId returns the saved card", async () => {
     const found = await repository.findByProfileId(driver.id);
     expect(found?.fullName).toBe("Pat Driver");
@@ -162,7 +186,7 @@ describe("DriverRepository (local Supabase)", () => {
       smsOptIn: true,
       smsOptInAt: consentAt,
       smsOptInText: SMS_CONSENT_TEXT,
-      onboardingStep: 13,
+      onboardingStep: 11,
       cardCompleted: true,
     });
     expect(updated.bio).toBeNull();
@@ -195,7 +219,7 @@ describe("DriverRepository (local Supabase)", () => {
       mvr_status: "minor_1_2",
       sms_opt_in: true,
       sms_opt_in_text: SMS_CONSENT_TEXT,
-      onboarding_step: 13,
+      onboarding_step: 11,
       card_completed: true,
     });
   });

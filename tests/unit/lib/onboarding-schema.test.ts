@@ -8,6 +8,7 @@ import {
   CONSENT_MESSAGE,
   consentScreenSchema,
   credentialsScreenSchema,
+  leadScreenSchema,
   distanceScreenSchema,
   endorsementsScreenSchema,
   EQUIPMENT_MESSAGE,
@@ -42,6 +43,29 @@ describe("SCREEN_SCHEMAS", () => {
     for (const stepId of SAVABLE_STEP_IDS) {
       expect(SCREEN_SCHEMAS[stepId].safeParse(SCREEN_INPUTS[stepId]).success, stepId).toBe(true);
     }
+  });
+});
+
+describe("lead: name, ZIP, class and the optional consent on one screen", () => {
+  it("takes the three answers and an unchecked box as no consent", () => {
+    expect(leadScreenSchema.parse({ fullName: " Pat Driver ", zip: "60601-1234", cdlClass: "B" })).toEqual({
+      fullName: "Pat Driver",
+      zip: "60601",
+      cdlClass: "B",
+      consent: false,
+    });
+    expect(leadScreenSchema.parse({ fullName: "Pat Driver", zip: "60601", cdlClass: "A", consent: true }).consent).toBe(true);
+  });
+
+  it("reports every missing answer at once, in the screen's order", () => {
+    expect(errorsOf(leadScreenSchema, {})).toEqual({
+      fullName: "Enter your name",
+      zip: "Enter a 5-digit ZIP code, like 60601",
+      cdlClass: CDL_CLASS_MESSAGE,
+    });
+    expect(errorsOf(leadScreenSchema, { fullName: "Pat Driver", zip: "60601", cdlClass: "A", consent: "yes" })).toEqual({
+      consent: CONSENT_MESSAGE,
+    });
   });
 });
 

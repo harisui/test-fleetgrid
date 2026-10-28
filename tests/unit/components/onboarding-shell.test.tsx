@@ -60,7 +60,7 @@ describe("LaneProgress", () => {
   );
 
   it("moves only through a transition on the fill and truck, with no idle animation", () => {
-    const { container } = render(<LaneProgress stepId="cdlClass" />);
+    const { container } = render(<LaneProgress stepId="experience" />);
     const fill = container.querySelector("[data-slot=lane-fill]")!;
     const truck = container.querySelector("[data-slot=lane-truck]")!;
     expect(fill.getAttribute("class")).toContain("duration-(--dur-move)");
@@ -68,12 +68,12 @@ describe("LaneProgress", () => {
     expect(container.innerHTML).not.toMatch(/animate-/);
   });
 
-  it("labels the stages About, CDL, Cards, Letters, Equipment, Finish", () => {
-    render(<LaneProgress stepId="name" />);
+  it("labels the stages About, Driving, Cards, Letters, Equipment, Finish", () => {
+    render(<LaneProgress stepId="lead" />);
     const stages = within(screen.getByRole("list", { name: "Stages" })).getAllByRole("listitem");
     expect(stages.map((item) => item.textContent?.replace(/Stage \d:/, "").trim())).toEqual([
       "About",
-      "CDL",
+      "Driving",
       "Cards",
       "Letters",
       "Equipment",
@@ -210,7 +210,7 @@ describe("OnboardingShell", () => {
 
   it("Help opens the help sheet and passes the support contact through", async () => {
     render(
-      <OnboardingShell stepId="name" support={{ email: "help@example.com" }}>
+      <OnboardingShell stepId="lead" support={{ email: "help@example.com" }}>
         <p>Question</p>
       </OnboardingShell>,
     );
@@ -226,7 +226,7 @@ describe("OnboardingShell", () => {
 
   it("keeps the content column at the token width", () => {
     render(
-      <OnboardingShell stepId="name">
+      <OnboardingShell stepId="lead">
         <OnboardingContent>
           <p>Question</p>
         </OnboardingContent>
@@ -237,7 +237,7 @@ describe("OnboardingShell", () => {
 
   it("puts the road and the action bar inside landmarks, so nothing floats outside them", () => {
     render(
-      <OnboardingShell stepId="name">
+      <OnboardingShell stepId="lead">
         <OnboardingContent>
           <p>Question</p>
         </OnboardingContent>

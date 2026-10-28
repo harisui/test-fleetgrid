@@ -82,8 +82,8 @@ select lives_ok(pg_temp.update_driver($$mvr_status = 'minor_1_2'$$), 'an MVR lev
 select throws_ok(pg_temp.update_driver($$mvr_status = 'dirty'$$), '22P02', null, 'unknown MVR level rejected');
 
 -- The flow has 12 screens; 12 is the done screen.
-select lives_ok(pg_temp.update_driver($$onboarding_step = 13$$), 'onboarding step 13 (done) accepted');
-select throws_ok(pg_temp.update_driver($$onboarding_step = 14$$), '23514', null, 'onboarding step 14 rejected');
+select lives_ok(pg_temp.update_driver($$onboarding_step = 11$$), 'onboarding step 11 (done) accepted');
+select throws_ok(pg_temp.update_driver($$onboarding_step = 12$$), '23514', null, 'onboarding step 12 rejected');
 select throws_ok(pg_temp.update_driver($$onboarding_step = 18$$), '23514', null, 'the old done step 18 is rejected');
 select lives_ok(pg_temp.update_driver($$onboarding_step = 4$$), 'onboarding step 4 accepted');
 
@@ -124,7 +124,7 @@ select throws_ok(
   '23514', null, 'a card cannot be completed without a CDL class'
 );
 select lives_ok(
-  pg_temp.update_driver($$card_completed = true, onboarding_step = 13, mvr_status = 'major_3_plus', twic_active = false, medical_card_active = true,
+  pg_temp.update_driver($$card_completed = true, onboarding_step = 11, mvr_status = 'major_3_plus', twic_active = false, medical_card_active = true,
     transmission = 'manual_ok', equipment_types = '{container_drayage,dry_van}'$$),
   'a card completes with every sign-up answer, whatever the answers are, and nothing from the profile page'
 );

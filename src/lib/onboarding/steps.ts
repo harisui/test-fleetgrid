@@ -1,21 +1,24 @@
 /**
- * The single source of truth for the driver onboarding flow: the six miles, the twelve
+ * The single source of truth for the driver onboarding flow: the six miles, the eleven
  * screens in order, and the progress shown for each. Every screen, the sign header, the lane
  * progress bar and the server read from here. Nothing about the flow is defined anywhere else.
  *
  * A mile is one page on every device (client decision of 2026-10-09: the shortest sign-up
- * that still lets a carrier book on the answers; CDL drivers only at launch). The answers
- * the flow no longer asks (W-2 or 1099, driving style, availability, certifications, papers,
+ * that still lets a carrier book on the answers; CDL drivers only at launch). Mile 1 is one
+ * screen, the lead (client brief of 2026-10-28): name, ZIP, CDL class and the optional
+ * shift-text box; saving it creates the card at once, unfinished. The answers the flow no
+ * longer asks (W-2 or 1099, driving style, availability, certifications, papers,
  * Clearinghouse, about you) stay on the profile page, filled in later or never. "How did you
- * hear about FleetGrid?" (optional) sits before the consent since 2026-10-28, so the flyers
- * already printed without tracking still count.
+ * hear about FleetGrid?" (optional) sits before the consent, so the flyers already printed
+ * without tracking still count; the consent screen shows only to drivers who left the box
+ * empty on the lead.
  */
 
 import { DONE_TITLE } from "@/lib/launch";
 
 export const MILES = [
   { mile: 1, label: "About" },
-  { mile: 2, label: "CDL" },
+  { mile: 2, label: "Driving" },
   { mile: 3, label: "Cards" },
   { mile: 4, label: "Letters" },
   { mile: 5, label: "Equipment" },
@@ -27,19 +30,18 @@ export type MileNumber = Mile["mile"];
 
 /** One line per stage for the Help sheet: what the questions in it are about. */
 export const MILE_SUMMARIES: Record<MileNumber, string> = {
-  1: "Your name, your ZIP code and how far you will travel.",
-  2: "Your CDL class, your years of driving and your record.",
+  1: "Your name, your ZIP code, your CDL class, and whether we may text you shift offers.",
+  2: "How far you will travel, your years of driving and your record.",
   3: "Your TWIC card and your DOT medical card.",
   4: "The extra letters on your CDL, and whether you can drive a manual.",
   5: "The equipment you run.",
-  6: "Where you heard of FleetGrid (optional), your OK to receive shift offers by text, then you are listed.",
+  6: "Where you heard of FleetGrid (optional), the shift-text box if you left it empty at the start, then you are listed.",
 };
 
 export const STEPS = [
-  { id: "name", mile: 1, question: "What is your name?" },
-  { id: "zip", mile: 1, question: "What is your ZIP code?" },
-  { id: "distance", mile: 1, question: "How far will you travel for work?" },
-  { id: "cdlClass", mile: 2, question: "What class is your CDL?" },
+  // The lead: one screen with the name, the ZIP, the CDL class and the optional box.
+  { id: "lead", mile: 1, question: "What is your name?" },
+  { id: "distance", mile: 2, question: "How far will you travel for work?" },
   { id: "experience", mile: 2, question: "How many years have you driven with a CDL?" },
   { id: "record", mile: 2, question: "Any moving violations in the last 3 years?" },
   { id: "credentials", mile: 3, question: "Do you have these cards?" },

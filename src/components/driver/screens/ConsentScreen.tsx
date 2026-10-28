@@ -13,7 +13,11 @@ import { SMS_CONSENT_TEXT } from "@/lib/constants";
 import { maskPhone } from "@/lib/phone";
 import { consentScreenSchema } from "@/lib/validation/onboarding.schema";
 
-function ConsentFields({ question, phone }: ScreenFieldsProps) {
+/**
+ * The shift-text box: on the lead screen (LeadScreen.tsx, with its own helper line) and, for
+ * drivers who left it empty there, on the Finish page.
+ */
+export function ConsentFields({ question, helper, phone }: ScreenFieldsProps) {
   const {
     control,
     formState: { errors },
@@ -22,8 +26,8 @@ function ConsentFields({ question, phone }: ScreenFieldsProps) {
     <>
       <ScreenQuestion>{question}</ScreenQuestion>
       <ScreenHelper>
-        Shift offers come by text to {maskPhone(phone)}. You reply YES to claim one. This is
-        optional: you can finish without it and turn texts on later from your profile.
+        {helper ??
+          `Shift offers come by text to ${maskPhone(phone)}. You reply YES to claim one. This is optional: you can finish without it and turn texts on later from your profile.`}
       </ScreenHelper>
       <Controller
         control={control}
@@ -74,4 +78,6 @@ export const consentScreen: ScreenDefinition = {
   Fields: ConsentFields,
   // The client's words for the last button (2026-10-09). The box above it is the agreement.
   nextLabel: () => "Find local shifts",
+  // Asked once: a driver who ticked the box on the lead is not asked again (brief of 2026-10-28).
+  skip: ({ driver }) => driver?.smsOptIn === true,
 };

@@ -87,13 +87,13 @@ test.describe("Workshop rules", () => {
     await resetUser(PHONES.driver);
   });
 
-  for (const stepNumber of [1, 4, 7, 8, 10, 11, 12, 13]) {
+  for (const stepNumber of [1, 2, 5, 6, 8, 9, 10, 11]) {
     test(`orange is only the primary fill, progress fill, sign stripe and check badge on step ${stepNumber}`, async ({
       page,
     }) => {
       await openStep(page, stepNumber);
       expect(await orangeViolations(page)).toEqual([]);
-      if (stepNumber === 4) {
+      if (stepNumber === 1) {
         const card = page.getByRole("radio", { name: /Class A/ });
         await card.click();
         await expect(card).toHaveAttribute("aria-checked", "true");
@@ -117,7 +117,7 @@ test.describe("Workshop rules", () => {
   test("a selected option card uses the graphite selection border and tint, aria-checked and the badge", async ({
     page,
   }) => {
-    await openStep(page, 4);
+    await openStep(page, 1);
     const selection = await tokenRgb(page, "--selection");
     const tint = await tokenRgb(page, "--selection-tint");
     const strong = await tokenRgb(page, "--border-strong");
@@ -151,7 +151,7 @@ test.describe("Workshop rules", () => {
   test("onboarding routes render no app navigation or theme toggle, and Log out signs the driver out", async ({
     page,
   }) => {
-    await openStep(page, 4);
+    await openStep(page, 2);
     await expect(page.getByRole("navigation")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Toggle dark mode" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Profile" })).toHaveCount(0);
@@ -174,13 +174,13 @@ test.describe("Workshop rules", () => {
     await expect(page).toHaveURL(/\/login$/);
   });
 
-  for (const stepNumber of [1, 5, 8, 11, 12]) {
+  for (const stepNumber of [1, 3, 6, 9, 10]) {
     test(`eyebrow, stage highlight and truck position on step ${stepNumber} come from steps.ts`, async ({
       page,
     }) => {
       const expected = progressFor(STEPS[stepNumber - 1].id);
       await openStep(page, stepNumber);
-      if (stepNumber !== 12) {
+      if (stepNumber !== 10) {
         // A page is one mile: its eyebrow is the mile count and its title the mile label.
         await expect(page.locator("[data-slot=sign-eyebrow]")).toHaveText(expected.eyebrow);
         await expect(page.locator("[data-slot=sign-title]")).toHaveText(expected.mile.label);
@@ -205,7 +205,7 @@ test.describe("Workshop rules", () => {
     });
   }
 
-  for (const stepNumber of [2, 5, 7, 9, 11]) {
+  for (const stepNumber of [1, 3, 5, 7, 9]) {
     test(`every control on step ${stepNumber} is at least 48px, the main action 56px`, async ({
       page,
     }) => {
@@ -245,7 +245,7 @@ test.describe("Workshop rules", () => {
 
   test("reduced motion turns the lane transitions off", async ({ page }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await openStep(page, 5);
+    await openStep(page, 3);
     const durations = await page.evaluate(() => ({
       fill: getComputedStyle(document.querySelector("[data-slot=lane-fill]")!).transitionDuration,
       truck: getComputedStyle(document.querySelector("[data-slot=lane-truck]")!).transitionDuration,
@@ -255,7 +255,7 @@ test.describe("Workshop rules", () => {
   });
 
   test("light is the default and dark mode keeps every rule", async ({ page }) => {
-    await openStep(page, 4);
+    await openStep(page, 1);
     await expect(page.locator("html")).not.toHaveClass(/\bdark\b/);
     await page.evaluate(() => document.documentElement.classList.add("dark"));
     const card = page.getByRole("radio", { name: /Class A/ });

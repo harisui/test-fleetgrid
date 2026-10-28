@@ -170,10 +170,10 @@ test.describe("driver documents", () => {
     // Papers left the sign-up (2026-10-09): no page of it has an upload tile or a camera button.
     await adminClient()
       .from("drivers")
-      .update({ service_radius_miles: 50, onboarding_step: 4 })
+      .update({ service_radius_miles: 50, onboarding_step: 2 })
       .eq("id", driverId);
     await page.goto("/driver/onboarding");
-    await expectScreen(page, "What class is your CDL?");
+    await expectScreen(page, "How far will you travel for work?");
     await expect(page.locator("[data-slot=upload-tile]")).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Take a photo" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Skip for now" })).toHaveCount(0);

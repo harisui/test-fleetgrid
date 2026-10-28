@@ -56,7 +56,7 @@ export function SummaryCard({ driver, onEdit }: SummaryCardProps) {
     {
       label: "CDL class",
       value: driver.cdlClass === "none" ? NOT_ANSWERED : labelOf(CDL_CLASS_OPTIONS, driver.cdlClass),
-      stepId: "cdlClass",
+      stepId: "lead",
     },
     { label: "Experience", value: experienceSummary(driver.yearsExperience), stepId: "experience" },
     { label: "Record", value: mvrSummary(driver.mvrStatus), stepId: "record" },

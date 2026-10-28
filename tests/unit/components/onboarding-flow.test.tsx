@@ -38,6 +38,7 @@ const failure = (message: string, fieldErrors?: Record<string, string>): Result<
 });
 
 const next = () => screen.getByRole("button", { name: "Next" });
+const saveLead = () => screen.getByRole("button", { name: "Save and continue" });
 const heading = () => screen.getByRole("heading", { level: 1 });
 /** The read-only "City, ST" line under the ZIP field. */
 const place = () => document.querySelector("[data-slot=zip-place]");
@@ -83,7 +84,7 @@ describe("one page per mile, on every device", () => {
     "the %s page shows every question of the mile under one sign, with no app navigation",
     (label, mile) => {
       const steps = stepsOfMile(mile);
-      renderFlow(steps[0].id, driverAt(13, { cdlClass: "A" }));
+      renderFlow(steps[0].id, driverAt(11, { cdlClass: "A" }));
       expect(heading()).toHaveTextContent(label);
       expect(screen.getByText(`Mile ${mile} of ${MILES.length}`)).toBeInTheDocument();
       for (const step of steps) {
@@ -104,7 +105,7 @@ describe("one page per mile, on every device", () => {
   it("never asks work type, W-2 or 1099, driving style, availability, certifications, papers or about you", () => {
     for (const step of STEPS) {
       if (step.id === "done") continue;
-      renderFlow(step.id, driverAt(13, { cdlClass: "A" }));
+      renderFlow(step.id, driverAt(11, { cdlClass: "A" }));
     }
     for (const gone of [
       "What work do you do?",
@@ -122,12 +123,12 @@ describe("one page per mile, on every device", () => {
   });
 
   it("the About page has no Back; later pages do", () => {
-    renderFlow("name", null);
+    renderFlow("lead", null);
     expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
   });
 
   it("shows Saved on a page that was already answered", () => {
-    renderFlow("name", driverAt(4, { zip: "75201", city: "Dallas", state: "TX" }));
+    renderFlow("lead", driverAt(2, { zip: "75201", city: "Dallas", state: "TX", cdlClass: "A" }));
     expect(screen.getByText("Saved")).toBeInTheDocument();
     expect(place()).toHaveTextContent("Dallas, TX");
   });
@@ -135,17 +136,17 @@ describe("one page per mile, on every device", () => {
   it("shows the scroll hint only while the page runs past the fold", () => {
     const hint = () => screen.queryByRole("button", { name: "Scroll down for more" });
     stubPageHeight(2000);
-    const tall = renderFlow("cdlClass", driverAt(4));
+    const tall = renderFlow("distance", driverAt(2));
     expect(hint()).toBeInTheDocument();
     tall.unmount();
 
     stubPageHeight(600);
-    renderFlow("credentials", driverAt(7));
+    renderFlow("credentials", driverAt(5));
     expect(hint()).not.toBeInTheDocument();
   });
 });
 
-describe("About page: name, ZIP, distance", () => {
+describe("About page, the lead: name, ZIP, class and the optional box on one screen", () => {
   const dataset = () =>
     actions.lookupZipAction.mockImplementation(async (zip: string) =>
       ok(
@@ -156,24 +157,26 @@ describe("About page: name, ZIP, distance", () => {
             : null,
       ),
     );
+  const consentBox = () => screen.getByRole("checkbox", { name: new RegExp(SMS_CONSENT_TEXT.slice(0, 20)) });
 
-  it("validates every question after Next, then saves them in order and moves to the CDL page", async () => {
+  it("checks the three answers together after Save and continue, then saves the lead in one call and moves to the Driving page", async () => {
     dataset();
-    actions.saveOnboardingScreenAction
-      .mockResolvedValueOnce(ok(driverAt(2, { fullName: "Pat Driver" })))
-      .mockResolvedValueOnce(ok(driverAt(3, { fullName: "Pat Driver", zip: "77002" })))
-      .mockResolvedValueOnce(ok(driverAt(4, { fullName: "Pat Driver", zip: "77002" })));
-    renderFlow("name", null);
+    actions.saveOnboardingScreenAction.mockResolvedValueOnce(
+      ok(driverAt(2, { fullName: "Pat Driver", zip: "77002", city: "Houston", state: "TX", cdlClass: "A" })),
+    );
+    renderFlow("lead", null);
+    expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
+    expect(screen.queryByText("How far will you travel for work?")).not.toBeInTheDocument();
     const name = screen.getByLabelText("Full name");
     await userEvent.type(name, "P");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 
-    await userEvent.click(next());
+    await userEvent.click(saveLead());
     await waitFor(() => expect(alerts()).toHaveLength(3));
     expect(alerts()).toEqual([
       "Enter your name",
       "Enter a 5-digit ZIP code, like 60601",
-      "Pick how far you will travel",
+      CDL_CLASS_MESSAGE,
     ]);
     expect(name).toHaveAttribute("aria-invalid", "true");
     expect(actions.saveOnboardingScreenAction).not.toHaveBeenCalled();
@@ -181,21 +184,64 @@ describe("About page: name, ZIP, distance", () => {
     await userEvent.type(name, "at Driver");
     await userEvent.type(screen.getByLabelText("ZIP code"), "77002");
     await waitFor(() => expect(place()).toHaveTextContent("Houston, TX"));
-    await userEvent.click(chip("100 miles"));
-    await userEvent.click(next());
-    await waitFor(() => expect(heading()).toHaveTextContent("CDL"));
-    expect(savedScreens()).toEqual(["name", "zip", "distance"]);
-    expect(actions.saveOnboardingScreenAction.mock.calls.map((call) => call[1])).toEqual([
-      { fullName: "Pat Driver" },
-      { zip: "77002" },
-      { serviceRadiusMiles: 100 },
-    ]);
+    await userEvent.click(screen.getByRole("radio", { name: /Class A/ }));
+    await userEvent.click(saveLead());
+    await waitFor(() => expect(heading()).toHaveTextContent("Driving"));
+    expect(savedScreens()).toEqual(["lead"]);
+    expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("lead", {
+      fullName: "Pat Driver",
+      zip: "77002",
+      cdlClass: "A",
+      consent: false,
+    });
     expect(heading()).toHaveFocus();
+    expect(screen.getByText("How far will you travel for work?")).toBeInTheDocument();
+  });
+
+  it("offers Class A and B only, with no Class C and no No CDL card", () => {
+    renderFlow("lead", null);
+    const classes = within(screen.getByRole("radiogroup", { name: "What class is your CDL?" }));
+    expect(classes.getAllByRole("radio")).toHaveLength(2);
+    for (const name of ["Class A", "Class B"]) {
+      expect(classes.getByRole("radio", { name: new RegExp(name) })).toBeInTheDocument();
+    }
+    expect(screen.queryByText(/Class C/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/No CDL/)).not.toBeInTheDocument();
+  });
+
+  it("the box is optional and unchecked, with links to all three legal pages, and a tick travels with the lead", async () => {
+    dataset();
+    actions.saveOnboardingScreenAction.mockResolvedValueOnce(
+      ok(driverAt(2, { fullName: "Pat Driver", zip: "77002", cdlClass: "B", smsOptIn: true })),
+    );
+    renderFlow("lead", null);
+    expect(consentBox()).not.toBeChecked();
+    expect(screen.getByText(/Optional\. You can finish without it/)).toBeInTheDocument();
+    for (const [name, href] of [
+      ["SMS Terms", "/sms-terms"],
+      ["Terms of Service", "/terms"],
+      ["Privacy Policy", "/privacy"],
+    ]) {
+      expect(screen.getByRole("link", { name })).toHaveAttribute("href", href);
+    }
+    await userEvent.type(screen.getByLabelText("Full name"), "Pat Driver");
+    await userEvent.type(screen.getByLabelText("ZIP code"), "77002");
+    await waitFor(() => expect(place()).toHaveTextContent("Houston, TX"));
+    await userEvent.click(screen.getByRole("radio", { name: /Class B/ }));
+    await userEvent.click(consentBox());
+    await userEvent.click(saveLead());
+    await waitFor(() => expect(heading()).toHaveTextContent("Driving"));
+    expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("lead", {
+      fullName: "Pat Driver",
+      zip: "77002",
+      cdlClass: "B",
+      consent: true,
+    });
   });
 
   it("tells a driver outside the launch area so, as information, and keeps going", async () => {
     dataset();
-    renderFlow("name", null);
+    renderFlow("lead", null);
     const note = () => document.querySelector("[data-slot=launch-area-note]");
 
     await userEvent.type(screen.getByLabelText("ZIP code"), "75201");
@@ -206,8 +252,8 @@ describe("About page: name, ZIP, distance", () => {
     expect(note()).toHaveAttribute("data-variant", "info");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(document.querySelector("[aria-invalid='true']")).toBeNull();
-    // Next is held only until the dataset's answer reaches the form, a tick after the line shows.
-    await waitFor(() => expect(next()).toBeEnabled());
+    // The button is held only until the dataset's answer reaches the form, a tick after the line shows.
+    await waitFor(() => expect(saveLead()).toBeEnabled());
 
     await userEvent.clear(screen.getByLabelText("ZIP code"));
     await userEvent.type(screen.getByLabelText("ZIP code"), "77002");
@@ -219,7 +265,7 @@ describe("About page: name, ZIP, distance", () => {
     actions.lookupZipAction.mockResolvedValue(
       ok({ zip: "60601", city: "Chicago", state: "IL", inServiceArea: true }),
     );
-    renderFlow("name", null);
+    renderFlow("lead", null);
     expect(place()).toBeNull();
     await userEvent.type(screen.getByLabelText("ZIP code"), "60601");
 
@@ -233,7 +279,7 @@ describe("About page: name, ZIP, distance", () => {
 
   it("stops on a ZIP the dataset does not know, and lets go once a known one is typed", async () => {
     dataset();
-    renderFlow("name", null);
+    renderFlow("lead", null);
     const field = screen.getByLabelText("ZIP code");
     await userEvent.type(field, "99999");
     expect(await screen.findByRole("alert")).toHaveTextContent(
@@ -241,69 +287,59 @@ describe("About page: name, ZIP, distance", () => {
     );
     expect(field).toHaveAttribute("aria-invalid", "true");
     expect(place()).toBeNull();
-    await waitFor(() => expect(next()).toBeDisabled());
+    await waitFor(() => expect(saveLead()).toBeDisabled());
     expect(actions.saveOnboardingScreenAction).not.toHaveBeenCalled();
 
     await userEvent.clear(field);
     await userEvent.type(field, "77002");
     await waitFor(() => expect(place()).toHaveTextContent("Houston, TX"));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    await waitFor(() => expect(next()).toBeEnabled());
+    await waitFor(() => expect(saveLead()).toBeEnabled());
   });
 
-  it("shows the server's answer when it rejects the ZIP, and stops there", async () => {
+  it("shows the server's answer when it rejects the ZIP, and stays on the page", async () => {
     dataset();
-    actions.saveOnboardingScreenAction
-      .mockResolvedValueOnce(ok(driverAt(2, { fullName: "Pat Driver" })))
-      .mockResolvedValueOnce(
-        failure("Check the form", { zip: "We could not find that ZIP. Check the number." }),
-      );
-    renderFlow("name", null);
+    actions.saveOnboardingScreenAction.mockResolvedValueOnce(
+      failure("Check the form", { zip: "We could not find that ZIP. Check the number." }),
+    );
+    renderFlow("lead", null);
     await userEvent.type(screen.getByLabelText("Full name"), "Pat Driver");
     await userEvent.type(screen.getByLabelText("ZIP code"), "77002");
     await waitFor(() => expect(place()).toHaveTextContent("Houston, TX"));
-    await userEvent.click(chip("50 miles"));
-    await userEvent.click(next());
+    await userEvent.click(screen.getByRole("radio", { name: /Class A/ }));
+    await userEvent.click(saveLead());
     expect(await screen.findByRole("alert")).toHaveTextContent("We could not find that ZIP");
     expect(heading()).toHaveTextContent("About");
-    expect(savedScreens()).toEqual(["name", "zip"]);
+    expect(savedScreens()).toEqual(["lead"]);
   });
 
-  it("Back from the CDL page returns to the About page with the saved answers", async () => {
+  it("Back from the Driving page returns to the About page with the saved answers", async () => {
     renderFlow(
-      "cdlClass",
-      driverAt(4, { fullName: "Pat Driver", zip: "77002", city: "Houston", state: "TX" }),
+      "distance",
+      driverAt(2, { fullName: "Pat Driver", zip: "77002", city: "Houston", state: "TX", cdlClass: "A" }),
     );
     await userEvent.click(screen.getByRole("button", { name: "Back" }));
     expect(heading()).toHaveTextContent("About");
     expect(screen.getByLabelText("Full name")).toHaveValue("Pat Driver");
     expect(place()).toHaveTextContent("Houston, TX");
-    expect(chip("50 miles")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("radio", { name: /Class A/ })).toHaveAttribute("aria-checked", "true");
+    expect(consentBox()).not.toBeChecked();
+    expect(screen.getByText("Saved")).toBeInTheDocument();
   });
 });
 
-describe("CDL page: class, years, record", () => {
-  it("offers Class A and B only, with no Class C and no No CDL card", () => {
-    renderFlow("cdlClass", driverAt(4));
-    const classes = within(screen.getByRole("radiogroup", { name: "What class is your CDL?" }));
-    expect(classes.getAllByRole("radio")).toHaveLength(2);
-    for (const name of ["Class A", "Class B"]) {
-      expect(classes.getByRole("radio", { name: new RegExp(name) })).toBeInTheDocument();
-    }
-    expect(screen.queryByText(/Class C/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/No CDL/)).not.toBeInTheDocument();
-  });
-
+describe("Driving page: distance, years, record", () => {
   it("every question is required, then the three screens save in order and the Cards page follows", async () => {
     actions.saveOnboardingScreenAction
-      .mockResolvedValueOnce(ok(driverAt(5, { cdlClass: "A" })))
-      .mockResolvedValueOnce(ok(driverAt(6, { cdlClass: "A", yearsExperience: 3 })))
+      .mockResolvedValueOnce(ok(driverAt(3, { cdlClass: "A", serviceRadiusMiles: 100 })))
+      .mockResolvedValueOnce(ok(driverAt(4, { cdlClass: "A", serviceRadiusMiles: 100, yearsExperience: 3 })))
       .mockResolvedValueOnce(
-        ok(driverAt(7, { cdlClass: "A", yearsExperience: 3, mvrStatus: "minor_1_2" })),
+        ok(driverAt(5, { cdlClass: "A", serviceRadiusMiles: 100, yearsExperience: 3, mvrStatus: "minor_1_2" })),
       );
-    renderFlow("cdlClass", driverAt(4));
+    renderFlow("distance", driverAt(2, { cdlClass: "A" }));
     expect(screen.getByText(MVR_HELPER)).toBeInTheDocument();
     expect(screen.queryByLabelText("Exact number (optional)")).not.toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: /Class A/ })).not.toBeInTheDocument();
     expect(
       within(screen.getByRole("group", { name: MVR_QUESTION }))
         .getAllByRole("button")
@@ -312,10 +348,10 @@ describe("CDL page: class, years, record", () => {
 
     await userEvent.click(next());
     await waitFor(() => expect(alerts()).toHaveLength(3));
-    expect(alerts()).toEqual([CDL_CLASS_MESSAGE, "Pick how many years you have driven", MVR_MESSAGE]);
+    expect(alerts()).toEqual(["Pick how far you will travel", "Pick how many years you have driven", MVR_MESSAGE]);
     expect(actions.saveOnboardingScreenAction).not.toHaveBeenCalled();
 
-    await userEvent.click(screen.getByRole("radio", { name: /Class A/ }));
+    await userEvent.click(chip("100 miles"));
     await userEvent.click(chip("3 to 5"));
     expect(chip("3 to 5")).toHaveAttribute("aria-pressed", "true");
     await userEvent.click(checkChip(MVR_QUESTION, "1 or 2 minor"));
@@ -326,44 +362,44 @@ describe("CDL page: class, years, record", () => {
     await userEvent.click(next());
 
     await waitFor(() => expect(heading()).toHaveTextContent("Cards"));
-    expect(savedScreens()).toEqual(["cdlClass", "experience", "record"]);
+    expect(savedScreens()).toEqual(["distance", "experience", "record"]);
     expect(actions.saveOnboardingScreenAction.mock.calls.map((call) => call[1])).toEqual([
-      { cdlClass: "A" },
+      { serviceRadiusMiles: 100 },
       { yearsExperience: 3 },
       { mvrStatus: "minor_1_2" },
     ]);
   });
 
   it("stops at the first screen with an error and saves nothing", async () => {
-    renderFlow("cdlClass", driverAt(4));
+    renderFlow("distance", driverAt(2, { cdlClass: "A" }));
     await userEvent.click(chip("Under 1"));
     await userEvent.click(next());
-    expect(await screen.findByText(CDL_CLASS_MESSAGE)).toBeInTheDocument();
+    expect(await screen.findByText("Pick how far you will travel")).toBeInTheDocument();
     expect(screen.getByText(MVR_MESSAGE)).toBeInTheDocument();
     expect(actions.saveOnboardingScreenAction).not.toHaveBeenCalled();
   });
 
   it("stops on the screen the server rejects, and leaves the later ones unsaved", async () => {
     actions.saveOnboardingScreenAction
-      .mockResolvedValueOnce(ok(driverAt(5, { cdlClass: "A" })))
+      .mockResolvedValueOnce(ok(driverAt(3, { cdlClass: "A", serviceRadiusMiles: 50 })))
       .mockResolvedValueOnce(failure("Check the form", { yearsExperience: "Too many" }));
-    renderFlow("cdlClass", driverAt(4));
-    await userEvent.click(screen.getByRole("radio", { name: /Class A/ }));
+    renderFlow("distance", driverAt(2, { cdlClass: "A" }));
+    await userEvent.click(chip("50 miles"));
     await userEvent.click(chip("10 or more"));
     await userEvent.click(checkChip(MVR_QUESTION, "None"));
     await userEvent.click(next());
     expect(await screen.findByText("Too many")).toBeInTheDocument();
-    expect(heading()).toHaveTextContent("CDL");
-    expect(savedScreens()).toEqual(["cdlClass", "experience"]);
+    expect(heading()).toHaveTextContent("Driving");
+    expect(savedScreens()).toEqual(["distance", "experience"]);
   });
 });
 
 describe("Cards page", () => {
   it("asks TWIC and medical card as two yes-or-no questions, both required", async () => {
     actions.saveOnboardingScreenAction.mockResolvedValue(
-      ok(driverAt(8, { twicActive: true, medicalCardActive: false })),
+      ok(driverAt(6, { twicActive: true, medicalCardActive: false })),
     );
-    renderFlow("credentials", driverAt(7));
+    renderFlow("credentials", driverAt(5));
     const twic = CARD_CHECKS.twicActive.question;
     const medical = CARD_CHECKS.medicalCardActive.question;
     expect(screen.getByText("Carriers ask for both. You can update these any time.")).toBeInTheDocument();
@@ -383,7 +419,7 @@ describe("Cards page", () => {
   });
 
   it("shows saved answers as pressed chips", () => {
-    renderFlow("credentials", driverAt(8, { twicActive: false, medicalCardActive: true }));
+    renderFlow("credentials", driverAt(6, { twicActive: false, medicalCardActive: true }));
     expect(checkChip(CARD_CHECKS.twicActive.question, "No")).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -399,11 +435,11 @@ describe("Cards page", () => {
 describe("Letters page: endorsements and transmission", () => {
   it("X picks H and N with a note, dropping N drops X, None clears everything, and the transmission is required", async () => {
     actions.saveOnboardingScreenAction
-      .mockResolvedValueOnce(ok(driverAt(9, { cdlClass: "A", endorsements: ["T"] })))
+      .mockResolvedValueOnce(ok(driverAt(7, { cdlClass: "A", endorsements: ["T"] })))
       .mockResolvedValueOnce(
-        ok(driverAt(10, { cdlClass: "A", endorsements: ["T"], transmission: "automatic_only" })),
+        ok(driverAt(8, { cdlClass: "A", endorsements: ["T"], transmission: "automatic_only" })),
       );
-    renderFlow("endorsements", driverAt(8, { cdlClass: "A" }));
+    renderFlow("endorsements", driverAt(6, { cdlClass: "A" }));
     expect(screen.getByRole("img", { name: /front of a CDL/ })).toBeInTheDocument();
     expect(screen.getByText(/These are called endorsements/)).toBeInTheDocument();
     expect(screen.getByText("Can you drive a manual?")).toBeInTheDocument();
@@ -458,9 +494,9 @@ describe("Letters page: endorsements and transmission", () => {
 describe("Equipment page", () => {
   it("chips, at least one, then the Finish page follows", async () => {
     actions.saveOnboardingScreenAction.mockResolvedValue(
-      ok(driverAt(11, { equipmentTypes: ["dry_van", "reefer"] })),
+      ok(driverAt(9, { equipmentTypes: ["dry_van", "reefer"] })),
     );
-    renderFlow("equipment", driverAt(10));
+    renderFlow("equipment", driverAt(8));
     expect(screen.getByText("Pick everything you have pulled or driven.")).toBeInTheDocument();
     await userEvent.click(next());
     await waitFor(() => expect(alerts()).toEqual([EQUIPMENT_MESSAGE]));
@@ -477,9 +513,9 @@ describe("Equipment page", () => {
 
 describe("Finish page: consent and done", () => {
   it("asks how the driver heard of FleetGrid, optional, saved before the consent", async () => {
-    const complete = buildDriver({ onboardingStep: 13, cardCompleted: true, smsOptIn: false, heardFrom: "other", heardFromOther: "Radio ad" });
+    const complete = buildDriver({ onboardingStep: 11, cardCompleted: true, smsOptIn: false, heardFrom: "other", heardFromOther: "Radio ad" });
     actions.saveOnboardingScreenAction.mockResolvedValue(ok(complete));
-    renderFlow("heardFrom", answeredAt(11));
+    renderFlow("heardFrom", answeredAt(9));
     expect(screen.getByText("Optional. It tells us where to put the next flyers.")).toBeInTheDocument();
     const group = screen.getByRole("group", { name: "How did you hear about FleetGrid?" });
     for (const name of ["Flyer at a truck stop or shop", "Facebook or Instagram", "Google search", "A friend or coworker", "Other"]) {
@@ -501,9 +537,24 @@ describe("Finish page: consent and done", () => {
     expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("heardFrom", { heardFrom: "other", heardFromOther: "Radio ad" });
   });
 
+  it("leaves the consent box out for a driver who ticked it on the lead: the source question carries the last button", async () => {
+    const complete = buildDriver({ onboardingStep: 11, cardCompleted: true, heardFrom: "flyer" });
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(complete));
+    renderFlow("heardFrom", buildDriver({ onboardingStep: 9, cardCompleted: false, smsOptIn: true }));
+    expect(screen.queryByText("Can we text you about shifts?")).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Flyer at a truck stop or shop" }));
+    await userEvent.click(screen.getByRole("button", { name: "Find local shifts" }));
+    await waitFor(() => expect(heading()).toHaveTextContent("You're in!"));
+    expect(savedScreens()).toEqual(["heardFrom"]);
+    expect(router.refresh).toHaveBeenCalledOnce();
+    expect(document.querySelector("[data-slot=done-text]")).toHaveTextContent(/SMS shift alerts/);
+  });
+
   it("goes on without an answer to the source question", async () => {
-    actions.saveOnboardingScreenAction.mockResolvedValue(ok(buildDriver({ onboardingStep: 13, cardCompleted: true, smsOptIn: false })));
-    renderFlow("consent", answeredAt(11));
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(buildDriver({ onboardingStep: 11, cardCompleted: true, smsOptIn: false })));
+    renderFlow("consent", answeredAt(9));
     await userEvent.click(screen.getByRole("button", { name: "Find local shifts" }));
     await waitFor(() => expect(heading()).toHaveTextContent("You're in!"));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -511,9 +562,9 @@ describe("Finish page: consent and done", () => {
   });
 
   it("the consent box is optional and unchecked, with links to all three legal pages", async () => {
-    const complete = buildDriver({ onboardingStep: 13, cardCompleted: true, smsOptIn: false });
+    const complete = buildDriver({ onboardingStep: 11, cardCompleted: true, smsOptIn: false });
     actions.saveOnboardingScreenAction.mockResolvedValue(ok(complete));
-    renderFlow("consent", answeredAt(11));
+    renderFlow("consent", answeredAt(9));
     expect(screen.getByText(/This is optional/)).toBeInTheDocument();
     const box = screen.getByRole("checkbox", { name: new RegExp(SMS_CONSENT_TEXT.slice(0, 20)) });
     expect(box).not.toBeChecked();
@@ -542,9 +593,9 @@ describe("Finish page: consent and done", () => {
   });
 
   it("ticking the box, then Find local shifts shows the done screen and refreshes", async () => {
-    const complete = buildDriver({ onboardingStep: 13, cardCompleted: true });
+    const complete = buildDriver({ onboardingStep: 11, cardCompleted: true });
     actions.saveOnboardingScreenAction.mockResolvedValue(ok(complete));
-    renderFlow("consent", answeredAt(11));
+    renderFlow("consent", answeredAt(9));
     expect(
       screen.getByText(/Shift offers come by text to \(\*\*\*\) \*\*\*-0100/),
     ).toBeInTheDocument();
@@ -583,17 +634,25 @@ describe("Finish page: consent and done", () => {
     expect(chip("Dry van")).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("the summary can send the driver back to the CDL page, with the record shown", async () => {
-    renderFlow("done", buildDriver({ onboardingStep: 13, cardCompleted: true }));
+  it("the summary can send the driver back to the Driving page, with the record shown, and to the lead for the class", async () => {
+    const { unmount } = renderFlow("done", buildDriver({ onboardingStep: 11, cardCompleted: true }));
     await userEvent.click(screen.getByRole("button", { name: "Edit record" }));
-    expect(heading()).toHaveTextContent("CDL");
+    expect(heading()).toHaveTextContent("Driving");
     expect(checkChip(MVR_QUESTION, "None")).toHaveAttribute("aria-pressed", "true");
+    expect(chip("50 miles")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.queryByRole("radio", { name: /Class A/ })).not.toBeInTheDocument();
+    unmount();
+
+    renderFlow("done", buildDriver({ onboardingStep: 11, cardCompleted: true }));
+    await userEvent.click(screen.getByRole("button", { name: "Edit cdl class" }));
+    expect(heading()).toHaveTextContent("About");
     expect(screen.getByRole("radio", { name: /Class A/ })).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByLabelText("Full name")).toHaveValue("Pat Driver");
   });
 
   it("shows a server error without a matching field as a note", async () => {
     actions.saveOnboardingScreenAction.mockResolvedValue(failure("Finish the earlier steps first"));
-    renderFlow("equipment", answeredAt(10));
+    renderFlow("equipment", answeredAt(8));
     await userEvent.click(next());
     expect(await screen.findByRole("alert")).toHaveTextContent("Finish the earlier steps first");
     expect(heading()).toHaveTextContent("Equipment");
@@ -607,11 +666,11 @@ describe("Finish page: consent and done", () => {
       ok({ zip: "75201", city: "Dallas", state: "TX", inServiceArea: true }),
     );
     renderFlow(
-      "name",
-      driverAt(4, { fullName: "Pat Driver", zip: "75201", city: "Dallas", state: "TX" }),
+      "lead",
+      driverAt(2, { fullName: "Pat Driver", zip: "75201", city: "Dallas", state: "TX", cdlClass: "A" }),
     );
-    await waitFor(() => expect(next()).toBeEnabled());
-    await userEvent.click(next());
+    await waitFor(() => expect(saveLead()).toBeEnabled());
+    await userEvent.click(saveLead());
     expect(await screen.findByText("Too short")).toBeInTheDocument();
   });
 });
@@ -621,11 +680,10 @@ describe("the road", () => {
     actions.lookupZipAction.mockResolvedValue(
       ok({ zip: "77002", city: "Houston", state: "TX", inServiceArea: true }),
     );
-    actions.saveOnboardingScreenAction
-      .mockResolvedValueOnce(ok(driverAt(2, { fullName: "Pat Driver" })))
-      .mockResolvedValueOnce(ok(driverAt(3, { fullName: "Pat Driver", zip: "77002" })))
-      .mockResolvedValueOnce(ok(driverAt(4, { fullName: "Pat Driver", zip: "77002" })));
-    const { container } = renderFlow("name", null);
+    actions.saveOnboardingScreenAction.mockResolvedValueOnce(
+      ok(driverAt(2, { fullName: "Pat Driver", zip: "77002", cdlClass: "A" })),
+    );
+    const { container } = renderFlow("lead", null);
     const fill = container.querySelector("[data-slot=lane-fill]") as HTMLElement;
     const truck = container.querySelector("[data-slot=lane-truck]") as HTMLElement;
     expect(fill.style.width).toBe("0%");
@@ -633,22 +691,22 @@ describe("the road", () => {
     await userEvent.type(screen.getByLabelText("Full name"), "Pat Driver");
     await userEvent.type(screen.getByLabelText("ZIP code"), "77002");
     await waitFor(() => expect(place()).toHaveTextContent("Houston, TX"));
-    await userEvent.click(chip("25 miles"));
-    await userEvent.click(next());
-    await waitFor(() => expect(heading()).toHaveTextContent("CDL"));
+    await userEvent.click(screen.getByRole("radio", { name: /Class A/ }));
+    await userEvent.click(saveLead());
+    await waitFor(() => expect(heading()).toHaveTextContent("Driving"));
 
     expect(container.querySelector("[data-slot=lane-fill]")).toBe(fill);
     expect(container.querySelector("[data-slot=lane-truck]")).toBe(truck);
-    expect(fill.style.width).toBe("25%");
-    expect(truck.style.left).toBe("25%");
+    expect(fill.style.width).toBe("10%");
+    expect(truck.style.left).toBe("10%");
   });
 });
 
 describe("resume", () => {
   it("opens on the page the server reports with the saved answers", async () => {
-    renderFlow("experience", driverAt(5, { cdlClass: "B", yearsExperience: 8 }));
-    expect(heading()).toHaveTextContent("CDL");
-    expect(screen.getByRole("radio", { name: /Class B/ })).toHaveAttribute("aria-checked", "true");
+    renderFlow("experience", driverAt(3, { cdlClass: "B", yearsExperience: 8, serviceRadiusMiles: 100 }));
+    expect(heading()).toHaveTextContent("Driving");
+    expect(chip("100 miles")).toHaveAttribute("aria-pressed", "true");
     expect(chip("6 to 10")).toHaveAttribute("aria-pressed", "true");
     await act(async () => undefined);
   });

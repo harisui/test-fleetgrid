@@ -127,13 +127,18 @@ so. Open the file in a browser to compare.
 
 ### The sign-up
 
-Thirteen screens in six miles, a mile per page (`src/lib/onboarding/steps.ts`): About (name, ZIP,
-distance), CDL (class, years, MVR level), Cards (TWIC, DOT medical card), Letters (endorsements,
-transmission), Equipment, Finish (the optional "How did you hear about FleetGrid?", SMS consent,
-then "Find local shifts"). Every page is saved on Next, so a driver can leave and resume on the
-same page. The answers sign-up no longer asks (W-2 or 1099, driving style, the Clearinghouse,
-availability, certifications, papers, about you) are optional on the profile page, and the CDL
-photos are asked for when a shift comes up (Milestone 3).
+Eleven screens in six miles, a mile per page (`src/lib/onboarding/steps.ts`). The first mile is
+one screen, the lead: name, ZIP (city and state filled in from the dataset, the out-of-area note
+when it applies), CDL class, and the optional, unchecked shift-text box; "Save and continue"
+creates the card at once, unfinished, so the sign-up is captured even if the driver stops there.
+Then Driving (distance, years, MVR level), Cards (TWIC, DOT medical card), Letters (endorsements,
+transmission), Equipment, Finish (the optional "How did you hear about FleetGrid?", the consent
+box again only for drivers who left it empty on the lead, then "Find local shifts"). Every page is
+saved on Next, so a driver can leave and resume on the next unanswered page. The card is complete,
+and can be approved or found by carriers, once every required answer is there. The answers
+sign-up no longer asks (W-2 or 1099, driving style, the Clearinghouse, availability,
+certifications, papers, about you) are optional on the profile page, and the CDL photos are asked
+for when a shift comes up (Milestone 3).
 
 ### Where a sign-up came from
 

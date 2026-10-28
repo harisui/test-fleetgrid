@@ -17,7 +17,10 @@ import type {
 type DriverRow = Database["public"]["Tables"]["drivers"]["Row"];
 type DriverUpdate = Database["public"]["Tables"]["drivers"]["Update"];
 
-/** Fields needed to create the card on the first onboarding screen (the name). */
+/**
+ * Fields needed to create the card on the first onboarding screen: the lead's name, ZIP with
+ * its place, CDL class and, when the box was ticked, the consent record.
+ */
 export interface CreateDriverInput {
   fullName: string;
   onboardingStep: number;
@@ -25,7 +28,13 @@ export interface CreateDriverInput {
   city?: string | null;
   state?: string | null;
   zip?: string | null;
+  lat?: number | null;
+  lng?: number | null;
+  cdlClass?: CdlClass;
   serviceRadiusMiles?: number;
+  smsOptIn?: boolean;
+  smsOptInAt?: string | null;
+  smsOptInText?: string | null;
 }
 
 /** Any subset of editable card fields. Owner and opt-out state are not editable here. */
@@ -171,9 +180,15 @@ export class DriverRepository extends BaseRepository implements IDriverRepositor
         ...(input.city !== undefined && { city: input.city }),
         ...(input.state !== undefined && { state: input.state }),
         ...(input.zip !== undefined && { zip: input.zip }),
+        ...(input.lat !== undefined && { lat: input.lat }),
+        ...(input.lng !== undefined && { lng: input.lng }),
+        ...(input.cdlClass !== undefined && { cdl_class: input.cdlClass }),
         ...(input.serviceRadiusMiles !== undefined && {
           service_radius_miles: input.serviceRadiusMiles,
         }),
+        ...(input.smsOptIn !== undefined && { sms_opt_in: input.smsOptIn }),
+        ...(input.smsOptInAt !== undefined && { sms_opt_in_at: input.smsOptInAt }),
+        ...(input.smsOptInText !== undefined && { sms_opt_in_text: input.smsOptInText }),
       })
       .select("*")
       .single();

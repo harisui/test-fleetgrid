@@ -56,4 +56,6 @@ export interface ScreenDefinition {
   nextLabel?: (values: OnboardingFormValues, context: ScreenContext) => string;
   /** True when Next must stay disabled until the driver resolves something on the screen. */
   blocked?: (values: OnboardingFormValues, context: ScreenContext) => boolean;
+  /** True when the screen is left out of its page, neither shown nor saved (the end consent after a lead opt-in). */
+  skip?: (context: ScreenContext) => boolean;
 }

@@ -115,7 +115,7 @@ export function buildDriver(overrides: Partial<LocatedDriver> = {}): LocatedDriv
       smsOptedOutAt: null,
       heardFrom: null,
       heardFromOther: null,
-      onboardingStep: 12,
+      onboardingStep: 11,
       cardCompleted: true,
       inServiceArea: true,
       createdAt: TIMESTAMP,
@@ -160,10 +160,8 @@ export function buildPartialDriver(overrides: Partial<LocatedDriver> = {}): Loca
 
 /** Valid raw input for each onboarding screen, in flow order. */
 export const SCREEN_INPUTS = {
-  name: { fullName: "Pat Driver" },
-  zip: { zip: "75201" },
+  lead: { fullName: "Pat Driver", zip: "75201", cdlClass: "A", consent: false },
   distance: { serviceRadiusMiles: 50 },
-  cdlClass: { cdlClass: "A" },
   experience: { yearsExperience: 8 },
   record: { mvrStatus: "clean" },
   credentials: { twicActive: true, medicalCardActive: true },

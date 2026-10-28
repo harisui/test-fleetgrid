@@ -276,29 +276,33 @@ export async function moveDriverToStep(
   if (error) throw new Error(`moveDriverToStep failed: ${error.message}`);
 }
 
-/** The card columns of a driver who is about to see screen `stepNumber`. Unanswered ones are null. */
+/**
+ * The card columns of a driver who is about to see screen `stepNumber` (2 or later: a card
+ * exists once the lead is saved, with the name, the ZIP and the class). Unanswered ones are
+ * null. The lead's consent box is left unticked, so the Finish page still asks.
+ */
 function driverRowAtStep(stepNumber: number) {
   const answered = (screen: number) => stepNumber > screen;
   const complete = stepNumber >= COMPLETE_STEP;
   const or = <T>(condition: boolean, value: T) => (condition ? value : null);
   return {
     full_name: CARD_ANSWERS.full_name,
-    city: or(answered(2), CARD_ANSWERS.city),
-    state: or(answered(2), CARD_ANSWERS.state),
-    zip: or(answered(2), CARD_ANSWERS.zip),
-    lat: or(answered(2), CARD_ANSWERS.lat),
-    lng: or(answered(2), CARD_ANSWERS.lng),
-    ...(answered(3) && { service_radius_miles: CARD_ANSWERS.service_radius_miles }),
+    city: CARD_ANSWERS.city,
+    state: CARD_ANSWERS.state,
+    zip: CARD_ANSWERS.zip,
+    lat: CARD_ANSWERS.lat,
+    lng: CARD_ANSWERS.lng,
     // CDL drivers only at launch: set on every card, never asked.
     operator_types: ["cdl_driver" as const],
-    cdl_class: answered(4) ? CARD_ANSWERS.cdl_class : ("none" as const),
-    years_experience: or(answered(5), CARD_ANSWERS.years_experience),
-    mvr_status: or(answered(6), CARD_ANSWERS.mvr_status),
-    twic_active: or(answered(7), CARD_ANSWERS.twic_active),
-    medical_card_active: or(answered(7), CARD_ANSWERS.medical_card_active),
-    endorsements: answered(8) ? [...CARD_ANSWERS.endorsements] : [],
-    transmission: or(answered(9), CARD_ANSWERS.transmission),
-    equipment_types: answered(10) ? [...CARD_ANSWERS.equipment_types] : [],
+    cdl_class: CARD_ANSWERS.cdl_class,
+    ...(answered(2) && { service_radius_miles: CARD_ANSWERS.service_radius_miles }),
+    years_experience: or(answered(3), CARD_ANSWERS.years_experience),
+    mvr_status: or(answered(4), CARD_ANSWERS.mvr_status),
+    twic_active: or(answered(5), CARD_ANSWERS.twic_active),
+    medical_card_active: or(answered(5), CARD_ANSWERS.medical_card_active),
+    endorsements: answered(6) ? [...CARD_ANSWERS.endorsements] : [],
+    transmission: or(answered(7), CARD_ANSWERS.transmission),
+    equipment_types: answered(8) ? [...CARD_ANSWERS.equipment_types] : [],
     sms_opt_in: complete,
     sms_opt_in_at: or(complete, new Date().toISOString()),
     sms_opt_in_text: or(complete, CONSENT_TEXT),

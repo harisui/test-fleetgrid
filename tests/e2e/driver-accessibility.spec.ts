@@ -1,4 +1,4 @@
-import AxeBuilder from "@axe-core/playwright";
+﻿import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Locator, type Page } from "@playwright/test";
 import { STEPS } from "../../src/lib/onboarding/steps";
 import {
@@ -91,35 +91,37 @@ for (const colorScheme of ["light", "dark"] as const) {
     }
 
     test("onboarding error, warning and selected states", async ({ page }) => {
+      // The lead, step 1: every answer missing, then the ZIP states, then the class picked.
       await seedDriverAtStep(PHONES.driver, 1);
       await openOnboarding(page, PHONES.driver);
-      await nextButton(page).click();
+      await nextButton(page, "Save and continue").click();
       await expect(page.getByText("Enter your name")).toBeVisible();
-      await expectNoAccessibilityViolations(page, "name with error");
-
-      await seedDriverAtStep(PHONES.driver, 2);
-      await openOnboarding(page, PHONES.driver);
+      await expect(page.getByText("Pick your CDL class")).toBeVisible();
+      await expectNoAccessibilityViolations(page, "lead with errors");
       await page.getByLabel("ZIP code", { exact: true }).fill(PLACES.dallas.zip);
       await expect(page.locator("[data-slot=launch-area-note]")).toBeVisible();
       await expectNoAccessibilityViolations(page, "ZIP outside the launch area");
       await page.getByLabel("ZIP code", { exact: true }).fill("99999");
-      await expect(formAlert(page)).toBeVisible();
+      await expect(formAlert(page).first()).toBeVisible();
       await expectNoAccessibilityViolations(page, "ZIP not in the dataset");
+      await page.getByRole("radio", { name: /Class A/ }).click();
+      await page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) }).click();
+      await expectNoAccessibilityViolations(page, "lead with the class and the box");
 
-      await seedDriverAtStep(PHONES.driver, 4);
+      await seedDriverAtStep(PHONES.driver, 2);
       await openOnboarding(page, PHONES.driver);
       await nextButton(page).click();
       await expect(formAlert(page).first()).toBeVisible();
-      await expectNoAccessibilityViolations(page, "CDL page with errors");
-      await page.getByRole("radio", { name: /Class A/ }).click();
+      await expectNoAccessibilityViolations(page, "Driving page with errors");
+      await page.getByRole("button", { name: "50 miles", exact: true }).click();
       await page.getByRole("button", { name: "3 to 5", exact: true }).click();
       await page
         .getByRole("group", { name: "Any moving violations in the last 3 years?" })
         .getByRole("button", { name: "None", exact: true })
         .click();
-      await expectNoAccessibilityViolations(page, "CDL page answered");
+      await expectNoAccessibilityViolations(page, "Driving page answered");
 
-      await seedDriverAtStep(PHONES.driver, 7);
+      await seedDriverAtStep(PHONES.driver, 5);
       await openOnboarding(page, PHONES.driver);
       await nextButton(page).click();
       await expect(formAlert(page).first()).toBeVisible();
@@ -130,19 +132,19 @@ for (const colorScheme of ["light", "dark"] as const) {
         .click();
       await expectNoAccessibilityViolations(page, "cards answered");
 
-      await seedDriverAtStep(PHONES.driver, 8);
+      await seedDriverAtStep(PHONES.driver, 6);
       await openOnboarding(page, PHONES.driver);
       await page.getByRole("checkbox", { name: /^X\b/ }).click();
       await page.getByRole("radio", { name: /Automatic only/ }).click();
       await expectNoAccessibilityViolations(page, "letters with X and a transmission");
 
-      await seedDriverAtStep(PHONES.driver, 10);
+      await seedDriverAtStep(PHONES.driver, 8);
       await openOnboarding(page, PHONES.driver);
       await page.getByRole("button", { name: "Dry van", exact: true }).click();
       await expectNoAccessibilityViolations(page, "equipment selected");
 
       // The consent box is optional (0016): no error state exists on this page.
-      await seedDriverAtStep(PHONES.driver, 11);
+      await seedDriverAtStep(PHONES.driver, 9);
       await openOnboarding(page, PHONES.driver);
       await expectNoAccessibilityViolations(page, "consent unchecked");
       await page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) }).click();
@@ -203,27 +205,30 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.keyboard.type("75201");
       await expect(page.locator("[data-slot=zip-place]")).toContainText("Dallas, TX");
 
-      await tabTo(page, page.getByRole("button", { name: "10 miles" }));
-      await page.keyboard.press("Tab");
-      await page.keyboard.press("Space");
-      await expect(page.getByRole("button", { name: "25 miles" })).toHaveAttribute(
-        "aria-pressed",
-        "true",
-      );
-
-      await tabTo(page, nextButton(page));
-      await page.keyboard.press("Enter");
-      await expect(screenHeading(page)).toHaveText("CDL");
-      await expect(screenHeading(page)).toBeFocused();
-
-      await page.keyboard.press("Tab");
-      await expect(page.getByRole("radio", { name: /Class A/ })).toBeFocused();
+      await tabTo(page, page.getByRole("radio", { name: /Class A/ }));
       await page.keyboard.press("Space");
       await expect(page.getByRole("radio", { name: /Class A/ })).toHaveAttribute(
         "aria-checked",
         "true",
       );
       await expect(page.locator(":focus-visible")).toHaveAttribute("role", "radio");
+      // The box is reachable but stays unticked unless chosen.
+      await tabTo(page, page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) }));
+      await expect(page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) })).not.toBeChecked();
+
+      await tabTo(page, nextButton(page, "Save and continue"));
+      await page.keyboard.press("Enter");
+      await expect(screenHeading(page)).toHaveText("Driving");
+      await expect(screenHeading(page)).toBeFocused();
+
+      await page.keyboard.press("Tab");
+      await expect(page.getByRole("button", { name: "10 miles" })).toBeFocused();
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Space");
+      await expect(page.getByRole("button", { name: "25 miles" })).toHaveAttribute(
+        "aria-pressed",
+        "true",
+      );
     });
   });
 }

@@ -147,16 +147,25 @@ export const consentScreenSchema = z.object({
   consent: z.boolean({ error: CONSENT_MESSAGE }).default(false),
 });
 
+/**
+ * The lead (brief of 2026-10-28): the name, the ZIP, the CDL class and the optional box on
+ * one screen. Every answer is checked at once, so the driver sees all of them together.
+ */
+export const leadScreenSchema = z.object({
+  ...nameScreenSchema.shape,
+  ...zipScreenSchema.shape,
+  ...cdlClassScreenSchema.shape,
+  ...consentScreenSchema.shape,
+});
+
 /** The profile page's "Turn on shift texts" and "Turn off shift texts". */
 export const smsConsentSchema = z.object({
   consent: z.boolean({ error: CONSENT_MESSAGE }),
 });
 
 export const SCREEN_SCHEMAS = {
-  name: nameScreenSchema,
-  zip: zipScreenSchema,
+  lead: leadScreenSchema,
   distance: distanceScreenSchema,
-  cdlClass: cdlClassScreenSchema,
   experience: experienceScreenSchema,
   record: recordScreenSchema,
   credentials: credentialsScreenSchema,
@@ -167,6 +176,7 @@ export const SCREEN_SCHEMAS = {
   consent: consentScreenSchema,
 } as const satisfies Record<SavableStepId, z.ZodType>;
 
+export type LeadScreenInput = z.infer<typeof leadScreenSchema>;
 export type NameScreenInput = z.infer<typeof nameScreenSchema>;
 export type ZipScreenInput = z.infer<typeof zipScreenSchema>;
 export type DistanceScreenInput = z.infer<typeof distanceScreenSchema>;

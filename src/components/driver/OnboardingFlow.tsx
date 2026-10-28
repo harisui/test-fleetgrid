@@ -114,9 +114,15 @@ interface ScreenPageProps {
 }
 
 function ScreenPage({ stepId, pageSteps, context, onBack, onSaved }: ScreenPageProps) {
+  // A screen can leave its page for this driver (the end consent after an opt-in on the
+  // lead): it is neither shown nor saved, and the page before it carries the last button.
+  const shownSteps = useMemo(
+    () => pageSteps.filter((step) => !SCREENS[step.id as keyof typeof SCREENS].skip?.(context)),
+    [pageSteps, context],
+  );
   const definitions = useMemo(
-    () => pageSteps.map((step) => SCREENS[step.id as keyof typeof SCREENS]),
-    [pageSteps],
+    () => shownSteps.map((step) => SCREENS[step.id as keyof typeof SCREENS]),
+    [shownSteps],
   );
   const [formError, setFormError] = useState<string>();
 
@@ -199,7 +205,7 @@ function ScreenPage({ stepId, pageSteps, context, onBack, onSaved }: ScreenPageP
         )}
         <FormProvider {...form}>
           <form id={FORM_ID} onSubmit={submit} noValidate className="flex flex-col gap-8">
-            {pageSteps.map((step, index) => (
+            {shownSteps.map((step, index) => (
               <ScreenSection
                 key={step.id}
                 step={step}

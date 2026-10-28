@@ -85,7 +85,7 @@ test("on the login screen: opens, shows the help, closes, in the layout for this
 test("on the onboarding: keyboard only, Escape closes and focus returns to Help", async ({
   page,
 }) => {
-  await seedDriverAtStep(PHONES.driver, 4);
+  await seedDriverAtStep(PHONES.driver, 2);
   await openOnboarding(page, PHONES.driver);
   await helpButton(page).focus();
   await page.keyboard.press("Enter");

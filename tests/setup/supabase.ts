@@ -161,7 +161,7 @@ export async function createListedDriver(
       sms_opt_in: true,
       sms_opt_in_at: new Date().toISOString(),
       sms_opt_in_text: "I agree",
-      onboarding_step: 13,
+      onboarding_step: 11,
       card_completed: true,
       ...columns,
     })

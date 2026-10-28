@@ -2,13 +2,12 @@
 
 import { useFormContext } from "react-hook-form";
 import { ScreenQuestion } from "@/components/driver/screens/common";
-import type { ScreenDefinition, ScreenFieldsProps } from "@/components/driver/screens/types";
+import type { OnboardingFormValues, ScreenFieldsProps } from "@/components/driver/screens/types";
 import { FormField } from "@/components/shared/FormField";
 import { Input } from "@/components/ui/input";
-import { nameScreenSchema } from "@/lib/validation/onboarding.schema";
-import type { OnboardingFormValues } from "@/components/driver/screens/types";
 
-function NameFields({ question }: ScreenFieldsProps) {
+/** The name, on the lead screen (LeadScreen.tsx). */
+export function NameFields({ question }: ScreenFieldsProps) {
   const {
     register,
     formState: { errors },
@@ -26,11 +25,3 @@ function NameFields({ question }: ScreenFieldsProps) {
     </>
   );
 }
-
-export const nameScreen: ScreenDefinition = {
-  id: "name",
-  fields: ["fullName"],
-  schema: () => nameScreenSchema,
-  defaults: (driver) => ({ fullName: driver?.fullName ?? "" }),
-  Fields: NameFields,
-};

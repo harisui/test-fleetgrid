@@ -48,10 +48,10 @@ import {
 } from "@/types/domain";
 
 describe("steps config", () => {
-  it("has six miles labelled About, CDL, Cards, Letters, Equipment, Finish", () => {
+  it("has six miles labelled About, Driving, Cards, Letters, Equipment, Finish", () => {
     expect(MILES.map((mile) => `${mile.mile} ${mile.label}`)).toEqual([
       "1 About",
-      "2 CDL",
+      "2 Driving",
       "3 Cards",
       "4 Letters",
       "5 Equipment",
@@ -60,12 +60,10 @@ describe("steps config", () => {
     expect(Object.keys(MILE_SUMMARIES).map(Number)).toEqual(MILES.map((mile) => mile.mile));
   });
 
-  it("has thirteen screens in the client's order (2026-10-09, the source question of 2026-10-28) and mile map", () => {
+  it("has eleven screens: the lead first (brief of 2026-10-28), then one page per mile, and the mile map", () => {
     expect(STEPS.map((step) => `${step.mile}:${step.id}`)).toEqual([
-      "1:name",
-      "1:zip",
-      "1:distance",
-      "2:cdlClass",
+      "1:lead",
+      "2:distance",
       "2:experience",
       "2:record",
       "3:credentials",
@@ -76,9 +74,11 @@ describe("steps config", () => {
       "6:consent",
       "6:done",
     ]);
-    expect(DONE_STEP_NUMBER).toBe(13);
-    expect(SAVABLE_STEP_IDS).toHaveLength(12);
+    expect(DONE_STEP_NUMBER).toBe(11);
+    expect(SAVABLE_STEP_IDS).toHaveLength(10);
     expect(SAVABLE_STEP_IDS).not.toContain("done");
+    // Name, ZIP and CDL class live on the lead alone: nothing is asked twice.
+    for (const gone of ["name", "zip", "cdlClass"]) expect(STEPS.map((step) => step.id as string)).not.toContain(gone);
   });
 
   it("no longer asks work type, W-2 or 1099, driving style, availability, certifications, papers, the Clearinghouse or about you", () => {
@@ -114,8 +114,8 @@ describe("steps config", () => {
       question: "How did you hear about FleetGrid?",
       helper: "Optional. It tells us where to put the next flyers.",
     });
-    expect(stepById("name").question).toBe("What is your name?");
-    expect(stepById("cdlClass").question).toBe("What class is your CDL?");
+    expect(stepById("lead").question).toBe("What is your name?");
+    expect(stepById("distance").question).toBe("How far will you travel for work?");
     expect(stepById("experience").question).toBe("How many years have you driven with a CDL?");
     expect(stepById("record").question).toBe(MVR_QUESTION);
     expect(stepById("credentials").question).toBe("Do you have these cards?");
@@ -124,18 +124,19 @@ describe("steps config", () => {
   });
 
   it("numbers steps from 1 and looks them up both ways", () => {
-    expect(stepNumber("name")).toBe(1);
-    expect(stepNumber("done")).toBe(13);
-    expect(stepNumber("heardFrom")).toBe(11);
-    expect(stepByNumber(4).id).toBe("cdlClass");
+    expect(stepNumber("lead")).toBe(1);
+    expect(stepNumber("done")).toBe(11);
+    expect(stepNumber("heardFrom")).toBe(9);
+    expect(stepByNumber(4).id).toBe("record");
     expect(() => stepByNumber(0)).toThrow(/Unknown onboarding step/);
-    expect(() => stepByNumber(14)).toThrow(/Unknown onboarding step/);
+    expect(() => stepByNumber(12)).toThrow(/Unknown onboarding step/);
     expect(() => stepByNumber(1.5)).toThrow(/Unknown onboarding step/);
     expect(() => stepById("nope" as never)).toThrow(/Unknown onboarding step/);
   });
 
   it("recognises step ids", () => {
-    expect(isStepId("zip")).toBe(true);
+    expect(isStepId("lead")).toBe(true);
+    expect(isStepId("zip")).toBe(false);
     expect(isStepId("done")).toBe(true);
     expect(isStepId("workType")).toBe(false);
     expect(isStepId(1)).toBe(false);
@@ -147,15 +148,15 @@ describe("steps config", () => {
 
 describe("progressFor", () => {
   it("derives the eyebrow, screen-reader label and truck position from the config", () => {
-    expect(progressFor("cdlClass")).toMatchObject({
-      number: 4,
-      mile: { mile: 2, label: "CDL" },
-      percent: 25,
+    expect(progressFor("experience")).toMatchObject({
+      number: 3,
+      mile: { mile: 2, label: "Driving" },
+      percent: 20,
       eyebrow: "Mile 2 of 6",
-      srLabel: "Step 2 of 6: CDL",
+      srLabel: "Step 2 of 6: Driving",
       completedMiles: [1],
     });
-    expect(progressFor("name")).toMatchObject({ percent: 0, completedMiles: [] });
+    expect(progressFor("lead")).toMatchObject({ percent: 0, completedMiles: [] });
     expect(progressFor("done")).toMatchObject({ percent: 100, completedMiles: [1, 2, 3, 4, 5] });
   });
 
@@ -169,26 +170,26 @@ describe("progressFor", () => {
 
 describe("flow navigation", () => {
   it("walks the screens in order, forwards and backwards", () => {
-    expect(nextStepId("name")).toBe("zip");
-    expect(nextStepId("distance")).toBe("cdlClass");
+    expect(nextStepId("lead")).toBe("distance");
+    expect(nextStepId("distance")).toBe("experience");
     expect(nextStepId("record")).toBe("credentials");
     expect(nextStepId("credentials")).toBe("endorsements");
     expect(nextStepId("transmission")).toBe("equipment");
     expect(nextStepId("equipment")).toBe("heardFrom");
     expect(nextStepId("heardFrom")).toBe("consent");
-    expect(previousStepId("cdlClass")).toBe("distance");
+    expect(previousStepId("distance")).toBe("lead");
     expect(previousStepId("endorsements")).toBe("credentials");
   });
 
   it("stops at the ends", () => {
     expect(nextStepId("consent")).toBe("done");
     expect(nextStepId("done")).toBe("done");
-    expect(previousStepId("name")).toBeNull();
+    expect(previousStepId("lead")).toBeNull();
   });
 
   it("groups a mile's screens as one page, never the done screen", () => {
-    expect(stepsOfMile(1).map((step) => step.id)).toEqual(["name", "zip", "distance"]);
-    expect(stepsOfMile(2).map((step) => step.id)).toEqual(["cdlClass", "experience", "record"]);
+    expect(stepsOfMile(1).map((step) => step.id)).toEqual(["lead"]);
+    expect(stepsOfMile(2).map((step) => step.id)).toEqual(["distance", "experience", "record"]);
     expect(stepsOfMile(3).map((step) => step.id)).toEqual(["credentials"]);
     expect(stepsOfMile(4).map((step) => step.id)).toEqual(["endorsements", "transmission"]);
     expect(stepsOfMile(5).map((step) => step.id)).toEqual(["equipment"]);

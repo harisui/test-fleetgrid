@@ -23,18 +23,19 @@ describe("/drivers", () => {
     expect(hero).toHaveTextContent("No app. No password. We text you a code to log in.");
   });
 
-  it("shows the three sign-up steps and the real lane bar on the CDL mile", () => {
+  it("shows the three sign-up steps and the real lane bar on the Driving mile", () => {
     render(<DriversPage />);
     const steps = screen.getByRole("list", { name: "Sign-up steps" });
     expect(within(steps).getAllByRole("listitem")).toHaveLength(3);
-    expect(steps).toHaveTextContent("About, CDL, Cards, Letters, Equipment, Finish");
+    expect(steps).toHaveTextContent("Your name, ZIP and CDL class first, then one mile at a time: Driving, Cards, Letters, Equipment, Finish.");
     const frame = document.querySelector("[data-slot=device-frame]") as HTMLElement;
     expect(within(frame).getByRole("progressbar", { name: "Progress" })).toHaveAttribute(
       "aria-valuetext",
-      "Step 2 of 6: CDL",
+      "Step 2 of 6: Driving",
     );
     expect(frame).toHaveTextContent("Mile 2 of 6");
-    expect(frame.querySelector("figcaption")).toHaveTextContent("Mile 2 of 6, CDL.");
+    expect(frame.querySelector("figcaption")).toHaveTextContent("Mile 2 of 6, Driving.");
+    expect(frame).toHaveTextContent("How many years have you driven with a CDL?");
   });
 
   it("lists the eleven card answers in the sign-up's order, then the optional text box", () => {

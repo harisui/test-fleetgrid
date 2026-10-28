@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+﻿import { expect, test, type Page } from "@playwright/test";
 import {
   adminClient,
   CONSENT_TEXT,
@@ -19,6 +19,8 @@ const TWIC_QUESTION = "Do you have an active TWIC card?";
 const MEDICAL_QUESTION = "Is your DOT medical card current?";
 const MVR_QUESTION = "Any moving violations in the last 3 years?";
 const FINISH = "Find local shifts";
+const SAVE_LEAD = "Save and continue";
+const FORTY_FIVE_SECONDS_MS = 45 * 1000;
 
 async function startAsNewDriver(page: Page) {
   await seedUser(PHONES.driver, "driver");
@@ -51,8 +53,9 @@ const checkChip = (page: Page, question: string, name: string) =>
   page.getByRole("group", { name: question }).getByRole("button", { name, exact: true });
 
 /**
- * The short sign-up (client decision of 2026-10-09): six pages, one per mile, the same on a
- * phone and a desktop. CDL drivers only. Every project runs these at its own viewport.
+ * The short sign-up (client decision of 2026-10-09, the one-screen first step of
+ * 2026-10-28): six pages, one per mile, the same on a phone and a desktop. CDL drivers only.
+ * Every project runs these at its own viewport.
  */
 test.describe("driver onboarding, a page per mile", () => {
   test.afterAll(async () => {
@@ -65,7 +68,7 @@ test.describe("driver onboarding, a page per mile", () => {
     const started = Date.now();
     await startAsNewDriver(page);
 
-    // Mile 1: About
+    // Mile 1: About, the lead: name, ZIP, class and the optional box on one screen.
     await expect(screenHeading(page)).toHaveText("About");
     await expect(page.getByText("Mile 1 of 6", { exact: true })).toBeVisible();
     await page.getByLabel("Full name").fill("Pat Driver");
@@ -76,17 +79,32 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(page.getByText(/City and state filled in from your ZIP/)).toBeVisible();
     // Houston is inside the launch area: no note.
     await expect(page.locator("[data-slot=launch-area-note]")).toHaveCount(0);
-    await chip(page, "100 miles").click();
-    await nextButton(page).click();
-
-    // Mile 2: CDL. No work type: FleetGrid lists CDL drivers only at launch.
-    await expect(screenHeading(page)).toHaveText("CDL");
-    await expect(screenHeading(page)).toBeFocused();
-    await expect(page.getByText("Mile 2 of 6", { exact: true })).toBeVisible();
+    // No work type: FleetGrid lists CDL drivers only at launch.
     await expect(page.getByText("What work do you do?")).toHaveCount(0);
-    await expect(page.getByText("Do you work W-2 or 1099?")).toHaveCount(0);
     await expect(page.getByText(/No CDL/)).toHaveCount(0);
     await card(page, "radio", /Class A/).click();
+    const leadConsent = page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) });
+    await expect(leadConsent).not.toBeChecked();
+    await leadConsent.click();
+    const before = Date.now();
+    await nextButton(page, SAVE_LEAD).click();
+
+    // The lead exists at once, unfinished, with the consent on record.
+    await expect(screenHeading(page)).toHaveText("Driving");
+    expect(await driverRow()).toMatchObject({
+      full_name: "Pat Driver",
+      zip: "77002",
+      cdl_class: "A",
+      sms_opt_in: true,
+      card_completed: false,
+      onboarding_step: 2,
+    });
+
+    // Mile 2: Driving
+    await expect(screenHeading(page)).toBeFocused();
+    await expect(page.getByText("Mile 2 of 6", { exact: true })).toBeVisible();
+    await expect(page.getByText("Do you work W-2 or 1099?")).toHaveCount(0);
+    await chip(page, "100 miles").click();
     await expect(page.getByLabel("Exact number (optional)")).toHaveCount(0);
     await chip(page, "6 to 10").click();
     await expect(
@@ -116,15 +134,15 @@ test.describe("driver onboarding, a page per mile", () => {
     await chip(page, "Flatbed").click();
     await nextButton(page).click();
 
-    // Mile 6: Finish. No papers, no about you: the consent box and the client's button.
+    // Mile 6: Finish. No papers, no about you. Consent was given on the lead, so the box is
+    // not asked again: only the source question, then the client's button.
     await expect(screenHeading(page)).toHaveText("Finish");
     await expect(page.getByText("Mile 6 of 6", { exact: true })).toBeVisible();
     await expect(page.getByText("Take a photo")).toHaveCount(0);
     await expect(page.getByLabel("About you")).toHaveCount(0);
-    const consent = page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) });
-    await expect(consent).not.toBeChecked();
-    await consent.click();
-    const before = Date.now();
+    await expect(page.getByText("How did you hear about FleetGrid?")).toBeVisible();
+    await expect(page.getByText("Can we text you about shifts?")).toHaveCount(0);
+    await expect(page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) })).toHaveCount(0);
     await nextButton(page, FINISH).click();
 
     await expect(screenHeading(page)).toHaveText("You're in!");
@@ -164,7 +182,7 @@ test.describe("driver onboarding, a page per mile", () => {
       sms_opt_in: true,
       sms_opt_in_text: CONSENT_TEXT,
       sms_opted_out: false,
-      onboarding_step: 13,
+      onboarding_step: 11,
       card_completed: true,
     });
     const consentAt = new Date(row.sms_opt_in_at!).getTime();
@@ -201,22 +219,64 @@ test.describe("driver onboarding, a page per mile", () => {
       await expect(summary.getByText(value, { exact: true })).toBeVisible();
     }
     await page.getByRole("button", { name: "Edit record" }).click();
-    await expect(screenHeading(page)).toHaveText("CDL");
+    await expect(screenHeading(page)).toHaveText("Driving");
     await expect(checkChip(page, MVR_QUESTION, "None")).toHaveAttribute("aria-pressed", "true");
-    await expect(card(page, "radio", /Class A/)).toHaveAttribute("aria-checked", "true");
+    await expect(chip(page, "100 miles")).toHaveAttribute("aria-pressed", "true");
     await page.goto("/driver/onboarding");
     await expect(screenHeading(page)).toHaveText("You're in!");
     await page.getByRole("link", { name: "Go to my profile" }).click();
     await expect(page).toHaveURL(/\/driver\/profile$/);
   });
 
+  test("step 1 on a phone: three answers and a box, saved as an unfinished lead in under 45 seconds", async ({
+    page,
+  }) => {
+    test.skip(test.info().project.name !== "mobile-iphone-13", "the 390 by 844 viewport");
+    // The device profile leaves room for the browser chrome; the brief names the full screen.
+    await page.setViewportSize({ width: 390, height: 844 });
+    await startAsNewDriver(page);
+    const started = Date.now();
+    await expect(screenHeading(page)).toHaveText("About");
+    // Typed at a thumb's pace, not pasted.
+    await page.getByLabel("Full name").pressSequentially("Pat Driver", { delay: 120 });
+    await page.getByLabel("ZIP code", { exact: true }).pressSequentially(PLACES.houston.zip, { delay: 120 });
+    await expect(page.locator("[data-slot=zip-place]")).toContainText("Houston, TX");
+    await card(page, "radio", /Class B/).click();
+    // The box stays unchecked unless tapped.
+    await expect(page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) })).not.toBeChecked();
+    for (const name of ["SMS Terms", "Terms of Service", "Privacy Policy"]) {
+      await expect(page.getByRole("main").getByRole("link", { name })).toBeVisible();
+    }
+    await nextButton(page, SAVE_LEAD).click();
+    await expect(screenHeading(page)).toHaveText("Driving");
+    expect(Date.now() - started).toBeLessThan(FORTY_FIVE_SECONDS_MS);
+
+    expect(await driverRow()).toMatchObject({
+      full_name: "Pat Driver",
+      zip: "77002",
+      city: "Houston",
+      cdl_class: "B",
+      sms_opt_in: false,
+      sms_opt_in_at: null,
+      card_completed: false,
+      onboarding_step: 2,
+    });
+
+    // Leaving and coming back lands on the next unanswered question.
+    await page.goto("/driver/profile");
+    await expect(page).toHaveURL(/\/driver\/onboarding$/);
+    await expect(screenHeading(page)).toHaveText("Driving");
+    await expect(page.getByText("How far will you travel for work?")).toBeVisible();
+  });
+
   test("a driver outside the launch area is told so, still signs up, and is marked on the profile", async ({
     page,
   }) => {
-    await resumeAt(page, 2);
+    await startAsNewDriver(page);
     await expect(screenHeading(page)).toHaveText("About");
     const note = page.locator("[data-slot=launch-area-note]");
     const zip = page.getByLabel("ZIP code", { exact: true });
+    await page.getByLabel("Full name").fill("Pat Driver");
 
     await zip.fill(PLACES.dallas.zip);
     await expect(page.locator("[data-slot=zip-place]")).toContainText("Dallas, TX");
@@ -224,9 +284,9 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(note).toHaveText(
       "FleetGrid is launching in the Houston area first. You can still sign up. We'll text you when we launch near you.",
     );
-    // Information only: no error, nothing invalid, Next stays on.
+    // Information only: no error, nothing invalid, the button stays on.
     await expect(formAlert(page)).toHaveCount(0);
-    await expect(nextButton(page)).toBeEnabled();
+    await expect(nextButton(page, SAVE_LEAD)).toBeEnabled();
 
     // A Houston ZIP clears the note; back to Dallas brings it back.
     await zip.fill(PLACES.houston.zip);
@@ -234,9 +294,9 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(note).toHaveCount(0);
     await zip.fill(PLACES.dallas.zip);
     await expect(note).toBeVisible();
-    await chip(page, "50 miles").click();
-    await nextButton(page).click();
-    await expect(screenHeading(page)).toHaveText("CDL");
+    await card(page, "radio", /Class A/).click();
+    await nextButton(page, SAVE_LEAD).click();
+    await expect(screenHeading(page)).toHaveText("Driving");
     expect(await driverRow()).toMatchObject({
       zip: "75201",
       lat: PLACES.dallas.lat,
@@ -244,7 +304,7 @@ test.describe("driver onboarding, a page per mile", () => {
     });
 
     // Finish from the consent page with the Dallas card.
-    await resumeAt(page, 11, { ...PLACES.dallas });
+    await resumeAt(page, 9, { ...PLACES.dallas });
     await expect(screenHeading(page)).toHaveText("Finish");
     await page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) }).click();
     await nextButton(page, FINISH).click();
@@ -256,7 +316,7 @@ test.describe("driver onboarding, a page per mile", () => {
     );
     await expect(page.getByText(/Shift offers arrive by text/)).toHaveCount(0);
     await expect(page.locator("[data-slot=summary-card]")).toBeVisible();
-    expect(await driverRow()).toMatchObject({ card_completed: true, onboarding_step: 13 });
+    expect(await driverRow()).toMatchObject({ card_completed: true, onboarding_step: 11 });
 
     await page.getByRole("link", { name: "Go to my profile" }).click();
     await expect(page).toHaveURL(/\/driver\/profile$/);
@@ -268,7 +328,7 @@ test.describe("driver onboarding, a page per mile", () => {
   });
 
   test("a refresh mid-flow resumes on the same page with the saved answers", async ({ page }) => {
-    await resumeAt(page, 7);
+    await resumeAt(page, 5);
     await expect(screenHeading(page)).toHaveText("Cards");
     await checkChip(page, TWIC_QUESTION, "No").click();
     await checkChip(page, MEDICAL_QUESTION, "Yes").click();
@@ -278,7 +338,7 @@ test.describe("driver onboarding, a page per mile", () => {
     await page.reload();
     await expect(screenHeading(page)).toHaveText("Letters");
     await expect(page.getByText("Mile 4 of 6", { exact: true })).toBeVisible();
-    expect((await driverRow()).onboarding_step).toBe(8);
+    expect((await driverRow()).onboarding_step).toBe(6);
 
     // Logging out and back in resumes there too.
     await page.goto("/driver/profile");
@@ -289,7 +349,7 @@ test.describe("driver onboarding, a page per mile", () => {
   test("Back returns a whole page with its answers, and changing one never loses progress", async ({
     page,
   }) => {
-    await resumeAt(page, 10);
+    await resumeAt(page, 8);
     await expect(screenHeading(page)).toHaveText("Equipment");
     await page.getByRole("button", { name: "Back" }).click();
     await expect(screenHeading(page)).toHaveText("Letters");
@@ -304,8 +364,8 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(checkChip(page, TWIC_QUESTION, "Yes")).toHaveAttribute("aria-pressed", "true");
 
     await page.getByRole("button", { name: "Back" }).click();
-    await expect(screenHeading(page)).toHaveText("CDL");
-    await expect(card(page, "radio", /Class A/)).toHaveAttribute("aria-checked", "true");
+    await expect(screenHeading(page)).toHaveText("Driving");
+    await expect(chip(page, "50 miles")).toHaveAttribute("aria-pressed", "true");
     await expect(chip(page, "6 to 10")).toHaveAttribute("aria-pressed", "true");
     await expect(checkChip(page, MVR_QUESTION, "None")).toHaveAttribute("aria-pressed", "true");
 
@@ -313,68 +373,69 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(screenHeading(page)).toHaveText("About");
     await expect(page.getByLabel("Full name")).toHaveValue("Pat Driver");
     await expect(page.locator("[data-slot=zip-place]")).toContainText("Houston, TX");
-    await expect(chip(page, "50 miles")).toHaveAttribute("aria-pressed", "true");
+    await expect(card(page, "radio", /Class A/)).toHaveAttribute("aria-checked", "true");
     await expect(page.getByRole("button", { name: "Back" })).toHaveCount(0);
 
-    await nextButton(page).click();
-    await expect(screenHeading(page)).toHaveText("CDL");
     await card(page, "radio", /Class B/).click();
+    await nextButton(page, SAVE_LEAD).click();
+    await expect(screenHeading(page)).toHaveText("Driving");
+    await expect(page.getByText("Saved")).toBeVisible();
     await nextButton(page).click();
     await expect(screenHeading(page)).toHaveText("Cards");
-    await expect(page.getByText("Saved")).toBeVisible();
     const row = await driverRow();
     expect(row.cdl_class).toBe("B");
-    expect(row.onboarding_step).toBe(10);
+    expect(row.onboarding_step).toBe(8);
   });
 
-  test("errors appear only after Next, with an icon, and are specific", async ({ page }) => {
+  test("errors appear only after Save and continue, with an icon, and are specific", async ({ page }) => {
     await startAsNewDriver(page);
     await expect(formAlert(page)).toHaveCount(0);
     await page.getByLabel("Full name").fill("P");
     await expect(formAlert(page)).toHaveCount(0);
 
-    // Every question of the page is checked together.
-    await nextButton(page).click();
+    // Every question of the page is checked together; the box is never one of them.
+    await nextButton(page, SAVE_LEAD).click();
     await expect(formAlert(page)).toHaveCount(3);
     const error = formAlert(page).first();
     await expect(error).toHaveText("Enter your name");
     await expect(error.locator("svg")).toBeVisible();
     await expect(page.getByLabel("Full name")).toHaveAttribute("aria-invalid", "true");
-    await expect(page.getByText("Pick how far you will travel")).toBeVisible();
+    await expect(page.getByText("Pick your CDL class")).toBeVisible();
     await expect(screenHeading(page)).toHaveText("About");
+    expect(await adminClient().from("drivers").select("id").eq("full_name", "P")).toMatchObject({ data: [] });
 
     await page.getByLabel("Full name").fill("Pat Driver");
     const zip = page.getByLabel("ZIP code", { exact: true });
     await zip.fill("7520");
-    await nextButton(page).click();
+    await nextButton(page, SAVE_LEAD).click();
     await expect(page.getByText("Enter a 5-digit ZIP code, like 60601")).toBeVisible();
 
-    // A ZIP the dataset does not know is an error as soon as it is typed, and Next stays off.
+    // A ZIP the dataset does not know is an error as soon as it is typed, and the button stays off.
     await zip.fill("99999");
     await expect(page.getByText("We could not find that ZIP. Check the number.")).toBeVisible();
     await expect(zip).toHaveAttribute("aria-invalid", "true");
     await expect(page.locator("[data-slot=zip-place]")).toHaveCount(0);
-    await expect(nextButton(page)).toBeDisabled();
+    await expect(nextButton(page, SAVE_LEAD)).toBeDisabled();
 
     await zip.fill(PLACES.houston.zip);
     await expect(page.locator("[data-slot=zip-place]")).toContainText("Houston, TX");
     await expect(page.getByText("We could not find that ZIP. Check the number.")).toHaveCount(0);
-    await expect(nextButton(page)).toBeEnabled();
-  });
-
-  test("the CDL page needs the class, the years and the record", async ({ page }) => {
-    await resumeAt(page, 4);
-    await expect(screenHeading(page)).toHaveText("CDL");
-    await nextButton(page).click();
-    await expect(formAlert(page)).toHaveCount(3);
-    await expect(page.getByText("Pick your CDL class")).toBeVisible();
-    await expect(page.getByText("Pick how many years you have driven")).toBeVisible();
-    await expect(page.getByText("Pick None, 1 or 2 minor, or 3 or more")).toBeVisible();
-    expect((await driverRow()).onboarding_step).toBe(4);
-
+    await expect(nextButton(page, SAVE_LEAD)).toBeEnabled();
     // Class A and B only (the launch scope): no Class C card.
     await expect(card(page, "radio", /Class C/)).toHaveCount(0);
-    await card(page, "radio", /Class B/).click();
+  });
+
+  test("the Driving page needs the distance, the years and the record", async ({ page }) => {
+    await resumeAt(page, 2);
+    await expect(screenHeading(page)).toHaveText("Driving");
+    await nextButton(page).click();
+    await expect(formAlert(page)).toHaveCount(3);
+    await expect(page.getByText("Pick how far you will travel")).toBeVisible();
+    await expect(page.getByText("Pick how many years you have driven")).toBeVisible();
+    await expect(page.getByText("Pick None, 1 or 2 minor, or 3 or more")).toBeVisible();
+    expect((await driverRow()).onboarding_step).toBe(2);
+
+    await chip(page, "25 miles").click();
     await chip(page, "Under 1").click();
     await checkChip(page, MVR_QUESTION, "3 or more, or a major one").click();
     // One level at a time.
@@ -386,15 +447,15 @@ test.describe("driver onboarding, a page per mile", () => {
     await nextButton(page).click();
     await expect(screenHeading(page)).toHaveText("Cards");
     expect(await driverRow()).toMatchObject({
-      cdl_class: "B",
+      service_radius_miles: 25,
       years_experience: 0,
       mvr_status: "minor_1_2",
-      onboarding_step: 7,
+      onboarding_step: 5,
     });
   });
 
   test("the Cards page needs both answers, and remembers them", async ({ page }) => {
-    await resumeAt(page, 7);
+    await resumeAt(page, 5);
     await expect(screenHeading(page)).toHaveText("Cards");
     await checkChip(page, TWIC_QUESTION, "No").click();
     await nextButton(page).click();
@@ -413,7 +474,7 @@ test.describe("driver onboarding, a page per mile", () => {
   test("X auto-selects H and N, only the freight letters are offered, None clears the rest, and the transmission is required", async ({
     page,
   }) => {
-    await resumeAt(page, 8, { endorsements: [] });
+    await resumeAt(page, 6, { endorsements: [] });
     await expect(screenHeading(page)).toHaveText("Letters");
     await expect(page.getByRole("img", { name: /front of a CDL/ })).toBeVisible();
 
@@ -448,12 +509,12 @@ test.describe("driver onboarding, a page per mile", () => {
     expect(await driverRow()).toMatchObject({
       endorsements: [],
       transmission: "automatic_only",
-      onboarding_step: 10,
+      onboarding_step: 8,
     });
   });
 
   test("the Equipment page needs at least one chip", async ({ page }) => {
-    await resumeAt(page, 10);
+    await resumeAt(page, 8);
     await expect(screenHeading(page)).toHaveText("Equipment");
     await nextButton(page).click();
     await expect(formAlert(page)).toHaveText("Pick at least one kind of equipment");
@@ -465,7 +526,7 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(screenHeading(page)).toHaveText("Finish");
     expect(await driverRow()).toMatchObject({
       equipment_types: ["container_drayage", "reefer"],
-      onboarding_step: 11,
+      onboarding_step: 9,
     });
   });
 
@@ -474,7 +535,8 @@ test.describe("driver onboarding, a page per mile", () => {
   }) => {
     // The consent log outlives accounts by design, so only rows from this test count.
     const since = new Date().toISOString();
-    await resumeAt(page, 11);
+    // No consent on the lead: the Finish page asks once more, still optional.
+    await resumeAt(page, 9);
     await expect(screenHeading(page)).toHaveText("Finish");
     await expect(page.getByText("Can we text you about shifts?")).toBeVisible();
     await expect(page.getByText(/This is optional/)).toBeVisible();
@@ -497,7 +559,7 @@ test.describe("driver onboarding, a page per mile", () => {
     const row = await driverRow();
     expect(row).toMatchObject({
       card_completed: true,
-      onboarding_step: 13,
+      onboarding_step: 11,
       sms_opt_in: false,
       sms_opt_in_at: null,
       sms_opt_in_text: null,
@@ -534,10 +596,10 @@ test.describe("driver onboarding, a page per mile", () => {
     page,
   }) => {
     test.skip(test.info().project.name !== "desktop-chrome", "viewport is set by hand here");
-    // Short enough that the CDL page's three questions do not fit.
+    // Short enough that the Driving page's three questions do not fit.
     await page.setViewportSize({ width: 1280, height: 720 });
-    await resumeAt(page, 4);
-    await expect(screenHeading(page)).toHaveText("CDL");
+    await resumeAt(page, 2);
+    await expect(screenHeading(page)).toHaveText("Driving");
     const hint = page.getByRole("button", { name: "Scroll down for more" });
     await expect(hint).toBeVisible();
     await expect(hint.locator("svg")).toHaveClass(/animate-nudge/);
@@ -551,7 +613,7 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(hint).toHaveCount(0);
 
     // The Cards page fits, so it has no hint.
-    await resumeAt(page, 7);
+    await resumeAt(page, 5);
     await expect(screenHeading(page)).toHaveText("Cards");
     await expect(hint).toHaveCount(0);
   });

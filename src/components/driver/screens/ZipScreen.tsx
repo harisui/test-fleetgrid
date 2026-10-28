@@ -3,16 +3,11 @@
 import { useEffect, useMemo } from "react";
 import { useFormContext, useWatch } from "react-hook-form";
 import { ScreenQuestion } from "@/components/driver/screens/common";
-import type {
-  OnboardingFormValues,
-  ScreenDefinition,
-  ScreenFieldsProps,
-} from "@/components/driver/screens/types";
+import type { OnboardingFormValues, ScreenFieldsProps } from "@/components/driver/screens/types";
 import { ZipField } from "@/components/driver/ZipField";
 import { InlineNote } from "@/components/shared/InlineNote";
 import { fiveDigits, useZipLookup, type ZipPlace } from "@/hooks/useZipLookup";
 import { OUT_OF_AREA_NOTE } from "@/lib/launch";
-import { zipScreenSchema } from "@/lib/validation/onboarding.schema";
 import type { Driver } from "@/types/domain";
 
 function savedPlace(driver: Driver | null): ZipPlace | null {
@@ -22,10 +17,11 @@ function savedPlace(driver: Driver | null): ZipPlace | null {
 }
 
 /**
- * The ZIP alone is typed. City and state come from the dataset and show as one read-only
- * line; a ZIP the dataset does not know is an error and holds Next.
+ * The ZIP alone is typed, on the lead screen (LeadScreen.tsx). City and state come from the
+ * dataset and show as one read-only line; a ZIP the dataset does not know is an error and
+ * holds the button.
  */
-function ZipFields({ question, driver }: ScreenFieldsProps) {
+export function ZipFields({ question, driver }: ScreenFieldsProps) {
   const {
     register,
     setValue,
@@ -61,16 +57,6 @@ function ZipFields({ question, driver }: ScreenFieldsProps) {
   );
 }
 
-export const zipScreen: ScreenDefinition = {
-  id: "zip",
-  fields: ["zip"],
-  schema: () => zipScreenSchema,
-  defaults: (driver) => ({
-    zip: driver?.zip ?? "",
-    city: driver?.city ?? "",
-    state: driver?.state ?? "",
-  }),
-  Fields: ZipFields,
-  // Five digits typed and no place for them: the dataset does not know the ZIP.
-  blocked: (values) => fiveDigits(values.zip) !== null && !values.state,
-};
+/** Five digits typed and no place for them: the dataset does not know the ZIP, so the button waits. */
+export const zipBlocked = (values: OnboardingFormValues): boolean =>
+  fiveDigits(values.zip) !== null && !values.state;
