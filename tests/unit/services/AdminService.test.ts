@@ -7,6 +7,7 @@ import { AdminService } from "@/server/services/AdminService";
 import { FakeAdminRepository } from "../../fakes/FakeAdminRepository";
 import { FakeDocumentRepository } from "../../fakes/FakeDocumentRepository";
 import { FakeProfileRepository } from "../../fakes/FakeProfileRepository";
+import { FakeQrLinkRepository } from "../../fakes/FakeQrRepositories";
 import { FakeServiceAreaRepository } from "../../fakes/FakeServiceAreaRepository";
 import {
   buildDocument,
@@ -28,6 +29,38 @@ const D3 = "cccccccc-cccc-4ccc-8ccc-cccccccccccc";
 const D9 = "99999999-9999-4999-8999-999999999999";
 /** A Tuesday, 10:00 in Houston (15:00 UTC). */
 const NOW = new Date("2026-10-27T15:00:00.000Z");
+const QR_ID = "aaaaaaaa-0000-4000-8000-000000000001";
+const QR_LINK = {
+  id: QR_ID,
+  slug: "loves-hwy-225",
+  locationName: "Love's, Hwy 225",
+  campaign: "pasadena-225",
+  targetPath: "/",
+  utmSource: "flyer",
+  utmMedium: "qr",
+  isActive: true,
+  createdBy: ADMIN_ID,
+  createdAt: "2026-10-20T12:00:00.000Z",
+  updatedAt: "2026-10-20T12:00:00.000Z",
+};
+const FROM_QR = {
+  utmSource: "flyer",
+  utmMedium: "qr",
+  utmCampaign: "pasadena-225",
+  utmContent: "loves-hwy-225",
+  referrer: null,
+  landingPath: "/",
+  qrLinkId: QR_ID,
+};
+const FROM_FACEBOOK = {
+  utmSource: "facebook",
+  utmMedium: "social",
+  utmCampaign: "fb-october",
+  utmContent: null,
+  referrer: "https://l.facebook.com/",
+  landingPath: "/drivers",
+  qrLinkId: null,
+};
 
 async function expectAppError(promise: Promise<unknown>): Promise<AppError> {
   const error = await promise.then(
@@ -44,8 +77,8 @@ describe("AdminService", () => {
   let documents: FakeDocumentRepository;
   let service: AdminService;
 
-  const pending = buildProfile({ id: USER_ID, status: "pending" });
-  const approved = buildProfile({ id: OTHER_USER_ID, phone: "+15555550108", status: "approved" });
+  const pending = buildProfile({ id: USER_ID, status: "pending", source: FROM_QR });
+  const approved = buildProfile({ id: OTHER_USER_ID, phone: "+15555550108", status: "approved", source: FROM_FACEBOOK });
   const lead = buildProfile({ id: THIRD_USER_ID, phone: "+15555550109", status: "pending" });
 
   const rows = (): DriverReviewRow[] => [
@@ -103,7 +136,14 @@ describe("AdminService", () => {
     ]);
     admin = new FakeAdminRepository(rows(), profiles);
     documents = new FakeDocumentRepository();
-    service = new AdminService(admin, profiles, new FakeServiceAreaRepository(), documents, () => NOW);
+    service = new AdminService(
+      admin,
+      profiles,
+      new FakeServiceAreaRepository(),
+      documents,
+      new FakeQrLinkRepository([QR_LINK]),
+      () => NOW,
+    );
   });
 
   it("is for admins only", async () => {
@@ -143,12 +183,43 @@ describe("AdminService", () => {
         status: "",
         complete: "",
         area: "",
+        source: "",
+        qr: undefined,
         q: "",
         sort: "created",
         dir: "desc",
         page: 1,
         open: undefined,
       });
+      expect(page.qrLink).toBeNull();
+    });
+
+    it("names the QR code or the campaign each driver came by, and can narrow the list to one code", async () => {
+      const page = await service.getDriversPage(ADMIN_ID, {});
+      expect(page.rows.map((row) => row.source)).toEqual([
+        { kind: "qr", label: "QR: Love's, Hwy 225", qrLinkId: QR_ID },
+        { kind: "campaign", label: "Campaign: fb-october", qrLinkId: null },
+        { kind: "direct", label: "Direct or unknown", qrLinkId: null },
+      ]);
+      const names = async (input: Record<string, string>) =>
+        (await service.getDriversPage(ADMIN_ID, input)).rows.map((row) => row.driver.fullName);
+      expect(await names({ source: "qr" })).toEqual(["Pat Driver"]);
+      expect(await names({ source: "campaign" })).toEqual(["Dallas Driver"]);
+      expect(await names({ source: "direct" })).toEqual(["Lee Lead"]);
+      expect(await names({ source: "tv" })).toEqual(["Pat Driver", "Dallas Driver", "Lee Lead"]);
+
+      const narrowed = await service.getDriversPage(ADMIN_ID, { qr: QR_ID });
+      expect(narrowed.rows.map((row) => row.driver.fullName)).toEqual(["Pat Driver"]);
+      expect(narrowed.qrLink).toEqual(QR_LINK);
+      // An unknown code matches nobody; a non-id is ignored.
+      expect(await names({ qr: "99999999-9999-4999-8999-999999999999" })).toEqual([]);
+      expect(await names({ qr: "not-an-id" })).toEqual(["Pat Driver", "Dallas Driver", "Lee Lead"]);
+    });
+
+    it("counts a code that no longer exists as its campaign", async () => {
+      admin.rows[0].profile = { ...pending, source: { ...FROM_QR, qrLinkId: "99999999-9999-4999-8999-999999999999" } };
+      const page = await service.getDriversPage(ADMIN_ID, {});
+      expect(page.rows[0].source).toEqual({ kind: "campaign", label: "Campaign: pasadena-225", qrLinkId: null });
     });
 
     it("filters by review status, card state and area", async () => {
@@ -212,6 +283,7 @@ describe("AdminService", () => {
       expect(detail.driver.fullName).toBe("Pat Driver");
       expect(detail.inServiceArea).toBe(true);
       expect(detail.complete).toBe(true);
+      expect(detail.source).toEqual({ kind: "qr", label: "QR: Love's, Hwy 225", qrLinkId: QR_ID });
       expect(detail.documents).toEqual([document]);
       expect(detail.history).toHaveLength(1);
       expect(detail.history[0]).toMatchObject({

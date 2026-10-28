@@ -5,6 +5,7 @@ import { distanceScreen } from "@/components/driver/screens/DistanceScreen";
 import { endorsementsScreen } from "@/components/driver/screens/EndorsementsScreen";
 import { equipmentScreen } from "@/components/driver/screens/EquipmentScreen";
 import { experienceScreen } from "@/components/driver/screens/ExperienceScreen";
+import { heardFromScreen } from "@/components/driver/screens/HeardFromScreen";
 import { nameScreen } from "@/components/driver/screens/NameScreen";
 import { recordScreen } from "@/components/driver/screens/RecordScreen";
 import { transmissionScreen } from "@/components/driver/screens/TransmissionScreen";
@@ -24,5 +25,6 @@ export const SCREENS: Record<SavableStepId, ScreenDefinition> = {
   endorsements: endorsementsScreen,
   transmission: transmissionScreen,
   equipment: equipmentScreen,
+  heardFrom: heardFromScreen,
   consent: consentScreen,
 };

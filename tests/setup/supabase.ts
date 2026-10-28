@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+﻿import { randomUUID } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import { buildPhone } from "./factories";
@@ -161,7 +161,7 @@ export async function createListedDriver(
       sms_opt_in: true,
       sms_opt_in_at: new Date().toISOString(),
       sms_opt_in_text: "I agree",
-      onboarding_step: 12,
+      onboarding_step: 13,
       card_completed: true,
       ...columns,
     })

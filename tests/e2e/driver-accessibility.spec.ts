@@ -3,6 +3,7 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 import { STEPS } from "../../src/lib/onboarding/steps";
 import {
   adminClient,
+  COMPLETE_STEP,
   CONSENT_TEXT,
   enterCode,
   expectScreen,
@@ -153,7 +154,7 @@ for (const colorScheme of ["light", "dark"] as const) {
 
     test("profile and documents", async ({ page }) => {
       // Opted out and outside the launch area: both notes and both badges on one page.
-      const { driverId } = await seedDriverAtStep(PHONES.driver, 12, {
+      const { driverId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP, {
         sms_opted_out: true,
         sms_opted_out_at: new Date().toISOString(),
         ...PLACES.dallas,

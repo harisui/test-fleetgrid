@@ -170,6 +170,7 @@ export const SCREEN_INPUTS = {
   endorsements: { endorsements: ["H", "T"] },
   transmission: { transmission: "manual_ok" },
   equipment: { equipmentTypes: ["dry_van", "flatbed"] },
+  heardFrom: { heardFrom: "flyer" },
   consent: { consent: true },
 } as const;
 

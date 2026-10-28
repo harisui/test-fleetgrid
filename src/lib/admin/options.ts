@@ -24,6 +24,13 @@ export const AREA_OPTIONS = [
   { value: "out", label: "Outside the service area" },
 ] as const;
 
+export const SOURCE_OPTIONS = [
+  { value: "", label: "Any source" },
+  { value: "qr", label: "A QR code" },
+  { value: "campaign", label: "Another tagged link" },
+  { value: "direct", label: "Direct or unknown" },
+] as const;
+
 /** Why Approve is off for a card that is not finished. */
 export const APPROVE_INCOMPLETE_REASON =
   "This driver has not finished their card, so they cannot be approved yet.";
@@ -60,23 +67,37 @@ export const CONFIRMATIONS: Record<
   },
 };
 
-/** The source column until sign-up source tracking lands (part 4). */
-export const SOURCE_UNKNOWN = "Direct or unknown";
+export { SOURCE_UNKNOWN } from "@/lib/admin/source";
 
 const QUERY_DEFAULTS: Partial<Record<keyof AdminDriversQuery, string>> = {
   status: "",
   complete: "",
   area: "",
+  source: "",
   q: "",
   sort: "created",
   dir: "desc",
   page: "1",
 };
 
+/** The query's filters alone, for links that keep the view and change one thing. */
+export function driversFilters(query: AdminDriversQuery) {
+  return {
+    q: query.q,
+    status: query.status,
+    complete: query.complete,
+    area: query.area,
+    source: query.source,
+    qr: query.qr,
+    sort: query.sort,
+    dir: query.dir,
+  };
+}
+
 /** The Drivers page for a query, leaving out every parameter at its default. */
 export function driversHref(query: Partial<Record<keyof AdminDriversQuery, string | number | undefined>>): string {
   const params = new URLSearchParams();
-  for (const key of ["q", "status", "complete", "area", "sort", "dir", "page", "open"] as const) {
+  for (const key of ["q", "status", "complete", "area", "source", "qr", "sort", "dir", "page", "open"] as const) {
     const value = query[key];
     if (value === undefined || value === "" || String(value) === QUERY_DEFAULTS[key]) continue;
     params.set(key, String(value));

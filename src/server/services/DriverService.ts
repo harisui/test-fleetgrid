@@ -18,6 +18,7 @@ import {
   endorsementsScreenSchema,
   equipmentScreenSchema,
   experienceScreenSchema,
+  heardFromScreenSchema,
   nameScreenSchema,
   recordScreenSchema,
   smsConsentSchema,
@@ -203,6 +204,8 @@ export class DriverService {
         );
       case "equipment":
         return this.drivers.update(userId, advanceTo(parseInput(equipmentScreenSchema, input)));
+      case "heardFrom":
+        return this.drivers.update(userId, advanceTo(parseInput(heardFromScreenSchema, input)));
       case "consent":
         return this.saveConsent(userId, existing, input);
     }

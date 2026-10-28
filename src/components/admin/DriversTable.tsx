@@ -10,9 +10,10 @@ import {
   ADMIN_DRIVERS_PATH,
   AREA_OPTIONS,
   COMPLETE_OPTIONS,
+  driversFilters,
   driversHref,
   REVIEW_STATUS_OPTIONS,
-  SOURCE_UNKNOWN,
+  SOURCE_OPTIONS,
 } from "@/lib/admin/options";
 import { summarizeDriver } from "@/lib/carrier/driverSummary";
 import { maskPhone } from "@/lib/phone";
@@ -57,7 +58,7 @@ const COLUMNS: DataColumn<AdminDriverRow>[] = [
   },
   { key: "status", header: "Review", cell: (row) => <AdminStatusBadge status={row.profile.status} />, sortable: true },
   { key: "sms", header: "SMS", cell: smsLabel },
-  { key: "source", header: "Source", cell: () => SOURCE_UNKNOWN },
+  { key: "source", header: "Source", cell: (row) => row.source.label },
   { key: "created", header: "Signed up", cell: signedUp, sortable: true },
 ];
 
@@ -78,6 +79,7 @@ function DriverCard({ row }: { row: AdminDriverRow }) {
       <span className="text-helper leading-helper text-muted-foreground">
         {row.complete ? "Complete" : "Incomplete"} · SMS {smsLabel(row)} · {signedUp(row)}
       </span>
+      <span className="text-helper leading-helper text-muted-foreground">{row.source.label}</span>
     </div>
   );
 }
@@ -85,7 +87,8 @@ function DriverCard({ row }: { row: AdminDriverRow }) {
 /** The Drivers list: the filters above, the table or the cards, the pages below. Every row opens the detail sheet. */
 export function DriversTable({ page }: { page: AdminDriversPage }) {
   const { query } = page;
-  const base = { q: query.q, status: query.status, complete: query.complete, area: query.area, sort: query.sort, dir: query.dir };
+  const base = driversFilters(query);
+  const filtered = Boolean(query.q || query.status || query.complete || query.area || query.source || query.qr);
   return (
     <section aria-label="Drivers list" className="flex flex-col gap-4">
       <FilterBar
@@ -95,6 +98,14 @@ export function DriversTable({ page }: { page: AdminDriversPage }) {
           { name: "status", label: "Review", value: query.status, options: REVIEW_STATUS_OPTIONS },
           { name: "complete", label: "Profile", value: query.complete, options: COMPLETE_OPTIONS },
           { name: "area", label: "Area", value: query.area, options: AREA_OPTIONS },
+          { name: "source", label: "Source", value: query.source, options: SOURCE_OPTIONS },
+          {
+            name: "qr",
+            label: "QR code",
+            value: query.qr ?? "",
+            options: query.qr ? [{ value: query.qr, label: page.qrLink?.locationName ?? "Unknown code" }] : [],
+            hidden: true,
+          },
         ]}
         keep={{ sort: query.sort, dir: query.dir }}
       />
@@ -119,11 +130,10 @@ export function DriversTable({ page }: { page: AdminDriversPage }) {
         }}
         empty={{
           icon: Users,
-          title: page.total === 0 && (query.q || query.status || query.complete || query.area) ? "No drivers match these filters." : "No drivers yet.",
-          description:
-            page.total === 0 && (query.q || query.status || query.complete || query.area)
-              ? "Clear a filter or search for something else."
-              : "Drivers appear here as they sign up on their phones.",
+          title: filtered ? "No drivers match these filters." : "No drivers yet.",
+          description: filtered
+            ? "Clear a filter or search for something else."
+            : "Drivers appear here as they sign up on their phones.",
         }}
       />
     </section>

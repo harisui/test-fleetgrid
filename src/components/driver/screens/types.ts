@@ -6,6 +6,7 @@ import type {
   Driver,
   Endorsement,
   EquipmentType,
+  HeardFrom,
   MvrStatus,
   TransmissionType,
 } from "@/types/domain";
@@ -25,6 +26,8 @@ export interface OnboardingFormValues {
   endorsements?: Endorsement[];
   transmission?: TransmissionType;
   equipmentTypes?: EquipmentType[];
+  heardFrom?: HeardFrom | null;
+  heardFromOther?: string;
   consent?: boolean;
 }
 

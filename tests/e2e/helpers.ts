@@ -4,6 +4,7 @@ import { loadEnvFile } from "node:process";
 import { expect, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import { TOS_VERSION } from "../../src/lib/constants";
+import { DONE_STEP_NUMBER } from "../../src/lib/onboarding/steps";
 import type { Database } from "../../src/types/database.types";
 
 export { TOS_VERSION };
@@ -209,9 +210,12 @@ export const CARD_ANSWERS = {
   equipment_types: ["dry_van", "flatbed"] as const,
 };
 
+/** The step number of a finished card: the done screen (src/lib/onboarding/steps.ts). */
+export const COMPLETE_STEP = DONE_STEP_NUMBER;
+
 /**
- * Creates a driver who has answered every screen before `stepNumber` (1 to 12 from
- * src/lib/onboarding/steps.ts) and is about to see that screen. Step 12 is a completed card.
+ * Creates a driver who has answered every screen before `stepNumber` (1 to COMPLETE_STEP from
+ * src/lib/onboarding/steps.ts) and is about to see that screen. COMPLETE_STEP is a completed card.
  * The answers sign-up no longer asks (W-2 or 1099, driving style, the Clearinghouse,
  * availability, certifications, about you) stay empty, as they do for a real sign-up.
  */
@@ -227,6 +231,26 @@ export async function seedDriverAtStep(
   const { data, error } = await adminClient().from("drivers").insert(row).select("id").single();
   if (error) throw new Error(`seedDriverAtStep failed: ${error.message}`);
   return { userId, driverId: data.id };
+}
+
+/**
+ * Gives a user who signed up through the UI (so has a profile but no card yet) a card that is
+ * about to see screen `stepNumber`, keeping the profile as the sign-up left it.
+ */
+export async function addDriverCardAtStep(
+  phone: string,
+  stepNumber: number,
+  overrides: Record<string, unknown> = {},
+): Promise<string> {
+  const userId = await findUserId(phone);
+  if (!userId) throw new Error(`addDriverCardAtStep: no user for ${phone}`);
+  const { data, error } = await adminClient()
+    .from("drivers")
+    .insert({ profile_id: userId, ...driverRowAtStep(stepNumber), ...overrides })
+    .select("id")
+    .single();
+  if (error) throw new Error(`addDriverCardAtStep failed: ${error.message}`);
+  return data.id;
 }
 
 /** Moves an existing driver (seeded at step 2 or later) to another screen without a new login. */
@@ -247,7 +271,7 @@ export async function moveDriverToStep(
 /** The card columns of a driver who is about to see screen `stepNumber`. Unanswered ones are null. */
 function driverRowAtStep(stepNumber: number) {
   const answered = (screen: number) => stepNumber > screen;
-  const complete = stepNumber >= 12;
+  const complete = stepNumber >= COMPLETE_STEP;
   const or = <T>(condition: boolean, value: T) => (condition ? value : null);
   return {
     full_name: CARD_ANSWERS.full_name,
@@ -271,7 +295,7 @@ function driverRowAtStep(stepNumber: number) {
     sms_opt_in_at: or(complete, new Date().toISOString()),
     sms_opt_in_text: or(complete, CONSENT_TEXT),
     card_completed: complete,
-    onboarding_step: Math.min(stepNumber, 12),
+    onboarding_step: Math.min(stepNumber, COMPLETE_STEP),
   };
 }
 

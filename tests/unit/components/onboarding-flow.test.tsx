@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+﻿import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OnboardingFlow } from "@/components/driver/OnboardingFlow";
@@ -83,7 +83,7 @@ describe("one page per mile, on every device", () => {
     "the %s page shows every question of the mile under one sign, with no app navigation",
     (label, mile) => {
       const steps = stepsOfMile(mile);
-      renderFlow(steps[0].id, driverAt(12, { cdlClass: "A" }));
+      renderFlow(steps[0].id, driverAt(13, { cdlClass: "A" }));
       expect(heading()).toHaveTextContent(label);
       expect(screen.getByText(`Mile ${mile} of ${MILES.length}`)).toBeInTheDocument();
       for (const step of steps) {
@@ -104,7 +104,7 @@ describe("one page per mile, on every device", () => {
   it("never asks work type, W-2 or 1099, driving style, availability, certifications, papers or about you", () => {
     for (const step of STEPS) {
       if (step.id === "done") continue;
-      renderFlow(step.id, driverAt(12, { cdlClass: "A" }));
+      renderFlow(step.id, driverAt(13, { cdlClass: "A" }));
     }
     for (const gone of [
       "What work do you do?",
@@ -476,8 +476,42 @@ describe("Equipment page", () => {
 });
 
 describe("Finish page: consent and done", () => {
+  it("asks how the driver heard of FleetGrid, optional, saved before the consent", async () => {
+    const complete = buildDriver({ onboardingStep: 13, cardCompleted: true, smsOptIn: false, heardFrom: "other", heardFromOther: "Radio ad" });
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(complete));
+    renderFlow("heardFrom", answeredAt(11));
+    expect(screen.getByText("Optional. It tells us where to put the next flyers.")).toBeInTheDocument();
+    const group = screen.getByRole("group", { name: "How did you hear about FleetGrid?" });
+    for (const name of ["Flyer at a truck stop or shop", "Facebook or Instagram", "Google search", "A friend or coworker", "Other"]) {
+      expect(within(group).getByRole("button", { name })).toHaveAttribute("aria-pressed", "false");
+    }
+    expect(screen.queryByLabelText("Where was that?")).not.toBeInTheDocument();
+
+    // A second tap clears the pick; "Other" opens a short line.
+    await userEvent.click(within(group).getByRole("button", { name: "Google search" }));
+    expect(within(group).getByRole("button", { name: "Google search" })).toHaveAttribute("aria-pressed", "true");
+    await userEvent.click(within(group).getByRole("button", { name: "Google search" }));
+    expect(within(group).getByRole("button", { name: "Google search" })).toHaveAttribute("aria-pressed", "false");
+    await userEvent.click(within(group).getByRole("button", { name: "Other" }));
+    await userEvent.type(screen.getByLabelText("Where was that?"), "Radio ad");
+
+    await userEvent.click(screen.getByRole("button", { name: "Find local shifts" }));
+    await waitFor(() => expect(heading()).toHaveTextContent("You're in!"));
+    expect(savedScreens()).toEqual(["heardFrom", "consent"]);
+    expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("heardFrom", { heardFrom: "other", heardFromOther: "Radio ad" });
+  });
+
+  it("goes on without an answer to the source question", async () => {
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(buildDriver({ onboardingStep: 13, cardCompleted: true, smsOptIn: false })));
+    renderFlow("consent", answeredAt(11));
+    await userEvent.click(screen.getByRole("button", { name: "Find local shifts" }));
+    await waitFor(() => expect(heading()).toHaveTextContent("You're in!"));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("heardFrom", { heardFrom: null, heardFromOther: null });
+  });
+
   it("the consent box is optional and unchecked, with links to all three legal pages", async () => {
-    const complete = buildDriver({ onboardingStep: 12, cardCompleted: true, smsOptIn: false });
+    const complete = buildDriver({ onboardingStep: 13, cardCompleted: true, smsOptIn: false });
     actions.saveOnboardingScreenAction.mockResolvedValue(ok(complete));
     renderFlow("consent", answeredAt(11));
     expect(screen.getByText(/This is optional/)).toBeInTheDocument();
@@ -508,7 +542,7 @@ describe("Finish page: consent and done", () => {
   });
 
   it("ticking the box, then Find local shifts shows the done screen and refreshes", async () => {
-    const complete = buildDriver({ onboardingStep: 12, cardCompleted: true });
+    const complete = buildDriver({ onboardingStep: 13, cardCompleted: true });
     actions.saveOnboardingScreenAction.mockResolvedValue(ok(complete));
     renderFlow("consent", answeredAt(11));
     expect(
@@ -550,7 +584,7 @@ describe("Finish page: consent and done", () => {
   });
 
   it("the summary can send the driver back to the CDL page, with the record shown", async () => {
-    renderFlow("done", buildDriver({ onboardingStep: 12, cardCompleted: true }));
+    renderFlow("done", buildDriver({ onboardingStep: 13, cardCompleted: true }));
     await userEvent.click(screen.getByRole("button", { name: "Edit record" }));
     expect(heading()).toHaveTextContent("CDL");
     expect(checkChip(MVR_QUESTION, "None")).toHaveAttribute("aria-pressed", "true");
@@ -605,8 +639,8 @@ describe("the road", () => {
 
     expect(container.querySelector("[data-slot=lane-fill]")).toBe(fill);
     expect(container.querySelector("[data-slot=lane-truck]")).toBe(truck);
-    expect(fill.style.width).toBe("27%");
-    expect(truck.style.left).toBe("27%");
+    expect(fill.style.width).toBe("25%");
+    expect(truck.style.left).toBe("25%");
   });
 });
 

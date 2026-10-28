@@ -92,7 +92,11 @@ export function buildContainer(supabase: TypedSupabaseClient) {
       () => new AccountRepository(createAdminClient()),
       (userId) => subscriptionService.cancelForAccountDeletion(userId),
     ),
-    profileService: new ProfileService(profiles, { carrierDisabled: env.CARRIER_DISABLED }),
+    profileService: new ProfileService(profiles, {
+      carrierDisabled: env.CARRIER_DISABLED,
+      // The QR codes are closed to drivers and carriers, so the lookup uses the service role.
+      findQrLinkBySlug: (slug) => new QrLinkRepository(createAdminClient()).findBySlug(slug),
+    }),
     driverService: new DriverService(
       drivers,
       profiles,
@@ -105,7 +109,7 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     carrierService,
     subscriptionService,
     driverSearchService: new DriverSearchService(carrierService, driverSearch, documents),
-    adminService: new AdminService(adminRepository, profiles, serviceAreas, documents),
+    adminService: new AdminService(adminRepository, profiles, serviceAreas, documents, qrLinks),
     qrService,
     analyticsService: new AnalyticsService(
       adminRepository,

@@ -3,7 +3,7 @@ import { AdminPage } from "@/components/admin/AdminPage";
 import { DriverDetailSheet } from "@/components/admin/DriverDetailSheet";
 import { DriversTable } from "@/components/admin/DriversTable";
 import { DriverTiles } from "@/components/admin/DriverTiles";
-import { driversHref } from "@/lib/admin/options";
+import { driversFilters, driversHref } from "@/lib/admin/options";
 import { requireAdmin } from "@/lib/auth/guards";
 import { getContainer } from "@/server/container";
 import { AppError } from "@/server/errors/AppError";
@@ -30,8 +30,7 @@ export default async function AdminDriversPage({ searchParams }: PageProps<"/adm
       if (!(error instanceof AppError && error.code === "NOT_FOUND")) throw error;
     }
   }
-  const { query } = page;
-  const closeHref = driversHref({ q: query.q, status: query.status, complete: query.complete, area: query.area, sort: query.sort, dir: query.dir, page: page.page });
+  const closeHref = driversHref({ ...driversFilters(page.query), page: page.page });
 
   return (
     <AdminPage

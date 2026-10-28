@@ -73,6 +73,64 @@ describe("ProfileService", () => {
       });
     });
 
+    it("keeps where the sign-up came from, and ties a utm_content to its QR code", async () => {
+      const lookups: string[] = [];
+      const attributed = new ProfileService(profiles, {
+        findQrLinkBySlug: async (slug) => {
+          lookups.push(slug);
+          return slug === "loves-hwy-225" ? { id: "aaaaaaaa-0000-4000-8000-000000000001" } : null;
+        },
+      });
+      const profile = await attributed.createProfile(
+        user,
+        { role: "driver" },
+        {
+          utmSource: "flyer",
+          utmMedium: "qr",
+          utmCampaign: "pasadena-225",
+          utmContent: "LOVES-HWY-225",
+          referrer: null,
+          landingPath: "/",
+        },
+      );
+      expect(profile.source).toEqual({
+        utmSource: "flyer",
+        utmMedium: "qr",
+        utmCampaign: "pasadena-225",
+        utmContent: "LOVES-HWY-225",
+        referrer: null,
+        landingPath: "/",
+        qrLinkId: "aaaaaaaa-0000-4000-8000-000000000001",
+      });
+      expect(lookups).toEqual(["loves-hwy-225"]);
+    });
+
+    it("keeps the tags without a code when the slug is unknown or the lookup fails, and nothing for a direct visit", async () => {
+      const failing = new ProfileService(profiles, {
+        findQrLinkBySlug: async () => {
+          throw new Error("down");
+        },
+      });
+      const profile = await failing.createProfile(
+        user,
+        { role: "driver" },
+        { utmSource: "fb", utmMedium: null, utmCampaign: "oct", utmContent: "nothing", referrer: "https://facebook.com/", landingPath: "/drivers" },
+      );
+      expect(profile.source).toMatchObject({ utmSource: "fb", utmCampaign: "oct", utmContent: "nothing", referrer: "https://facebook.com/", qrLinkId: null });
+
+      profiles.rows.clear();
+      const direct = await service.createProfile({ id: OTHER_USER_ID, phone: "+15555550108" }, { role: "carrier" });
+      expect(direct.source).toEqual({
+        utmSource: null,
+        utmMedium: null,
+        utmCampaign: null,
+        utmContent: null,
+        referrer: null,
+        landingPath: null,
+        qrLinkId: null,
+      });
+    });
+
     it("is idempotent: the same role twice returns the existing profile", async () => {
       const first = await service.createProfile(user, { role: "driver" });
       const second = await service.createProfile(user, { role: "driver" });

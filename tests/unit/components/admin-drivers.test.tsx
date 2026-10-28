@@ -23,11 +23,27 @@ vi.mock("sonner", () => ({ toast }));
 
 const ok = <T,>(data: T): Result<T> => ({ ok: true, data });
 
+const QR_ID = "aaaaaaaa-0000-4000-8000-000000000001";
+const QR_LINK = {
+  id: QR_ID,
+  slug: "loves-hwy-225",
+  locationName: "Love's, Hwy 225",
+  campaign: "pasadena-225",
+  targetPath: "/",
+  utmSource: "flyer",
+  utmMedium: "qr",
+  isActive: true,
+  createdBy: "admin",
+  createdAt: "2026-10-20T12:00:00.000Z",
+  updatedAt: "2026-10-20T12:00:00.000Z",
+};
+
 const row = (overrides: Partial<AdminDriverRow> = {}): AdminDriverRow => ({
   driver: buildDriver({ profileId: USER_ID, createdAt: "2026-10-27T14:00:00.000Z" }),
   profile: buildProfile({ id: USER_ID, status: "pending" }),
   inServiceArea: true,
   complete: true,
+  source: { kind: "direct", label: "Direct or unknown", qrLinkId: null },
   ...overrides,
 });
 
@@ -38,6 +54,7 @@ const page = (overrides: Partial<AdminDriversPage> = {}): AdminDriversPage => ({
   page: 1,
   pageSize: 25,
   query: adminDriversQuerySchema.parse({}),
+  qrLink: null,
   ...overrides,
 });
 
@@ -71,6 +88,7 @@ describe("DriversTable", () => {
       profile: buildProfile({ id: OTHER_USER_ID, phone: "+15555550108", status: "approved" }),
       inServiceArea: null,
       complete: false,
+      source: { kind: "qr", label: "QR: Love's, Hwy 225", qrLinkId: QR_ID },
     });
     render(<DriversTable page={page({ rows: [row(), incomplete], total: 2 })} />);
     const table = screen.getByRole("table", { name: "Drivers" });
@@ -104,8 +122,30 @@ describe("DriversTable", () => {
     expect(within(secondRow).getByText("Unknown")).toBeInTheDocument();
     expect(within(secondRow).getByText("Incomplete")).toHaveAttribute("data-status", "incomplete");
     expect(within(secondRow).getByText("No")).toBeInTheDocument();
+    expect(within(secondRow).getByText("QR: Love's, Hwy 225")).toBeInTheDocument();
     // Never the full number.
     expect(document.body.textContent).not.toMatch(/555-0100|555-0108/);
+  });
+
+  it("narrowed to one QR code: the chip names it, no select for it, and the forms carry it", () => {
+    const query = adminDriversQuerySchema.parse({ qr: QR_ID, status: "pending" });
+    render(<DriversTable page={page({ rows: [row()], total: 1, query, qrLink: QR_LINK })} />);
+    expect(screen.getByRole("link", { name: /^QR code: Love's, Hwy 225/ })).toHaveAttribute(
+      "href",
+      "/admin/drivers?sort=created&dir=desc&status=pending",
+    );
+    expect(screen.getByRole("link", { name: /^Review: Pending/ })).toHaveAttribute(
+      "href",
+      `/admin/drivers?sort=created&dir=desc&qr=${QR_ID}`,
+    );
+    expect(screen.queryByRole("combobox", { name: "QR code" })).not.toBeInTheDocument();
+    expect(screen.getByRole("combobox", { name: "Source" })).toBeInTheDocument();
+    const form = screen.getAllByRole("form", { name: "Filters" })[0];
+    expect(form.querySelector("input[name=qr]")).toHaveAttribute("value", QR_ID);
+    expect(screen.getByRole("link", { name: "Pat Driver" })).toHaveAttribute(
+      "href",
+      `/admin/drivers?status=pending&qr=${QR_ID}&open=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`,
+    );
   });
 
   it("keeps the filters, the sort and the page in every link", () => {
@@ -179,13 +219,51 @@ describe("DriverDetailSheet", () => {
       "href",
       `/api/admin/documents/${document_.id}/url`,
     );
-    expect(sheet.querySelector("[data-slot=source]")).toHaveTextContent("Direct or unknown");
+    const source = sheet.querySelector("[data-slot=source]") as HTMLElement;
+    expect(within(source).getByText("Came by").nextElementSibling).toHaveTextContent("Direct or unknown");
+    expect(within(source).getByText("Driver said").nextElementSibling).toHaveTextContent("Skipped the question");
+    expect(within(source).queryByText("Tags")).not.toBeInTheDocument();
     const history = within(sheet).getByRole("list", { name: "History" });
     expect(within(history).getByRole("listitem")).toHaveTextContent(/Approved by \(555\) 555-0102, Oct 27, 2026/);
     // A pending driver: Approve and Block, no Set pending.
     expect(within(sheet).getByRole("button", { name: "Approve" })).toBeEnabled();
     expect(within(sheet).getByRole("button", { name: "Block" })).toBeInTheDocument();
     expect(within(sheet).queryByRole("button", { name: "Set pending" })).not.toBeInTheDocument();
+  });
+
+  it("shows where a driver came from: the code, its campaign, the tags, the landing page and what they said", () => {
+    render(
+      <DriverDetailSheet
+        detail={detail({
+          driver: buildDriver({ heardFrom: "other", heardFromOther: "Radio ad" }),
+          profile: buildProfile({
+            id: USER_ID,
+            source: {
+              utmSource: "flyer",
+              utmMedium: "qr",
+              utmCampaign: "pasadena-225",
+              utmContent: "loves-hwy-225",
+              referrer: "https://www.google.com/search?q=cdl",
+              landingPath: "/drivers",
+              qrLinkId: QR_ID,
+            },
+          }),
+          source: { kind: "qr", label: "QR: Love's, Hwy 225", qrLinkId: QR_ID },
+        })}
+        closeHref="/admin/drivers"
+      />,
+    );
+    const source = screen.getByRole("dialog").querySelector("[data-slot=source]") as HTMLElement;
+    for (const [label, value] of [
+      ["Came by", "QR: Love's, Hwy 225"],
+      ["Campaign", "pasadena-225"],
+      ["Tags", "flyer / qr / loves-hwy-225"],
+      ["Referrer", "www.google.com"],
+      ["Landed on", "/drivers"],
+      ["Driver said", "Other: Radio ad"],
+    ]) {
+      expect(within(source).getByText(label).nextElementSibling).toHaveTextContent(value);
+    }
   });
 
   it("approves after the dialog, with the toast and a refresh", async () => {

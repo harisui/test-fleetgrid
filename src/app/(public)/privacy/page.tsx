@@ -75,11 +75,19 @@ export default function PrivacyPage() {
           and the time, for text-message consent and for the Terms.
         </li>
         <li>
-          <strong>Technical data</strong>: server logs with your IP address and browser, and two
-          cookies, one that keeps you signed in and one that remembers light or dark mode. The
+          <strong>How you found us</strong>: we record how you found FleetGrid, such as a flyer, ad
+          or website link, to improve our outreach. The link you arrived by and the page you landed
+          on are kept in a cookie for 30 days and saved with your profile when you sign up. Drivers
+          may also tell us where they heard of FleetGrid; the question is optional.
+        </li>
+        <li>
+          <strong>Technical data</strong>: server logs with your IP address and browser, and three
+          cookies: one that keeps you signed in, one that remembers light or dark mode, and the
+          30-day one above that remembers how you found us. When you scan one of our flyers, we
+          count the scan with a one-way hash of your address, never the address itself. The
           site also loads the Google Ads tag, which sets Google&apos;s cookies so we can tell
-          whether an ad brought you here and whether you signed up. We use no other advertising
-          or analytics trackers.
+          whether an ad brought you here and whether you signed up. Page counts come from Vercel
+          Analytics, which sets no cookie. We use no other advertising or analytics trackers.
         </li>
       </ul>
 
@@ -108,8 +116,8 @@ export default function PrivacyPage() {
         <li>
           <strong>Service providers</strong> that run the service for us: Supabase (database,
           sign-in and file storage), Vercel (hosting), Twilio (text messages), Stripe (carrier
-          payments) and Google (ad measurement). They may only use your data to provide their
-          service to us.
+          payments), Google (ad measurement) and Vercel Analytics (page counts without cookies).
+          They may only use your data to provide their service to us.
         </li>
         <li>
           <strong>Legal requests</strong>: we may disclose information when the law requires it or

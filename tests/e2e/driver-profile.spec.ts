@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test";
+﻿import { expect, test, type Page } from "@playwright/test";
 import { adminClient, displayPhone, login, PHONES, PLACES, resetUser, seedUser } from "./helpers";
 
 const CONSENT_TEXT =
@@ -57,7 +57,7 @@ async function startWithCompletedCard(
       sms_opt_in_text: CONSENT_TEXT,
       sms_opted_out: options.optedOut ?? false,
       sms_opted_out_at: options.optedOut ? new Date().toISOString() : null,
-      onboarding_step: 12,
+      onboarding_step: 13,
       card_completed: true,
     })
     .select("id")
@@ -198,7 +198,7 @@ test.describe("driver profile", () => {
       sms_opt_in: true,
       sms_opt_in_text: CONSENT_TEXT,
       card_completed: true,
-      onboarding_step: 12,
+      onboarding_step: 13,
     });
 
     await page.reload();

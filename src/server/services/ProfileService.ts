@@ -1,11 +1,14 @@
+import type { Attribution } from "@/lib/attribution";
 import { chooseRoleSchema } from "@/lib/validation/phone.schema";
 import { AppError, parseInput } from "@/server/errors/AppError";
 import type { IProfileRepository } from "@/server/repositories/ProfileRepository";
-import type { Profile, SessionUser, UserRole } from "@/types/domain";
+import type { Profile, SessionUser, SignupSource, UserRole } from "@/types/domain";
 
 export interface ProfileServiceOptions {
   /** CARRIER_DISABLED=true: no new carrier profiles while the carrier side is switched off. */
   carrierDisabled?: boolean;
+  /** Finds the QR code a utm_content names, so the sign-up can be tied to the flyer. */
+  findQrLinkBySlug?: (slug: string) => Promise<{ id: string } | null>;
 }
 
 export class ProfileService {
@@ -38,8 +41,10 @@ export class ProfileService {
   /**
    * Creates the profile for a newly verified user. Driver or carrier only.
    * Submitting the same role twice is safe. Choosing a different role later is not allowed.
+   * The attribution (the first-touch cookie) is kept on the profile; a utm_content that
+   * names a QR code ties the sign-up to that flyer.
    */
-  async createProfile(user: SessionUser, input: unknown): Promise<Profile> {
+  async createProfile(user: SessionUser, input: unknown, attribution: Attribution | null = null): Promise<Profile> {
     const { role } = parseInput(chooseRoleSchema, input);
     if (role === "carrier" && this.options.carrierDisabled) {
       throw AppError.validation("Carrier sign-up is not open yet", {
@@ -50,8 +55,9 @@ export class ProfileService {
     const existing = await this.profiles.findById(user.id);
     if (existing) return this.resolveExisting(existing, role);
 
+    const source = await this.sourceFrom(attribution);
     try {
-      return await this.profiles.create({ id: user.id, phone: user.phone, role });
+      return await this.profiles.create({ id: user.id, phone: user.phone, role, source });
     } catch (error) {
       // Two submissions raced. The first one won, so treat this like an existing profile.
       if (error instanceof AppError && error.code === "CONFLICT") {
@@ -60,6 +66,20 @@ export class ProfileService {
       }
       throw error;
     }
+  }
+
+  private async sourceFrom(attribution: Attribution | null): Promise<Partial<SignupSource>> {
+    if (!attribution) return {};
+    let qrLinkId: string | null = null;
+    if (attribution.utmContent && this.options.findQrLinkBySlug) {
+      try {
+        qrLinkId = (await this.options.findQrLinkBySlug(attribution.utmContent.toLowerCase()))?.id ?? null;
+      } catch {
+        // The sign-up must never fail over the attribution: keep the tags, lose the link.
+        qrLinkId = null;
+      }
+    }
+    return { ...attribution, qrLinkId };
   }
 
   private resolveExisting(existing: Profile, requestedRole: UserRole): Profile {

@@ -11,7 +11,8 @@ import { DetailSheet } from "@/components/admin/DetailSheet";
 import { areaLabel, smsLabel } from "@/components/admin/DriversTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { APPROVE_INCOMPLETE_REASON, CONFIRMATIONS, SOURCE_UNKNOWN, STATUS_DONE } from "@/lib/admin/options";
+import { APPROVE_INCOMPLETE_REASON, CONFIRMATIONS, STATUS_DONE } from "@/lib/admin/options";
+import { heardFromLabel, referrerLabel, tagsLabel } from "@/lib/admin/source";
 import { summarizeDriver } from "@/lib/carrier/driverSummary";
 import { formatFileSize } from "@/lib/image";
 import { DRIVING_STYLE_OPTIONS, EMPLOYMENT_TYPE_OPTIONS } from "@/lib/onboarding/options";
@@ -101,6 +102,15 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
       value: driver.availability.map((slot) => AVAILABILITY_LABELS[slot]).join(", "),
     },
     driver.certifications.length > 0 && { label: "Certifications", value: driver.certifications.join(", ") },
+  ].filter((row): row is { label: string; value: string } => Boolean(row));
+  const { source } = profile;
+  const sourceRows = [
+    { label: "Came by", value: detail.source.label },
+    source.utmCampaign && detail.source.kind === "qr" && { label: "Campaign", value: source.utmCampaign },
+    tagsLabel(source) && { label: "Tags", value: tagsLabel(source) as string },
+    referrerLabel(source) && { label: "Referrer", value: referrerLabel(source) as string },
+    source.landingPath && { label: "Landed on", value: source.landingPath },
+    { label: "Driver said", value: heardFromLabel(driver) ?? "Skipped the question" },
   ].filter((row): row is { label: string; value: string } => Boolean(row));
 
   async function run(status: AccountStatus) {
@@ -243,9 +253,11 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
         </Section>
 
         <Section title="Source">
-          <p className="text-helper leading-helper text-muted-foreground" data-slot="source">
-            {SOURCE_UNKNOWN}
-          </p>
+          <dl className="divide-y divide-border rounded-card border border-border bg-card" data-slot="source">
+            {sourceRows.map((row) => (
+              <Row key={row.label} label={row.label} value={row.value} />
+            ))}
+          </dl>
         </Section>
 
         <Section title="History">

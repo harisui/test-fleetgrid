@@ -87,7 +87,7 @@ test.describe("Workshop rules", () => {
     await resetUser(PHONES.driver);
   });
 
-  for (const stepNumber of [1, 4, 7, 8, 10, 11, 12]) {
+  for (const stepNumber of [1, 4, 7, 8, 10, 11, 12, 13]) {
     test(`orange is only the primary fill, progress fill, sign stripe and check badge on step ${stepNumber}`, async ({
       page,
     }) => {

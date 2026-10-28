@@ -1,4 +1,4 @@
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+﻿import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { SMS_CONSENT_TEXT } from "@/lib/constants";
 import { AppError } from "@/server/errors/AppError";
 import { DriverRepository } from "@/server/repositories/DriverRepository";
@@ -162,7 +162,7 @@ describe("DriverRepository (local Supabase)", () => {
       smsOptIn: true,
       smsOptInAt: consentAt,
       smsOptInText: SMS_CONSENT_TEXT,
-      onboardingStep: 12,
+      onboardingStep: 13,
       cardCompleted: true,
     });
     expect(updated.bio).toBeNull();
@@ -195,7 +195,7 @@ describe("DriverRepository (local Supabase)", () => {
       mvr_status: "minor_1_2",
       sms_opt_in: true,
       sms_opt_in_text: SMS_CONSENT_TEXT,
-      onboarding_step: 12,
+      onboarding_step: 13,
       card_completed: true,
     });
   });

@@ -1,6 +1,8 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { ATTRIBUTION_COOKIE, parseAttribution } from "@/lib/attribution";
 import { requireUser } from "@/lib/auth/guards";
 import { homePathFor, LOGIN_PATH } from "@/lib/auth/routes";
 import { getContainer } from "@/server/container";
@@ -23,12 +25,15 @@ export async function verifyOtpAction(input: unknown): Promise<Result<{ redirect
   });
 }
 
-/** Creates the profile for a newly verified user. */
+/** Creates the profile for a newly verified user, keeping where they came from, then clears that cookie. */
 export async function chooseRoleAction(input: unknown): Promise<Result<{ redirectTo: string }>> {
   return runAction(async () => {
     const user = await requireUser();
     const { profileService } = await getContainer();
-    const profile = await profileService.createProfile(user, input);
+    const jar = await cookies();
+    const attribution = parseAttribution(jar.get(ATTRIBUTION_COOKIE)?.value);
+    const profile = await profileService.createProfile(user, input, attribution);
+    if (attribution) jar.delete(ATTRIBUTION_COOKIE);
     return { redirectTo: homePathFor(profile) };
   });
 }

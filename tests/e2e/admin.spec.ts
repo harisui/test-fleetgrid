@@ -2,6 +2,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
   adminClient,
+  COMPLETE_STEP,
   displayPhone,
   login,
   PHONES,
@@ -55,7 +56,7 @@ test.describe("admin drivers", () => {
     page,
     browser,
   }) => {
-    const { driverId } = await seedDriverAtStep(PHONES.driver, 12);
+    const { driverId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
     await login(page, PHONES.admin);
     await expect(page).toHaveURL(/\/admin\/drivers$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Drivers");
@@ -128,7 +129,7 @@ test.describe("admin drivers", () => {
   });
 
   test("an unfinished card cannot be approved, and the filters single it out", async ({ page }) => {
-    await seedDriverAtStep(PHONES.driver, 12);
+    await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
     const { driverId } = await seedDriverAtStep(PHONES.secondDriver, 5);
     await login(page, PHONES.admin);
 
@@ -158,7 +159,7 @@ test.describe("admin drivers", () => {
   });
 
   test("only admins see the drivers; a driver gets a 403", async ({ page }) => {
-    await seedDriverAtStep(PHONES.driver, 12);
+    await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
     await login(page, PHONES.driver);
     const response = await page.goto("/admin/drivers");
     expect(response?.status()).toBe(403);

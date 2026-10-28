@@ -1,3 +1,4 @@
+import { Analytics } from "@vercel/analytics/next";
 import type { Metadata, Viewport } from "next";
 import { Barlow_Condensed, Geist, Geist_Mono } from "next/font/google";
 import { GoogleAds } from "@/components/seo/GoogleAds";
@@ -69,6 +70,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {/* Who runs the site and what the site is, on every page. */}
         <JsonLd data={[organizationJsonLd(), websiteJsonLd()]} />
         {adsId && <GoogleAds id={adsId} />}
+        {/* Vercel's page analytics, cookie-free, on the production deployment only. */}
+        {process.env.VERCEL_ENV === "production" && <Analytics />}
         {children}
       </body>
     </html>

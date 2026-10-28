@@ -1,7 +1,8 @@
 "use client";
 
 import { format } from "date-fns";
-import { Download } from "lucide-react";
+import { Download, Users } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -12,6 +13,7 @@ import { QrStatusBadge } from "@/components/admin/QrTable";
 import { Button } from "@/components/ui/button";
 import { LoadingButton } from "@/components/shared/LoadingButton";
 import { QR_DONE, qrDownloadHref } from "@/lib/admin/analytics-options";
+import { driversHref } from "@/lib/admin/options";
 import { setQrLinkActiveAction } from "@/server/actions/qr.actions";
 import type { QrLinkRow } from "@/server/services/AnalyticsService";
 
@@ -120,6 +122,12 @@ export function QrDetailSheet({ row, closeHref }: QrDetailSheetProps) {
           <Fact label="Sign-ups" value={row.signups.toLocaleString("en-US")} />
           <Fact label="Conversion" value={row.conversionPercent === null ? "—" : `${row.conversionPercent}%`} />
         </div>
+        <Button asChild variant="secondary" size="md">
+          <Link href={driversHref({ qr: link.id })}>
+            <Users aria-hidden="true" />
+            See the drivers who scanned it
+          </Link>
+        </Button>
       </DetailSheet>
 
       {confirming && (

@@ -164,7 +164,7 @@ test.describe("driver onboarding, a page per mile", () => {
       sms_opt_in: true,
       sms_opt_in_text: CONSENT_TEXT,
       sms_opted_out: false,
-      onboarding_step: 12,
+      onboarding_step: 13,
       card_completed: true,
     });
     const consentAt = new Date(row.sms_opt_in_at!).getTime();
@@ -256,7 +256,7 @@ test.describe("driver onboarding, a page per mile", () => {
     );
     await expect(page.getByText(/Shift offers arrive by text/)).toHaveCount(0);
     await expect(page.locator("[data-slot=summary-card]")).toBeVisible();
-    expect(await driverRow()).toMatchObject({ card_completed: true, onboarding_step: 12 });
+    expect(await driverRow()).toMatchObject({ card_completed: true, onboarding_step: 13 });
 
     await page.getByRole("link", { name: "Go to my profile" }).click();
     await expect(page).toHaveURL(/\/driver\/profile$/);
@@ -497,7 +497,7 @@ test.describe("driver onboarding, a page per mile", () => {
     const row = await driverRow();
     expect(row).toMatchObject({
       card_completed: true,
-      onboarding_step: 12,
+      onboarding_step: 13,
       sms_opt_in: false,
       sms_opt_in_at: null,
       sms_opt_in_text: null,

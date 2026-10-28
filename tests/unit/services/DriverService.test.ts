@@ -442,7 +442,7 @@ describe("DriverService", () => {
         equipmentTypes: ["reefer", "reefer", "container_drayage"],
       });
       expect(driver.equipmentTypes).toEqual(["reefer", "container_drayage"]);
-      expect(driver.onboardingStep).toBe(stepNumber("consent"));
+      expect(driver.onboardingStep).toBe(stepNumber("heardFrom"));
     });
 
     it("requires at least one kind of equipment", async () => {
@@ -454,8 +454,39 @@ describe("DriverService", () => {
     });
   });
 
-  describe("consent screen", () => {
+  describe("heard-from screen (optional, 2026-10-28)", () => {
     beforeEach(() => completeThrough("equipment"));
+
+    it("saves the answer and moves to consent; the free text counts only with Other", async () => {
+      const flyer = await service.saveScreen(USER_ID, "heardFrom", { heardFrom: "flyer", heardFromOther: "ignored" });
+      expect(flyer.heardFrom).toBe("flyer");
+      expect(flyer.heardFromOther).toBeNull();
+      expect(flyer.onboardingStep).toBe(stepNumber("consent"));
+
+      const other = await service.saveScreen(USER_ID, "heardFrom", { heardFrom: "other", heardFromOther: "  Radio ad " });
+      expect(other).toMatchObject({ heardFrom: "other", heardFromOther: "Radio ad" });
+    });
+
+    it.each([{}, { heardFrom: "" }, { heardFrom: null }, undefined])("goes on without an answer (%j)", async (input) => {
+      const driver = await service.saveScreen(USER_ID, "heardFrom", input);
+      expect(driver.heardFrom).toBeNull();
+      expect(driver.heardFromOther).toBeNull();
+      expect(driver.onboardingStep).toBe(stepNumber("consent"));
+    });
+
+    it("rejects an answer that is not on the list, and a long Other", async () => {
+      const unknown = await expectAppError(service.saveScreen(USER_ID, "heardFrom", { heardFrom: "tv" }));
+      expect(unknown.fieldErrors).toEqual({ heardFrom: "Pick one, or go on without" });
+      const long = await expectAppError(
+        service.saveScreen(USER_ID, "heardFrom", { heardFrom: "other", heardFromOther: "x".repeat(81) }),
+      );
+      expect(long.fieldErrors).toHaveProperty("heardFromOther");
+      expect(card().onboardingStep).toBe(stepNumber("heardFrom"));
+    });
+  });
+
+  describe("consent screen", () => {
+    beforeEach(() => completeThrough("heardFrom"));
 
     it("stores the exact consent text with a timestamp and completes the card", async () => {
       const driver = await service.saveScreen(USER_ID, "consent", { consent: true });
@@ -463,7 +494,7 @@ describe("DriverService", () => {
       expect(driver.smsOptInText).toBe(SMS_CONSENT_TEXT);
       expect(driver.smsOptInAt).toBe("2026-10-05T15:30:00.000Z");
       expect(driver.cardCompleted).toBe(true);
-      expect(driver.onboardingStep).toBe(12);
+      expect(driver.onboardingStep).toBe(13);
       // Nothing from the profile page is needed to finish.
       expect(driver).toMatchObject(PROFILE_ONLY_EMPTY);
     });
@@ -473,7 +504,7 @@ describe("DriverService", () => {
       async (input) => {
         const driver = await service.saveScreen(USER_ID, "consent", input);
         expect(driver.cardCompleted).toBe(true);
-        expect(driver.onboardingStep).toBe(12);
+        expect(driver.onboardingStep).toBe(13);
         expect(driver.smsOptIn).toBe(false);
         expect(driver.smsOptInAt).toBeNull();
         expect(driver.smsOptInText).toBeNull();
@@ -573,7 +604,7 @@ describe("DriverService", () => {
   });
 
   describe("setSmsConsent (the profile page switch)", () => {
-    beforeEach(() => completeThrough("equipment"));
+    beforeEach(() => completeThrough("heardFrom"));
 
     it("turns texts on with the audit row first, from the profile", async () => {
       await service.saveScreen(USER_ID, "consent", { consent: false });
@@ -637,7 +668,7 @@ describe("DriverService", () => {
       await completeThrough("consent");
       const driver = await service.saveScreen(USER_ID, "experience", { yearsExperience: 12 });
       expect(driver.yearsExperience).toBe(12);
-      expect(driver.onboardingStep).toBe(12);
+      expect(driver.onboardingStep).toBe(13);
       expect(driver.cardCompleted).toBe(true);
       expect(driver.smsOptIn).toBe(true);
     });
@@ -706,7 +737,7 @@ describe("DriverService", () => {
         bio: null,
         smsOptIn: true,
         cardCompleted: true,
-        onboardingStep: 12,
+        onboardingStep: 13,
       });
     });
 
@@ -851,7 +882,7 @@ describe("DriverService", () => {
       const afterDistance = await service.saveScreen(USER_ID, "distance", SCREEN_INPUTS.distance);
       expect(afterDistance.inServiceArea).toBe(true);
 
-      await completeThrough("equipment");
+      await completeThrough("heardFrom");
       const edited = await service.updateCard(USER_ID, { ...validCard(), zip: "60601" });
       expect(edited.inServiceArea).toBe(false);
       expect(areas.calls.at(-1)).toEqual({ lat: 41.8858, lng: -87.6181 });
@@ -878,7 +909,7 @@ describe("DriverService", () => {
 
   it("uses the real clock by default", async () => {
     const realClock = new DriverService(drivers, profiles, zips, areas, () => consentLog);
-    await completeThrough("equipment");
+    await completeThrough("heardFrom");
     const before = Date.now();
     const driver = await realClock.saveScreen(USER_ID, "consent", { consent: true });
     expect(new Date(driver.smsOptInAt!).getTime()).toBeGreaterThanOrEqual(before);

@@ -3,6 +3,7 @@ import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { ADMIN_PAGE_SIZE, DEFAULT_TIMEZONE, SIGNED_URL_TTL_SECONDS } from "@/lib/constants";
 import { isInsideAnyArea } from "@/lib/geo";
 import { APPROVE_INCOMPLETE_REASON } from "@/lib/admin/options";
+import { describeSource, type DriverSource } from "@/lib/admin/source";
 import {
   adminDriversQuerySchema,
   driverIdSchema,
@@ -13,6 +14,7 @@ import { AppError, parseInput } from "@/server/errors/AppError";
 import type { DriverReviewRow, IAdminRepository } from "@/server/repositories/AdminRepository";
 import type { IDocumentRepository } from "@/server/repositories/DocumentRepository";
 import type { IProfileRepository } from "@/server/repositories/ProfileRepository";
+import type { IQrLinkRepository } from "@/server/repositories/QrLinkRepository";
 import type { IServiceAreaRepository } from "@/server/repositories/ServiceAreaRepository";
 import type {
   AccountStatus,
@@ -20,14 +22,16 @@ import type {
   AuditEntry,
   DriverDocument,
   Profile,
+  QrLink,
   ServiceArea,
 } from "@/types/domain";
 
-/** A driver as the admin's list shows them: the card, the profile, the area and whether the card is finished. */
+/** A driver as the admin's list shows them: the card, the profile, the area, the source and whether the card is finished. */
 export interface AdminDriverRow extends DriverReviewRow {
   /** Null for a card without coordinates (the ZIP screen not reached yet). */
   inServiceArea: boolean | null;
   complete: boolean;
+  source: DriverSource;
 }
 
 export interface DriverTiles {
@@ -50,6 +54,8 @@ export interface AdminDriversPage {
   page: number;
   pageSize: number;
   query: AdminDriversQuery;
+  /** The code the list is narrowed to (query.qr), when it exists. */
+  qrLink: QrLink | null;
 }
 
 /** One driver with their papers and what the admin did to them. */
@@ -72,7 +78,8 @@ const ACTION_FOR: Record<AccountStatus, AdminAction> = {
  * written to the audit log. Approve lists a driver to subscribed carriers and needs a
  * finished card; block hides them and signs them out at their next request; pending puts
  * them back in the queue. The list is filtered in memory: every card is read once (the
- * admin's RLS) and the area answer comes from the same haversine as the database.
+ * admin's RLS), the area answer comes from the same haversine as the database, and the
+ * source names the QR code a driver scanned (part 4).
  */
 export class AdminService {
   constructor(
@@ -80,13 +87,15 @@ export class AdminService {
     private readonly profiles: IProfileRepository,
     private readonly serviceAreas: IServiceAreaRepository,
     private readonly documents: IDocumentRepository,
+    private readonly qrLinks: IQrLinkRepository,
     private readonly now: () => Date = () => new Date(),
   ) {}
 
   async getDriversPage(adminId: string, input: unknown): Promise<AdminDriversPage> {
     await this.requireAdmin(adminId);
     const query = parseInput(adminDriversQuerySchema, input);
-    const all = await this.locate(await this.admin.listDrivers());
+    const links = await this.qrLinks.list();
+    const all = await this.locate(await this.admin.listDrivers(), links);
     const matching = sortRows(all.filter((row) => matches(row, query)), query);
     const pageCount = Math.max(1, Math.ceil(matching.length / ADMIN_PAGE_SIZE));
     const page = Math.min(query.page, pageCount);
@@ -98,6 +107,7 @@ export class AdminService {
       page,
       pageSize: ADMIN_PAGE_SIZE,
       query: { ...query, page },
+      qrLink: (query.qr && links.find((link) => link.id === query.qr)) || null,
     };
   }
 
@@ -106,7 +116,8 @@ export class AdminService {
     const { driverId } = parseInput(driverIdSchema, input);
     const row = await this.admin.findDriver(driverId);
     if (!row) throw AppError.notFound("Driver not found");
-    const [located] = await this.locate([row]);
+    const link = row.profile.source.qrLinkId ? await this.qrLinks.findById(row.profile.source.qrLinkId) : null;
+    const [located] = await this.locate([row], link ? [link] : []);
     const [documents, history] = await Promise.all([
       this.documents.listByDriverId(driverId),
       this.admin.listAudit("driver", driverId),
@@ -161,10 +172,12 @@ export class AdminService {
     return updated;
   }
 
-  private async locate(rows: DriverReviewRow[]): Promise<AdminDriverRow[]> {
+  /** The area answer and the source for each row; `links` are the codes the rows may name. */
+  private async locate(rows: DriverReviewRow[], links: QrLink[]): Promise<AdminDriverRow[]> {
     const areas: ServiceArea[] = rows.some((row) => row.driver.lat !== null && row.driver.lng !== null)
       ? await this.serviceAreas.listActive()
       : [];
+    const byId = new Map(links.map((link) => [link.id, link]));
     return rows.map((row) => ({
       ...row,
       inServiceArea:
@@ -172,6 +185,7 @@ export class AdminService {
           ? null
           : isInsideAnyArea(row.driver.lat, row.driver.lng, areas),
       complete: row.driver.cardCompleted,
+      source: describeSource(row.profile.source, byId.get(row.profile.source.qrLinkId ?? "") ?? null),
     }));
   }
 
@@ -209,6 +223,8 @@ export function matches(row: AdminDriverRow, query: AdminDriversQuery): boolean 
   if (query.complete === "incomplete" && row.complete) return false;
   if (query.area === "in" && row.inServiceArea !== true) return false;
   if (query.area === "out" && row.inServiceArea !== false) return false;
+  if (query.source && row.source.kind !== query.source) return false;
+  if (query.qr && row.source.qrLinkId !== query.qr) return false;
   if (query.q) {
     const text = query.q.toLowerCase();
     const digits = digitsOf(query.q);

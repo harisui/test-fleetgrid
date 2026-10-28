@@ -127,13 +127,23 @@ so. Open the file in a browser to compare.
 
 ### The sign-up
 
-Twelve screens in six miles, a mile per page (`src/lib/onboarding/steps.ts`): About (name, ZIP,
+Thirteen screens in six miles, a mile per page (`src/lib/onboarding/steps.ts`): About (name, ZIP,
 distance), CDL (class, years, MVR level), Cards (TWIC, DOT medical card), Letters (endorsements,
-transmission), Equipment, Finish (SMS consent, then "Find local shifts"). Every page is saved on
-Next, so a driver can leave and resume on the same page. The answers sign-up no longer asks
-(W-2 or 1099, driving style, the Clearinghouse, availability, certifications, papers, about you)
-are optional on the profile page, and the CDL photos are asked for when a shift comes up
-(Milestone 3).
+transmission), Equipment, Finish (the optional "How did you hear about FleetGrid?", SMS consent,
+then "Find local shifts"). Every page is saved on Next, so a driver can leave and resume on the
+same page. The answers sign-up no longer asks (W-2 or 1099, driving style, the Clearinghouse,
+availability, certifications, papers, about you) are optional on the profile page, and the CDL
+photos are asked for when a shift comes up (Milestone 3).
+
+### Where a sign-up came from
+
+The first public page a visitor opens sets the cookie `fg_src` (30 days, first party, httpOnly)
+with the UTM tags on the address, the referrer when it is another site, and the landing path. A
+later tagged link never overwrites it. When the visitor creates a profile the values move to the
+`signup_*` columns on `profiles`, `utm_content` is matched to a QR code's slug (`qr_link_id`),
+and the cookie is deleted. The admin's Drivers page shows the source per driver, filters by it,
+and narrows to one code from the Analytics page; a driver's own answer to the sign-up question
+is kept beside it. The Privacy Policy describes all of this (section 1).
 
 ### The carrier side (Milestone 2)
 

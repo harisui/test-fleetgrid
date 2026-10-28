@@ -177,6 +177,10 @@ describe("QrDetailSheet", () => {
     expect(within(counts).getByText("40")).toBeInTheDocument();
     expect(within(counts).getByText("15%")).toBeInTheDocument();
     expect(within(sheet).getByText("Active")).toHaveAttribute("data-qr-status", "active");
+    expect(within(sheet).getByRole("link", { name: "See the drivers who scanned it" })).toHaveAttribute(
+      "href",
+      "/admin/drivers?qr=aaaaaaaa-0000-4000-8000-000000000001",
+    );
   });
 
   it("deactivates after a dialog that names the effect, and activates without one", async () => {

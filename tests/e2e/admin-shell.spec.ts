@@ -1,6 +1,6 @@
-import AxeBuilder from "@axe-core/playwright";
+﻿import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { login, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
+import { COMPLETE_STEP, login, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
 
 /**
  * The admin shell: the sidebar on a desktop, the menu sheet on a phone, keyboard reach, axe
@@ -108,7 +108,7 @@ test.describe("admin shell", () => {
       await expect(page, path).toHaveURL(/\/login$/);
     }
 
-    await seedDriverAtStep(PHONES.driver, 12);
+    await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
     await login(page, PHONES.driver);
     for (const path of ADMIN_PAGES) {
       const response = await page.goto(path);

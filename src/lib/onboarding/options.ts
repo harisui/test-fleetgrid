@@ -19,6 +19,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { CERTIFICATION_DOCUMENTS_MAX } from "@/lib/constants";
+import { HEARD_FROM, HEARD_FROM_LABELS } from "@/types/domain";
 import type {
   AvailabilityType,
   CdlClass,
@@ -27,6 +28,7 @@ import type {
   EmploymentType,
   Endorsement,
   EquipmentType,
+  HeardFrom,
   MvrStatus,
   TransmissionType,
 } from "@/types/domain";
@@ -249,6 +251,12 @@ export const MVR_CHIPS: readonly ChipOption<MvrStatus>[] = [
   { value: "minor_1_2", label: "1 or 2 minor" },
   { value: "major_3_plus", label: "3 or more, or a major one" },
 ];
+
+/** "How did you hear about FleetGrid?", one tap, optional. The labels are the client's words (2026-10-28). */
+export const HEARD_FROM_CHIPS: readonly ChipOption<HeardFrom>[] = HEARD_FROM.map((value) => ({
+  value,
+  label: HEARD_FROM_LABELS[value],
+}));
 
 /** How each level reads on the summary card. */
 export const MVR_SUMMARY: Record<MvrStatus, string> = {

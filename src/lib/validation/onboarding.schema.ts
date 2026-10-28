@@ -12,6 +12,7 @@ import {
   CDL_HELD_CLASSES,
   ENDORSEMENTS,
   EQUIPMENT_TYPES,
+  HEARD_FROM,
   MVR_STATUSES,
   TRANSMISSION_TYPES,
 } from "@/types/domain";
@@ -122,6 +123,26 @@ export const CONSENT_MESSAGE = "Tap the box to agree, or leave it empty to finis
  * Shift texts are optional (Twilio: consent must never be a condition of signing up). An
  * unchecked box, or no answer at all, finishes the card without texts.
  */
+export const HEARD_FROM_OTHER_MAX_LENGTH = 80;
+export const HEARD_FROM_OTHER_MESSAGE = `Keep it to ${HEARD_FROM_OTHER_MAX_LENGTH} characters`;
+
+/** Optional: no answer is fine; the free text counts only with "Other". */
+export const heardFromScreenSchema = z
+  .object({
+    heardFrom: z.preprocess(
+      (value) => (value === "" || value === undefined ? null : value),
+      z.enum(HEARD_FROM, { error: "Pick one, or go on without" }).nullable(),
+    ),
+    heardFromOther: z.preprocess(
+      (value) => (typeof value === "string" ? value.trim() : ""),
+      z.string().max(HEARD_FROM_OTHER_MAX_LENGTH, HEARD_FROM_OTHER_MESSAGE),
+    ),
+  })
+  .transform((data) => ({
+    heardFrom: data.heardFrom,
+    heardFromOther: data.heardFrom === "other" && data.heardFromOther ? data.heardFromOther : null,
+  }));
+
 export const consentScreenSchema = z.object({
   consent: z.boolean({ error: CONSENT_MESSAGE }).default(false),
 });
@@ -142,6 +163,7 @@ export const SCREEN_SCHEMAS = {
   endorsements: endorsementsScreenSchema,
   transmission: transmissionScreenSchema,
   equipment: equipmentScreenSchema,
+  heardFrom: heardFromScreenSchema,
   consent: consentScreenSchema,
 } as const satisfies Record<SavableStepId, z.ZodType>;
 
@@ -155,4 +177,5 @@ export type CredentialsScreenInput = z.infer<typeof credentialsScreenSchema>;
 export type EndorsementsScreenInput = z.infer<typeof endorsementsScreenSchema>;
 export type TransmissionScreenInput = z.infer<typeof transmissionScreenSchema>;
 export type EquipmentScreenInput = z.infer<typeof equipmentScreenSchema>;
+export type HeardFromScreenInput = z.infer<typeof heardFromScreenSchema>;
 export type ConsentScreenInput = z.infer<typeof consentScreenSchema>;

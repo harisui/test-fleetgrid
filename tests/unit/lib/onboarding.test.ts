@@ -60,7 +60,7 @@ describe("steps config", () => {
     expect(Object.keys(MILE_SUMMARIES).map(Number)).toEqual(MILES.map((mile) => mile.mile));
   });
 
-  it("has twelve screens in the client's order (2026-10-09) and mile map", () => {
+  it("has thirteen screens in the client's order (2026-10-09, the source question of 2026-10-28) and mile map", () => {
     expect(STEPS.map((step) => `${step.mile}:${step.id}`)).toEqual([
       "1:name",
       "1:zip",
@@ -72,11 +72,12 @@ describe("steps config", () => {
       "4:endorsements",
       "4:transmission",
       "5:equipment",
+      "6:heardFrom",
       "6:consent",
       "6:done",
     ]);
-    expect(DONE_STEP_NUMBER).toBe(12);
-    expect(SAVABLE_STEP_IDS).toHaveLength(11);
+    expect(DONE_STEP_NUMBER).toBe(13);
+    expect(SAVABLE_STEP_IDS).toHaveLength(12);
     expect(SAVABLE_STEP_IDS).not.toContain("done");
   });
 
@@ -109,6 +110,10 @@ describe("steps config", () => {
       helper: "These are called endorsements. They're printed next to END on the front.",
     });
     expect(stepById("consent").question).toBe("Can we text you about shifts?");
+    expect(stepById("heardFrom")).toMatchObject({
+      question: "How did you hear about FleetGrid?",
+      helper: "Optional. It tells us where to put the next flyers.",
+    });
     expect(stepById("name").question).toBe("What is your name?");
     expect(stepById("cdlClass").question).toBe("What class is your CDL?");
     expect(stepById("experience").question).toBe("How many years have you driven with a CDL?");
@@ -120,10 +125,11 @@ describe("steps config", () => {
 
   it("numbers steps from 1 and looks them up both ways", () => {
     expect(stepNumber("name")).toBe(1);
-    expect(stepNumber("done")).toBe(12);
+    expect(stepNumber("done")).toBe(13);
+    expect(stepNumber("heardFrom")).toBe(11);
     expect(stepByNumber(4).id).toBe("cdlClass");
     expect(() => stepByNumber(0)).toThrow(/Unknown onboarding step/);
-    expect(() => stepByNumber(13)).toThrow(/Unknown onboarding step/);
+    expect(() => stepByNumber(14)).toThrow(/Unknown onboarding step/);
     expect(() => stepByNumber(1.5)).toThrow(/Unknown onboarding step/);
     expect(() => stepById("nope" as never)).toThrow(/Unknown onboarding step/);
   });
@@ -144,7 +150,7 @@ describe("progressFor", () => {
     expect(progressFor("cdlClass")).toMatchObject({
       number: 4,
       mile: { mile: 2, label: "CDL" },
-      percent: 27,
+      percent: 25,
       eyebrow: "Mile 2 of 6",
       srLabel: "Step 2 of 6: CDL",
       completedMiles: [1],
@@ -168,7 +174,8 @@ describe("flow navigation", () => {
     expect(nextStepId("record")).toBe("credentials");
     expect(nextStepId("credentials")).toBe("endorsements");
     expect(nextStepId("transmission")).toBe("equipment");
-    expect(nextStepId("equipment")).toBe("consent");
+    expect(nextStepId("equipment")).toBe("heardFrom");
+    expect(nextStepId("heardFrom")).toBe("consent");
     expect(previousStepId("cdlClass")).toBe("distance");
     expect(previousStepId("endorsements")).toBe("credentials");
   });
@@ -185,7 +192,7 @@ describe("flow navigation", () => {
     expect(stepsOfMile(3).map((step) => step.id)).toEqual(["credentials"]);
     expect(stepsOfMile(4).map((step) => step.id)).toEqual(["endorsements", "transmission"]);
     expect(stepsOfMile(5).map((step) => step.id)).toEqual(["equipment"]);
-    expect(stepsOfMile(6).map((step) => step.id)).toEqual(["consent"]);
+    expect(stepsOfMile(6).map((step) => step.id)).toEqual(["heardFrom", "consent"]);
   });
 });
 

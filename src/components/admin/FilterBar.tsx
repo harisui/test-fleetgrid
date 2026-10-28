@@ -21,6 +21,11 @@ export interface FilterDefinition {
   /** "" means no filter; the first option should say so ("Any"). */
   value: string;
   options: readonly FilterOption[];
+  /**
+   * A filter that only a link sets (one QR code's sign-ups, say): no select, but its chip
+   * shows and both forms carry it along.
+   */
+  hidden?: boolean;
 }
 
 interface FilterBarProps {
@@ -70,10 +75,11 @@ function SelectFilter({ filter }: { filter: FilterDefinition }) {
   );
 }
 
-function KeepFields({ keep }: { keep: Record<string, string> }) {
+function KeepFields({ keep, filters }: { keep: Record<string, string>; filters: FilterDefinition[] }) {
+  const hidden = filters.filter((filter) => filter.hidden && filter.value).map((filter) => [filter.name, filter.value] as const);
   return (
     <>
-      {Object.entries(keep).map(([name, value]) => (
+      {[...Object.entries(keep), ...hidden].map(([name, value]) => (
         <input key={name} type="hidden" name={name} value={value} />
       ))}
     </>
@@ -89,13 +95,14 @@ export function FilterBar(props: FilterBarProps) {
   const { action, search, filters, keep = {} } = props;
   const searchId = useId();
   const chips = activeFilterChips(props);
-  const activeCount = filters.filter((filter) => filter.value).length;
+  const selects = filters.filter((filter) => !filter.hidden);
+  const activeCount = selects.filter((filter) => filter.value).length;
   const [open, setOpen] = useState(false);
 
   return (
     <div className="flex flex-col gap-3" data-slot="filter-bar">
       <Form action={action} scroll={false} className="flex flex-col gap-3 lg:flex-row lg:items-end" aria-label="Filters">
-        <KeepFields keep={keep} />
+        <KeepFields keep={keep} filters={filters} />
         {search && (
           <div className="relative flex-1">
             <label htmlFor={searchId} className="sr-only">
@@ -118,7 +125,7 @@ export function FilterBar(props: FilterBarProps) {
         )}
         {/* Desktop: the selects inline. */}
         <div className="hidden gap-3 lg:flex">
-          {filters.map((filter) => (
+          {selects.map((filter) => (
             <SelectFilter key={filter.name} filter={filter} />
           ))}
         </div>
@@ -140,9 +147,9 @@ export function FilterBar(props: FilterBarProps) {
               <SheetTitle>Filters</SheetTitle>
               <SheetDescription>Narrow the list. The view keeps its filters in the address.</SheetDescription>
               <Form action={action} scroll={false} className="flex flex-col gap-4" onSubmit={() => setOpen(false)}>
-                <KeepFields keep={keep} />
+                <KeepFields keep={keep} filters={filters} />
                 {search && <input type="hidden" name={search.name} value={search.value} />}
-                {filters.map((filter) => (
+                {selects.map((filter) => (
                   <SelectFilter key={filter.name} filter={filter} />
                 ))}
                 <Button type="submit" size="md">

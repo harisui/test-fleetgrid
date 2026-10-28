@@ -6,7 +6,9 @@
  * A mile is one page on every device (client decision of 2026-10-09: the shortest sign-up
  * that still lets a carrier book on the answers; CDL drivers only at launch). The answers
  * the flow no longer asks (W-2 or 1099, driving style, availability, certifications, papers,
- * Clearinghouse, about you) stay on the profile page, filled in later or never.
+ * Clearinghouse, about you) stay on the profile page, filled in later or never. "How did you
+ * hear about FleetGrid?" (optional) sits before the consent since 2026-10-28, so the flyers
+ * already printed without tracking still count.
  */
 
 import { DONE_TITLE } from "@/lib/launch";
@@ -30,7 +32,7 @@ export const MILE_SUMMARIES: Record<MileNumber, string> = {
   3: "Your TWIC card and your DOT medical card.",
   4: "The extra letters on your CDL, and whether you can drive a manual.",
   5: "The equipment you run.",
-  6: "Your OK to receive shift offers by text, then you are listed.",
+  6: "Where you heard of FleetGrid (optional), your OK to receive shift offers by text, then you are listed.",
 };
 
 export const STEPS = [
@@ -49,6 +51,12 @@ export const STEPS = [
   },
   { id: "transmission", mile: 4, question: "Can you drive a manual?" },
   { id: "equipment", mile: 5, question: "What equipment do you run?" },
+  {
+    id: "heardFrom",
+    mile: 6,
+    question: "How did you hear about FleetGrid?",
+    helper: "Optional. It tells us where to put the next flyers.",
+  },
   { id: "consent", mile: 6, question: "Can we text you about shifts?" },
   { id: "done", mile: 6, question: DONE_TITLE },
 ] as const;
