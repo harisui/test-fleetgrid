@@ -82,9 +82,11 @@ describe("AdminPage", () => {
     expect(within(bar).getByRole("heading", { level: 1, name: "Drivers" })).toBeInTheDocument();
     expect(within(bar).getByText("Approve or block.")).toBeInTheDocument();
     expect(within(bar).getByRole("button", { name: "Generate QR code" })).toBeInTheDocument();
+    // The top bar sits inside the main landmark, so every part of the page is in a landmark.
     const main = screen.getByRole("main");
     expect(main).toHaveAttribute("id", "main-content");
-    expect(main).toHaveClass("max-w-7xl");
+    expect(main).toContainElement(bar);
+    expect(main.querySelector("[data-slot=admin-content]")).toHaveClass("max-w-7xl");
     expect(within(main).getByText("table")).toBeInTheDocument();
   });
 });

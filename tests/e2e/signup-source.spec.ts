@@ -2,6 +2,7 @@ import { expect, test, type BrowserContext } from "@playwright/test";
 import {
   addDriverCardAtStep,
   adminClient,
+  adminList,
   chooseRole,
   enterCode,
   login,
@@ -117,10 +118,10 @@ test.describe("sign-up source", () => {
     await page.getByRole("dialog", { name: location }).getByRole("link", { name: "See the drivers who scanned it" }).click();
     await expect(page).toHaveURL(new RegExp(`/admin/drivers\\?qr=${qrLinkId}$`));
     await expect(page.getByRole("link", { name: new RegExp(`^QR code: ${location.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`) })).toBeVisible();
-    const table = page.getByRole("table", { name: "Drivers" });
-    await expect(table.getByRole("row")).toHaveCount(2);
+    const table = adminList(page, "Drivers");
+    await expect(table.getByRole("link", { name: /^Pat Driver/ })).toHaveCount(1);
     await expect(table).toContainText(`QR: ${location}`);
-    await table.getByRole("link", { name: "Pat Driver", exact: true }).click();
+    await table.getByRole("link", { name: /^Pat Driver/ }).click();
     const sheet = page.getByRole("dialog", { name: "Pat Driver" });
     const source = sheet.locator("[data-slot=source]");
     await expect(source).toContainText(`QR: ${location}`);
@@ -164,8 +165,8 @@ test.describe("sign-up source", () => {
     await login(page, PHONES.admin);
     await page.goto("/admin/drivers?source=direct");
     await expect(page.getByRole("link", { name: /^Source: Direct or unknown/ })).toBeVisible();
-    await expect(page.getByRole("table", { name: "Drivers" }).getByRole("link", { name: "Sam Second", exact: true })).toHaveCount(1);
+    await expect(adminList(page, "Drivers").getByRole("link", { name: /^Sam Second/ })).toHaveCount(1);
     await page.goto("/admin/drivers?source=qr");
-    await expect(page.getByRole("table", { name: "Drivers" }).getByRole("link", { name: "Sam Second", exact: true })).toHaveCount(0);
+    await expect(adminList(page, "Drivers").getByRole("link", { name: /^Sam Second/ })).toHaveCount(0);
   });
 });

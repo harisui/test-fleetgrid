@@ -15,8 +15,10 @@ interface AdminPageProps {
  */
 export function AdminPage({ title, subtitle, actions, children }: AdminPageProps) {
   return (
-    <>
-      <header
+    // The top bar sits inside the main landmark: the sidebar (or the phone bar) is the
+    // banner, and nothing on the page lives outside a landmark.
+    <main id="main-content" className="flex flex-1 flex-col">
+      <div
         data-slot="admin-top-bar"
         className="sticky top-14 z-30 border-b border-border bg-background lg:top-0"
       >
@@ -29,13 +31,10 @@ export function AdminPage({ title, subtitle, actions, children }: AdminPageProps
           </div>
           {actions && <div className="ml-auto flex items-center gap-2">{actions}</div>}
         </div>
-      </header>
-      <main
-        id="main-content"
-        className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 p-6 xl:p-8"
-      >
+      </div>
+      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 p-6 xl:p-8" data-slot="admin-content">
         {children}
-      </main>
-    </>
+      </div>
+    </main>
   );
 }

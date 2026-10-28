@@ -2,6 +2,7 @@
 import { expect, test, type Page } from "@playwright/test";
 import {
   adminClient,
+  adminList,
   COMPLETE_STEP,
   displayPhone,
   login,
@@ -71,7 +72,7 @@ test.describe("admin drivers", () => {
 
     // The row opens the sheet with the full number; the list shows it masked.
     await expect(page.locator("main")).not.toContainText(displayPhone(PHONES.driver));
-    await page.getByRole("table", { name: "Drivers" }).getByRole("link", { name: "Pat Driver", exact: true }).click();
+    await adminList(page, "Drivers").getByRole("link", { name: /^Pat Driver/ }).click();
     await expect(page).toHaveURL(new RegExp(`open=${driverId}`));
     const sheet = page.getByRole("dialog", { name: "Pat Driver" });
     await expect(sheet.locator("[data-slot=full-phone]")).toContainText(displayPhone(PHONES.driver));
@@ -135,7 +136,7 @@ test.describe("admin drivers", () => {
 
     await page.goto("/admin/drivers?complete=incomplete");
     await expect(page.getByRole("link", { name: /^Profile: Incomplete/ })).toBeVisible();
-    const table = page.getByRole("table", { name: "Drivers" });
+    const table = adminList(page, "Drivers");
     await expect(table.getByText("Incomplete")).toBeVisible();
     await expect(table.getByText("Complete", { exact: true })).toHaveCount(0);
 

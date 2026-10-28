@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { adminClient, login, PHONES, seedUser } from "./helpers";
+import { adminClient, adminList, login, PHONES, seedUser } from "./helpers";
 
 /**
  * The Analytics page: the tiles and the sources, and a QR code's whole life: made from the
@@ -117,8 +117,8 @@ test.describe("admin analytics", () => {
     // The list shows it with its short link and the period keeps in the URL.
     await page.getByRole("dialog", { name: location }).getByRole("button", { name: "Close" }).click();
     await expect(page).toHaveURL(/\/admin\/analytics$/);
-    await expect(page.getByRole("table", { name: "QR codes" })).toContainText(`/q/${slug}`);
-    await expect(page.getByRole("table", { name: "Sources" })).toContainText(`QR: ${location}`);
+    await expect(adminList(page, "QR codes")).toContainText(`/q/${slug}`);
+    await expect(adminList(page, "Sources")).toContainText(`QR: ${location}`);
   });
 
   test("the downloads and the page are for admins only", async ({ page }) => {

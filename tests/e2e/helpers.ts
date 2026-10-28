@@ -142,6 +142,14 @@ export async function login(page: Page, phone: string, loginPath = "/login") {
 /** Validation and error messages inside the page. Excludes the Next.js route announcer. */
 export const formAlert = (page: Page) => page.getByRole("main").getByRole("alert");
 
+/**
+ * The admin's list by name: the table from the lg breakpoint, the card list under it. The
+ * other one is display none, so exactly one is visible.
+ */
+export const adminList = (page: Page, name: string) =>
+  page.getByRole("table", { name }).or(page.getByRole("list", { name })).filter({ visible: true });
+
+
 /** Picks a role card the way a person does, by tapping its label. */
 export async function chooseRole(page: Page, role: "driver" | "carrier") {
   const name = role === "driver" ? /I drive or work trucks/ : /I hire for my company/;
