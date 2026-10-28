@@ -103,11 +103,30 @@ test.describe("phone login", () => {
     await expect(page.getByRole("heading", { name: "Set up your company" })).toBeVisible();
   });
 
-  test("/verify without a phone number goes back to /login", async ({ page }) => {
+  test("/verify without a code request goes back to /login, and a number in the address is ignored", async ({ page }) => {
     await page.goto("/verify");
     await expect(page).toHaveURL(/\/login$/);
-    await page.goto("/verify?phone=not-a-number");
+    await page.goto("/verify?phone=%2B15555550110");
     await expect(page).toHaveURL(/\/login$/);
+  });
+
+  test("the phone number never appears in a page address, where the Ads tag would read it", async ({ page }) => {
+    await seedUser(PHONES.driver, "driver");
+    const addresses: string[] = [];
+    page.on("framenavigated", (frame) => {
+      if (frame === page.mainFrame()) addresses.push(frame.url());
+    });
+    await requestCode(page, PHONES.driver);
+    await expect(page).toHaveURL(/\/verify$/);
+    const cookie = (await page.context().cookies()).find((entry) => entry.name === "fg_otp_phone");
+    expect(cookie).toMatchObject({ httpOnly: true, sameSite: "Lax" });
+    expect(await page.evaluate(() => document.cookie)).not.toContain("fg_otp_phone");
+    await enterCode(page, OTP);
+    await expect(page).toHaveURL(/\/driver\//);
+    // Accepted: the cookie is gone.
+    expect((await page.context().cookies()).find((entry) => entry.name === "fg_otp_phone")).toBeUndefined();
+    const digits = PHONES.driver.replace(/\D/g, "").slice(1);
+    for (const address of addresses) expect(decodeURIComponent(address).replace(/\D/g, ""), address).not.toContain(digits);
   });
 });
 

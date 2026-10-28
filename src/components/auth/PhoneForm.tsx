@@ -64,9 +64,9 @@ export function PhoneForm({ role, defaultPhone }: PhoneFormProps) {
       return;
     }
 
-    const params = new URLSearchParams({ phone: result.data.phone });
-    if (role) params.set("role", role);
-    router.push(`${VERIFY_PATH}?${params.toString()}`);
+    // The number travels in an httpOnly cookie the action set, never in the address: page
+    // addresses reach every script on the page, the Ads tag included.
+    router.push(role ? `${VERIFY_PATH}?role=${role}` : VERIFY_PATH);
   }
 
   return (

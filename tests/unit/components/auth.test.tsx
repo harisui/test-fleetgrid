@@ -67,7 +67,8 @@ describe("PhoneForm", () => {
     await userEvent.click(submit());
 
     expect(actions.requestOtpAction).toHaveBeenCalledWith({ phone: "+15555550100" });
-    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/verify?phone=%2B15555550100"));
+    // The number never goes in the address (the Ads tag reports page addresses to Google).
+    await waitFor(() => expect(router.push).toHaveBeenCalledWith("/verify"));
   });
 
   it("carries the preselected role to the verify screen", async () => {
@@ -77,7 +78,7 @@ describe("PhoneForm", () => {
     await userEvent.click(submit());
 
     await waitFor(() =>
-      expect(router.push).toHaveBeenCalledWith("/verify?phone=%2B15555550101&role=carrier"),
+      expect(router.push).toHaveBeenCalledWith("/verify?role=carrier"),
     );
   });
 

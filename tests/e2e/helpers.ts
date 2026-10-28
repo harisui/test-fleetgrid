@@ -115,7 +115,7 @@ export async function requestCode(page: Page, phone: string, loginPath = "/login
   await page.goto(loginPath);
   await page.getByLabel("Mobile number").fill(national(phone));
   await page.getByRole("button", { name: "Text me a code" }).click();
-  await expect(page).toHaveURL(/\/verify\?/);
+  await expect(page).toHaveURL(/\/verify(\?role=\w+)?$/);
 }
 
 /**
