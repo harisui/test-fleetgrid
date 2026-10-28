@@ -139,13 +139,79 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   other: "Other",
 };
 
+/**
+ * Where a sign-up came from: the first-touch UTM tags, the referrer and the landing path
+ * from the first-party cookie, and the QR code when utm_content named one. Set once when the
+ * profile is created; null everywhere for a direct or unknown visit.
+ */
+export interface SignupSource {
+  utmSource: string | null;
+  utmMedium: string | null;
+  utmCampaign: string | null;
+  utmContent: string | null;
+  referrer: string | null;
+  landingPath: string | null;
+  qrLinkId: string | null;
+}
+
+export const NO_SOURCE: SignupSource = {
+  utmSource: null,
+  utmMedium: null,
+  utmCampaign: null,
+  utmContent: null,
+  referrer: null,
+  landingPath: null,
+  qrLinkId: null,
+};
+
 export interface Profile {
   id: string;
   role: UserRole;
   phone: string;
   status: AccountStatus;
+  source: SignupSource;
   createdAt: string;
   updatedAt: string;
+}
+
+/** How a driver said they heard of FleetGrid (optional, the last question before consent). */
+export const HEARD_FROM = [
+  "flyer",
+  "facebook_instagram",
+  "google_search",
+  "friend_coworker",
+  "other",
+] as const satisfies readonly Enums["heard_from"][];
+export type HeardFrom = (typeof HEARD_FROM)[number];
+
+export const HEARD_FROM_LABELS: Record<HeardFrom, string> = {
+  flyer: "Flyer at a truck stop or shop",
+  facebook_instagram: "Facebook or Instagram",
+  google_search: "Google search",
+  friend_coworker: "A friend or coworker",
+  other: "Other",
+};
+
+/** One printed QR code: the short link /q/<slug> and where it sends people, with the UTM tags. */
+export interface QrLink {
+  id: string;
+  slug: string;
+  locationName: string;
+  campaign: string;
+  targetPath: string;
+  utmSource: string;
+  utmMedium: string;
+  isActive: boolean;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** One visit to a short link. The address is kept hashed, never raw. */
+export interface QrScan {
+  id: string;
+  qrLinkId: string;
+  scannedAt: string;
 }
 
 export interface Driver {
@@ -185,6 +251,9 @@ export interface Driver {
   smsOptInText: string | null;
   smsOptedOut: boolean;
   smsOptedOutAt: string | null;
+  /** The optional "How did you hear about FleetGrid?" answer, with the free text for Other. */
+  heardFrom: HeardFrom | null;
+  heardFromOther: string | null;
   onboardingStep: number;
   cardCompleted: boolean;
   createdAt: string;
@@ -281,7 +350,14 @@ export interface ServiceArea {
 }
 
 /** What the admin did, as the audit log records it. Milestone 3 adds the carrier and QR actions. */
-export const ADMIN_ACTIONS = ["driver_approved", "driver_blocked", "driver_reopened"] as const;
+export const ADMIN_ACTIONS = [
+  "driver_approved",
+  "driver_blocked",
+  "driver_reopened",
+  "qr_link_created",
+  "qr_link_activated",
+  "qr_link_deactivated",
+] as const;
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];
 export type AuditTargetType = "driver" | "carrier" | "qr_link";
 

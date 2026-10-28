@@ -14,6 +14,9 @@ export const OG_TOKEN_NAMES = [
   "sign-panel-muted",
   "sign-panel-border",
   "lane-line",
+  // The printed QR codes: true black on paper white (src/lib/qr/render.tsx).
+  "print-ink",
+  "print-paper",
 ] as const;
 
 export type OgTokenName = (typeof OG_TOKEN_NAMES)[number];

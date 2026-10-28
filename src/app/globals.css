@@ -38,6 +38,8 @@
   --color-sign-panel-border: var(--sign-panel-border);
   --color-progress-track: var(--progress-track);
   --color-progress-fill: var(--progress-fill);
+  --color-print-ink: var(--print-ink);
+  --color-print-paper: var(--print-paper);
   --color-lane-line: var(--lane-line);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);

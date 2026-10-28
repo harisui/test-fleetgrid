@@ -1,4 +1,4 @@
-import { getServerEnv } from "@/lib/env";
+import { getServerEnv, getSiteEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { getPaymentProvider } from "@/server/providers/createPaymentProvider";
@@ -13,6 +13,7 @@ import { DocumentRepository } from "@/server/repositories/DocumentRepository";
 import { DriverRepository } from "@/server/repositories/DriverRepository";
 import { DriverSearchRepository } from "@/server/repositories/DriverSearchRepository";
 import { ProfileRepository } from "@/server/repositories/ProfileRepository";
+import { QrLinkRepository, QrScanRepository } from "@/server/repositories/QrLinkRepository";
 import { ServiceAreaRepository } from "@/server/repositories/ServiceAreaRepository";
 import { SubscriptionRepository } from "@/server/repositories/SubscriptionRepository";
 import { TosRepository } from "@/server/repositories/TosRepository";
@@ -20,12 +21,14 @@ import { WaitlistRepository } from "@/server/repositories/WaitlistRepository";
 import { WebhookEventRepository } from "@/server/repositories/WebhookEventRepository";
 import { AccountService } from "@/server/services/AccountService";
 import { AdminService } from "@/server/services/AdminService";
+import { AnalyticsService } from "@/server/services/AnalyticsService";
 import { AuthService } from "@/server/services/AuthService";
 import { CarrierService } from "@/server/services/CarrierService";
 import { DocumentService } from "@/server/services/DocumentService";
 import { DriverSearchService } from "@/server/services/DriverSearchService";
 import { DriverService } from "@/server/services/DriverService";
 import { ProfileService } from "@/server/services/ProfileService";
+import { QrService } from "@/server/services/QrService";
 import { SubscriptionService } from "@/server/services/SubscriptionService";
 import { ZipLookupService } from "@/server/services/ZipLookupService";
 
@@ -69,6 +72,17 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     (message, detail) => console.error(`[FleetGrid] ${message}`, detail),
   );
 
+  const adminRepository = new AdminRepository(supabase);
+  const qrLinks = new QrLinkRepository(supabase);
+  // Scans are written by the short-link route with the service role; admins only read them.
+  const qrService = new QrService(
+    qrLinks,
+    new QrScanRepository(supabase),
+    profiles,
+    (entry) => adminRepository.writeAudit(entry),
+    { siteUrl: getSiteEnv().NEXT_PUBLIC_SITE_URL, ipHashSalt: env.IP_HASH_SALT },
+  );
+
   return {
     authService: new AuthService(auth, profiles),
     accountService: new AccountService(
@@ -91,8 +105,32 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     carrierService,
     subscriptionService,
     driverSearchService: new DriverSearchService(carrierService, driverSearch, documents),
-    adminService: new AdminService(new AdminRepository(supabase), profiles, serviceAreas, documents),
+    adminService: new AdminService(adminRepository, profiles, serviceAreas, documents),
+    qrService,
+    analyticsService: new AnalyticsService(
+      adminRepository,
+      profiles,
+      qrLinks,
+      new QrScanRepository(supabase),
+      (link) => qrService.shortLink(link),
+    ),
   };
+}
+
+/**
+ * The scan logger for the short-link route, where nobody is signed in: reads the code and
+ * writes the scan with the service role.
+ */
+export function buildScanService(): QrService {
+  const env = getServerEnv();
+  const admin = createAdminClient();
+  return new QrService(
+    new QrLinkRepository(admin),
+    new QrScanRepository(admin),
+    new ProfileRepository(admin),
+    async () => undefined,
+    { siteUrl: getSiteEnv().NEXT_PUBLIC_SITE_URL, ipHashSalt: env.IP_HASH_SALT },
+  );
 }
 
 export type Container = ReturnType<typeof buildContainer>;

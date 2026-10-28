@@ -1,4 +1,4 @@
-/* =========================================================
+﻿/* =========================================================
    FLEETGRID THEMES
    The only place colors, radii, shadows, type sizes and motion
    values are defined. Components use these variables only.
@@ -163,6 +163,8 @@
   --progress-track: #d4d6d8;
   --progress-fill: #b84a00;
   --lane-line: #ffffff;
+  --print-ink: #000000;
+  --print-paper: #ffffff;
   --success: #1e6b3a;
   --success-foreground: #ffffff;
   --success-subtle: #e9f3ec;
@@ -208,6 +210,8 @@
   --progress-track: #2c3136;
   --progress-fill: #f08a3c;
   --lane-line: #6e747a;
+  --print-ink: #000000;
+  --print-paper: #ffffff;
   --success: #6cc08a;
   --success-foreground: #121416;
   --success-subtle: #15291d;
@@ -260,6 +264,8 @@
   --progress-track: #d0d0d8;
   --progress-fill: #1a4480;
   --lane-line: #ffffff;
+  --print-ink: #000000;
+  --print-paper: #ffffff;
   --success: #1e6b3a;
   --success-foreground: #ffffff;
   --success-subtle: #e9f3ec;
@@ -305,6 +311,8 @@
   --progress-track: #2a313c;
   --progress-fill: #8ab4e8;
   --lane-line: #6b7484;
+  --print-ink: #000000;
+  --print-paper: #ffffff;
   --success: #6cc08a;
   --success-foreground: #10141a;
   --success-subtle: #15291d;
@@ -359,6 +367,8 @@
   --progress-track: #d4d8d2;
   --progress-fill: #005f47;
   --lane-line: #ffffff;
+  --print-ink: #000000;
+  --print-paper: #ffffff;
   --success: #1e6b3a;
   --success-foreground: #ffffff;
   --success-subtle: #e9f3ec;
@@ -404,6 +414,8 @@
   --progress-track: #29322e;
   --progress-fill: #5fc29b;
   --lane-line: #6e7a74;
+  --print-ink: #000000;
+  --print-paper: #ffffff;
   --success: #7bc98a;
   --success-foreground: #0f1513;
   --success-subtle: #15291d;

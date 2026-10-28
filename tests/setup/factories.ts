@@ -1,10 +1,11 @@
 import { SMS_CONSENT_TEXT } from "@/lib/constants";
-import type {
-  DriverDocument,
-  LocatedCarrier,
-  LocatedDriver,
-  Profile,
-  Subscription,
+import {
+  NO_SOURCE,
+  type DriverDocument,
+  type LocatedCarrier,
+  type LocatedDriver,
+  type Profile,
+  type Subscription,
 } from "@/types/domain";
 
 /**
@@ -71,6 +72,7 @@ export function buildProfile(overrides: Partial<Profile> = {}): Profile {
       role: "driver",
       phone: TEST_PHONES.driver,
       status: "pending",
+      source: NO_SOURCE,
       createdAt: TIMESTAMP,
       updatedAt: TIMESTAMP,
     },
@@ -111,6 +113,8 @@ export function buildDriver(overrides: Partial<LocatedDriver> = {}): LocatedDriv
       smsOptInText: SMS_CONSENT_TEXT,
       smsOptedOut: false,
       smsOptedOutAt: null,
+      heardFrom: null,
+      heardFromOther: null,
       onboardingStep: 12,
       cardCompleted: true,
       inServiceArea: true,

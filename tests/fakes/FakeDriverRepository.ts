@@ -61,6 +61,8 @@ export class FakeDriverRepository implements IDriverRepository {
       smsOptInText: null,
       smsOptedOut: false,
       smsOptedOutAt: null,
+      heardFrom: null,
+      heardFromOther: null,
       onboardingStep: input.onboardingStep,
       cardCompleted: false,
       createdAt: TIMESTAMP,

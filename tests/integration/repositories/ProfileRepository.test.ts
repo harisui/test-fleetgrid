@@ -41,6 +41,16 @@ describe("ProfileRepository (local Supabase)", () => {
         role: "carrier",
         phone: existing.phone,
         status: "approved",
+        // No sign-up source for a profile made straight in the database.
+        source: {
+          utmSource: null,
+          utmMedium: null,
+          utmCampaign: null,
+          utmContent: null,
+          referrer: null,
+          landingPath: null,
+          qrLinkId: null,
+        },
         createdAt: expect.any(String),
         updatedAt: expect.any(String),
       });

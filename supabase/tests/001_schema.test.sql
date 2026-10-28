@@ -34,14 +34,16 @@ select has_table('public', 'driver_documents', 'driver_documents exists');
 select has_table('public', 'tos_acceptances', 'tos_acceptances exists');
 
 select columns_are('public', 'profiles',
-  array['id', 'role', 'phone', 'status', 'created_at', 'updated_at']);
+  array['id', 'role', 'phone', 'status', 'created_at', 'updated_at',
+    'signup_utm_source', 'signup_utm_medium', 'signup_utm_campaign', 'signup_utm_content',
+    'signup_referrer', 'signup_landing_path', 'qr_link_id']);
 select columns_are('public', 'drivers', array[
   'id', 'profile_id', 'full_name', 'operator_types', 'cdl_class', 'endorsements',
   'years_experience', 'city', 'state', 'zip', 'service_radius_miles', 'lat', 'lng', 'availability',
   'certifications', 'bio', 'sms_opt_in', 'sms_opt_in_at', 'sms_opt_in_text', 'sms_opted_out',
   'sms_opted_out_at', 'onboarding_step', 'card_completed', 'created_at', 'updated_at',
   'employment_type', 'driving_styles', 'transmission', 'equipment_types', 'twic_active',
-  'medical_card_active', 'clearinghouse_registered', 'mvr_status']);
+  'medical_card_active', 'clearinghouse_registered', 'mvr_status', 'heard_from', 'heard_from_other']);
 select columns_are('public', 'driver_documents', array[
   'id', 'driver_id', 'type', 'storage_path', 'file_name', 'mime_type', 'size_bytes',
   'created_at', 'updated_at']);

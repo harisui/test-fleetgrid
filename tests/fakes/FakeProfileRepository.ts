@@ -3,7 +3,7 @@ import type {
   CreateProfileInput,
   IProfileRepository,
 } from "@/server/repositories/ProfileRepository";
-import type { Profile } from "@/types/domain";
+import { NO_SOURCE, type Profile } from "@/types/domain";
 
 const TIMESTAMP = "2026-10-01T12:00:00.000Z";
 
@@ -36,6 +36,7 @@ export class FakeProfileRepository implements IProfileRepository {
       phone: input.phone,
       role: input.role,
       status: "pending",
+      source: { ...NO_SOURCE, ...input.source },
       createdAt: TIMESTAMP,
       updatedAt: TIMESTAMP,
     };

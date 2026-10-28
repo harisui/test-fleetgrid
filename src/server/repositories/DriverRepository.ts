@@ -8,6 +8,7 @@ import type {
   EmploymentType,
   Endorsement,
   EquipmentType,
+  HeardFrom,
   MvrStatus,
   OperatorType,
   TransmissionType,
@@ -54,6 +55,8 @@ export interface DriverPatch {
   smsOptIn?: boolean;
   smsOptInAt?: string | null;
   smsOptInText?: string | null;
+  heardFrom?: HeardFrom | null;
+  heardFromOther?: string | null;
   onboardingStep?: number;
   cardCompleted?: boolean;
 }
@@ -95,6 +98,8 @@ export function mapDriver(row: DriverRow): Driver {
     smsOptInText: row.sms_opt_in_text,
     smsOptedOut: row.sms_opted_out,
     smsOptedOutAt: row.sms_opted_out_at,
+    heardFrom: row.heard_from,
+    heardFromOther: row.heard_from_other,
     onboardingStep: row.onboarding_step,
     cardCompleted: row.card_completed,
     createdAt: row.created_at,
@@ -130,6 +135,8 @@ export function toDriverUpdate(patch: DriverPatch): DriverUpdate {
     smsOptIn: "sms_opt_in",
     smsOptInAt: "sms_opt_in_at",
     smsOptInText: "sms_opt_in_text",
+    heardFrom: "heard_from",
+    heardFromOther: "heard_from_other",
     onboardingStep: "onboarding_step",
     cardCompleted: "card_completed",
   };

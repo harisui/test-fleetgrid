@@ -58,6 +58,9 @@ export const serverEnvSchema = clientEnvSchema
     // The bearer token the scheduled jobs must send (Vercel Cron sends it when the variable
     // is set). Without it /api/cron/* refuses every call.
     CRON_SECRET: optionalString,
+    // Salts the one-way hash of a visitor's address when a QR short link is scanned
+    // (src/lib/qr/hash.ts). Unset, a fixed salt is used; production sets its own.
+    IP_HASH_SALT: optionalString,
     // Test conveniences, all behind one flag that is off unless set to "true": the login and
     // code forms start filled with TEST_PHONE_DRIVER and TEST_OTP (src/lib/auth/prefill.ts).
     ENABLE_TEST_LOGIN: flag,
