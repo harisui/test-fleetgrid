@@ -27,14 +27,14 @@ export function QrStatusBadge({ isActive }: { isActive: boolean }) {
 /** Every QR code with its scans and sign-ups. A row opens the code's sheet. */
 export function QrTable({ rows, period }: { rows: QrLinkRow[]; period: Period }) {
   const columns: DataColumn<QrLinkRow>[] = [
-    { key: "location", header: "Location", cell: (row) => row.link.locationName },
+    { key: "location", header: "Location", cell: (row) => row.link.locationName, wrap: true },
     { key: "campaign", header: "Campaign", cell: (row) => row.link.campaign, mono: true },
     {
       key: "link",
       header: "Short link",
       cell: (row) => (
         <span className="flex items-center gap-2">
-          <span className="font-mono text-code leading-code">{row.shortLink.replace(/^https?:\/\//, "")}</span>
+          <span className="font-mono">{row.shortLink.replace(/^https?:\/\//, "")}</span>
           <CopyButton value={row.shortLink} label={`Copy the short link for ${row.link.locationName}`} />
         </span>
       ),
@@ -70,7 +70,7 @@ export function QrTable({ rows, period }: { rows: QrLinkRow[]; period: Period })
                 <span className="text-label leading-label font-semibold">{row.link.locationName}</span>
                 <QrStatusBadge isActive={row.link.isActive} />
               </span>
-              <span className="font-mono text-code leading-code text-muted-foreground">{row.shortLink.replace(/^https?:\/\//, "")}</span>
+              <span className="font-mono text-helper leading-helper text-muted-foreground">{row.shortLink.replace(/^https?:\/\//, "")}</span>
               <span className="text-helper leading-helper text-muted-foreground tabular-nums">
                 {row.scans7d} scans in 7 days · {row.scansAll} all time · {row.signups} sign-ups
               </span>

@@ -77,7 +77,7 @@ export function QrDetailSheet({ row, closeHref }: QrDetailSheetProps) {
         <div className="flex items-center gap-2" data-slot="qr-badges">
           <QrStatusBadge isActive={link.isActive} />
           <span className="text-helper leading-helper text-muted-foreground">
-            lands on <span className="font-mono text-code leading-code">{link.targetPath}</span>
+            lands on <span className="font-mono">{link.targetPath}</span>
           </span>
         </div>
 

@@ -270,7 +270,7 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
               {detail.history.map((entry) => (
                 <li key={entry.id} className="text-helper leading-helper">
                   <span className="font-semibold">{HISTORY_LABELS[entry.action] ?? entry.action}</span> by{" "}
-                  <span className="font-mono text-code leading-code">{formatE164ForDisplay(entry.adminPhone)}</span>,{" "}
+                  <span className="font-mono">{formatE164ForDisplay(entry.adminPhone)}</span>,{" "}
                   {format(new Date(entry.createdAt), "MMM d, yyyy h:mm a")}
                 </li>
               ))}

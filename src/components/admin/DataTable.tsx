@@ -17,6 +17,8 @@ export interface DataColumn<T> {
   align?: "left" | "right";
   /** Codes and phone numbers, in Geist Mono. */
   mono?: boolean;
+  /** Long text that may run to a second line (a place, a list of letters). Everything else stays on one line. */
+  wrap?: boolean;
   sortable?: boolean;
   className?: string;
 }
@@ -127,7 +129,7 @@ export function DataTable<T>({
 
       {/* Desktops: the table. */}
       <div className="hidden overflow-x-auto rounded-card border border-border bg-card lg:block">
-        <table className="w-full text-helper leading-helper" aria-label={label}>
+        <table className="w-full text-small leading-small" aria-label={label}>
           <thead className="sticky top-0 z-10 bg-card text-left text-small leading-small text-muted-foreground">
             <tr className="border-b border-border">
               {columns.map((column) => {
@@ -201,8 +203,9 @@ export function DataTable<T>({
                           key={column.key}
                           className={cn(
                             "px-3 py-2 align-middle",
+                            column.wrap ? "min-w-32" : "whitespace-nowrap",
                             column.align === "right" && "text-right tabular-nums",
-                            column.mono && "font-mono text-code leading-code",
+                            column.mono && "font-mono",
                             column.className,
                           )}
                         >

@@ -22,6 +22,7 @@ export function SourcesTable({ sources, period }: { sources: SourceRow[]; period
     {
       key: "source",
       header: "Source",
+      wrap: true,
       cell: (row) =>
         row.qrLinkId ? (
           <Link href={analyticsHref({ period, open: row.qrLinkId })} className="underline-offset-4 hover:underline">

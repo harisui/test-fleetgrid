@@ -70,8 +70,8 @@ test.describe("admin drivers", () => {
     await expect(page).toHaveURL(/q=Pat\+Driver/);
     await expect(page.getByRole("link", { name: /^Search: Pat Driver/ })).toBeVisible();
 
-    // The row opens the sheet with the full number; the list shows it masked.
-    await expect(page.locator("main")).not.toContainText(displayPhone(PHONES.driver));
+    // The list shows the full number (user decision of 2026-10-28); the row opens the sheet.
+    await expect(page.locator("main")).toContainText(displayPhone(PHONES.driver));
     await adminList(page, "Drivers").getByRole("link", { name: /^Pat Driver/ }).click();
     await expect(page).toHaveURL(new RegExp(`open=${driverId}`));
     const sheet = page.getByRole("dialog", { name: "Pat Driver" });

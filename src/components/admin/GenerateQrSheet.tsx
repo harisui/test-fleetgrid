@@ -106,7 +106,7 @@ export function GenerateQrSheet({ period }: { period: Period }) {
             />
           </FormField>
           <p className="text-helper leading-helper text-muted-foreground" data-slot="short-link-preview">
-            Short link: <span className="font-mono text-code leading-code">/q/{effectiveSlug || "..."}</span>
+            Short link: <span className="font-mono">/q/{effectiveSlug || "..."}</span>
           </p>
         </form>
       </DetailSheet>

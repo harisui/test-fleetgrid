@@ -82,7 +82,7 @@ describe("DriverTiles", () => {
 });
 
 describe("DriversTable", () => {
-  it("lists each driver with the masked phone, the area, the card state and the review status, linking to the sheet", () => {
+  it("lists each driver with the phone, the area, the card state and the review status, linking to the sheet", () => {
     const incomplete = row({
       driver: buildDriver({ id: "d2", profileId: OTHER_USER_ID, fullName: "Lee Lead", zip: null, city: null, lat: null, lng: null, cardCompleted: false, smsOptIn: false }),
       profile: buildProfile({ id: OTHER_USER_ID, phone: "+15555550108", status: "approved" }),
@@ -108,7 +108,7 @@ describe("DriversTable", () => {
     const first = within(table).getByRole("link", { name: "Pat Driver" });
     expect(first).toHaveAttribute("href", "/admin/drivers?open=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa");
     const firstRow = first.closest("tr")!;
-    expect(within(firstRow).getByText("(***) ***-0100")).toBeInTheDocument();
+    expect(within(firstRow).getByText("(555) 555-0100")).toHaveClass("font-mono");
     expect(within(firstRow).getByText("75201 Dallas")).toBeInTheDocument();
     expect(within(firstRow).getByText("In area")).toBeInTheDocument();
     expect(within(firstRow).getByText("Complete")).toBeInTheDocument();
@@ -123,8 +123,8 @@ describe("DriversTable", () => {
     expect(within(secondRow).getByText("Incomplete")).toHaveAttribute("data-status", "incomplete");
     expect(within(secondRow).getByText("No")).toBeInTheDocument();
     expect(within(secondRow).getByText("QR: Love's, Hwy 225")).toBeInTheDocument();
-    // Never the full number.
-    expect(document.body.textContent).not.toMatch(/555-0100|555-0108/);
+    // The admin sees the full number in the list (user decision of 2026-10-28); carriers never do.
+    expect(within(secondRow).getByText("(555) 555-0108")).toBeInTheDocument();
   });
 
   it("narrowed to one QR code: the chip names it, no select for it, and the forms carry it", () => {

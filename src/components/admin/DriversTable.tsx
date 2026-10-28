@@ -16,7 +16,7 @@ import {
   SOURCE_OPTIONS,
 } from "@/lib/admin/options";
 import { summarizeDriver } from "@/lib/carrier/driverSummary";
-import { maskPhone } from "@/lib/phone";
+import { formatE164ForDisplay } from "@/lib/phone";
 import type { AdminDriverRow, AdminDriversPage } from "@/server/services/AdminService";
 
 /** "In area", "Outside" or "Unknown" for a card without coordinates. */
@@ -35,15 +35,16 @@ const signedUp = (row: AdminDriverRow) => format(new Date(row.driver.createdAt),
 
 const COLUMNS: DataColumn<AdminDriverRow>[] = [
   { key: "name", header: "Driver", cell: (row) => row.driver.fullName, sortable: true },
-  { key: "phone", header: "Phone", cell: (row) => maskPhone(row.profile.phone), mono: true },
+  { key: "phone", header: "Phone", cell: (row) => formatE164ForDisplay(row.profile.phone), mono: true },
   {
     key: "zip",
     header: "ZIP and city",
     cell: (row) => (row.driver.zip ? `${row.driver.zip} ${row.driver.city ?? ""}`.trim() : "Not yet"),
+    wrap: true,
   },
   { key: "area", header: "Area", cell: areaLabel },
   { key: "cdl", header: "Class", cell: (row) => summarizeDriver(row.driver).cdlClass },
-  { key: "endorsements", header: "Endorsements", cell: (row) => summarizeDriver(row.driver).endorsements },
+  { key: "endorsements", header: "Endorsements", cell: (row) => summarizeDriver(row.driver).endorsements, wrap: true },
   {
     key: "profile",
     header: "Profile",
@@ -58,7 +59,7 @@ const COLUMNS: DataColumn<AdminDriverRow>[] = [
   },
   { key: "status", header: "Review", cell: (row) => <AdminStatusBadge status={row.profile.status} />, sortable: true },
   { key: "sms", header: "SMS", cell: smsLabel },
-  { key: "source", header: "Source", cell: (row) => row.source.label },
+  { key: "source", header: "Source", cell: (row) => row.source.label, wrap: true },
   { key: "created", header: "Signed up", cell: signedUp, sortable: true },
 ];
 
@@ -71,7 +72,7 @@ function DriverCard({ row }: { row: AdminDriverRow }) {
         <span className="text-label leading-label font-semibold">{row.driver.fullName}</span>
         <AdminStatusBadge status={row.profile.status} />
       </div>
-      <span className="font-mono text-code leading-code text-muted-foreground">{maskPhone(row.profile.phone)}</span>
+      <span className="font-mono text-helper leading-helper text-muted-foreground">{formatE164ForDisplay(row.profile.phone)}</span>
       <span className="text-helper leading-helper text-muted-foreground">
         {row.driver.zip ? `${row.driver.zip} ${row.driver.city ?? ""}` : "No ZIP yet"} · {areaLabel(row)} ·{" "}
         {summary.cdlClass}
