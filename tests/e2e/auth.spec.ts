@@ -121,8 +121,8 @@ test.describe("role routing", () => {
     // The admin from supabase/seed.sql, on a number people also use by hand. Signing in only
     // reads the account, so this never disturbs their session; nothing here resets it.
     await login(page, "+15555550102");
-    await expect(page).toHaveURL(/\/admin$/);
-    await expect(page.getByRole("heading", { name: "Driver review" })).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/drivers$/);
+    await expect(page.getByRole("heading", { name: "Drivers" })).toBeVisible();
   });
 
   test("signed-out visitors are sent to /login from every protected area", async ({ page }) => {
@@ -143,21 +143,28 @@ test.describe("role routing", () => {
     await seedUser(PHONES.driver, "driver");
     await login(page, PHONES.driver);
 
-    for (const path of ["/carrier", "/admin", "/choose-role", "/login"]) {
+    for (const path of ["/carrier", "/choose-role", "/login"]) {
       await page.goto(path);
       await expect(page, path).toHaveURL(/\/driver\//);
     }
+    // The admin area answers 403 rather than sending a driver home (client decision 2026-10-28).
+    const response = await page.goto("/admin");
+    expect(response?.status()).toBe(403);
+    await expect(page.getByRole("heading", { level: 1, name: "403" })).toBeVisible();
   });
 
   test("a carrier cannot open driver or admin pages", async ({ page }) => {
     await seedUser(PHONES.carrier, "carrier");
     await login(page, PHONES.carrier);
 
-    for (const path of ["/driver/profile", "/driver/onboarding", "/admin", "/choose-role"]) {
+    for (const path of ["/driver/profile", "/driver/onboarding", "/choose-role"]) {
       await page.goto(path);
       // The carrier home, which sends a carrier without company details to the sign-up form.
       await expect(page, path).toHaveURL(/\/carrier\/onboarding$/);
     }
+    const response = await page.goto("/admin");
+    expect(response?.status()).toBe(403);
+    await expect(page.getByRole("heading", { level: 1, name: "403" })).toBeVisible();
   });
 
   test("a signed-in user without a profile is held at the role picker", async ({ page }) => {

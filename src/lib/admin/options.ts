@@ -10,7 +10,7 @@ export const REVIEW_FILTERS: { value: AccountStatus | "all"; label: string }[] =
 
 export type ReviewFilter = (typeof REVIEW_FILTERS)[number]["value"];
 
-/** The page for a filter: pending is the plain /admin. */
+/** The page for a filter: pending is the plain Drivers page. */
 export function reviewFilterHref(filter: ReviewFilter): string {
-  return filter === "pending" ? "/admin" : `/admin?status=${filter}`;
+  return filter === "pending" ? "/admin/drivers" : `/admin/drivers?status=${filter}`;
 }

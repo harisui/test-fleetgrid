@@ -11,6 +11,7 @@ import {
 import type { UserRole } from "@/types/domain";
 
 const allow = { action: "allow" };
+const forbid = { action: "forbid" };
 const to = (path: string) => ({ action: "redirect", to: path });
 
 const DRIVER_PATHS = [
@@ -75,10 +76,10 @@ describe("decideRoute", () => {
   });
 
   describe.each([
-    { who: DRIVER, own: DRIVER_PATHS, foreign: [...CARRIER_PATHS, ...ADMIN_PATHS] },
-    { who: CARRIER, own: CARRIER_PATHS, foreign: [...DRIVER_PATHS, ...ADMIN_PATHS] },
-    { who: ADMIN, own: ADMIN_PATHS, foreign: [...DRIVER_PATHS, ...CARRIER_PATHS] },
-  ])("$who.label", ({ who, own, foreign }) => {
+    { who: DRIVER, own: DRIVER_PATHS, foreign: CARRIER_PATHS, forbiddenPaths: ADMIN_PATHS },
+    { who: CARRIER, own: CARRIER_PATHS, foreign: DRIVER_PATHS, forbiddenPaths: ADMIN_PATHS },
+    { who: ADMIN, own: ADMIN_PATHS, foreign: [...DRIVER_PATHS, ...CARRIER_PATHS], forbiddenPaths: [] },
+  ])("$who.label", ({ who, own, foreign, forbiddenPaths }) => {
     const home = ROLE_HOME[who.role!];
 
     it.each(own)("%s (own area) is allowed", (path) => {
@@ -87,6 +88,11 @@ describe("decideRoute", () => {
 
     it.each(foreign)("%s (another role's area) redirects home", (path) => {
       expect(decide(path, who)).toEqual(to(home));
+    });
+
+    // The admin area answers 403 to a signed-in driver or carrier (client decision 2026-10-28).
+    it.each(forbiddenPaths)("%s (the admin area) is forbidden, not a trip home", (path) => {
+      expect(decide(path, who)).toEqual(forbid);
     });
 
     it.each(["/choose-role", ...SIGNED_OUT_ONLY_PATHS])("%s redirects home", (path) => {

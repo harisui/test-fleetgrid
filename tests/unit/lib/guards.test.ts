@@ -2,6 +2,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
   requireActiveSubscription,
+  requireAdmin,
   requireCarrierStage,
   requireRole,
   requireSession,
@@ -29,9 +30,19 @@ const subscriptionService = vi.hoisted(() => ({ needsRecheck: vi.fn(), refreshAc
 vi.mock("@/server/container", () => ({
   getContainer: async () => ({ authService, carrierService, subscriptionService }),
 }));
+/** forbidden() throws too: Next.js renders the 403 page in place of the route. */
+class ForbiddenSignal extends Error {
+  constructor() {
+    super("forbidden");
+  }
+}
+
 vi.mock("next/navigation", () => ({
   redirect: (to: string) => {
     throw new RedirectSignal(to);
+  },
+  forbidden: () => {
+    throw new ForbiddenSignal();
   },
 }));
 
@@ -175,6 +186,31 @@ describe("requireSession", () => {
     const profile = buildProfile();
     signedInAs(profile);
     await expect(requireSession()).resolves.toEqual({ user, profile });
+  });
+});
+
+describe("requireAdmin", () => {
+  it("signed out goes to /login, no profile to /choose-role", async () => {
+    await expect(redirectOf(requireAdmin())).resolves.toBe("/login");
+    signedInAs(null);
+    await expect(redirectOf(requireAdmin())).resolves.toBe("/choose-role");
+  });
+
+  it("lets an admin through", async () => {
+    const profile = buildProfile({ role: "admin", status: "approved" });
+    signedInAs(profile);
+    await expect(requireAdmin()).resolves.toEqual({ user, profile });
+  });
+
+  it.each(["driver", "carrier"] as const)("answers 403 to a %s instead of sending them home", async (role) => {
+    signedInAs(buildProfile({ role, status: "approved" }));
+    await expect(requireAdmin()).rejects.toBeInstanceOf(ForbiddenSignal);
+  });
+
+  it("signs a blocked account out first", async () => {
+    signedInAs(buildProfile({ role: "admin", status: "blocked" }));
+    await expect(redirectOf(requireAdmin())).resolves.toBe("/login?blocked=1");
+    expect(authService.signOut).toHaveBeenCalledOnce();
   });
 });
 

@@ -1,4 +1,4 @@
-import { redirect } from "next/navigation";
+import { forbidden, redirect } from "next/navigation";
 import { CHOOSE_ROLE_PATH, LOGIN_PATH, ROLE_HOME } from "@/lib/auth/routes";
 import { getContainer } from "@/server/container";
 import {
@@ -49,6 +49,27 @@ export async function requireRole(
     redirect(`${LOGIN_PATH}?blocked=1`);
   }
   if (profile.role !== role) redirect(ROLE_HOME[profile.role]);
+
+  return { user, profile };
+}
+
+/**
+ * The signed-in admin. Signed out goes to /login, no profile to /choose-role, a blocked
+ * account is signed out, and any other role gets a 403 (client decision of 2026-10-28; the
+ * 403 page is src/app/forbidden.tsx). RLS is the second lock on every admin read and write.
+ */
+export async function requireAdmin(): Promise<{ user: SessionUser; profile: Profile }> {
+  const { authService } = await getContainer();
+  const session = await authService.getSession();
+  if (!session) redirect(LOGIN_PATH);
+
+  const { user, profile } = session;
+  if (!profile) redirect(CHOOSE_ROLE_PATH);
+  if (profile.status === "blocked") {
+    await authService.signOut().catch(() => undefined);
+    redirect(`${LOGIN_PATH}?blocked=1`);
+  }
+  if (profile.role !== "admin") forbidden();
 
   return { user, profile };
 }

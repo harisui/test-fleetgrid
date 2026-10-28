@@ -206,13 +206,15 @@ Dark mode is separate from the theme: the toggle in the header saves the choice 
 
 Nobody can sign up as admin. Locally, the seed creates one: log in with (555) 555-0102 and code 123456.
 
-To make an existing user an admin (local or production), run this SQL as the database owner, for example in Supabase Studio's SQL editor:
+To make an existing account the admin (local or production), the person first logs in once at `/login` with their own phone and picks a role (the role picker is a formality; the SQL below overrides it). Then run this SQL as the database owner, in Supabase Studio's SQL editor on the hosted project:
 
 ```sql
 update public.profiles
    set role = 'admin', status = 'approved'
- where phone = '+15555550100';   -- the user's phone in E.164
+ where phone = '+15555550100';   -- the person's phone in E.164
 ```
+
+From their next page load they land in the admin at `/admin/drivers`. Every `/admin` route is guarded twice: the server guard (`requireAdmin` in `src/lib/auth/guards.ts`) answers 403 to a signed-in driver or carrier and sends signed-out visitors to `/login`, and Row Level Security lets only admins read and write the admin tables. A profile with `role = 'driver'` keeps its driver card; switching a real driver to admin is not reversible from the app, so use a separate number for the admin.
 
 The user must have logged in once and chosen a role first, so that a profile row exists. Users cannot change their own role or status: a database trigger blocks it.
 

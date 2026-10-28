@@ -58,9 +58,18 @@ export interface RouteContext {
   carrierDisabled?: boolean;
 }
 
-export type RouteDecision = { action: "allow" } | { action: "redirect"; to: string };
+/**
+ * allow: serve the page. redirect: send the person elsewhere. forbid: serve the page, whose
+ * guard answers 403 (the admin area for a signed-in driver or carrier, client decision of
+ * 2026-10-28: non-admins get a 403, not a trip home).
+ */
+export type RouteDecision =
+  | { action: "allow" }
+  | { action: "redirect"; to: string }
+  | { action: "forbid" };
 
 const allow: RouteDecision = { action: "allow" };
+const forbid: RouteDecision = { action: "forbid" };
 const redirectTo = (to: string): RouteDecision => ({ action: "redirect", to });
 
 /**
@@ -69,7 +78,7 @@ const redirectTo = (to: string): RouteDecision => ({ action: "redirect", to });
  * - Signed out: protected areas and the role picker go to /login.
  * - Signed in without a profile: everything protected goes to /choose-role.
  * - Signed in with a profile: only the own area is allowed. Other areas, the role picker and
- *   the login pages go to the role home.
+ *   the login pages go to the role home, except the admin area, which answers 403.
  * - Everything else (landing, legal pages, API) is public.
  * - With the carrier side switched off, /carrier and below go to the "coming soon" page for
  *   everyone, signed in or not.
@@ -103,7 +112,8 @@ export function decideRoute({
   }
 
   if (requiredRole) {
-    return requiredRole === role ? allow : redirectTo(ROLE_HOME[role]);
+    if (requiredRole === role) return allow;
+    return requiredRole === "admin" ? forbid : redirectTo(ROLE_HOME[role]);
   }
   if (onChooseRole || onSignedOutOnly) return redirectTo(ROLE_HOME[role]);
   return allow;

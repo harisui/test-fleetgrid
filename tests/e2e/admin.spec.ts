@@ -44,8 +44,8 @@ test.describe("driver review", () => {
   }) => {
     await seedDriverAtStep(PHONES.driver, 12);
     await login(page, PHONES.admin);
-    await expect(page).toHaveURL(/\/admin$/);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Driver review");
+    await expect(page).toHaveURL(/\/admin\/drivers$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Drivers");
     await expect(page.getByRole("link", { name: "Pending review" })).toHaveAttribute("aria-current", "page");
 
     const row = page.getByRole("listitem").filter({ hasText: "Pat Driver" });
@@ -64,7 +64,7 @@ test.describe("driver review", () => {
     expect(approved?.status).toBe("approved");
 
     await page.getByRole("link", { name: "Approved" }).click();
-    await expect(page).toHaveURL(/\/admin\?status=approved$/);
+    await expect(page).toHaveURL(/\/admin\/drivers\?status=approved$/);
     const approvedRow = page.getByRole("listitem").filter({ hasText: "Pat Driver" });
     await expect(approvedRow.getByText("Approved")).toBeVisible();
     await expect(approvedRow.getByRole("button", { name: "Approve Pat Driver" })).toHaveCount(0);
@@ -85,17 +85,18 @@ test.describe("driver review", () => {
     await expect(carrierPage.getByRole("link", { name: /Pat Driver/ })).toHaveCount(0);
     await carrierPage.context().close();
 
-    await page.goto("/admin?status=blocked");
+    await page.goto("/admin/drivers?status=blocked");
     const blockedRow = page.getByRole("listitem").filter({ hasText: "Pat Driver" });
     await expect(blockedRow.getByText("Blocked")).toBeVisible();
     await blockedRow.getByRole("button", { name: "Set pending Pat Driver" }).click();
     await expect(page.getByText("Back in the review queue.")).toBeVisible();
   });
 
-  test("only admins see the review; a driver is sent home", async ({ page }) => {
+  test("only admins see the review; a driver gets a 403", async ({ page }) => {
     await seedDriverAtStep(PHONES.driver, 12);
     await login(page, PHONES.driver);
-    await page.goto("/admin");
-    await expect(page).toHaveURL(/\/driver\//);
+    const response = await page.goto("/admin/drivers");
+    expect(response?.status()).toBe(403);
+    await expect(page.getByRole("heading", { level: 1, name: "403" })).toBeVisible();
   });
 });

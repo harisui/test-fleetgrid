@@ -78,7 +78,8 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     role,
     carrierDisabled: isCarrierDisabled(),
   });
-  if (decision.action === "allow") return response;
+  // forbid: the admin layout's guard renders the 403 page with that status (forbidden()).
+  if (decision.action === "allow" || decision.action === "forbid") return response;
 
   const url = request.nextUrl.clone();
   url.pathname = decision.to;

@@ -32,8 +32,8 @@ describe("DriverReviewTable", () => {
     render(<DriverReviewTable drivers={[]} filter="pending" />);
     const nav = screen.getByRole("navigation", { name: "Filter drivers" });
     expect(within(nav).getByRole("link", { name: "Pending review" })).toHaveAttribute("aria-current", "page");
-    expect(within(nav).getByRole("link", { name: "Approved" })).toHaveAttribute("href", "/admin?status=approved");
-    expect(within(nav).getByRole("link", { name: "All drivers" })).toHaveAttribute("href", "/admin?status=all");
+    expect(within(nav).getByRole("link", { name: "Approved" })).toHaveAttribute("href", "/admin/drivers?status=approved");
+    expect(within(nav).getByRole("link", { name: "All drivers" })).toHaveAttribute("href", "/admin/drivers?status=all");
     expect(screen.getByText("Nothing waiting for review.")).toBeInTheDocument();
   });
 
