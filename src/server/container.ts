@@ -91,7 +91,7 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     carrierService,
     subscriptionService,
     driverSearchService: new DriverSearchService(carrierService, driverSearch, documents),
-    adminService: new AdminService(new AdminRepository(supabase), profiles, serviceAreas),
+    adminService: new AdminService(new AdminRepository(supabase), profiles, serviceAreas, documents),
   };
 }
 

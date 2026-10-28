@@ -1,32 +1,46 @@
 import type { Metadata } from "next";
 import { AdminPage } from "@/components/admin/AdminPage";
-import { DriverReviewTable } from "@/components/admin/DriverReviewTable";
-import { REVIEW_FILTERS } from "@/lib/admin/options";
+import { DriverDetailSheet } from "@/components/admin/DriverDetailSheet";
+import { DriversTable } from "@/components/admin/DriversTable";
+import { DriverTiles } from "@/components/admin/DriverTiles";
+import { driversHref } from "@/lib/admin/options";
 import { requireAdmin } from "@/lib/auth/guards";
 import { getContainer } from "@/server/container";
+import { AppError } from "@/server/errors/AppError";
+import type { AdminDriverDetail } from "@/server/services/AdminService";
 
 export const metadata: Metadata = { title: "Drivers" };
 
 /**
- * Driver review (pulled forward from Milestone 3 so carriers have approved drivers to find),
- * now the admin's first page. The tiles, the full table and the detail sheet follow.
+ * Every driver who signed up: the counts, the filtered list (every filter in the URL) and,
+ * with ?open=<id>, one driver's details beside it with Approve and Block.
  */
 export default async function AdminDriversPage({ searchParams }: PageProps<"/admin/drivers">) {
   const { user } = await requireAdmin();
   const params = await searchParams;
-  const requested = typeof params.status === "string" ? params.status : "pending";
-  const filter = REVIEW_FILTERS.find((option) => option.value === requested)?.value ?? "pending";
   const { adminService } = await getContainer();
-  const drivers = await adminService.listDrivers(user.id, {
-    status: filter === "all" ? undefined : filter,
-  });
+  const page = await adminService.getDriversPage(user.id, params);
+
+  let detail: AdminDriverDetail | null = null;
+  if (page.query.open) {
+    try {
+      detail = await adminService.getDriver(user.id, { driverId: page.query.open });
+    } catch (error) {
+      // A stale link to a deleted driver shows the list, not an error page.
+      if (!(error instanceof AppError && error.code === "NOT_FOUND")) throw error;
+    }
+  }
+  const { query } = page;
+  const closeHref = driversHref({ q: query.q, status: query.status, complete: query.complete, area: query.area, sort: query.sort, dir: query.dir, page: page.page });
 
   return (
     <AdminPage
       title="Drivers"
-      subtitle="Approve a driver to list them to subscribed carriers. Block one to hide them and sign them out."
+      subtitle="Everyone who signed up, newest first. Approve a driver to list them to subscribed carriers; block one to hide them and sign them out."
     >
-      <DriverReviewTable drivers={drivers} filter={filter} />
+      <DriverTiles tiles={page.tiles} />
+      <DriversTable page={page} />
+      <DriverDetailSheet detail={detail} closeHref={closeHref} />
     </AdminPage>
   );
 }

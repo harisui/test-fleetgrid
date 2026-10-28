@@ -1,4 +1,4 @@
-import AxeBuilder from "@axe-core/playwright";
+﻿import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import {
   adminClient,
@@ -12,8 +12,10 @@ import {
 } from "./helpers";
 
 /**
- * Driver review: the admin approves a driver, who then appears in a subscribed carrier's
- * search; blocks one, who is signed out and hidden; and the queue filters.
+ * The Drivers page: the tiles, the list with its filters and search in the URL, the detail
+ * sheet, and Approve and Block through their dialogs, each written to the audit log. An
+ * approved driver appears in a subscribed carrier's search; a blocked one vanishes and is
+ * signed out; an unfinished card cannot be approved.
  */
 
 async function expectNoAccessibilityViolations(page: Page, label: string) {
@@ -27,7 +29,17 @@ async function expectNoAccessibilityViolations(page: Page, label: string) {
   ).toEqual([]);
 }
 
-test.describe("driver review", () => {
+const auditFor = async (driverId: string) => {
+  const { data } = await adminClient()
+    .from("admin_audit_log")
+    .select("action, admin_phone, detail")
+    .eq("target_type", "driver")
+    .eq("target_id", driverId)
+    .order("created_at", { ascending: true });
+  return data ?? [];
+};
+
+test.describe("admin drivers", () => {
   test.beforeEach(async () => {
     // Recreates the seeded admin with the same number; other specs rely on it existing.
     await seedUser(PHONES.admin, "admin", "approved");
@@ -35,39 +47,52 @@ test.describe("driver review", () => {
 
   test.afterAll(async () => {
     await resetUser(PHONES.driver);
+    await resetUser(PHONES.secondDriver);
     await resetUser(PHONES.carrier);
   });
 
-  test("the queue shows pending drivers first; approving lists a driver to carriers, blocking signs them out", async ({
+  test("approve lists a driver to carriers, block hides and signs them out, every step in the audit log", async ({
     page,
     browser,
   }) => {
-    await seedDriverAtStep(PHONES.driver, 12);
+    const { driverId } = await seedDriverAtStep(PHONES.driver, 12);
     await login(page, PHONES.admin);
     await expect(page).toHaveURL(/\/admin\/drivers$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Drivers");
-    await expect(page.getByRole("link", { name: "Pending review" })).toHaveAttribute("aria-current", "page");
+    const tiles = page.getByRole("region", { name: "Driver counts" });
+    await expect(tiles.getByText("Pending")).toBeVisible();
 
-    const row = page.getByRole("listitem").filter({ hasText: "Pat Driver" });
-    await expect(row).toContainText(displayPhone(PHONES.driver));
-    await expect(row).toContainText("Houston, TX 77002");
-    await expect(row.getByText("Pending review")).toBeVisible();
-    await expect(row.getByText("Card incomplete")).toHaveCount(0);
-    await expectNoAccessibilityViolations(page, "driver review");
+    // Search narrows the list and lives in the URL.
+    await page.getByRole("searchbox", { name: "Search" }).fill("Pat Driver");
+    await page.getByRole("searchbox", { name: "Search" }).press("Enter");
+    await expect(page).toHaveURL(/q=Pat\+Driver/);
+    await expect(page.getByRole("link", { name: /^Search: Pat Driver/ })).toBeVisible();
 
-    await row.getByRole("button", { name: "Approve Pat Driver" }).click();
+    // The row opens the sheet with the full number; the list shows it masked.
+    await expect(page.locator("main")).not.toContainText(displayPhone(PHONES.driver));
+    await page.getByRole("table", { name: "Drivers" }).getByRole("link", { name: "Pat Driver", exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`open=${driverId}`));
+    const sheet = page.getByRole("dialog", { name: "Pat Driver" });
+    await expect(sheet.locator("[data-slot=full-phone]")).toContainText(displayPhone(PHONES.driver));
+    await expect(sheet.locator("[data-slot=driver-card]")).toContainText("Class A");
+    await expect(sheet.locator("[data-slot=no-history]")).toBeVisible();
+    await page.waitForTimeout(300);
+    await expectNoAccessibilityViolations(page, "driver sheet");
+
+    await sheet.getByRole("button", { name: "Approve" }).click();
+    const approveDialog = page.getByRole("dialog", { name: "Approve Pat Driver?" });
+    await expect(approveDialog).toContainText("Subscribed carriers can find Pat Driver from now on.");
+    await approveDialog.getByRole("button", { name: "Approve" }).click();
     await expect(page.getByText(/^Approved\./)).toBeVisible();
-    await expect(row).toHaveCount(0);
+    await expect(sheet.locator("[data-slot=detail-badges] [data-status=approved]")).toBeVisible();
+    await expect(sheet.getByRole("list", { name: "History" })).toContainText("Approved by");
 
     const admin = adminClient();
     const { data: approved } = await admin.from("profiles").select("status").eq("phone", PHONES.driver).single();
     expect(approved?.status).toBe("approved");
-
-    await page.getByRole("link", { name: "Approved" }).click();
-    await expect(page).toHaveURL(/\/admin\/drivers\?status=approved$/);
-    const approvedRow = page.getByRole("listitem").filter({ hasText: "Pat Driver" });
-    await expect(approvedRow.getByText("Approved")).toBeVisible();
-    await expect(approvedRow.getByRole("button", { name: "Approve Pat Driver" })).toHaveCount(0);
+    expect(await auditFor(driverId!)).toEqual([
+      expect.objectContaining({ action: "driver_approved", admin_phone: PHONES.admin, detail: expect.objectContaining({ from: "pending", to: "approved" }) }),
+    ]);
 
     // A subscribed carrier finds the driver now.
     await seedCarrier(PHONES.carrier, { terms: true, subscription: "active" });
@@ -77,22 +102,62 @@ test.describe("driver review", () => {
     await expect(carrierPage.getByRole("link", { name: /Pat Driver/ }).first()).toBeVisible();
 
     // Blocking hides the driver again and ends their session.
-    await approvedRow.getByRole("button", { name: "Block Pat Driver" }).click();
+    await sheet.getByRole("button", { name: "Block" }).click();
+    const blockDialog = page.getByRole("dialog", { name: "Block Pat Driver?" });
+    await expect(blockDialog).toContainText("Pat Driver will be signed out and hidden from carriers.");
+    await blockDialog.getByRole("button", { name: "Block" }).click();
     await expect(page.getByText(/^Blocked\./)).toBeVisible();
     const { data: blocked } = await admin.from("profiles").select("status").eq("phone", PHONES.driver).single();
     expect(blocked?.status).toBe("blocked");
     await carrierPage.reload();
     await expect(carrierPage.getByRole("link", { name: /Pat Driver/ })).toHaveCount(0);
     await carrierPage.context().close();
+    expect((await auditFor(driverId!)).map((entry) => entry.action)).toEqual(["driver_approved", "driver_blocked"]);
 
-    await page.goto("/admin/drivers?status=blocked");
-    const blockedRow = page.getByRole("listitem").filter({ hasText: "Pat Driver" });
-    await expect(blockedRow.getByText("Blocked")).toBeVisible();
-    await blockedRow.getByRole("button", { name: "Set pending Pat Driver" }).click();
+    // Back to the queue, from the Blocked filter.
+    await page.goto(`/admin/drivers?status=blocked&open=${driverId}`);
+    await expect(page.getByRole("link", { name: /^Review: Blocked/ })).toBeVisible();
+    await page.getByRole("dialog", { name: "Pat Driver" }).getByRole("button", { name: "Set pending" }).click();
+    await page.getByRole("dialog", { name: "Put Pat Driver back in review?" }).getByRole("button", { name: "Set pending" }).click();
     await expect(page.getByText("Back in the review queue.")).toBeVisible();
+    expect((await auditFor(driverId!)).map((entry) => entry.action)).toEqual(["driver_approved", "driver_blocked", "driver_reopened"]);
+
+    // Closing the sheet keeps the filter.
+    await page.getByRole("dialog", { name: "Pat Driver" }).getByRole("button", { name: "Close" }).click();
+    await expect(page).toHaveURL(/\/admin\/drivers\?status=blocked$/);
   });
 
-  test("only admins see the review; a driver gets a 403", async ({ page }) => {
+  test("an unfinished card cannot be approved, and the filters single it out", async ({ page }) => {
+    await seedDriverAtStep(PHONES.driver, 12);
+    const { driverId } = await seedDriverAtStep(PHONES.secondDriver, 5);
+    await login(page, PHONES.admin);
+
+    await page.goto("/admin/drivers?complete=incomplete");
+    await expect(page.getByRole("link", { name: /^Profile: Incomplete/ })).toBeVisible();
+    const table = page.getByRole("table", { name: "Drivers" });
+    await expect(table.getByText("Incomplete")).toBeVisible();
+    await expect(table.getByText("Complete", { exact: true })).toHaveCount(0);
+
+    await page.goto(`/admin/drivers?open=${driverId}`);
+    const sheet = page.getByRole("dialog", { name: "Pat Driver" });
+    const approve = sheet.getByRole("button", { name: "Approve" });
+    await expect(approve).toBeDisabled();
+    await expect(sheet.locator("[data-slot=approve-reason]")).toHaveText(
+      "This driver has not finished their card, so they cannot be approved yet.",
+    );
+    await expect(sheet.getByRole("button", { name: "Block" })).toBeEnabled();
+    await page.waitForTimeout(300);
+    await expectNoAccessibilityViolations(page, "incomplete driver sheet");
+
+    // In area and complete: only the finished Houston card.
+    await page.goto("/admin/drivers?area=in&complete=complete");
+    await expect(page.getByRole("link", { name: /^Area: In the service area/ })).toBeVisible();
+    await expect(page.getByRole("link", { name: /^Profile: Complete/ })).toBeVisible();
+    await page.getByRole("link", { name: "Clear filters" }).click();
+    await expect(page).toHaveURL(/\/admin\/drivers$/);
+  });
+
+  test("only admins see the drivers; a driver gets a 403", async ({ page }) => {
     await seedDriverAtStep(PHONES.driver, 12);
     await login(page, PHONES.driver);
     const response = await page.goto("/admin/drivers");

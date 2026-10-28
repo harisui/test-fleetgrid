@@ -269,6 +269,34 @@ export interface TosAcceptance {
   userAgent: string | null;
 }
 
+/** A launch area: a centre ZIP with its coordinates and a radius in miles. */
+export interface ServiceArea {
+  id: string;
+  name: string;
+  centerZip: string;
+  centerLat: number;
+  centerLng: number;
+  radiusMiles: number;
+  isActive: boolean;
+}
+
+/** What the admin did, as the audit log records it. Milestone 3 adds the carrier and QR actions. */
+export const ADMIN_ACTIONS = ["driver_approved", "driver_blocked", "driver_reopened"] as const;
+export type AdminAction = (typeof ADMIN_ACTIONS)[number];
+export type AuditTargetType = "driver" | "carrier" | "qr_link";
+
+/** One line of the admin audit log: who, when, what, to which record. */
+export interface AuditEntry {
+  id: string;
+  adminId: string;
+  adminPhone: string;
+  action: AdminAction;
+  targetType: AuditTargetType;
+  targetId: string;
+  detail: Record<string, unknown>;
+  createdAt: string;
+}
+
 /** A listed driver as a search result: the card and how far it is from the yard. */
 export interface DriverMatch {
   driver: Driver;

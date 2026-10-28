@@ -67,7 +67,10 @@ export async function resetUser(phone: string): Promise<void> {
     const bucket = admin.storage.from("driver-documents");
     const { data: files } = await bucket.list(driver.id);
     if (files?.length) await bucket.remove(files.map((file) => `${driver.id}/${file.name}`));
+    // The audit log outlives accounts on purpose; the tests clear their own entries.
+    await admin.from("admin_audit_log").delete().eq("target_id", driver.id);
   }
+  await admin.from("admin_audit_log").delete().eq("admin_id", id);
   await admin.auth.admin.deleteUser(id);
 }
 

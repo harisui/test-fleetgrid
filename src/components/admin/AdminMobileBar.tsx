@@ -19,7 +19,7 @@ export function AdminMobileBar({ adminLabel }: { adminLabel: string }) {
   return (
     <header
       data-slot="admin-mobile-bar"
-      className="sticky top-0 z-40 flex h-14 items-center gap-3 border-t-4 border-primary bg-sign-panel px-4 text-sign-panel-foreground lg:hidden"
+      className="sticky top-0 z-40 flex h-14 items-center gap-3 border-t-4 border-sign-panel-border bg-sign-panel px-4 text-sign-panel-foreground lg:hidden"
     >
       <Link href={ADMIN_HOME} className="flex items-center rounded-badge">
         <Logo height={28} />
@@ -39,7 +39,7 @@ export function AdminMobileBar({ adminLabel }: { adminLabel: string }) {
         </SheetTrigger>
         <SheetContent
           side="left"
-          className="border-r-0 border-t-4 border-primary bg-sign-panel text-sign-panel-foreground [&_[data-slot=sheet-close]]:text-current"
+          className="border-r-0 border-t-4 border-sign-panel-border bg-sign-panel text-sign-panel-foreground [&_[data-slot=sheet-close]]:text-current"
         >
           <SheetTitle className="text-sign-panel-foreground">Menu</SheetTitle>
           <SheetDescription className="sr-only">The admin pages and your account.</SheetDescription>

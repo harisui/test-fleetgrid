@@ -28,9 +28,9 @@ export function AdminNav({ onNavigate }: AdminNavProps) {
             aria-current={active ? "page" : undefined}
             onClick={onNavigate}
             className={cn(
-              "flex h-target items-center gap-3 rounded-button border-l-[3px] px-3 text-label leading-label font-semibold outline-none transition-colors duration-(--dur-press) focus-visible:ring-2 focus-visible:ring-ring",
+              "flex h-target items-center gap-3 rounded-button border-l-3 px-3 text-label leading-label font-semibold outline-none transition-colors duration-(--dur-press) focus-visible:ring-2 focus-visible:ring-ring",
               active
-                ? "border-primary bg-sign-panel-foreground/10 text-sign-panel-foreground"
+                ? "border-sign-panel-border bg-sign-panel-foreground/10 text-sign-panel-foreground"
                 : "border-transparent text-sign-panel-muted hover:bg-sign-panel-foreground/10 hover:text-sign-panel-foreground",
             )}
           >

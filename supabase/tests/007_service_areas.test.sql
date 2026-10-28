@@ -136,7 +136,8 @@ end;
 $$;
 
 select pg_temp.sign_in('11111111-1111-4111-8111-111111111111', '15555559001');
-select throws_ok($$select * from public.service_areas$$, '42501', null, 'a driver cannot read the table');
+-- Since 0017 admins read the table (the Drivers page); everyone else still sees nothing.
+select is_empty($$select * from public.service_areas$$, 'a driver reads no rows of the table');
 select throws_ok(
   $$insert into public.service_areas (name, center_zip, center_lat, center_lng, radius_miles)
     values ('Mine', '77002', 29.7594, -95.3594, 50)$$,

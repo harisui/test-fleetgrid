@@ -39,7 +39,8 @@ describe("AdminFrame", () => {
     const drivers = within(nav).getByRole("link", { name: "Drivers" });
     expect(drivers).toHaveAttribute("href", "/admin/drivers");
     expect(drivers).toHaveAttribute("aria-current", "page");
-    expect(drivers.className).toContain("border-primary");
+    // The 3px orange bar on the left: the sign-panel stripe token, the one orange besides the button and badge.
+    expect(drivers.className).toContain("border-sign-panel-border");
     const analytics = within(nav).getByRole("link", { name: "Analytics" });
     expect(analytics).toHaveAttribute("href", "/admin/analytics");
     expect(analytics).not.toHaveAttribute("aria-current");

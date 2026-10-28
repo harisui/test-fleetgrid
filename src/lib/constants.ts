@@ -38,6 +38,8 @@ export const ALLOWED_UPLOAD_MIME = [
 export const IMAGE_MAX_DIMENSION = 2000;
 export const IMAGE_TARGET_MAX_MB = 1;
 export const DEFAULT_TIMEZONE = "America/Chicago";
+/** The admin's lists: rows per page. */
+export const ADMIN_PAGE_SIZE = 25;
 
 export const SMS_PROGRAM_NAME = "FleetGrid Shift Alerts";
 /** The date the public Terms and Privacy pages took effect. */

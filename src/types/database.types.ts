@@ -23,7 +23,20 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "carrier_waitlist": {
+            "admin_audit_log": {
+                  Row: {
+                    "action": string,"admin_id": string,"admin_phone": string,"created_at": string,"detail": NonNullable<Json>,"id": string,"target_id": string,"target_type": string
+                  }
+                  Insert: {
+                    "action": string,"admin_id": string,"admin_phone": string,"created_at"?: string,"detail"?: NonNullable<Json>,"id"?: string,"target_id": string,"target_type": string
+                  }
+                  Update: {
+                    "action"?: string,"admin_id"?: string,"admin_phone"?: string,"created_at"?: string,"detail"?: NonNullable<Json>,"id"?: string,"target_id"?: string,"target_type"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"carrier_waitlist": {
                   Row: {
                     "carrier_id": string,"created_at": string,"id": string,"lat": number,"lng": number,"updated_at": string,"zip": string
                   }

@@ -58,9 +58,11 @@ describe("ServiceAreaRepository and service_areas access (local Supabase)", () =
     expect(await repository.contains(HOUSTON.lat, HOUSTON.lng)).toBe(true);
   });
 
-  it("a signed-in driver cannot read or change the table itself", async () => {
+  it("a signed-in driver reads no rows of the table and cannot change it", async () => {
+    // Since 0017 admins read the areas (the Drivers page); a driver's read is empty, not an error.
     const read = await driver.client.from("service_areas").select("*");
-    expect(read.error?.code).toBe("42501");
+    expect(read.error).toBeNull();
+    expect(read.data).toEqual([]);
     const write = await driver.client
       .from("service_areas")
       .update({ is_active: false })

@@ -20,7 +20,7 @@ export function StatTile({ label, value, caption, className }: StatTileProps) {
       <span className="text-eyebrow leading-eyebrow font-semibold tracking-wide text-muted-foreground uppercase">
         {label}
       </span>
-      <span className="font-heading text-[2rem] leading-none font-semibold tabular-nums" data-slot="stat-value">
+      <span className="font-heading text-stat leading-stat font-semibold tabular-nums" data-slot="stat-value">
         {typeof value === "number" ? value.toLocaleString("en-US") : value}
       </span>
       {caption && <span className="text-small leading-small text-muted-foreground">{caption}</span>}

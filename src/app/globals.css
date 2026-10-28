@@ -106,6 +106,8 @@
   --text-code--line-height: var(--lh-code);
   --text-number: var(--text-number);
   --text-number--line-height: var(--lh-number);
+  --text-stat: var(--text-stat);
+  --text-stat--line-height: var(--lh-stat);
   --text-small: var(--text-small);
   --text-small--line-height: var(--lh-small);
   --tracking-eyebrow: var(--tracking-eyebrow);
