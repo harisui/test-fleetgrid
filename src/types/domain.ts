@@ -254,6 +254,12 @@ export interface Driver {
   /** The optional "How did you hear about FleetGrid?" answer, with the free text for Other. */
   heardFrom: HeardFrom | null;
   heardFromOther: string | null;
+  /**
+   * When the driver confirmed, themselves, no unresolved Clearinghouse violations and no SAP
+   * process; null when they did not answer or withdrew it. Read for the driver and admins
+   * only (its own table, 0021); always null where carriers read a card.
+   */
+  clearinghouseSelfReportedAt: string | null;
   onboardingStep: number;
   cardCompleted: boolean;
   createdAt: string;

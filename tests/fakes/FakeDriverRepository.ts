@@ -63,6 +63,7 @@ export class FakeDriverRepository implements IDriverRepository {
       smsOptedOutAt: null,
       heardFrom: null,
       heardFromOther: null,
+      clearinghouseSelfReportedAt: null,
       onboardingStep: input.onboardingStep,
       cardCompleted: false,
       createdAt: TIMESTAMP,
@@ -70,6 +71,21 @@ export class FakeDriverRepository implements IDriverRepository {
     };
     this.rows.set(profileId, driver);
     return driver;
+  }
+
+  /** Every call, in order: the driver and the answer. */
+  readonly selfReportCalls: { driverId: string; confirmed: boolean }[] = [];
+  /** The clock the fake stamps a yes with, like the database's now(). */
+  selfReportClock: () => string = () => new Date().toISOString();
+
+  async setClearinghouseSelfReport(driverId: string, confirmed: boolean): Promise<void> {
+    this.selfReportCalls.push({ driverId, confirmed });
+    for (const [profileId, driver] of this.rows) {
+      if (driver.id !== driverId) continue;
+      this.rows.set(profileId, { ...driver, clearinghouseSelfReportedAt: confirmed ? this.selfReportClock() : null });
+      return;
+    }
+    throw AppError.notFound();
   }
 
   async update(profileId: string, patch: DriverPatch): Promise<Driver> {

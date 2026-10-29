@@ -94,7 +94,7 @@ test.describe("sign-up source", () => {
     expect(await attributionCookie(context)).toBeUndefined();
 
     // The last page asks the question; a tap is enough, and Other has a short line.
-    const driverId = await addDriverCardAtStep(PHONES.driver, 9);
+    const driverId = await addDriverCardAtStep(PHONES.driver, 10);
     await page.goto("/driver/onboarding");
     await expect(screenHeading(page)).toHaveText("Finish");
     const question = page.getByRole("group", { name: "How did you hear about FleetGrid?" });
@@ -109,7 +109,7 @@ test.describe("sign-up source", () => {
       .select("heard_from, heard_from_other, card_completed, onboarding_step")
       .eq("id", driverId)
       .single();
-    expect(card).toEqual({ heard_from: "other", heard_from_other: "Radio ad", card_completed: true, onboarding_step: 11 });
+    expect(card).toEqual({ heard_from: "other", heard_from_other: "Radio ad", card_completed: true, onboarding_step: 12 });
 
     // The admin: the list names the code, narrows to it from the Analytics sheet, and the detail shows what the driver said.
     await page.context().clearCookies();
@@ -150,7 +150,7 @@ test.describe("sign-up source", () => {
       qr_link_id: null,
     });
 
-    const driverId = await addDriverCardAtStep(PHONES.secondDriver, 9, { full_name: "Sam Second" });
+    const driverId = await addDriverCardAtStep(PHONES.secondDriver, 10, { full_name: "Sam Second" });
     await page.goto("/driver/onboarding");
     await nextButton(page, "Find local shifts").click();
     await expect(screenHeading(page)).toHaveText("You're in!");

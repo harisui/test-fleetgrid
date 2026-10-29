@@ -15,11 +15,14 @@ interface ActionBarProps {
   onBack?: () => void;
   /** Shows "Saved" with a check after an auto-save. */
   saved?: boolean;
+  /** A secondary button between Back and Next, for example "Skip". */
+  secondary?: { label: string; onClick: () => void };
 }
 
 /**
- * Sticky bottom bar. "Saved" above, then Back (secondary) and Next (primary, orange, 56px),
- * each at least half the width. Padded for the iPhone home bar.
+ * Sticky bottom bar. "Saved" above, then Back (secondary), an optional second way on such as
+ * Skip (secondary), and Next (primary, orange, 56px), sharing the width. Padded for the
+ * iPhone home bar.
  */
 export function ActionBar({
   formId,
@@ -29,7 +32,9 @@ export function ActionBar({
   nextDisabled = false,
   onBack,
   saved = false,
+  secondary,
 }: ActionBarProps) {
+  const buttons = 1 + (onBack ? 1 : 0) + (secondary ? 1 : 0);
   return (
     <div
       data-slot="action-bar"
@@ -48,10 +53,15 @@ export function ActionBar({
             </>
           )}
         </p>
-        <div className={cn("grid gap-3", onBack ? "grid-cols-2" : "grid-cols-1")}>
+        <div className={cn("grid gap-3", buttons === 3 ? "grid-cols-3" : buttons === 2 ? "grid-cols-2" : "grid-cols-1")}>
           {onBack && (
             <Button type="button" variant="secondary" onClick={onBack} disabled={pending}>
               Back
+            </Button>
+          )}
+          {secondary && (
+            <Button type="button" variant="secondary" onClick={secondary.onClick} disabled={pending} data-slot="secondary-action">
+              {secondary.label}
             </Button>
           )}
           {nextHref ? (

@@ -380,11 +380,11 @@ describe("DriverService", () => {
       });
     });
 
-    it("saves the MVR level, whatever it is, and moves to the cards", async () => {
+    it("saves the MVR level, whatever it is, and moves to the Clearinghouse and SAP page", async () => {
       await completeThrough("experience");
       const driver = await service.saveScreen(USER_ID, "record", { mvrStatus: "major_3_plus" });
       expect(driver.mvrStatus).toBe("major_3_plus");
-      expect(driver.onboardingStep).toBe(stepNumber("credentials"));
+      expect(driver.onboardingStep).toBe(stepNumber("clearinghouse"));
     });
 
     it.each([{}, { mvrStatus: true }, { mvrStatus: "none" }, null])(
@@ -398,8 +398,67 @@ describe("DriverService", () => {
     );
   });
 
-  describe("cards screen", () => {
+  describe("Clearinghouse and SAP screen (optional, 2026-10-29)", () => {
     beforeEach(() => completeThrough("record"));
+
+    it("a tick saves a yes with the time, and moves to the cards", async () => {
+      drivers.selfReportClock = () => "2026-10-29T15:00:00.000Z";
+      const driver = await service.saveScreen(USER_ID, "clearinghouse", { clearinghouseConfirmed: true });
+      expect(driver.clearinghouseSelfReportedAt).toBe("2026-10-29T15:00:00.000Z");
+      expect(driver.onboardingStep).toBe(stepNumber("credentials"));
+      expect(drivers.selfReportCalls).toEqual([{ driverId: card().id, confirmed: true }]);
+    });
+
+    it.each([{ clearinghouseConfirmed: false }, {}, undefined, { clearinghouseConfirmed: "true" }])(
+      "Skip, or Continue without the tick (%j), saves no answer and still moves on",
+      async (input) => {
+        const driver = await service.saveScreen(USER_ID, "clearinghouse", input);
+        expect(driver.clearinghouseSelfReportedAt).toBeNull();
+        expect(driver.onboardingStep).toBe(stepNumber("credentials"));
+      },
+    );
+
+    it("going back and unticking withdraws the earlier yes", async () => {
+      await service.saveScreen(USER_ID, "clearinghouse", { clearinghouseConfirmed: true });
+      const driver = await service.saveScreen(USER_ID, "clearinghouse", { clearinghouseConfirmed: false });
+      expect(driver.clearinghouseSelfReportedAt).toBeNull();
+      expect(drivers.selfReportCalls.map((call) => call.confirmed)).toEqual([true, false]);
+    });
+
+    it("never counts toward a complete card: skipped, the sign-up still finishes", async () => {
+      await completeThrough("consent");
+      expect(card().cardCompleted).toBe(true);
+      // completeThrough ticked it; withdrawing it leaves the card complete.
+      const driver = await service.setClearinghouseSelfReport(USER_ID, { clearinghouseConfirmed: false });
+      expect(driver.cardCompleted).toBe(true);
+      expect(driver.clearinghouseSelfReportedAt).toBeNull();
+      expect(missingCardFields(card())).toEqual([]);
+    });
+  });
+
+  describe("setClearinghouseSelfReport (the profile box)", () => {
+    beforeEach(() => completeThrough("consent"));
+
+    it("unticking deletes the answer and its date; ticking again saves a new time; progress is untouched", async () => {
+      drivers.selfReportClock = () => "2026-10-30T09:00:00.000Z";
+      const withdrawn = await service.setClearinghouseSelfReport(USER_ID, { clearinghouseConfirmed: false });
+      expect(withdrawn.clearinghouseSelfReportedAt).toBeNull();
+      const again = await service.setClearinghouseSelfReport(USER_ID, { clearinghouseConfirmed: true });
+      expect(again.clearinghouseSelfReportedAt).toBe("2026-10-30T09:00:00.000Z");
+      expect(again).toMatchObject({ cardCompleted: true, onboardingStep: 12 });
+      expect(again.inServiceArea).not.toBeUndefined();
+    });
+
+    it("needs a card and a driver", async () => {
+      drivers.rows.clear();
+      expect((await expectAppError(service.setClearinghouseSelfReport(USER_ID, { clearinghouseConfirmed: true }))).code).toBe("VALIDATION");
+      profiles.rows.set(USER_ID, buildProfile({ role: "carrier" }));
+      expect((await expectAppError(service.setClearinghouseSelfReport(USER_ID, { clearinghouseConfirmed: true }))).code).toBe("FORBIDDEN");
+    });
+  });
+
+  describe("cards screen", () => {
+    beforeEach(() => completeThrough("clearinghouse"));
 
     it("saves the TWIC and medical card answers, whatever they are, and moves to the letters", async () => {
       const driver = await service.saveScreen(USER_ID, "credentials", {
@@ -499,7 +558,7 @@ describe("DriverService", () => {
     it("completes the card here when the lead already gave consent: the consent screen is not shown again", async () => {
       await service.saveScreen(USER_ID, "lead", { ...SCREEN_INPUTS.lead, consent: true });
       const driver = await service.saveScreen(USER_ID, "heardFrom", { heardFrom: "flyer" });
-      expect(driver).toMatchObject({ heardFrom: "flyer", cardCompleted: true, onboardingStep: 11, smsOptIn: true });
+      expect(driver).toMatchObject({ heardFrom: "flyer", cardCompleted: true, onboardingStep: 12, smsOptIn: true });
       expect(consentLog.entries.map((entry) => entry.event)).toEqual(["opt_in"]);
       const state = await service.getOnboardingState(USER_ID);
       expect(state).toMatchObject({ stepId: "done", completed: true });
@@ -533,7 +592,7 @@ describe("DriverService", () => {
       expect(driver.smsOptInText).toBe(SMS_CONSENT_TEXT);
       expect(driver.smsOptInAt).toBe("2026-10-05T15:30:00.000Z");
       expect(driver.cardCompleted).toBe(true);
-      expect(driver.onboardingStep).toBe(11);
+      expect(driver.onboardingStep).toBe(12);
       // Nothing from the profile page is needed to finish.
       expect(driver).toMatchObject(PROFILE_ONLY_EMPTY);
     });
@@ -543,7 +602,7 @@ describe("DriverService", () => {
       async (input) => {
         const driver = await service.saveScreen(USER_ID, "consent", input);
         expect(driver.cardCompleted).toBe(true);
-        expect(driver.onboardingStep).toBe(11);
+        expect(driver.onboardingStep).toBe(12);
         expect(driver.smsOptIn).toBe(false);
         expect(driver.smsOptInAt).toBeNull();
         expect(driver.smsOptInText).toBeNull();
@@ -707,7 +766,7 @@ describe("DriverService", () => {
       await completeThrough("consent");
       const driver = await service.saveScreen(USER_ID, "experience", { yearsExperience: 12 });
       expect(driver.yearsExperience).toBe(12);
-      expect(driver.onboardingStep).toBe(11);
+      expect(driver.onboardingStep).toBe(12);
       expect(driver.cardCompleted).toBe(true);
       expect(driver.smsOptIn).toBe(true);
     });
@@ -716,7 +775,7 @@ describe("DriverService", () => {
       await completeThrough("record");
       const driver = await service.saveScreen(USER_ID, "lead", { ...SCREEN_INPUTS.lead, zip: "60601" });
       expect(driver.city).toBe("Chicago");
-      expect(driver.onboardingStep).toBe(stepNumber("credentials"));
+      expect(driver.onboardingStep).toBe(stepNumber("clearinghouse"));
     });
   });
 
@@ -776,7 +835,7 @@ describe("DriverService", () => {
         bio: null,
         smsOptIn: true,
         cardCompleted: true,
-        onboardingStep: 11,
+        onboardingStep: 12,
       });
     });
 

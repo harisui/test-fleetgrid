@@ -5,6 +5,7 @@ import { Users } from "lucide-react";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { DataTable, type DataColumn } from "@/components/admin/DataTable";
 import { FilterBar } from "@/components/admin/FilterBar";
+import { SelfReportBadge } from "@/components/admin/SelfReportBadge";
 import { Badge } from "@/components/ui/badge";
 import {
   ADMIN_DRIVERS_PATH,
@@ -13,6 +14,7 @@ import {
   driversFilters,
   driversHref,
   REVIEW_STATUS_OPTIONS,
+  SELF_REPORT_OPTIONS,
   SOURCE_OPTIONS,
 } from "@/lib/admin/options";
 import { summarizeDriver } from "@/lib/carrier/driverSummary";
@@ -59,6 +61,11 @@ const COLUMNS: DataColumn<AdminDriverRow>[] = [
   },
   { key: "status", header: "Review", cell: (row) => <AdminStatusBadge status={row.profile.status} />, sortable: true },
   { key: "sms", header: "SMS", cell: smsLabel },
+  {
+    key: "selfReport",
+    header: "Clearinghouse and SAP",
+    cell: (row) => (row.driver.clearinghouseSelfReportedAt ? <SelfReportBadge /> : "Not answered"),
+  },
   { key: "source", header: "Source", cell: (row) => row.source.label, wrap: true },
   { key: "created", header: "Signed up", cell: signedUp, sortable: true },
 ];
@@ -81,6 +88,7 @@ function DriverCard({ row }: { row: AdminDriverRow }) {
         {row.complete ? "Complete" : "Incomplete"} · SMS {smsLabel(row)} · {signedUp(row)}
       </span>
       <span className="text-helper leading-helper text-muted-foreground">{row.source.label}</span>
+      {row.driver.clearinghouseSelfReportedAt && <SelfReportBadge className="self-start" />}
     </div>
   );
 }
@@ -89,7 +97,7 @@ function DriverCard({ row }: { row: AdminDriverRow }) {
 export function DriversTable({ page }: { page: AdminDriversPage }) {
   const { query } = page;
   const base = driversFilters(query);
-  const filtered = Boolean(query.q || query.status || query.complete || query.area || query.source || query.qr);
+  const filtered = Boolean(query.q || query.status || query.complete || query.area || query.source || query.selfReport || query.qr);
   return (
     <section aria-label="Drivers list" className="flex flex-col gap-4">
       <FilterBar
@@ -100,6 +108,7 @@ export function DriversTable({ page }: { page: AdminDriversPage }) {
           { name: "complete", label: "Profile", value: query.complete, options: COMPLETE_OPTIONS },
           { name: "area", label: "Area", value: query.area, options: AREA_OPTIONS },
           { name: "source", label: "Source", value: query.source, options: SOURCE_OPTIONS },
+          { name: "selfReport", label: "Clearinghouse and SAP", value: query.selfReport, options: SELF_REPORT_OPTIONS },
           {
             name: "qr",
             label: "QR code",

@@ -67,6 +67,12 @@ export const CONFIRMATIONS: Record<
   },
 };
 
+export const SELF_REPORT_OPTIONS = [
+  { value: "", label: "Any answer" },
+  { value: "yes", label: "Self-reported yes" },
+  { value: "none", label: "Not answered" },
+] as const;
+
 export { SOURCE_UNKNOWN } from "@/lib/admin/source";
 
 const QUERY_DEFAULTS: Partial<Record<keyof AdminDriversQuery, string>> = {
@@ -74,6 +80,7 @@ const QUERY_DEFAULTS: Partial<Record<keyof AdminDriversQuery, string>> = {
   complete: "",
   area: "",
   source: "",
+  selfReport: "",
   q: "",
   sort: "created",
   dir: "desc",
@@ -88,6 +95,7 @@ export function driversFilters(query: AdminDriversQuery) {
     complete: query.complete,
     area: query.area,
     source: query.source,
+    selfReport: query.selfReport,
     qr: query.qr,
     sort: query.sort,
     dir: query.dir,
@@ -97,7 +105,7 @@ export function driversFilters(query: AdminDriversQuery) {
 /** The Drivers page for a query, leaving out every parameter at its default. */
 export function driversHref(query: Partial<Record<keyof AdminDriversQuery, string | number | undefined>>): string {
   const params = new URLSearchParams();
-  for (const key of ["q", "status", "complete", "area", "source", "qr", "sort", "dir", "page", "open"] as const) {
+  for (const key of ["q", "status", "complete", "area", "source", "selfReport", "qr", "sort", "dir", "page", "open"] as const) {
     const value = query[key];
     if (value === undefined || value === "" || String(value) === QUERY_DEFAULTS[key]) continue;
     params.set(key, String(value));

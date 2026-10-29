@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AccountStatusCard } from "@/components/driver/AccountStatusCard";
 import { ProfileEditor } from "@/components/driver/ProfileEditor";
+import { ClearinghouseSelfReportControl } from "@/components/driver/ClearinghouseSelfReportControl";
 import { SmsConsentControl, TURN_ON_PROMPT } from "@/components/driver/SmsConsentControl";
 import { SMS_CONSENT_TEXT } from "@/lib/constants";
 import { CARD_CHECKS, MVR_QUESTION } from "@/lib/onboarding/options";
@@ -19,6 +20,7 @@ const actions = vi.hoisted(() => ({
   updateCardAction: vi.fn(),
   lookupZipAction: vi.fn(),
   updateSmsConsentAction: vi.fn(),
+  updateClearinghouseSelfReportAction: vi.fn(),
 }));
 const router = vi.hoisted(() => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }));
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
@@ -460,5 +462,45 @@ describe("ProfileEditor", () => {
     render(<ProfileEditor driver={buildDriver()} />);
     await userEvent.click(save());
     expect(await screen.findByRole("alert")).toHaveTextContent("Your account has been blocked.");
+  });
+});
+
+describe("ClearinghouseSelfReportControl (2026-10-29)", () => {
+  const box = () => screen.getByRole("checkbox", { name: /I confirm I have no unresolved violations/ });
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("is headed apart from the account question, unchecked when not answered, and ticking saves a yes", async () => {
+    actions.updateClearinghouseSelfReportAction.mockResolvedValue(ok(buildDriver()));
+    render(<ClearinghouseSelfReportControl confirmedAt={null} />);
+    expect(screen.getByRole("heading", { name: "Clearinghouse and SAP" })).toBeInTheDocument();
+    expect(box()).not.toBeChecked();
+    expect(document.querySelector("[data-slot=clearinghouse-confirmed-at]")).toBeNull();
+    await userEvent.click(box());
+    await waitFor(() =>
+      expect(actions.updateClearinghouseSelfReportAction).toHaveBeenCalledWith({ clearinghouseConfirmed: true }),
+    );
+    expect(router.refresh).toHaveBeenCalled();
+  });
+
+  it("shows the date when answered, and unticking withdraws it", async () => {
+    actions.updateClearinghouseSelfReportAction.mockResolvedValue(ok(buildDriver()));
+    render(<ClearinghouseSelfReportControl confirmedAt="2026-10-29T15:00:00.000Z" />);
+    expect(box()).toBeChecked();
+    expect(screen.getByText("Confirmed on October 29, 2026")).toBeInTheDocument();
+    await userEvent.click(box());
+    await waitFor(() =>
+      expect(actions.updateClearinghouseSelfReportAction).toHaveBeenCalledWith({ clearinghouseConfirmed: false }),
+    );
+    expect(toast.success).toHaveBeenCalledWith("Removed. Your answer and its date are deleted.");
+  });
+
+  it("shows the server's refusal", async () => {
+    actions.updateClearinghouseSelfReportAction.mockResolvedValue(failure("Start with the first step"));
+    render(<ClearinghouseSelfReportControl confirmedAt={null} />);
+    await userEvent.click(box());
+    expect(await screen.findByText("Start with the first step")).toBeInTheDocument();
   });
 });

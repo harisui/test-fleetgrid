@@ -1,5 +1,5 @@
 /**
- * The single source of truth for the driver onboarding flow: the six miles, the eleven
+ * The single source of truth for the driver onboarding flow: the seven miles, the twelve
  * screens in order, and the progress shown for each. Every screen, the sign header, the lane
  * progress bar and the server read from here. Nothing about the flow is defined anywhere else.
  *
@@ -11,7 +11,9 @@
  * Clearinghouse, about you) stay on the profile page, filled in later or never. "How did you
  * hear about FleetGrid?" (optional) sits before the consent, so the flyers already printed
  * without tracking still count; the consent screen shows only to drivers who left the box
- * empty on the lead.
+ * empty on the lead. "Clearinghouse and SAP" (optional, its own mile after Driving, client
+ * brief of 2026-10-29) is a self-report kept apart from the profile page's "Registered in the
+ * Clearinghouse", so a driver never answers the same thing twice.
  */
 
 import { DONE_TITLE } from "@/lib/launch";
@@ -19,10 +21,11 @@ import { DONE_TITLE } from "@/lib/launch";
 export const MILES = [
   { mile: 1, label: "About" },
   { mile: 2, label: "Driving" },
-  { mile: 3, label: "Cards" },
-  { mile: 4, label: "Letters" },
-  { mile: 5, label: "Equipment" },
-  { mile: 6, label: "Finish" },
+  { mile: 3, label: "Clearinghouse and SAP" },
+  { mile: 4, label: "Cards" },
+  { mile: 5, label: "Letters" },
+  { mile: 6, label: "Equipment" },
+  { mile: 7, label: "Finish" },
 ] as const;
 
 export type Mile = (typeof MILES)[number];
@@ -32,10 +35,11 @@ export type MileNumber = Mile["mile"];
 export const MILE_SUMMARIES: Record<MileNumber, string> = {
   1: "Your name, your ZIP code, your CDL class, and whether we may text you shift offers.",
   2: "How far you will travel, your years of driving and your record.",
-  3: "Your TWIC card and your DOT medical card.",
-  4: "The extra letters on your CDL, and whether you can drive a manual.",
-  5: "The equipment you run.",
-  6: "Where you heard of FleetGrid (optional), the shift-text box if you left it empty at the start, then you are listed.",
+  3: "Optional: that you have no unresolved Clearinghouse violations and are not in a SAP process.",
+  4: "Your TWIC card and your DOT medical card.",
+  5: "The extra letters on your CDL, and whether you can drive a manual.",
+  6: "The equipment you run.",
+  7: "Where you heard of FleetGrid (optional), the shift-text box if you left it empty at the start, then you are listed.",
 };
 
 export const STEPS = [
@@ -44,23 +48,29 @@ export const STEPS = [
   { id: "distance", mile: 2, question: "How far will you travel for work?" },
   { id: "experience", mile: 2, question: "How many years have you driven with a CDL?" },
   { id: "record", mile: 2, question: "Any moving violations in the last 3 years?" },
-  { id: "credentials", mile: 3, question: "Do you have these cards?" },
+  {
+    id: "clearinghouse",
+    mile: 3,
+    question: "No Clearinghouse violations and no SAP process?",
+    helper: "Optional. Tick the box only if it is true. You can skip this and answer later on your profile.",
+  },
+  { id: "credentials", mile: 4, question: "Do you have these cards?" },
   {
     id: "endorsements",
-    mile: 4,
+    mile: 5,
     question: "Any extra letters on your CDL?",
     helper: "These are called endorsements. They're printed next to END on the front.",
   },
-  { id: "transmission", mile: 4, question: "Can you drive a manual?" },
-  { id: "equipment", mile: 5, question: "What equipment do you run?" },
+  { id: "transmission", mile: 5, question: "Can you drive a manual?" },
+  { id: "equipment", mile: 6, question: "What equipment do you run?" },
   {
     id: "heardFrom",
-    mile: 6,
+    mile: 7,
     question: "How did you hear about FleetGrid?",
     helper: "Optional. It tells us where to put the next flyers.",
   },
-  { id: "consent", mile: 6, question: "Can we text you about shifts?" },
-  { id: "done", mile: 6, question: DONE_TITLE },
+  { id: "consent", mile: 7, question: "Can we text you about shifts?" },
+  { id: "done", mile: 7, question: DONE_TITLE },
 ] as const;
 
 export type Step = (typeof STEPS)[number];
@@ -111,9 +121,9 @@ export interface StepProgress {
   mile: Mile;
   /** 0 on the first screen, 100 on the done screen. Drives the lane fill and the truck. */
   percent: number;
-  /** Shown in the sign header, for example "Mile 2 of 6". */
+  /** Shown in the sign header, for example "Mile 2 of 7". */
   eyebrow: string;
-  /** Read by screen readers instead of the mile metaphor, for example "Step 2 of 6: CDL". */
+  /** Read by screen readers instead of the mile metaphor, for example "Step 2 of 7: Driving". */
   srLabel: string;
   /** Mile numbers already completed. */
   completedMiles: MileNumber[];

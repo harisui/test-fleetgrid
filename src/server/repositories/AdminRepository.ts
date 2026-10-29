@@ -63,7 +63,7 @@ export class AdminRepository extends BaseRepository implements IAdminRepository 
     const rows = this.unwrap(
       await this.supabase
         .from("drivers")
-        .select("*, profiles!inner(*)")
+        .select("*, driver_clearinghouse_self_reports(confirmed_at), profiles!inner(*)")
         .order("created_at", { ascending: false }),
     );
     return rows.map((row) => ({ driver: mapDriver(row), profile: mapProfile(row.profiles) }));
@@ -71,7 +71,7 @@ export class AdminRepository extends BaseRepository implements IAdminRepository 
 
   async findDriver(driverId: string): Promise<DriverReviewRow | null> {
     const rows = this.unwrap(
-      await this.supabase.from("drivers").select("*, profiles!inner(*)").eq("id", driverId).limit(1),
+      await this.supabase.from("drivers").select("*, driver_clearinghouse_self_reports(confirmed_at), profiles!inner(*)").eq("id", driverId).limit(1),
     );
     const row = rows[0];
     if (!row) return null;

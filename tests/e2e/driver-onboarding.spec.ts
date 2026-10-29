@@ -70,7 +70,7 @@ test.describe("driver onboarding, a page per mile", () => {
 
     // Mile 1: About, the lead: name, ZIP, class and the optional box on one screen.
     await expect(screenHeading(page)).toHaveText("About");
-    await expect(page.getByText("Mile 1 of 6", { exact: true })).toBeVisible();
+    await expect(page.getByText("Mile 1 of 7", { exact: true })).toBeVisible();
     await page.getByLabel("Full name").fill("Pat Driver");
     await page.getByLabel("ZIP code", { exact: true }).fill(PLACES.houston.zip);
     // City and state come from the dataset as one read-only line; there is nothing to type.
@@ -102,7 +102,7 @@ test.describe("driver onboarding, a page per mile", () => {
 
     // Mile 2: Driving
     await expect(screenHeading(page)).toBeFocused();
-    await expect(page.getByText("Mile 2 of 6", { exact: true })).toBeVisible();
+    await expect(page.getByText("Mile 2 of 7", { exact: true })).toBeVisible();
     await expect(page.getByText("Do you work W-2 or 1099?")).toHaveCount(0);
     await chip(page, "100 miles").click();
     await expect(page.getByLabel("Exact number (optional)")).toHaveCount(0);
@@ -113,13 +113,23 @@ test.describe("driver onboarding, a page per mile", () => {
     await checkChip(page, MVR_QUESTION, "None").click();
     await nextButton(page).click();
 
-    // Mile 3: Cards
+    // Mile 3: Clearinghouse and SAP (optional, 2026-10-29). Unchecked; Continue with the tick
+    // saves a yes with the time.
+    await expect(screenHeading(page)).toHaveText("Clearinghouse and SAP");
+    await expect(page.getByText("Mile 3 of 7", { exact: true })).toBeVisible();
+    const selfReport = page.getByRole("checkbox", { name: /I confirm I have no unresolved violations/ });
+    await expect(selfReport).not.toBeChecked();
+    await expect(page.getByRole("button", { name: "Skip" })).toBeVisible();
+    await selfReport.click();
+    await nextButton(page, "Continue").click();
+
+    // Mile 4: Cards
     await expect(screenHeading(page)).toHaveText("Cards");
     await checkChip(page, TWIC_QUESTION, "Yes").click();
     await checkChip(page, MEDICAL_QUESTION, "Yes").click();
     await nextButton(page).click();
 
-    // Mile 4: Letters (endorsements and transmission)
+    // Mile 5: Letters (endorsements and transmission)
     await expect(screenHeading(page)).toHaveText("Letters");
     await expect(page.getByText(/These are called endorsements/)).toBeVisible();
     await card(page, "checkbox", /^H\b/).click();
@@ -137,7 +147,7 @@ test.describe("driver onboarding, a page per mile", () => {
     // Mile 6: Finish. No papers, no about you. Consent was given on the lead, so the box is
     // not asked again: only the source question, then the client's button.
     await expect(screenHeading(page)).toHaveText("Finish");
-    await expect(page.getByText("Mile 6 of 6", { exact: true })).toBeVisible();
+    await expect(page.getByText("Mile 7 of 7", { exact: true })).toBeVisible();
     await expect(page.getByText("Take a photo")).toHaveCount(0);
     await expect(page.getByLabel("About you")).toHaveCount(0);
     await expect(page.getByText("How did you hear about FleetGrid?")).toBeVisible();
@@ -182,12 +192,22 @@ test.describe("driver onboarding, a page per mile", () => {
       sms_opt_in: true,
       sms_opt_in_text: CONSENT_TEXT,
       sms_opted_out: false,
-      onboarding_step: 11,
+      onboarding_step: 12,
       card_completed: true,
     });
     const consentAt = new Date(row.sms_opt_in_at!).getTime();
     expect(consentAt).toBeGreaterThanOrEqual(before - 5_000);
     expect(consentAt).toBeLessThanOrEqual(Date.now() + 5_000);
+
+    // The ticked Clearinghouse and SAP box: one row, a yes with the database's time, nothing more.
+    const { data: selfReportRows } = await adminClient()
+      .from("driver_clearinghouse_self_reports")
+      .select("*")
+      .eq("driver_id", row.id);
+    expect(selfReportRows).toHaveLength(1);
+    expect(Object.keys(selfReportRows![0]).sort()).toEqual(["confirmed", "confirmed_at", "driver_id"]);
+    expect(selfReportRows![0].confirmed).toBe(true);
+    expect(Math.abs(Date.parse(selfReportRows![0].confirmed_at) - Date.now())).toBeLessThan(5 * 60_000);
 
     // The audit log has the same consent, by phone number, so it outlives the account.
     const { data: consentLog } = await adminClient()
@@ -304,7 +324,7 @@ test.describe("driver onboarding, a page per mile", () => {
     });
 
     // Finish from the consent page with the Dallas card.
-    await resumeAt(page, 9, { ...PLACES.dallas });
+    await resumeAt(page, 10, { ...PLACES.dallas });
     await expect(screenHeading(page)).toHaveText("Finish");
     await page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) }).click();
     await nextButton(page, FINISH).click();
@@ -316,7 +336,7 @@ test.describe("driver onboarding, a page per mile", () => {
     );
     await expect(page.getByText(/Shift offers arrive by text/)).toHaveCount(0);
     await expect(page.locator("[data-slot=summary-card]")).toBeVisible();
-    expect(await driverRow()).toMatchObject({ card_completed: true, onboarding_step: 11 });
+    expect(await driverRow()).toMatchObject({ card_completed: true, onboarding_step: 12 });
 
     await page.getByRole("link", { name: "Go to my profile" }).click();
     await expect(page).toHaveURL(/\/driver\/profile$/);
@@ -328,7 +348,7 @@ test.describe("driver onboarding, a page per mile", () => {
   });
 
   test("a refresh mid-flow resumes on the same page with the saved answers", async ({ page }) => {
-    await resumeAt(page, 5);
+    await resumeAt(page, 6);
     await expect(screenHeading(page)).toHaveText("Cards");
     await checkChip(page, TWIC_QUESTION, "No").click();
     await checkChip(page, MEDICAL_QUESTION, "Yes").click();
@@ -337,8 +357,8 @@ test.describe("driver onboarding, a page per mile", () => {
 
     await page.reload();
     await expect(screenHeading(page)).toHaveText("Letters");
-    await expect(page.getByText("Mile 4 of 6", { exact: true })).toBeVisible();
-    expect((await driverRow()).onboarding_step).toBe(6);
+    await expect(page.getByText("Mile 5 of 7", { exact: true })).toBeVisible();
+    expect((await driverRow()).onboarding_step).toBe(7);
 
     // Logging out and back in resumes there too.
     await page.goto("/driver/profile");
@@ -349,7 +369,7 @@ test.describe("driver onboarding, a page per mile", () => {
   test("Back returns a whole page with its answers, and changing one never loses progress", async ({
     page,
   }) => {
-    await resumeAt(page, 8);
+    await resumeAt(page, 9);
     await expect(screenHeading(page)).toHaveText("Equipment");
     await page.getByRole("button", { name: "Back" }).click();
     await expect(screenHeading(page)).toHaveText("Letters");
@@ -362,6 +382,9 @@ test.describe("driver onboarding, a page per mile", () => {
     await page.getByRole("button", { name: "Back" }).click();
     await expect(screenHeading(page)).toHaveText("Cards");
     await expect(checkChip(page, TWIC_QUESTION, "Yes")).toHaveAttribute("aria-pressed", "true");
+
+    await page.getByRole("button", { name: "Back" }).click();
+    await expect(screenHeading(page)).toHaveText("Clearinghouse and SAP");
 
     await page.getByRole("button", { name: "Back" }).click();
     await expect(screenHeading(page)).toHaveText("Driving");
@@ -381,10 +404,10 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(screenHeading(page)).toHaveText("Driving");
     await expect(page.getByText("Saved")).toBeVisible();
     await nextButton(page).click();
-    await expect(screenHeading(page)).toHaveText("Cards");
+    await expect(screenHeading(page)).toHaveText("Clearinghouse and SAP");
     const row = await driverRow();
     expect(row.cdl_class).toBe("B");
-    expect(row.onboarding_step).toBe(8);
+    expect(row.onboarding_step).toBe(9);
   });
 
   test("errors appear only after Save and continue, with an icon, and are specific", async ({ page }) => {
@@ -445,7 +468,7 @@ test.describe("driver onboarding, a page per mile", () => {
       "false",
     );
     await nextButton(page).click();
-    await expect(screenHeading(page)).toHaveText("Cards");
+    await expect(screenHeading(page)).toHaveText("Clearinghouse and SAP");
     expect(await driverRow()).toMatchObject({
       service_radius_miles: 25,
       years_experience: 0,
@@ -455,7 +478,7 @@ test.describe("driver onboarding, a page per mile", () => {
   });
 
   test("the Cards page needs both answers, and remembers them", async ({ page }) => {
-    await resumeAt(page, 5);
+    await resumeAt(page, 6);
     await expect(screenHeading(page)).toHaveText("Cards");
     await checkChip(page, TWIC_QUESTION, "No").click();
     await nextButton(page).click();
@@ -474,7 +497,7 @@ test.describe("driver onboarding, a page per mile", () => {
   test("X auto-selects H and N, only the freight letters are offered, None clears the rest, and the transmission is required", async ({
     page,
   }) => {
-    await resumeAt(page, 6, { endorsements: [] });
+    await resumeAt(page, 7, { endorsements: [] });
     await expect(screenHeading(page)).toHaveText("Letters");
     await expect(page.getByRole("img", { name: /front of a CDL/ })).toBeVisible();
 
@@ -509,12 +532,12 @@ test.describe("driver onboarding, a page per mile", () => {
     expect(await driverRow()).toMatchObject({
       endorsements: [],
       transmission: "automatic_only",
-      onboarding_step: 8,
+      onboarding_step: 9,
     });
   });
 
   test("the Equipment page needs at least one chip", async ({ page }) => {
-    await resumeAt(page, 8);
+    await resumeAt(page, 9);
     await expect(screenHeading(page)).toHaveText("Equipment");
     await nextButton(page).click();
     await expect(formAlert(page)).toHaveText("Pick at least one kind of equipment");
@@ -526,7 +549,7 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(screenHeading(page)).toHaveText("Finish");
     expect(await driverRow()).toMatchObject({
       equipment_types: ["container_drayage", "reefer"],
-      onboarding_step: 9,
+      onboarding_step: 10,
     });
   });
 
@@ -536,7 +559,7 @@ test.describe("driver onboarding, a page per mile", () => {
     // The consent log outlives accounts by design, so only rows from this test count.
     const since = new Date().toISOString();
     // No consent on the lead: the Finish page asks once more, still optional.
-    await resumeAt(page, 9);
+    await resumeAt(page, 10);
     await expect(screenHeading(page)).toHaveText("Finish");
     await expect(page.getByText("Can we text you about shifts?")).toBeVisible();
     await expect(page.getByText(/This is optional/)).toBeVisible();
@@ -559,7 +582,7 @@ test.describe("driver onboarding, a page per mile", () => {
     const row = await driverRow();
     expect(row).toMatchObject({
       card_completed: true,
-      onboarding_step: 11,
+      onboarding_step: 12,
       sms_opt_in: false,
       sms_opt_in_at: null,
       sms_opt_in_text: null,
@@ -613,7 +636,7 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(hint).toHaveCount(0);
 
     // The Cards page fits, so it has no hint.
-    await resumeAt(page, 5);
+    await resumeAt(page, 6);
     await expect(screenHeading(page)).toHaveText("Cards");
     await expect(hint).toHaveCount(0);
   });

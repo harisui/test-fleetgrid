@@ -225,6 +225,8 @@ export function matches(row: AdminDriverRow, query: AdminDriversQuery): boolean 
   if (query.area === "out" && row.inServiceArea !== false) return false;
   if (query.source && row.source.kind !== query.source) return false;
   if (query.qr && row.source.qrLinkId !== query.qr) return false;
+  if (query.selfReport === "yes" && row.driver.clearinghouseSelfReportedAt === null) return false;
+  if (query.selfReport === "none" && row.driver.clearinghouseSelfReportedAt !== null) return false;
   if (query.q) {
     const text = query.q.toLowerCase();
     const digits = digitsOf(query.q);

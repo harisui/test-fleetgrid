@@ -74,6 +74,25 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"driver_clearinghouse_self_reports": {
+                  Row: {
+                    "confirmed": boolean,"confirmed_at": string,"driver_id": string
+                  }
+                  Insert: {
+                    "confirmed"?: boolean,"confirmed_at"?: string,"driver_id": string
+                  }
+                  Update: {
+                    "confirmed"?: boolean,"confirmed_at"?: string,"driver_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "driver_clearinghouse_self_reports_driver_id_fkey"
+      columns: ["driver_id"]
+isOneToOne: true
+      referencedRelation: "drivers"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"driver_documents": {
                   Row: {
                     "created_at": string,"driver_id": string,"file_name": string,"id": string,"mime_type": string,"size_bytes": number,"storage_path": string,"type": Database["public"]['Enums']["document_type"],"updated_at": string

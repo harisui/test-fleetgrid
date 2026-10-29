@@ -102,6 +102,7 @@ describe("DriversTable", () => {
       "Profile",
       "Review",
       "SMS",
+      "Clearinghouse and SAP",
       "Source",
       "Signed up",
     ]);
@@ -146,6 +147,27 @@ describe("DriversTable", () => {
       "href",
       `/admin/drivers?status=pending&qr=${QR_ID}&open=aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa`,
     );
+  });
+
+  it("shows the self-report badge in its column and on the phone card: neutral, with the shield, never the word Clean", () => {
+    const reported = row({ driver: buildDriver({ profileId: USER_ID, clearinghouseSelfReportedAt: "2026-10-29T15:00:00.000Z" }) });
+    const silent = row({
+      driver: buildDriver({ id: "d2", profileId: OTHER_USER_ID, fullName: "Lee Lead" }),
+      profile: buildProfile({ id: OTHER_USER_ID, phone: "+15555550108" }),
+    });
+    render(<DriversTable page={page({ rows: [reported, silent], total: 2 })} />);
+    const table = screen.getByRole("table", { name: "Drivers" });
+    const badge = within(within(table).getByRole("link", { name: "Pat Driver" }).closest("tr")!).getByText(
+      "Self-reported: No Clearinghouse / No SAP",
+    );
+    expect(badge).toHaveAttribute("data-variant", "secondary");
+    expect(badge.querySelector("svg")).toHaveClass("lucide-shield-check");
+    expect(within(within(table).getByRole("link", { name: "Lee Lead" }).closest("tr")!).getByText("Not answered")).toBeInTheDocument();
+    const cards = screen.getByRole("list", { name: "Drivers" });
+    expect(within(cards).getAllByText("Self-reported: No Clearinghouse / No SAP")).toHaveLength(1);
+    expect(document.body.textContent).not.toMatch(/\bclean\b/i);
+    // The filter is in the bar, and a chip names it when it is on.
+    expect(screen.getAllByText("Clearinghouse and SAP").length).toBeGreaterThan(0);
   });
 
   it("keeps the filters, the sort and the page in every link", () => {
@@ -229,6 +251,28 @@ describe("DriverDetailSheet", () => {
     expect(within(sheet).getByRole("button", { name: "Approve" })).toBeEnabled();
     expect(within(sheet).getByRole("button", { name: "Block" })).toBeInTheDocument();
     expect(within(sheet).queryByRole("button", { name: "Set pending" })).not.toBeInTheDocument();
+  });
+
+  it("shows the self-report with its date and the note, or Not answered, never as a check", () => {
+    const { unmount } = render(
+      <DriverDetailSheet
+        detail={detail({ driver: buildDriver({ clearinghouseSelfReportedAt: "2026-10-29T15:00:00.000Z" }) })}
+        closeHref="/admin/drivers"
+      />,
+    );
+    const answer = screen.getByRole("dialog").querySelector("[data-slot=self-report]") as HTMLElement;
+    expect(within(answer).getByText("Self-reported: No Clearinghouse / No SAP")).toHaveAttribute("data-self-report", "yes");
+    expect(answer).toHaveTextContent("Confirmed on October 29, 2026");
+    expect(answer).toHaveTextContent("Self-reported by the driver. Carriers must run their own Clearinghouse query.");
+    expect(answer.textContent).not.toMatch(/clean/i);
+    // The profile's account answer is labelled apart.
+    expect(within(screen.getByRole("dialog")).queryByText("Clearinghouse")).not.toBeInTheDocument();
+    unmount();
+
+    render(<DriverDetailSheet detail={detail()} closeHref="/admin/drivers" />);
+    const none = screen.getByRole("dialog").querySelector("[data-slot=self-report]") as HTMLElement;
+    expect(none).toHaveTextContent("Not answered");
+    expect(none.querySelector("[data-self-report]")).toBeNull();
   });
 
   it("shows where a driver came from: the code, its campaign, the tags, the landing page and what they said", () => {

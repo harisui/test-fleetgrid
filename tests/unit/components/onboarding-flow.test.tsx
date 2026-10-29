@@ -84,7 +84,7 @@ describe("one page per mile, on every device", () => {
     "the %s page shows every question of the mile under one sign, with no app navigation",
     (label, mile) => {
       const steps = stepsOfMile(mile);
-      renderFlow(steps[0].id, driverAt(11, { cdlClass: "A" }));
+      renderFlow(steps[0].id, driverAt(12, { cdlClass: "A" }));
       expect(heading()).toHaveTextContent(label);
       expect(screen.getByText(`Mile ${mile} of ${MILES.length}`)).toBeInTheDocument();
       for (const step of steps) {
@@ -105,7 +105,7 @@ describe("one page per mile, on every device", () => {
   it("never asks work type, W-2 or 1099, driving style, availability, certifications, papers or about you", () => {
     for (const step of STEPS) {
       if (step.id === "done") continue;
-      renderFlow(step.id, driverAt(11, { cdlClass: "A" }));
+      renderFlow(step.id, driverAt(12, { cdlClass: "A" }));
     }
     for (const gone of [
       "What work do you do?",
@@ -141,7 +141,7 @@ describe("one page per mile, on every device", () => {
     tall.unmount();
 
     stubPageHeight(600);
-    renderFlow("credentials", driverAt(5));
+    renderFlow("credentials", driverAt(6));
     expect(hint()).not.toBeInTheDocument();
   });
 });
@@ -329,7 +329,7 @@ describe("About page, the lead: name, ZIP, class and the optional box on one scr
 });
 
 describe("Driving page: distance, years, record", () => {
-  it("every question is required, then the three screens save in order and the Cards page follows", async () => {
+  it("every question is required, then the three screens save in order and the Clearinghouse and SAP page follows", async () => {
     actions.saveOnboardingScreenAction
       .mockResolvedValueOnce(ok(driverAt(3, { cdlClass: "A", serviceRadiusMiles: 100 })))
       .mockResolvedValueOnce(ok(driverAt(4, { cdlClass: "A", serviceRadiusMiles: 100, yearsExperience: 3 })))
@@ -361,7 +361,8 @@ describe("Driving page: distance, years, record", () => {
     await userEvent.click(checkChip(MVR_QUESTION, "1 or 2 minor"));
     await userEvent.click(next());
 
-    await waitFor(() => expect(heading()).toHaveTextContent("Cards"));
+    // The optional Clearinghouse and SAP page follows (2026-10-29), then the cards.
+    await waitFor(() => expect(heading()).toHaveTextContent("Clearinghouse and SAP"));
     expect(savedScreens()).toEqual(["distance", "experience", "record"]);
     expect(actions.saveOnboardingScreenAction.mock.calls.map((call) => call[1])).toEqual([
       { serviceRadiusMiles: 100 },
@@ -397,9 +398,9 @@ describe("Driving page: distance, years, record", () => {
 describe("Cards page", () => {
   it("asks TWIC and medical card as two yes-or-no questions, both required", async () => {
     actions.saveOnboardingScreenAction.mockResolvedValue(
-      ok(driverAt(6, { twicActive: true, medicalCardActive: false })),
+      ok(driverAt(7, { twicActive: true, medicalCardActive: false })),
     );
-    renderFlow("credentials", driverAt(5));
+    renderFlow("credentials", driverAt(6));
     const twic = CARD_CHECKS.twicActive.question;
     const medical = CARD_CHECKS.medicalCardActive.question;
     expect(screen.getByText("Carriers ask for both. You can update these any time.")).toBeInTheDocument();
@@ -419,7 +420,7 @@ describe("Cards page", () => {
   });
 
   it("shows saved answers as pressed chips", () => {
-    renderFlow("credentials", driverAt(6, { twicActive: false, medicalCardActive: true }));
+    renderFlow("credentials", driverAt(7, { twicActive: false, medicalCardActive: true }));
     expect(checkChip(CARD_CHECKS.twicActive.question, "No")).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -435,11 +436,11 @@ describe("Cards page", () => {
 describe("Letters page: endorsements and transmission", () => {
   it("X picks H and N with a note, dropping N drops X, None clears everything, and the transmission is required", async () => {
     actions.saveOnboardingScreenAction
-      .mockResolvedValueOnce(ok(driverAt(7, { cdlClass: "A", endorsements: ["T"] })))
+      .mockResolvedValueOnce(ok(driverAt(8, { cdlClass: "A", endorsements: ["T"] })))
       .mockResolvedValueOnce(
-        ok(driverAt(8, { cdlClass: "A", endorsements: ["T"], transmission: "automatic_only" })),
+        ok(driverAt(9, { cdlClass: "A", endorsements: ["T"], transmission: "automatic_only" })),
       );
-    renderFlow("endorsements", driverAt(6, { cdlClass: "A" }));
+    renderFlow("endorsements", driverAt(7, { cdlClass: "A" }));
     expect(screen.getByRole("img", { name: /front of a CDL/ })).toBeInTheDocument();
     expect(screen.getByText(/These are called endorsements/)).toBeInTheDocument();
     expect(screen.getByText("Can you drive a manual?")).toBeInTheDocument();
@@ -494,9 +495,9 @@ describe("Letters page: endorsements and transmission", () => {
 describe("Equipment page", () => {
   it("chips, at least one, then the Finish page follows", async () => {
     actions.saveOnboardingScreenAction.mockResolvedValue(
-      ok(driverAt(9, { equipmentTypes: ["dry_van", "reefer"] })),
+      ok(driverAt(10, { equipmentTypes: ["dry_van", "reefer"] })),
     );
-    renderFlow("equipment", driverAt(8));
+    renderFlow("equipment", driverAt(9));
     expect(screen.getByText("Pick everything you have pulled or driven.")).toBeInTheDocument();
     await userEvent.click(next());
     await waitFor(() => expect(alerts()).toEqual([EQUIPMENT_MESSAGE]));
@@ -511,11 +512,59 @@ describe("Equipment page", () => {
   });
 });
 
+describe("Clearinghouse and SAP page (optional, 2026-10-29)", () => {
+  const box = () => screen.getByRole("checkbox", { name: /I confirm I have no unresolved violations/ });
+
+  it("shows the exact words, unchecked, with Continue and Skip, and a tick saves a yes", async () => {
+    actions.saveOnboardingScreenAction.mockResolvedValue(
+      ok(driverAt(6, { clearinghouseSelfReportedAt: "2026-10-29T15:00:00.000Z" })),
+    );
+    renderFlow("clearinghouse", driverAt(5));
+    expect(heading()).toHaveTextContent("Clearinghouse and SAP");
+    expect(box()).not.toBeChecked();
+    expect(screen.getByText(/I confirm I have no unresolved violations/)).toHaveTextContent(
+      "I confirm I have no unresolved violations in the FMCSA Drug & Alcohol Clearinghouse and I am not in a SAP return-to-duty process. I understand carriers will verify this before hiring.",
+    );
+    expect(screen.getByRole("button", { name: "Back" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Skip" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
+
+    await userEvent.click(box());
+    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await waitFor(() => expect(heading()).toHaveTextContent("Cards"));
+    expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("clearinghouse", { clearinghouseConfirmed: true });
+  });
+
+  it("Skip saves no answer and moves on, even with the box ticked", async () => {
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(driverAt(6)));
+    renderFlow("clearinghouse", driverAt(5));
+    await userEvent.click(box());
+    await userEvent.click(screen.getByRole("button", { name: "Skip" }));
+    await waitFor(() => expect(heading()).toHaveTextContent("Cards"));
+    expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("clearinghouse", { clearinghouseConfirmed: false });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("Continue without the tick is the same as Skip: no error, no answer", async () => {
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(driverAt(6)));
+    renderFlow("clearinghouse", driverAt(5));
+    await userEvent.click(screen.getByRole("button", { name: "Continue" }));
+    await waitFor(() => expect(heading()).toHaveTextContent("Cards"));
+    expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("clearinghouse", { clearinghouseConfirmed: false });
+  });
+
+  it("shows an earlier yes as ticked", () => {
+    renderFlow("clearinghouse", driverAt(6, { clearinghouseSelfReportedAt: "2026-10-29T15:00:00.000Z" }));
+    expect(box()).toBeChecked();
+    expect(screen.getByText("Saved")).toBeInTheDocument();
+  });
+});
+
 describe("Finish page: consent and done", () => {
   it("asks how the driver heard of FleetGrid, optional, saved before the consent", async () => {
-    const complete = buildDriver({ onboardingStep: 11, cardCompleted: true, smsOptIn: false, heardFrom: "other", heardFromOther: "Radio ad" });
+    const complete = buildDriver({ onboardingStep: 12, cardCompleted: true, smsOptIn: false, heardFrom: "other", heardFromOther: "Radio ad" });
     actions.saveOnboardingScreenAction.mockResolvedValue(ok(complete));
-    renderFlow("heardFrom", answeredAt(9));
+    renderFlow("heardFrom", answeredAt(10));
     expect(screen.getByText("Optional. It tells us where to put the next flyers.")).toBeInTheDocument();
     const group = screen.getByRole("group", { name: "How did you hear about FleetGrid?" });
     for (const name of ["Flyer at a truck stop or shop", "Facebook or Instagram", "Google search", "A friend or coworker", "Other"]) {
@@ -538,9 +587,9 @@ describe("Finish page: consent and done", () => {
   });
 
   it("leaves the consent box out for a driver who ticked it on the lead: the source question carries the last button", async () => {
-    const complete = buildDriver({ onboardingStep: 11, cardCompleted: true, heardFrom: "flyer" });
+    const complete = buildDriver({ onboardingStep: 12, cardCompleted: true, heardFrom: "flyer" });
     actions.saveOnboardingScreenAction.mockResolvedValue(ok(complete));
-    renderFlow("heardFrom", buildDriver({ onboardingStep: 9, cardCompleted: false, smsOptIn: true }));
+    renderFlow("heardFrom", buildDriver({ onboardingStep: 10, cardCompleted: false, smsOptIn: true }));
     expect(screen.queryByText("Can we text you about shifts?")).not.toBeInTheDocument();
     expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Next" })).not.toBeInTheDocument();
@@ -553,8 +602,8 @@ describe("Finish page: consent and done", () => {
   });
 
   it("goes on without an answer to the source question", async () => {
-    actions.saveOnboardingScreenAction.mockResolvedValue(ok(buildDriver({ onboardingStep: 11, cardCompleted: true, smsOptIn: false })));
-    renderFlow("consent", answeredAt(9));
+    actions.saveOnboardingScreenAction.mockResolvedValue(ok(buildDriver({ onboardingStep: 12, cardCompleted: true, smsOptIn: false })));
+    renderFlow("consent", answeredAt(10));
     await userEvent.click(screen.getByRole("button", { name: "Find local shifts" }));
     await waitFor(() => expect(heading()).toHaveTextContent("You're in!"));
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
@@ -562,9 +611,9 @@ describe("Finish page: consent and done", () => {
   });
 
   it("the consent box is optional and unchecked, with links to all three legal pages", async () => {
-    const complete = buildDriver({ onboardingStep: 11, cardCompleted: true, smsOptIn: false });
+    const complete = buildDriver({ onboardingStep: 12, cardCompleted: true, smsOptIn: false });
     actions.saveOnboardingScreenAction.mockResolvedValue(ok(complete));
-    renderFlow("consent", answeredAt(9));
+    renderFlow("consent", answeredAt(10));
     expect(screen.getByText(/This is optional/)).toBeInTheDocument();
     const box = screen.getByRole("checkbox", { name: new RegExp(SMS_CONSENT_TEXT.slice(0, 20)) });
     expect(box).not.toBeChecked();
@@ -593,9 +642,9 @@ describe("Finish page: consent and done", () => {
   });
 
   it("ticking the box, then Find local shifts shows the done screen and refreshes", async () => {
-    const complete = buildDriver({ onboardingStep: 11, cardCompleted: true });
+    const complete = buildDriver({ onboardingStep: 12, cardCompleted: true });
     actions.saveOnboardingScreenAction.mockResolvedValue(ok(complete));
-    renderFlow("consent", answeredAt(9));
+    renderFlow("consent", answeredAt(10));
     expect(
       screen.getByText(/Shift offers come by text to \(\*\*\*\) \*\*\*-0100/),
     ).toBeInTheDocument();
@@ -635,7 +684,7 @@ describe("Finish page: consent and done", () => {
   });
 
   it("the summary can send the driver back to the Driving page, with the record shown, and to the lead for the class", async () => {
-    const { unmount } = renderFlow("done", buildDriver({ onboardingStep: 11, cardCompleted: true }));
+    const { unmount } = renderFlow("done", buildDriver({ onboardingStep: 12, cardCompleted: true }));
     await userEvent.click(screen.getByRole("button", { name: "Edit record" }));
     expect(heading()).toHaveTextContent("Driving");
     expect(checkChip(MVR_QUESTION, "None")).toHaveAttribute("aria-pressed", "true");
@@ -643,7 +692,7 @@ describe("Finish page: consent and done", () => {
     expect(screen.queryByRole("radio", { name: /Class A/ })).not.toBeInTheDocument();
     unmount();
 
-    renderFlow("done", buildDriver({ onboardingStep: 11, cardCompleted: true }));
+    renderFlow("done", buildDriver({ onboardingStep: 12, cardCompleted: true }));
     await userEvent.click(screen.getByRole("button", { name: "Edit cdl class" }));
     expect(heading()).toHaveTextContent("About");
     expect(screen.getByRole("radio", { name: /Class A/ })).toHaveAttribute("aria-checked", "true");
@@ -652,7 +701,7 @@ describe("Finish page: consent and done", () => {
 
   it("shows a server error without a matching field as a note", async () => {
     actions.saveOnboardingScreenAction.mockResolvedValue(failure("Finish the earlier steps first"));
-    renderFlow("equipment", answeredAt(8));
+    renderFlow("equipment", answeredAt(9));
     await userEvent.click(next());
     expect(await screen.findByRole("alert")).toHaveTextContent("Finish the earlier steps first");
     expect(heading()).toHaveTextContent("Equipment");
@@ -697,8 +746,8 @@ describe("the road", () => {
 
     expect(container.querySelector("[data-slot=lane-fill]")).toBe(fill);
     expect(container.querySelector("[data-slot=lane-truck]")).toBe(truck);
-    expect(fill.style.width).toBe("10%");
-    expect(truck.style.left).toBe("10%");
+    expect(fill.style.width).toBe("9%");
+    expect(truck.style.left).toBe("9%");
   });
 });
 

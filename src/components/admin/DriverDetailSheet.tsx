@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { DetailSheet } from "@/components/admin/DetailSheet";
+import { SelfReportBadge } from "@/components/admin/SelfReportBadge";
 import { areaLabel, smsLabel } from "@/components/admin/DriversTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -15,7 +16,11 @@ import { APPROVE_INCOMPLETE_REASON, CONFIRMATIONS, STATUS_DONE } from "@/lib/adm
 import { heardFromLabel, referrerLabel, tagsLabel } from "@/lib/admin/source";
 import { summarizeDriver } from "@/lib/carrier/driverSummary";
 import { formatFileSize } from "@/lib/image";
-import { DRIVING_STYLE_OPTIONS, EMPLOYMENT_TYPE_OPTIONS } from "@/lib/onboarding/options";
+import {
+  CLEARINGHOUSE_SELF_REPORT_NOTE,
+  DRIVING_STYLE_OPTIONS,
+  EMPLOYMENT_TYPE_OPTIONS,
+} from "@/lib/onboarding/options";
 import { formatE164ForDisplay } from "@/lib/phone";
 import {
   approveDriverAction,
@@ -94,7 +99,7 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
       value: driver.drivingStyles.map((style) => labelOf(DRIVING_STYLE_OPTIONS, style)).join(", "),
     },
     driver.clearinghouseRegistered !== null && {
-      label: "Clearinghouse",
+      label: "Clearinghouse account",
       value: driver.clearinghouseRegistered ? "Registered" : "Not registered",
     },
     driver.availability.length > 0 && {
@@ -219,6 +224,24 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
           {driver.bio && (
             <blockquote className="rounded-card border border-border bg-card p-3 text-helper leading-helper">{driver.bio}</blockquote>
           )}
+        </Section>
+
+        <Section title="Clearinghouse and SAP">
+          <div className="flex flex-col gap-2 rounded-card border border-border bg-card p-3" data-slot="self-report">
+            {driver.clearinghouseSelfReportedAt ? (
+              <>
+                <SelfReportBadge className="self-start" />
+                <p className="text-helper leading-helper">
+                  Confirmed on {format(new Date(driver.clearinghouseSelfReportedAt), "MMMM d, yyyy")}
+                </p>
+              </>
+            ) : (
+              <p className="text-helper leading-helper font-semibold">Not answered</p>
+            )}
+            <p className="text-small leading-small text-muted-foreground" data-slot="self-report-note">
+              {CLEARINGHOUSE_SELF_REPORT_NOTE}
+            </p>
+          </div>
         </Section>
 
         <Section title="Papers">

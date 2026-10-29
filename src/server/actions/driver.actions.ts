@@ -56,6 +56,18 @@ export async function updateSmsConsentAction(input: unknown): Promise<Result<Loc
   });
 }
 
+/** The profile page's "Clearinghouse and SAP" box: ticked saves a yes, unticked withdraws it. */
+export async function updateClearinghouseSelfReportAction(input: unknown): Promise<Result<LocatedDriver>> {
+  return runAction(async () => {
+    const { user } = await requireRole("driver");
+    const { driverService } = await getContainer();
+    const driver = await driverService.setClearinghouseSelfReport(user.id, input);
+    revalidatePath("/driver", "layout");
+    revalidatePath("/admin", "layout");
+    return driver;
+  });
+}
+
 /** Step 1 of an upload: validates the file details and returns a one-time upload token. */
 export async function prepareDocumentUploadAction(input: unknown): Promise<Result<PreparedUpload>> {
   return runAction(async () => {

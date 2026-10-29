@@ -74,9 +74,26 @@ export interface IDriverRepository {
   findByProfileId(profileId: string): Promise<Driver | null>;
   create(profileId: string, input: CreateDriverInput): Promise<Driver>;
   update(profileId: string, patch: DriverPatch): Promise<Driver>;
+  /**
+   * The self-reported Clearinghouse and SAP answer (0021): true writes a yes with the
+   * database's time (a new time when confirmed again), false deletes the answer and its date.
+   */
+  setClearinghouseSelfReport(driverId: string, confirmed: boolean): Promise<void>;
 }
 
-export function mapDriver(row: DriverRow): Driver {
+/** The card plus, for the driver and admins, the self-reported answer (0021). */
+export const DRIVER_SELECT = "*, driver_clearinghouse_self_reports(confirmed_at)";
+
+type SelfReportEmbed = { confirmed_at: string } | { confirmed_at: string }[] | null | undefined;
+
+/** The embedded answer's time, one-to-one or as a list depending on the client's reading of the key. */
+function selfReportedAt(embed: SelfReportEmbed): string | null {
+  if (!embed) return null;
+  const report = Array.isArray(embed) ? embed[0] : embed;
+  return report?.confirmed_at ?? null;
+}
+
+export function mapDriver(row: DriverRow & { driver_clearinghouse_self_reports?: SelfReportEmbed }): Driver {
   return {
     id: row.id,
     profileId: row.profile_id,
@@ -109,6 +126,7 @@ export function mapDriver(row: DriverRow): Driver {
     smsOptedOutAt: row.sms_opted_out_at,
     heardFrom: row.heard_from,
     heardFromOther: row.heard_from_other,
+    clearinghouseSelfReportedAt: selfReportedAt(row.driver_clearinghouse_self_reports),
     onboardingStep: row.onboarding_step,
     cardCompleted: row.card_completed,
     createdAt: row.created_at,
@@ -162,7 +180,7 @@ export class DriverRepository extends BaseRepository implements IDriverRepositor
   async findByProfileId(profileId: string): Promise<Driver | null> {
     const result = await this.supabase
       .from("drivers")
-      .select("*")
+      .select(DRIVER_SELECT)
       .eq("profile_id", profileId)
       .maybeSingle();
     const row = this.unwrapMaybe(result);
@@ -200,8 +218,17 @@ export class DriverRepository extends BaseRepository implements IDriverRepositor
       .from("drivers")
       .update(toDriverUpdate(patch))
       .eq("profile_id", profileId)
-      .select("*")
+      .select(DRIVER_SELECT)
       .single();
     return mapDriver(this.unwrap(result));
+  }
+
+  async setClearinghouseSelfReport(driverId: string, confirmed: boolean): Promise<void> {
+    const table = this.supabase.from("driver_clearinghouse_self_reports");
+    // The time is stamped by the database (0021), so a fresh yes always carries a fresh time.
+    const result = confirmed
+      ? await table.upsert({ driver_id: driverId }, { onConflict: "driver_id" })
+      : await table.delete().eq("driver_id", driverId);
+    if (result.error) this.unwrap(result);
   }
 }

@@ -62,6 +62,12 @@ export default function PrivacyPage() {
           code; you do not type them.
         </li>
         <li>
+          <strong>Clearinghouse and SAP self-report</strong> (drivers, optional): drivers may
+          self-report their Clearinghouse and SAP status. We store only a yes or no answer and
+          the date, not any violation details. A driver can withdraw it from their profile, which
+          deletes it. It is not shown to carriers.
+        </li>
+        <li>
           <strong>Documents you upload</strong> (drivers): photos or PDFs of your CDL, medical card
           and other papers.
         </li>

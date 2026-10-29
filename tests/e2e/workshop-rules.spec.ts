@@ -87,7 +87,7 @@ test.describe("Workshop rules", () => {
     await resetUser(PHONES.driver);
   });
 
-  for (const stepNumber of [1, 2, 5, 6, 8, 9, 10, 11]) {
+  for (const stepNumber of [1, 2, 5, 6, 7, 9, 10, 11, 12]) {
     test(`orange is only the primary fill, progress fill, sign stripe and check badge on step ${stepNumber}`, async ({
       page,
     }) => {
@@ -174,13 +174,13 @@ test.describe("Workshop rules", () => {
     await expect(page).toHaveURL(/\/login$/);
   });
 
-  for (const stepNumber of [1, 3, 6, 9, 10]) {
+  for (const stepNumber of [1, 3, 5, 7, 10, 12]) {
     test(`eyebrow, stage highlight and truck position on step ${stepNumber} come from steps.ts`, async ({
       page,
     }) => {
       const expected = progressFor(STEPS[stepNumber - 1].id);
       await openStep(page, stepNumber);
-      if (stepNumber !== 10) {
+      if (stepNumber !== 12) {
         // A page is one mile: its eyebrow is the mile count and its title the mile label.
         await expect(page.locator("[data-slot=sign-eyebrow]")).toHaveText(expected.eyebrow);
         await expect(page.locator("[data-slot=sign-title]")).toHaveText(expected.mile.label);
@@ -205,7 +205,7 @@ test.describe("Workshop rules", () => {
     });
   }
 
-  for (const stepNumber of [1, 3, 5, 7, 9]) {
+  for (const stepNumber of [1, 3, 5, 6, 8, 10]) {
     test(`every control on step ${stepNumber} is at least 48px, the main action 56px`, async ({
       page,
     }) => {

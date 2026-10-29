@@ -160,6 +160,7 @@ function ScreenPage({ stepId, pageSteps, context, onBack, onSaved }: ScreenPageP
   const blocked = definitions.some((definition) => definition.blocked?.(values, context));
   const last = definitions[definitions.length - 1];
   const nextLabel = last.nextLabel?.(values, context) ?? "Next";
+  const secondaryAction = definitions.length === 1 ? last.secondaryAction : undefined;
   const progress = progressFor(stepId);
   const saved = context.driver !== null && stepNumber(last.id) < context.driver.onboardingStep;
   const hasBack = previousStepId(pageSteps[0].id) !== null;
@@ -223,6 +224,17 @@ function ScreenPage({ stepId, pageSteps, context, onBack, onSaved }: ScreenPageP
         nextDisabled={blocked}
         onBack={hasBack ? onBack : undefined}
         saved={saved}
+        secondary={
+          secondaryAction && {
+            label: secondaryAction.label,
+            onClick: () => {
+              for (const [field, value] of Object.entries(secondaryAction.values)) {
+                form.setValue(field as OnboardingField, value as never);
+              }
+              void submit();
+            },
+          }
+        }
       />
     </>
   );

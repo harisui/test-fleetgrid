@@ -306,7 +306,7 @@ export const DRIVERS = {
       },
       {
         title: "Answer the driver card",
-        text: "Your name, ZIP and CDL class first, then one mile at a time: Driving, Cards, Letters, Equipment, Finish.",
+        text: "Your name, ZIP and CDL class first, then one mile at a time: Driving, Clearinghouse and SAP (optional), Cards, Letters, Equipment, Finish.",
       },
       {
         title: "Add your papers when you are ready",

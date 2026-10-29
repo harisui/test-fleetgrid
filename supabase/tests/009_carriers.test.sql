@@ -95,7 +95,7 @@ returns void language sql as $$
   values (p_id, p_profile, p_name, '{cdl_driver}', p_class, p_letters, p_years, 'Houston', 'TX', '77002',
     p_lat, p_lng, 50, p_transmission, p_equipment, p_twic, p_medical, p_mvr,
     p_opt_in, case when p_opt_in then now() end, case when p_opt_in then 'I agree' end,
-    p_opted_out, case when p_opted_out then now() end, 11, true);
+    p_opted_out, case when p_opted_out then now() end, 12, true);
 $$;
 
 select pg_temp.card('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', '11111111-1111-4111-8111-111111111111', 'Listed Houston', 29.7594, -95.3594);

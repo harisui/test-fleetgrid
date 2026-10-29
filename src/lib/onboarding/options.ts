@@ -231,8 +231,10 @@ export const CARD_CHECKS = {
     no: "No",
     summary: { yes: "medical card current", no: "medical card not current" },
   },
+  // The profile's account question, kept apart in words from the sign-up's "Clearinghouse and
+  // SAP" self-report (client decision of 2026-10-29), so nobody thinks it is asked twice.
   clearinghouseRegistered: {
-    question: "Are you registered in the FMCSA Clearinghouse?",
+    question: "Registered in the Clearinghouse",
     yes: "Registered",
     no: "Not yet",
     summary: { yes: "In the Clearinghouse", no: "Not in the Clearinghouse" },
@@ -294,3 +296,18 @@ export const ONBOARDING_DOCUMENT_TILES: readonly DocumentTile[] = [
   { type: "medical_card", label: "Medical card", max: 1 },
   OTHER_PAPERS_TILE,
 ];
+
+/**
+ * The self-reported Clearinghouse and SAP answer (client brief of 2026-10-29): the box's
+ * exact words, on the sign-up screen and the profile. Ticked, it is a yes with a time;
+ * nothing else is ever stored.
+ */
+export const CLEARINGHOUSE_SELF_REPORT_TEXT =
+  "I confirm I have no unresolved violations in the FMCSA Drug & Alcohol Clearinghouse and I am not in a SAP return-to-duty process. I understand carriers will verify this before hiring.";
+
+/** The admin's badge. Neutral on purpose: it is the driver's word, never a check, and never "clean". */
+export const CLEARINGHOUSE_SELF_REPORT_BADGE = "Self-reported: No Clearinghouse / No SAP";
+
+/** Under the answer in the admin's detail sheet. */
+export const CLEARINGHOUSE_SELF_REPORT_NOTE =
+  "Self-reported by the driver. Carriers must run their own Clearinghouse query.";

@@ -1,3 +1,4 @@
+import { clearinghouseScreen } from "@/components/driver/screens/ClearinghouseScreen";
 import { consentScreen } from "@/components/driver/screens/ConsentScreen";
 import { credentialsScreen } from "@/components/driver/screens/CredentialsScreen";
 import { distanceScreen } from "@/components/driver/screens/DistanceScreen";
@@ -17,6 +18,7 @@ export const SCREENS: Record<SavableStepId, ScreenDefinition> = {
   distance: distanceScreen,
   experience: experienceScreen,
   record: recordScreen,
+  clearinghouse: clearinghouseScreen,
   credentials: credentialsScreen,
   endorsements: endorsementsScreen,
   transmission: transmissionScreen,

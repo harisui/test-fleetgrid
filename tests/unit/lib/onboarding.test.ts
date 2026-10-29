@@ -48,34 +48,36 @@ import {
 } from "@/types/domain";
 
 describe("steps config", () => {
-  it("has six miles labelled About, Driving, Cards, Letters, Equipment, Finish", () => {
+  it("has seven miles labelled About, Driving, Clearinghouse and SAP, Cards, Letters, Equipment, Finish", () => {
     expect(MILES.map((mile) => `${mile.mile} ${mile.label}`)).toEqual([
       "1 About",
       "2 Driving",
-      "3 Cards",
-      "4 Letters",
-      "5 Equipment",
-      "6 Finish",
+      "3 Clearinghouse and SAP",
+      "4 Cards",
+      "5 Letters",
+      "6 Equipment",
+      "7 Finish",
     ]);
     expect(Object.keys(MILE_SUMMARIES).map(Number)).toEqual(MILES.map((mile) => mile.mile));
   });
 
-  it("has eleven screens: the lead first (brief of 2026-10-28), then one page per mile, and the mile map", () => {
+  it("has twelve screens: the lead first (brief of 2026-10-28), the optional Clearinghouse and SAP page after Driving (2026-10-29), and the mile map", () => {
     expect(STEPS.map((step) => `${step.mile}:${step.id}`)).toEqual([
       "1:lead",
       "2:distance",
       "2:experience",
       "2:record",
-      "3:credentials",
-      "4:endorsements",
-      "4:transmission",
-      "5:equipment",
-      "6:heardFrom",
-      "6:consent",
-      "6:done",
+      "3:clearinghouse",
+      "4:credentials",
+      "5:endorsements",
+      "5:transmission",
+      "6:equipment",
+      "7:heardFrom",
+      "7:consent",
+      "7:done",
     ]);
-    expect(DONE_STEP_NUMBER).toBe(11);
-    expect(SAVABLE_STEP_IDS).toHaveLength(10);
+    expect(DONE_STEP_NUMBER).toBe(12);
+    expect(SAVABLE_STEP_IDS).toHaveLength(11);
     expect(SAVABLE_STEP_IDS).not.toContain("done");
     // Name, ZIP and CDL class live on the lead alone: nothing is asked twice.
     for (const gone of ["name", "zip", "cdlClass"]) expect(STEPS.map((step) => step.id as string)).not.toContain(gone);
@@ -125,11 +127,12 @@ describe("steps config", () => {
 
   it("numbers steps from 1 and looks them up both ways", () => {
     expect(stepNumber("lead")).toBe(1);
-    expect(stepNumber("done")).toBe(11);
-    expect(stepNumber("heardFrom")).toBe(9);
+    expect(stepNumber("done")).toBe(12);
+    expect(stepNumber("clearinghouse")).toBe(5);
+    expect(stepNumber("heardFrom")).toBe(10);
     expect(stepByNumber(4).id).toBe("record");
     expect(() => stepByNumber(0)).toThrow(/Unknown onboarding step/);
-    expect(() => stepByNumber(12)).toThrow(/Unknown onboarding step/);
+    expect(() => stepByNumber(13)).toThrow(/Unknown onboarding step/);
     expect(() => stepByNumber(1.5)).toThrow(/Unknown onboarding step/);
     expect(() => stepById("nope" as never)).toThrow(/Unknown onboarding step/);
   });
@@ -151,13 +154,13 @@ describe("progressFor", () => {
     expect(progressFor("experience")).toMatchObject({
       number: 3,
       mile: { mile: 2, label: "Driving" },
-      percent: 20,
-      eyebrow: "Mile 2 of 6",
-      srLabel: "Step 2 of 6: Driving",
+      percent: 18,
+      eyebrow: "Mile 2 of 7",
+      srLabel: "Step 2 of 7: Driving",
       completedMiles: [1],
     });
     expect(progressFor("lead")).toMatchObject({ percent: 0, completedMiles: [] });
-    expect(progressFor("done")).toMatchObject({ percent: 100, completedMiles: [1, 2, 3, 4, 5] });
+    expect(progressFor("done")).toMatchObject({ percent: 100, completedMiles: [1, 2, 3, 4, 5, 6] });
   });
 
   it("moves the truck forward on every screen", () => {
@@ -172,7 +175,8 @@ describe("flow navigation", () => {
   it("walks the screens in order, forwards and backwards", () => {
     expect(nextStepId("lead")).toBe("distance");
     expect(nextStepId("distance")).toBe("experience");
-    expect(nextStepId("record")).toBe("credentials");
+    expect(nextStepId("record")).toBe("clearinghouse");
+    expect(nextStepId("clearinghouse")).toBe("credentials");
     expect(nextStepId("credentials")).toBe("endorsements");
     expect(nextStepId("transmission")).toBe("equipment");
     expect(nextStepId("equipment")).toBe("heardFrom");
@@ -190,10 +194,11 @@ describe("flow navigation", () => {
   it("groups a mile's screens as one page, never the done screen", () => {
     expect(stepsOfMile(1).map((step) => step.id)).toEqual(["lead"]);
     expect(stepsOfMile(2).map((step) => step.id)).toEqual(["distance", "experience", "record"]);
-    expect(stepsOfMile(3).map((step) => step.id)).toEqual(["credentials"]);
-    expect(stepsOfMile(4).map((step) => step.id)).toEqual(["endorsements", "transmission"]);
-    expect(stepsOfMile(5).map((step) => step.id)).toEqual(["equipment"]);
-    expect(stepsOfMile(6).map((step) => step.id)).toEqual(["heardFrom", "consent"]);
+    expect(stepsOfMile(3).map((step) => step.id)).toEqual(["clearinghouse"]);
+    expect(stepsOfMile(4).map((step) => step.id)).toEqual(["credentials"]);
+    expect(stepsOfMile(5).map((step) => step.id)).toEqual(["endorsements", "transmission"]);
+    expect(stepsOfMile(6).map((step) => step.id)).toEqual(["equipment"]);
+    expect(stepsOfMile(7).map((step) => step.id)).toEqual(["heardFrom", "consent"]);
   });
 });
 
@@ -283,7 +288,8 @@ describe("options", () => {
       ["medicalCardActive", "Is your DOT medical card current?", "Yes", "No"],
       [
         "clearinghouseRegistered",
-        "Are you registered in the FMCSA Clearinghouse?",
+        // The profile's account question, worded apart from the sign-up's self-report (2026-10-29).
+        "Registered in the Clearinghouse",
         "Registered",
         "Not yet",
       ],

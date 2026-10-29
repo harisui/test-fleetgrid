@@ -178,6 +178,39 @@ describe("DriverRepository (local Supabase)", () => {
     });
   });
 
+  it("the Clearinghouse and SAP self-report: a yes with the database's time, read back with the card, withdrawn, given again", async () => {
+    const card = (await repository.findByProfileId(driver.id))!;
+    expect(card.clearinghouseSelfReportedAt).toBeNull();
+    await repository.setClearinghouseSelfReport(card.id, true);
+    const first = (await repository.findByProfileId(driver.id))!.clearinghouseSelfReportedAt;
+    expect(first).not.toBeNull();
+    expect(Math.abs(Date.parse(first!) - Date.now())).toBeLessThan(60_000);
+    // update() returns the answer too.
+    expect((await repository.update(driver.id, { onboardingStep: card.onboardingStep })).clearinghouseSelfReportedAt).toBe(first);
+
+    await repository.setClearinghouseSelfReport(card.id, false);
+    expect((await repository.findByProfileId(driver.id))!.clearinghouseSelfReportedAt).toBeNull();
+    const { count } = await serviceClient()
+      .from("driver_clearinghouse_self_reports")
+      .select("driver_id", { count: "exact", head: true })
+      .eq("driver_id", card.id);
+    expect(count).toBe(0);
+
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    await repository.setClearinghouseSelfReport(card.id, true);
+    const again = (await repository.findByProfileId(driver.id))!.clearinghouseSelfReportedAt;
+    expect(Date.parse(again!)).toBeGreaterThan(Date.parse(first!));
+    await repository.setClearinghouseSelfReport(card.id, true);
+    expect(Date.parse((await repository.findByProfileId(driver.id))!.clearinghouseSelfReportedAt!)).toBeGreaterThanOrEqual(Date.parse(again!));
+    await repository.setClearinghouseSelfReport(card.id, false);
+  });
+
+  it("another driver cannot write a self-report on this card", async () => {
+    const card = (await repository.findByProfileId(driver.id))!;
+    const error = await expectAppError(new DriverRepository(otherDriver.client).setClearinghouseSelfReport(card.id, true));
+    expect(error.code).toBe("FORBIDDEN");
+  });
+
   it("update can clear nullable fields and store consent with completion", async () => {
     await repository.update(driver.id, { availability: ["full_time"], bio: "Hello", city: null });
     const consentAt = "2026-10-05T15:30:00.000Z";

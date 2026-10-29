@@ -6,6 +6,7 @@ import {
   CDL_CLASS_MESSAGE,
   cdlClassScreenSchema,
   CONSENT_MESSAGE,
+  clearinghouseScreenSchema,
   consentScreenSchema,
   credentialsScreenSchema,
   leadScreenSchema,
@@ -66,6 +67,16 @@ describe("lead: name, ZIP, class and the optional consent on one screen", () => 
     expect(errorsOf(leadScreenSchema, { fullName: "Pat Driver", zip: "60601", cdlClass: "A", consent: "yes" })).toEqual({
       consent: CONSENT_MESSAGE,
     });
+  });
+});
+
+describe("Clearinghouse and SAP", () => {
+  it("is a yes only for a real tick; anything else is not answered, never an error", () => {
+    expect(clearinghouseScreenSchema.parse({ clearinghouseConfirmed: true })).toEqual({ clearinghouseConfirmed: true });
+    for (const value of [false, "true", 1, null, undefined]) {
+      expect(clearinghouseScreenSchema.parse({ clearinghouseConfirmed: value })).toEqual({ clearinghouseConfirmed: false });
+    }
+    expect(clearinghouseScreenSchema.parse({})).toEqual({ clearinghouseConfirmed: false });
   });
 });
 

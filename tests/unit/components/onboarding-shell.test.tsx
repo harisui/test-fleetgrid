@@ -68,12 +68,13 @@ describe("LaneProgress", () => {
     expect(container.innerHTML).not.toMatch(/animate-/);
   });
 
-  it("labels the stages About, Driving, Cards, Letters, Equipment, Finish", () => {
+  it("labels the stages About, Driving, Clearinghouse and SAP, Cards, Letters, Equipment, Finish", () => {
     render(<LaneProgress stepId="lead" />);
     const stages = within(screen.getByRole("list", { name: "Stages" })).getAllByRole("listitem");
     expect(stages.map((item) => item.textContent?.replace(/Stage \d:/, "").trim())).toEqual([
       "About",
       "Driving",
+      "Clearinghouse and SAP",
       "Cards",
       "Letters",
       "Equipment",

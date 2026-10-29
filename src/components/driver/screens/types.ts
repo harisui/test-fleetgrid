@@ -28,6 +28,7 @@ export interface OnboardingFormValues {
   equipmentTypes?: EquipmentType[];
   heardFrom?: HeardFrom | null;
   heardFromOther?: string;
+  clearinghouseConfirmed?: boolean;
   consent?: boolean;
 }
 
@@ -56,6 +57,11 @@ export interface ScreenDefinition {
   nextLabel?: (values: OnboardingFormValues, context: ScreenContext) => string;
   /** True when Next must stay disabled until the driver resolves something on the screen. */
   blocked?: (values: OnboardingFormValues, context: ScreenContext) => boolean;
+  /**
+   * A second way on: a secondary button beside the main one (for example "Skip") that saves
+   * the screen with these values instead of what is on the form.
+   */
+  secondaryAction?: { label: string; values: OnboardingFormValues };
   /** True when the screen is left out of its page, neither shown nor saved (the end consent after a lead opt-in). */
   skip?: (context: ScreenContext) => boolean;
 }

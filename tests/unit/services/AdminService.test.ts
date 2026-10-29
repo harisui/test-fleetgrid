@@ -184,6 +184,7 @@ describe("AdminService", () => {
         complete: "",
         area: "",
         source: "",
+        selfReport: "",
         qr: undefined,
         q: "",
         sort: "created",
@@ -220,6 +221,15 @@ describe("AdminService", () => {
       admin.rows[0].profile = { ...pending, source: { ...FROM_QR, qrLinkId: "99999999-9999-4999-8999-999999999999" } };
       const page = await service.getDriversPage(ADMIN_ID, {});
       expect(page.rows[0].source).toEqual({ kind: "campaign", label: "Campaign: pasadena-225", qrLinkId: null });
+    });
+
+    it("filters by the self-reported Clearinghouse and SAP answer: given, or not answered", async () => {
+      admin.rows[1].driver = { ...admin.rows[1].driver, clearinghouseSelfReportedAt: "2026-10-29T15:00:00.000Z" };
+      const names = async (input: Record<string, string>) =>
+        (await service.getDriversPage(ADMIN_ID, input)).rows.map((row) => row.driver.fullName);
+      expect(await names({ selfReport: "yes" })).toEqual(["Dallas Driver"]);
+      expect(await names({ selfReport: "none" })).toEqual(["Pat Driver", "Lee Lead"]);
+      expect(await names({ selfReport: "clean" })).toEqual(["Pat Driver", "Dallas Driver", "Lee Lead"]);
     });
 
     it("filters by review status, card state and area", async () => {

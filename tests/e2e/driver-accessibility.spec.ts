@@ -121,7 +121,7 @@ for (const colorScheme of ["light", "dark"] as const) {
         .click();
       await expectNoAccessibilityViolations(page, "Driving page answered");
 
-      await seedDriverAtStep(PHONES.driver, 5);
+      await seedDriverAtStep(PHONES.driver, 6);
       await openOnboarding(page, PHONES.driver);
       await nextButton(page).click();
       await expect(formAlert(page).first()).toBeVisible();
@@ -132,19 +132,19 @@ for (const colorScheme of ["light", "dark"] as const) {
         .click();
       await expectNoAccessibilityViolations(page, "cards answered");
 
-      await seedDriverAtStep(PHONES.driver, 6);
+      await seedDriverAtStep(PHONES.driver, 7);
       await openOnboarding(page, PHONES.driver);
       await page.getByRole("checkbox", { name: /^X\b/ }).click();
       await page.getByRole("radio", { name: /Automatic only/ }).click();
       await expectNoAccessibilityViolations(page, "letters with X and a transmission");
 
-      await seedDriverAtStep(PHONES.driver, 8);
+      await seedDriverAtStep(PHONES.driver, 9);
       await openOnboarding(page, PHONES.driver);
       await page.getByRole("button", { name: "Dry van", exact: true }).click();
       await expectNoAccessibilityViolations(page, "equipment selected");
 
       // The consent box is optional (0016): no error state exists on this page.
-      await seedDriverAtStep(PHONES.driver, 9);
+      await seedDriverAtStep(PHONES.driver, 10);
       await openOnboarding(page, PHONES.driver);
       await expectNoAccessibilityViolations(page, "consent unchecked");
       await page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) }).click();

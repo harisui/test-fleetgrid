@@ -17,6 +17,7 @@ import {
   endorsementsScreenSchema,
   equipmentScreenSchema,
   experienceScreenSchema,
+  clearinghouseScreenSchema,
   heardFromScreenSchema,
   leadScreenSchema,
   recordScreenSchema,
@@ -194,6 +195,12 @@ export class DriverService {
         return this.drivers.update(userId, advanceTo(parseInput(experienceScreenSchema, input)));
       case "record":
         return this.drivers.update(userId, advanceTo(parseInput(recordScreenSchema, input)));
+      case "clearinghouse": {
+        // Optional: a tick is a yes with the database's time, anything else clears it.
+        const { clearinghouseConfirmed } = parseInput(clearinghouseScreenSchema, input);
+        await this.drivers.setClearinghouseSelfReport(existing.id, clearinghouseConfirmed);
+        return this.drivers.update(userId, advanceTo({}));
+      }
       case "credentials":
         return this.drivers.update(userId, advanceTo(parseInput(credentialsScreenSchema, input)));
       case "endorsements":
@@ -238,6 +245,20 @@ export class DriverService {
       );
     }
     return this.drivers.update(userId, { ...patch, onboardingStep: DONE_STEP_NUMBER, cardCompleted: true });
+  }
+
+  /**
+   * The profile page's "Clearinghouse and SAP" box: ticked saves a yes with a new time,
+   * unticked deletes the answer and its date. Never touches progress or completion.
+   */
+  async setClearinghouseSelfReport(userId: string, input: unknown): Promise<LocatedDriver> {
+    const { clearinghouseConfirmed } = parseInput(clearinghouseScreenSchema, input);
+    await this.requireDriverProfile(userId);
+    const existing = await this.drivers.findByProfileId(userId);
+    if (!existing) throw AppError.validation("Start with the first step");
+    await this.drivers.setClearinghouseSelfReport(existing.id, clearinghouseConfirmed);
+    const updated = await this.drivers.findByProfileId(userId);
+    return this.locate(updated ?? existing);
   }
 
   /** Turns shift texts on or off from the profile page. A STOP reply can only be undone by START. */

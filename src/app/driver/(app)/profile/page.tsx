@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { DeleteAccountCard } from "@/components/account/DeleteAccountCard";
 import { AccountStatusCard } from "@/components/driver/AccountStatusCard";
+import { ClearinghouseSelfReportControl } from "@/components/driver/ClearinghouseSelfReportControl";
 import { ProfileEditor } from "@/components/driver/ProfileEditor";
 import { requireRole } from "@/lib/auth/guards";
 import { getContainer } from "@/server/container";
@@ -18,6 +19,7 @@ export default async function DriverProfilePage() {
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold tracking-tight">My profile</h1>
       <AccountStatusCard profile={profile} driver={state.driver} />
+      <ClearinghouseSelfReportControl confirmedAt={state.driver.clearinghouseSelfReportedAt} />
       <ProfileEditor driver={state.driver} />
       <DeleteAccountCard phone={user.phone} />
     </div>

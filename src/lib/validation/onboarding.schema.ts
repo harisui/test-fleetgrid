@@ -143,6 +143,11 @@ export const heardFromScreenSchema = z
     heardFromOther: data.heardFrom === "other" && data.heardFromOther ? data.heardFromOther : null,
   }));
 
+/** Optional (brief of 2026-10-29): a tick is a yes, anything else is "not answered". */
+export const clearinghouseScreenSchema = z.object({
+  clearinghouseConfirmed: z.preprocess((value) => value === true, z.boolean()),
+});
+
 export const consentScreenSchema = z.object({
   consent: z.boolean({ error: CONSENT_MESSAGE }).default(false),
 });
@@ -168,6 +173,7 @@ export const SCREEN_SCHEMAS = {
   distance: distanceScreenSchema,
   experience: experienceScreenSchema,
   record: recordScreenSchema,
+  clearinghouse: clearinghouseScreenSchema,
   credentials: credentialsScreenSchema,
   endorsements: endorsementsScreenSchema,
   transmission: transmissionScreenSchema,
@@ -188,4 +194,5 @@ export type EndorsementsScreenInput = z.infer<typeof endorsementsScreenSchema>;
 export type TransmissionScreenInput = z.infer<typeof transmissionScreenSchema>;
 export type EquipmentScreenInput = z.infer<typeof equipmentScreenSchema>;
 export type HeardFromScreenInput = z.infer<typeof heardFromScreenSchema>;
+export type ClearinghouseScreenInput = z.infer<typeof clearinghouseScreenSchema>;
 export type ConsentScreenInput = z.infer<typeof consentScreenSchema>;
