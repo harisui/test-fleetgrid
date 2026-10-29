@@ -23,7 +23,7 @@ describe("DoneScreen", () => {
     render(<DoneScreen driver={buildDriver({ inServiceArea: true })} onEdit={vi.fn()} />);
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("You're in!");
     expect(doneText()).toHaveTextContent(`${REVIEW_TEXT} ${SMS_LINE}`);
-    expect(nextSteps()).toEqual(["Shift offers arrive by text. Reply YES to claim one.", DOCUMENTS_STEP]);
+    expect(nextSteps()).toEqual(["New shifts arrive by text. Reply YES to book one.", DOCUMENTS_STEP]);
     expect(doneScreen()).toHaveAttribute("data-area", "inside");
     expect(doneScreen()).toHaveAttribute("data-texts", "on");
     expect(screen.queryByText(/isn't in your area/)).not.toBeInTheDocument();

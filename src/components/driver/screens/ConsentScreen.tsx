@@ -27,7 +27,7 @@ export function ConsentFields({ question, helper, phone }: ScreenFieldsProps) {
       <ScreenQuestion>{question}</ScreenQuestion>
       <ScreenHelper>
         {helper ??
-          `Shift offers come by text to ${maskPhone(phone)}. You reply YES to claim one. This is optional: you can finish without it and turn texts on later from your profile.`}
+          `Shift offers come by text to ${maskPhone(phone)}. You reply YES to book one. This is optional: you can finish without it and turn texts on later from your profile.`}
       </ScreenHelper>
       <Controller
         control={control}

@@ -63,7 +63,7 @@ describe("/drivers", () => {
     expect(within(respect).getAllByRole("listitem").map((item) => item.textContent)).toEqual(DRIVERS.respect.items);
     // The client's sentence of 2026-10-25, replacing "never shown to carriers".
     expect(respect).toHaveTextContent(
-      "Your phone number is shared only with the carrier whose shift you claim, when you reply YES.",
+      "Your phone number is shared only with the carrier whose shift you book, when you reply YES.",
     );
     expect(respect).not.toHaveTextContent(/never shown to carriers/);
     expect(screen.getByRole("region", { name: "Outside the Houston area?" })).toHaveTextContent(

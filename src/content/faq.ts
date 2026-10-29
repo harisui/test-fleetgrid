@@ -139,7 +139,7 @@ export const FAQ_DRIVERS: FaqGroup = {
       id: "driver-texts",
       question: "How do shift texts work?",
       answer:
-        "When a carrier near you posts a shift that matches your card, you get a text with the date, time, place and the work. Reply YES and the code to claim it. If someone claimed it first, we text you that it is filled.",
+        "When a carrier near you posts a shift that matches your card, you get a text with the date, time, place and the work. Reply YES and the code to book it. If it is already booked, we text you and let you know about the next matching shift.",
     },
     {
       id: "driver-first-yes",
@@ -218,7 +218,7 @@ export const FAQ_TEXTS: FaqGroup = {
       id: "texts-documents",
       question: "Will carriers see my documents?",
       answer:
-        "Only a carrier with an active subscription who is reviewing you for a shift, and FleetGrid staff. Your phone number is shared only with the carrier whose shift you claim, when you reply YES.",
+        "Only a carrier with an active subscription who is reviewing you for a shift, and FleetGrid staff. Your phone number is shared only with the carrier whose shift you book, when you reply YES.",
     },
     {
       id: "texts-rates",

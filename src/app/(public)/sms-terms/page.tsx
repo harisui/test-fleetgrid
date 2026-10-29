@@ -37,7 +37,7 @@ export default function SmsTermsPage() {
       <p>
         FleetGrid texts drivers who have opted in about available work shifts that match their
         qualification card, and sends follow-up messages about those shifts, such as a confirmation
-        when you claim one or a notice that a shift has been filled. We also text one-time login
+        when you book one or a notice that a shift is already booked. We also text one-time login
         codes when you sign in. We do not send marketing messages.
       </p>
 

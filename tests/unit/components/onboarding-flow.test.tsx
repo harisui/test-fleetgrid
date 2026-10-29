@@ -633,7 +633,7 @@ describe("Finish page: consent and done", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("consent", { consent: false });
     expect(screen.getByText(NO_TEXTS_NEXT_STEP)).toBeInTheDocument();
-    expect(screen.queryByText(/Shift offers arrive by text/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/New shifts arrive by text/)).not.toBeInTheDocument();
     // The client's words (2026-10-25) without the SMS line: this driver declined texts.
     expect(document.querySelector("[data-slot=done-text]")).toHaveTextContent(
       "Your profile is being reviewed for the Houston FleetGrid Network. Once approved, carriers can find you daily.",

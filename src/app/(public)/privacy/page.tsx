@@ -112,8 +112,10 @@ export default function PrivacyPage() {
         <li>
           <strong>Carriers with an active subscription</strong> can see a driver&apos;s
           qualification card and, when reviewing that driver for a shift, the documents the driver
-          uploaded. Your phone number is shared only with the carrier whose shift you claim, when
-          you reply YES.
+          uploaded. Your phone number is shared only with the carrier whose shift you book, when
+          you reply YES. When you book a shift, we share your name and phone number with the
+          company that posted it, only so they can arrange that shift. We never sell or share your
+          number or text consent for marketing.
         </li>
         <li>
           <strong>FleetGrid staff</strong> can see accounts, cards and documents to review profiles

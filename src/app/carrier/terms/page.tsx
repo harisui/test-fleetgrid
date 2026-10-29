@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Accept the Terms" };
 const POINTS = [
   "Driver information is for filling your own shifts. It may not be copied, resold or shared.",
   "You verify every driver's CDL, medical card, TWIC, record and Clearinghouse status yourself. FleetGrid is a directory software platform, not an employer, staffing agency, or broker.",
-  "Contact details from a claimed shift are for arranging that shift only. No storing, sharing, reselling or recruiting outside FleetGrid.",
+  "Contact details from a booked shift are for arranging that shift only. No storing, sharing, reselling or engaging drivers outside FleetGrid.",
   "If a driver does not show up, release the shift in FleetGrid so it can go out again. No-shows are recorded.",
   "The subscription is billed monthly and can be cancelled any time. Partial months are not refunded.",
 ] as const;

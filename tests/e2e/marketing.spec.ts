@@ -8,7 +8,7 @@ import { expect, test, type Page } from "@playwright/test";
  */
 
 const PAGES = [
-  { path: "/", heading: "Local CDL drivers. Shifts filled by text." },
+  { path: "/", heading: "Book local shifts as a CDL driver." },
   { path: "/carriers", heading: "Fill open shifts with local drivers who already said yes to texts." },
   { path: "/drivers", heading: "Local shifts near home. Sent to your phone." },
   { path: "/faq", heading: "Questions and answers" },
@@ -186,7 +186,7 @@ test.describe("marketing pages", () => {
     const hero = page.locator("[data-slot=hero]");
     await expect(hero.locator("[data-slot=hero-bubble][data-bubble='3']")).toBeVisible();
     await expect(hero.locator("[data-slot=hero-badge]")).toBeVisible();
-    await expect(hero.locator("[data-slot=hero-badge]")).toContainText("Shift filled");
+    await expect(hero.locator("[data-slot=hero-badge]")).toContainText("Shift booked");
     const styles = await page.evaluate(() => {
       const of = (selector: string) => {
         const element = document.querySelector(selector)!;
@@ -257,8 +257,8 @@ test.describe("marketing pages", () => {
     await expect(reply).not.toHaveText("YES 4821", { timeout: 9_000 });
     const code = (await reply.textContent())!.replace("YES ", "");
     expect(code).toMatch(/^\d{4}$/);
-    await expect(offer).toContainText(`Reply YES ${code} to claim.`);
-    await expect(offer).toContainText("FleetGrid: CDL-A driver needed, Pasadena TX, Tue Oct 14 6:00 AM.");
+    await expect(offer).toContainText(`Reply YES ${code} to book it.`);
+    await expect(offer).toContainText("FleetGrid: New shift on FleetGrid for CDL-A drivers. Pasadena TX, Tue Oct 14 6:00 AM.");
     // The highway rolls and trucks drive by: the ground is animated, the still frame is
     // hidden, and the live layer has traffic from the first frame on.
     const road = hero.locator("[data-slot=hero-road]");

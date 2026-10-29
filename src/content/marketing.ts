@@ -43,8 +43,8 @@ export const HOME = {
   status: "draft" as CopyStatus,
   hero: {
     eyebrow: "Houston · Pasadena · Port of Houston",
-    title: "Local CDL drivers. Shifts filled by text.",
-    text: "FleetGrid connects Houston-area carriers with approved Class A and B drivers within 50 miles of the yard. Broadcast a shift, and the first qualified driver to reply YES gets it.",
+    title: "Book local shifts as a CDL driver.",
+    text: "Houston-area carriers post open shifts on FleetGrid. FleetGrid notifies qualified drivers on our platform by text, and a driver books the shift by replying YES.",
     primary: { href: "/carriers", label: "Find drivers" },
     secondary: { href: "/login?role=driver", label: "Sign up to drive, free" },
     smallPrint: "Carriers $399 a month, cancel anytime. Free for drivers.",
@@ -52,8 +52,8 @@ export const HOME = {
     optInLink: { href: "/sms-terms", label: "SMS Terms" },
     /** What a screen reader hears for the animated scene. */
     sceneLabel:
-      "A truck drives to a yard. A phone shows a shift offer by text, the driver's reply YES 4821, and the confirmation. The shift is filled.",
-    badge: "Shift filled",
+      "A truck drives to a yard. A phone shows a new shift by text, the driver's reply YES 4821, and the confirmation. The shift is booked.",
+    badge: "Shift booked",
   },
   sides: {
     id: "two-sides",
@@ -62,7 +62,7 @@ export const HOME = {
       eyebrow: "For carriers",
       items: [
         "Search approved drivers by distance, CDL class and endorsements.",
-        "Broadcast a shift by text in one step.",
+        "Post open shifts. FleetGrid notifies qualified drivers on our platform.",
         "Pay drivers directly. No markup on wages.",
       ],
       link: { href: "/carriers", label: "How it works for carriers" },
@@ -88,8 +88,8 @@ export const HOME = {
         text: "Matching drivers within your distance get a text, sent in random order so no one is favored.",
       },
       {
-        mile: "Mile 3 · Claim",
-        text: "The first driver to reply YES with the shift code gets it. Everyone else is told it is filled.",
+        mile: "Mile 3 · Book",
+        text: "A driver books it by replying YES with the shift code. Anyone who replies after is told it is already booked.",
       },
       { mile: "Mile 4 · Work", text: "You confirm the details and pay the driver directly." },
     ],
@@ -142,7 +142,7 @@ export const HOME = {
     captions: [
       "The driver card: 11 questions, one mile at a time.",
       "Carrier search: distance, class, endorsements, cards, equipment.",
-      "A shift offer by text, and the reply that claims it.",
+      "A new shift by text, and the reply that books it.",
     ],
   },
   promises: {
@@ -154,7 +154,7 @@ export const HOME = {
       { title: "No wage markup.", text: "Carriers pay drivers directly." },
       {
         title: "Your number is never sold.",
-        text: "Your phone number is shared only with the carrier whose shift you claim, when you reply YES.",
+        text: "Your phone number is shared only with the carrier whose shift you book, when you reply YES.",
       },
       { title: "Reply STOP to stop texts.", text: "Any time, from any message." },
     ],
@@ -172,7 +172,7 @@ export const CARRIERS = {
   hero: {
     eyebrow: "For carriers · Houston area",
     title: "Fill open shifts with local drivers who already said yes to texts.",
-    text: "Search approved Class A and B CDL drivers near your yard. Broadcast a shift and get a reply by text.",
+    text: "Search approved Class A and B CDL drivers near your yard. Post open shifts. FleetGrid notifies qualified drivers on our platform.",
     primary: { href: "#service-area", label: "Check your yard's ZIP" },
     secondary: { href: "#pricing", label: "See pricing" },
   },
@@ -203,16 +203,16 @@ export const CARRIERS = {
         text: "The date, the time, the yard and the work. One screen.",
       },
       {
-        title: "FleetGrid texts the matches",
-        text: "Texts go out in random order so the same people are not always first.",
+        title: "FleetGrid notifies qualified drivers",
+        text: "Drivers on our platform who fit the shift get a text, in random order so the same people are not always first.",
       },
       {
-        title: "The first YES claims it",
-        text: "The first driver to reply YES and the code gets the shift. You see who claimed it right away.",
+        title: "A driver books it",
+        text: "A driver books the shift by replying YES and the code. You see who booked it right away.",
       },
       {
         title: "Everyone else is told",
-        text: "The other drivers get a text saying the shift is filled.",
+        text: "A driver who replies after it is booked gets a text saying so.",
       },
     ],
   },
@@ -338,7 +338,7 @@ export const DRIVERS = {
     id: "shift-texts",
     eyebrow: "How shift offers arrive",
     title: "A text with the date, the time, the place and the work.",
-    text: "When a carrier near you posts a shift that matches your card, you get a text. Reply YES and the code to claim it. If someone claimed it first, we text you that it is filled. Texts go out in random order, so no one is always first.",
+    text: "When a carrier near you posts a shift that matches your card, you get a text. Reply YES and the code to book it. If it is already booked, we text you and let you know about the next matching shift. Texts go out in random order, so no one is always first.",
     stopLine: "Reply STOP at any time to stop texts. Reply HELP for help.",
   },
   free: {
@@ -352,7 +352,7 @@ export const DRIVERS = {
     eyebrow: "Your card, your call",
     items: [
       "Take only the shifts you want.",
-      "Your phone number is shared only with the carrier whose shift you claim, when you reply YES.",
+      "Your phone number is shared only with the carrier whose shift you book, when you reply YES.",
       "We never sell your number.",
       "Delete your profile at any time from your profile page.",
     ],
@@ -421,7 +421,7 @@ export const CONTACT = {
 export const FOOTER = {
   status: "draft" as CopyStatus,
   description:
-    "A directory that connects Houston-area carriers with approved CDL drivers, and fills shifts by text.",
+    "Houston-area carriers post open shifts on FleetGrid, and approved CDL drivers book them by text.",
   launchLine: LAUNCH_LINE,
   columns: [
     {

@@ -30,6 +30,16 @@ const RULES: { name: string; pattern: RegExp }[] = [
   { name: "banned word: revolutionary", pattern: /revolutionary/i },
   { name: "banned word: seamless", pattern: /seamless/i },
   { name: "banned word: game-changer", pattern: /game-?changer/i },
+  // Twilio toll-free review, rejection 30468 (2026-10-29): first-party words only.
+  { name: "banned word (Twilio 30468): connects", pattern: /connect(s|ed|ing)?/i },
+  { name: "banned word (Twilio 30468): match drivers with", pattern: /match(es|ing)? drivers with/i },
+  { name: "banned word (Twilio 30468): leads", pattern: /leads?/i },
+  { name: "banned word (Twilio 30468): access drivers", pattern: /access drivers/i },
+  { name: "banned word (Twilio 30468): earn", pattern: /earn(s|ed|ing)?/i },
+  { name: "banned word (Twilio 30468): opportunity", pattern: /opportunit(y|ies)/i },
+  { name: "banned word (Twilio 30468): recruit", pattern: /recruit(s|ed|ing|er|ers)?/i },
+  { name: "banned phrase (Twilio 30468): first to reply", pattern: /first to reply/i },
+  { name: "banned word (Twilio 30468): claim, say book", pattern: /claim(s|ed|ing)?/i },
 ];
 
 /** The strings a content file carries: every quoted or template literal, with code left out. */

@@ -2,7 +2,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
 const PUBLIC_PAGES = [
-  { path: "/", heading: "Local CDL drivers. Shifts filled by text." },
+  { path: "/", heading: "Book local shifts as a CDL driver." },
   { path: "/terms", heading: "Terms of Service" },
   { path: "/privacy", heading: "Privacy Policy" },
   { path: "/sms-terms", heading: "SMS Terms" },
@@ -52,7 +52,7 @@ test.describe("public pages", () => {
 
   test("the hero buttons lead to the driver login and the carriers page", async ({ page }) => {
     await page.goto("/");
-    const hero = page.getByRole("region", { name: "Local CDL drivers. Shifts filled by text." });
+    const hero = page.getByRole("region", { name: "Book local shifts as a CDL driver." });
     await hero.getByRole("link", { name: "Sign up to drive, free" }).click();
     await expect(page).toHaveURL(/\/login\?role=driver$/);
 

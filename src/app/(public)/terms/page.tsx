@@ -46,10 +46,10 @@ export default function TermsPage() {
 
       <LegalHeading>1. What is FleetGrid?</LegalHeading>
       <p>
-        FleetGrid is a confidential directory that connects local freight carriers with local
-        CDL drivers. Drivers create a qualification card and can receive shift offers by text.
-        Carriers with an active subscription can search driver cards and send shift offers to
-        matching drivers.
+        FleetGrid is a platform where local freight carriers post open shifts and
+        local CDL drivers book them. Drivers create a qualification card and can receive new
+        shifts by text. Carriers with an active subscription can search driver cards and post
+        shifts, and FleetGrid notifies qualified drivers on our platform.
       </p>
       <p>
         FleetGrid is not an employer, a staffing agency, a freight broker or a party to any work
@@ -79,7 +79,7 @@ export default function TermsPage() {
         </li>
         <li>
           By completing your card you allow FleetGrid to show it to carriers with an active
-          subscription. Your phone number is shared only with the carrier whose shift you claim,
+          subscription. Your phone number is shared only with the carrier whose shift you book,
           when you reply YES.
         </li>
         <li>
@@ -109,12 +109,12 @@ export default function TermsPage() {
           resell or share driver data, or contact drivers for any other purpose.
         </li>
         <li>
-          Driver contact details you receive from a claimed shift may be used only to arrange that
-          shift. You may not store, share or resell them, or use them to recruit drivers outside
+          Driver contact details you receive from a booked shift may be used only to arrange that
+          shift. You may not store, share or resell them, or use them to engage drivers outside
           FleetGrid.
         </li>
         <li>
-          If a driver does not show up for a claimed shift, release the shift in FleetGrid so it
+          If a driver does not show up for a booked shift, release the shift in FleetGrid so it
           can be offered again. No-shows are recorded against the driver.
         </li>
         <li>

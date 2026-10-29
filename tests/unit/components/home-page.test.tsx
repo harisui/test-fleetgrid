@@ -71,7 +71,7 @@ describe("home page", () => {
     expect(phone).not.toHaveTextContent("869-2040");
     expect(phone).toHaveTextContent(SMS_SAMPLE_OFFER);
     expect(phone).toHaveTextContent(SMS_SAMPLE_REPLY);
-    expect(phone.querySelector("[data-slot=hero-badge]")).toHaveTextContent("Shift filled");
+    expect(phone.querySelector("[data-slot=hero-badge]")).toHaveTextContent("Shift booked");
     // A handset: graphite shell in the phone shape and proportion, the screen inside, three bubbles in order.
     expect(phone).toHaveClass("bg-sign-panel", "rounded-phone", "aspect-phone");
     expect(phone.querySelector(".rounded-screen")).not.toBeNull();

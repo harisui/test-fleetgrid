@@ -27,7 +27,7 @@ export const NO_TEXTS_NEXT_STEP =
 const NEXT_STEPS = [
   {
     icon: MessageSquareText,
-    text: "Shift offers arrive by text. Reply YES to claim one.",
+    text: "New shifts arrive by text. Reply YES to book one.",
     /** Only where FleetGrid is live, and only for drivers who said yes to texts. */
     when: "texts" as const,
   },

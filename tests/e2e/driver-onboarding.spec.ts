@@ -161,7 +161,7 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(page.locator("[data-slot=done-text]")).toHaveText(
       "Your profile is being reviewed for the Houston FleetGrid Network. Once approved, carriers can find you daily. Keep an eye out for SMS shift alerts on your phone.",
     );
-    await expect(page.getByText(/Shift offers arrive by text/)).toBeVisible();
+    await expect(page.getByText(/New shifts arrive by text/)).toBeVisible();
     expect(Date.now() - started).toBeLessThan(FIVE_MINUTES_MS);
 
     const row = await driverRow();
@@ -334,7 +334,7 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(page.locator("[data-slot=done-text]")).toHaveText(
       "FleetGrid isn't in your area yet. We've saved your profile and will let you know when we launch near you.",
     );
-    await expect(page.getByText(/Shift offers arrive by text/)).toHaveCount(0);
+    await expect(page.getByText(/New shifts arrive by text/)).toHaveCount(0);
     await expect(page.locator("[data-slot=summary-card]")).toBeVisible();
     expect(await driverRow()).toMatchObject({ card_completed: true, onboarding_step: 12 });
 
@@ -578,7 +578,7 @@ test.describe("driver onboarding, a page per mile", () => {
       "Your profile is being reviewed for the Houston FleetGrid Network. Once approved, carriers can find you daily.",
     );
     await expect(page.getByText(/You chose not to receive shift texts/)).toBeVisible();
-    await expect(page.getByText(/Shift offers arrive by text/)).toHaveCount(0);
+    await expect(page.getByText(/New shifts arrive by text/)).toHaveCount(0);
     const row = await driverRow();
     expect(row).toMatchObject({
       card_completed: true,
