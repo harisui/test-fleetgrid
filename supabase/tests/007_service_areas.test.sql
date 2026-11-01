@@ -143,7 +143,12 @@ select throws_ok(
     values ('Mine', '77002', 29.7594, -95.3594, 50)$$,
   '42501', null, 'a driver cannot add an area'
 );
-select throws_ok($$update public.service_areas set is_active = false$$, '42501', null, 'a driver cannot change an area');
+-- Since 0024 admins may update areas, so the grant exists and RLS is the lock: a driver's
+-- update reaches no row at all.
+select is_empty(
+  $$update public.service_areas set is_active = false returning id$$,
+  'a driver cannot change an area'
+);
 select ok(public.is_in_service_area(29.7594, -95.3594), 'a signed-in user can ask whether a point is in area');
 select is(round(public.miles_between(29.7594, -95.3594, 32.7904, -96.8044)::numeric), 226::numeric, 'a signed-in user can measure a distance');
 select pg_temp.sign_out();

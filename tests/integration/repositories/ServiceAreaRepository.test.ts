@@ -63,11 +63,17 @@ describe("ServiceAreaRepository and service_areas access (local Supabase)", () =
     const read = await driver.client.from("service_areas").select("*");
     expect(read.error).toBeNull();
     expect(read.data).toEqual([]);
+    // Since 0024 admins may update areas, so the grant exists and RLS is the lock: a driver's
+    // update reaches no row and Houston stays active.
     const write = await driver.client
       .from("service_areas")
       .update({ is_active: false })
-      .eq("name", "Houston, TX");
-    expect(write.error?.code).toBe("42501");
+      .eq("name", "Houston, TX")
+      .select("id");
+    expect(write.error).toBeNull();
+    expect(write.data).toEqual([]);
+    const { data: houston } = await serviceClient().from("service_areas").select("is_active").eq("name", "Houston, TX").single();
+    expect(houston?.is_active).toBe(true);
   });
 
   it("an anonymous visitor can neither read the table nor ask the question", async () => {

@@ -16,6 +16,8 @@ export const ALLOWED_SUB_STATUSES = ["active", "trialing"] as const;
 export const SUBSCRIPTION_RECHECK_HOURS = 6;
 /** The carrier plan as shown on the billing page. Stripe holds the real price. */
 export const SUBSCRIPTION_PRICE_LABEL = "$399 a month";
+/** The same price in dollars, for the admin's monthly recurring revenue. */
+export const SUBSCRIPTION_PRICE_DOLLARS = 399;
 export const SUBSCRIPTION_PLAN_NAME = "FleetGrid Carrier";
 /** Driver search (T2.7): results per page and the distance from the yard. */
 export const SEARCH_PAGE_SIZE = 20;
@@ -44,6 +46,8 @@ export const ADMIN_PAGE_SIZE = 25;
 export const SMS_PROGRAM_NAME = "FleetGrid Shift Alerts";
 /** The date the public Terms and Privacy pages took effect. */
 export const LEGAL_EFFECTIVE_DATE = "October 29, 2026";
+/** The SMS Terms' own date: quiet hours added (client decision of 2026-11-01). */
+export const SMS_TERMS_EFFECTIVE_DATE = "November 1, 2026";
 
 export const DOCUMENTS_BUCKET = "driver-documents";
 /** "Other papers" (document type certification) a driver can keep at once. */
