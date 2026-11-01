@@ -304,6 +304,11 @@ consenting driver whose card is unfinished and idle for 24 hours, 10 AM to 7 PM 
 `/api/cron/reminders` daily at 16:00 UTC, hourly on Pro) and the approval text (once, when
 an admin approves a consenting driver, held to 7 AM at night).
 
+Admin notices (Messaging, Send notice) use the same sender and log, in fixed words only
+(`src/content/sms-samples.ts`): policy change, service notice, service restored and account
+security. Held notices go at the 7 AM shifts cron. Adding a template means a code change and
+a Decisions log entry that it fits the approved use case (2FA and account notifications).
+
 ## Data
 
 - `src/data/us-zips.tsv`: US ZIP codes with their city and state, used to fill in the location

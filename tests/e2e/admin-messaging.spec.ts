@@ -136,3 +136,98 @@ test.describe("admin messaging: activity", () => {
     });
   }
 });
+
+test.describe("admin messaging: send notice", () => {
+  let driverId: string;
+
+  test.beforeEach(async () => {
+    await seedUser(PHONES.admin, "admin", "approved");
+    await resetUser(PHONES.driver);
+    // The notice limits count batches, so each run starts from none (local test data only).
+    await adminClient().from("notice_batches").delete().neq("id", "00000000-0000-4000-8000-000000000000");
+    const seeded = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP, { full_name: "Nia Notice" });
+    driverId = seeded.driverId!;
+    await adminClient().from("profiles").update({ status: "approved" }).eq("id", seeded.userId);
+  });
+
+  test.afterAll(async () => {
+    await resetUser(PHONES.driver);
+  });
+
+  test("a bulk service notice: fixed words, the count and exclusions, the SEND {N} gate", async ({ page }) => {
+    await login(page, PHONES.admin);
+    await page.goto("/admin/messaging/send");
+    await expect(page.getByRole("heading", { level: 1, name: "Send notice" })).toBeVisible();
+    await expect(page.locator("textarea")).toHaveCount(0);
+    await page.getByRole("radio", { name: /Service notice/ }).check();
+    const preview = page.locator("[data-slot=notice-preview]");
+    await expect(preview.locator("[data-slot=notice-body]")).toHaveText(
+      "FleetGrid: Shift texts are delayed until about 3:00 PM. We'll text you when it's fixed. Reply STOP to opt out.",
+    );
+    await expect(preview.locator("[data-slot=notice-meta]")).toContainText("1 segment");
+    const recipients = await preview.locator("[data-slot=notice-recipients]").textContent();
+    const count = Number(/^(\d+) drivers will receive this/.exec(recipients ?? "")?.[1]);
+    expect(count).toBeGreaterThan(0);
+    expect(recipients).toMatch(/Left out: \d+ opted out, \d+ without consent, \d+ blocked\./);
+
+    const gate = page.getByLabel(`Type SEND ${count} to send`);
+    const button = page.getByRole("button", { name: /Send notice|Queue for 7:00 AM/ });
+    await gate.fill(`SEND ${count + 1}`);
+    await expect(button).toBeDisabled();
+    await gate.fill(`SEND ${count}`);
+    await expect(button).toBeEnabled();
+    await button.click();
+    await page.waitForURL(/\/admin\/messaging\?tab=notices&batch=/);
+    const batchId = new URL(page.url()).searchParams.get("batch")!;
+    const { data: batch } = await adminClient().from("notice_batches").select("category, recipient_count, status, body").eq("id", batchId).single();
+    expect(batch).toMatchObject({ category: "service_notice", recipient_count: count });
+    if (batch!.status === "sent") {
+      const { data: texts } = await adminClient().from("sms_messages").select("to_phone").eq("notice_batch_id", batchId);
+      expect(texts).toHaveLength(count);
+      expect(texts!.map((t) => t.to_phone)).toContain(PHONES.driver);
+    }
+    const { data: audit } = await adminClient().from("admin_audit_log").select("action").eq("target_id", batchId);
+    expect(audit?.[0]?.action).toMatch(/notice_(sent|queued)/);
+  });
+
+  test("the security notice from the driver sheet goes to that one driver after a dialog", async ({ page }) => {
+    await login(page, PHONES.admin);
+    await page.goto(`/admin/drivers?open=${driverId}`);
+    await page.getByRole("dialog", { name: "Nia Notice" }).getByRole("link", { name: "Send security notice" }).click();
+    await page.waitForURL(/\/admin\/messaging\/send\?driver=/);
+    await expect(page.locator("[data-slot=security-driver]")).toContainText("Nia Notice");
+    await expect(page.locator("[data-slot=notice-recipients]")).toHaveText("1 driver will receive this: Nia Notice.");
+    await page.getByRole("checkbox", { name: /Send now anyway/ }).check();
+    await page.getByRole("button", { name: "Send security notice" }).click();
+    await page.getByRole("dialog", { name: "Send the security notice to Nia Notice?" }).getByRole("button", { name: "Send" }).click();
+    await page.waitForURL(/tab=notices/);
+    const { data: texts } = await adminClient().from("sms_messages").select("to_phone, kind, body").eq("driver_id", driverId).eq("kind", "security");
+    expect(texts).toEqual([
+      {
+        to_phone: PHONES.driver,
+        kind: "security",
+        body: "FleetGrid: We noticed unusual activity on your account. Please log in at fleetgridus.com/driver or reply HELP.",
+      },
+    ]);
+  });
+
+  test("drivers and carriers get a 403 on both messaging pages", async ({ page }) => {
+    await login(page, PHONES.driver);
+    for (const path of ["/admin/messaging", "/admin/messaging/send"]) {
+      const response = await page.goto(path);
+      expect(response?.status(), path).toBe(403);
+    }
+  });
+
+  for (const colorScheme of ["light", "dark"] as const) {
+    test(`Send notice passes axe (${colorScheme})`, async ({ page }) => {
+      await page.context().addCookies([{ name: "fleetgrid-theme", value: colorScheme, url: "http://localhost:3000" }]);
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await login(page, PHONES.admin);
+      await page.goto("/admin/messaging/send");
+      await page.getByRole("radio", { name: /Policy change/ }).check();
+      await expect(page.locator("[data-slot=notice-body]")).toBeVisible();
+      await expectNoAccessibilityViolations(page, `send ${colorScheme}`);
+    });
+  }
+});

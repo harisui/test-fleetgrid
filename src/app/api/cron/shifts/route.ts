@@ -10,10 +10,12 @@ import { refuseUnlessCron } from "@/server/cron";
 export async function GET(request: Request): Promise<Response> {
   const refused = refuseUnlessCron(request);
   if (refused) return refused;
-  const { shifts, broadcastService, notificationService } = buildTextingServices();
+  const { shifts, broadcastService, notificationService, noticeService } = buildTextingServices();
   const expired = await shifts.expire();
   const dispatched = await broadcastService.dispatchDue();
   // Approval texts held overnight by quiet hours go at the same 7 AM run.
   const approvals = await notificationService.sendDueApprovalTexts();
-  return Response.json({ ok: true, expired, dispatched, approvals });
+  // So do admin notices held for quiet hours (CR-3).
+  const notices = await noticeService.dispatchDue();
+  return Response.json({ ok: true, expired, dispatched, approvals, notices });
 }

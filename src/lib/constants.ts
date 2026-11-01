@@ -16,6 +16,11 @@ export const ALLOWED_SUB_STATUSES = ["active", "trialing"] as const;
 export const SUBSCRIPTION_RECHECK_HOURS = 6;
 /** The carrier plan as shown on the billing page. Stripe holds the real price. */
 export const SUBSCRIPTION_PRICE_LABEL = "$399 a month";
+/**
+ * What one SMS segment costs, an estimate (Twilio US toll-free plus carrier fees, rounded up;
+ * user decision of 2026-11-01). The notice preview shows it as "about $X, estimate".
+ */
+export const SMS_SEGMENT_COST_ESTIMATE_USD = 0.011;
 /** The same price in dollars, for the admin's monthly recurring revenue. */
 export const SUBSCRIPTION_PRICE_DOLLARS = 399;
 export const SUBSCRIPTION_PLAN_NAME = "FleetGrid Carrier";

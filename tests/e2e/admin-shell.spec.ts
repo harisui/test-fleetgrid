@@ -14,6 +14,7 @@ const ADMIN_PAGES = [
   "/admin/shifts",
   "/admin/service-areas",
   "/admin/messaging",
+  "/admin/messaging/send",
   "/admin/analytics",
 ] as const;
 

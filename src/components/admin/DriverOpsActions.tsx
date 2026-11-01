@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -43,6 +44,9 @@ export function DriverOpsActions({
       <div className="flex flex-wrap gap-3">
         <Button type="button" size="md" variant="secondary" onClick={() => setConfirming(true)}>
           {paused ? "Resume shift texts" : "Pause shift texts"}
+        </Button>
+        <Button asChild type="button" size="md" variant="secondary">
+          <Link href={`/admin/messaging/send?driver=${driverId}`}>Send security notice</Link>
         </Button>
         <RemoveAccountButton profileId={profileId} name={name} afterHref={afterRemoveHref} />
       </div>

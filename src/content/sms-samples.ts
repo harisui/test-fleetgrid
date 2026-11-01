@@ -42,6 +42,51 @@ export const SMS_REMINDER =
 export const SMS_APPROVED =
   "FleetGrid: Your profile is approved. You'll get texts when matching shifts open. Reply STOP to opt out.";
 
+/**
+ * Admin notices (change request CR-3, 2026-11-01). Account notifications under the approved
+ * toll-free use case (TWO_FACTOR_AUTHENTICATION, ACCOUNT_NOTIFICATIONS), never marketing.
+ * The admin only picks from these lists; nothing typed reaches a text. The verb agrees with
+ * the noun (user decision of 2026-11-01).
+ */
+export const NOTICE_POLICIES = {
+  terms: { label: "Terms of Service", verb: "change", link: "fleetgridus.com/terms" },
+  privacy: { label: "Privacy Policy", verb: "changes", link: "fleetgridus.com/privacy" },
+  sms_terms: { label: "SMS Terms", verb: "change", link: "fleetgridus.com/sms-terms" },
+} as const;
+export type NoticePolicy = keyof typeof NOTICE_POLICIES;
+
+export const NOTICE_SERVICES = {
+  shift_texts: { label: "Shift texts", verb: "are" },
+  logins: { label: "Logins", verb: "are" },
+  website: { label: "The website", verb: "is" },
+} as const;
+export type NoticeService = keyof typeof NOTICE_SERVICES;
+
+export const NOTICE_STATES = { delayed: "delayed", unavailable: "unavailable" } as const;
+export type NoticeState = keyof typeof NOTICE_STATES;
+
+/** Policy change: "FleetGrid: Our Privacy Policy changes on Nov 15, 2026. Read it at fleetgridus.com/privacy. Reply STOP to opt out." */
+export function policyChangeText(policy: NoticePolicy, date: string): string {
+  const { label, verb, link } = NOTICE_POLICIES[policy];
+  return `FleetGrid: Our ${label} ${verb} on ${date}. Read it at ${link}. Reply STOP to opt out.`;
+}
+
+/** Service notice: "FleetGrid: Logins are delayed until about 3:00 PM. We'll text you when it's fixed. Reply STOP to opt out." */
+export function serviceNoticeText(service: NoticeService, state: NoticeState, time: string): string {
+  const { label, verb } = NOTICE_SERVICES[service];
+  return `FleetGrid: ${label} ${verb} ${NOTICE_STATES[state]} until about ${time}. We'll text you when it's fixed. Reply STOP to opt out.`;
+}
+
+/** Service restored (the STOP line added by the user's decision of 2026-11-01). */
+export function serviceRestoredText(service: NoticeService): string {
+  const { label, verb } = NOTICE_SERVICES[service];
+  return `FleetGrid: ${label} ${verb} working again. Thanks for your patience. Reply STOP to opt out.`;
+}
+
+/** Account security, to one driver. */
+export const SMS_ACCOUNT_SECURITY =
+  "FleetGrid: We noticed unusual activity on your account. Please log in at fleetgridus.com/driver or reply HELP.";
+
 export const SMS_SAMPLE_THREAD: readonly SmsBubble[] = [
   { direction: "in", text: SMS_SAMPLE_OFFER },
   { direction: "out", text: SMS_SAMPLE_REPLY },

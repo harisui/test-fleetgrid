@@ -16,6 +16,7 @@ import { DocumentRepository } from "@/server/repositories/DocumentRepository";
 import { DriverNotificationRepository } from "@/server/repositories/DriverNotificationRepository";
 import { DriverRepository } from "@/server/repositories/DriverRepository";
 import { MessagingRepository } from "@/server/repositories/MessagingRepository";
+import { NoticeRepository } from "@/server/repositories/NoticeRepository";
 import { DriverSearchRepository } from "@/server/repositories/DriverSearchRepository";
 import { ProfileRepository } from "@/server/repositories/ProfileRepository";
 import { QrLinkRepository, QrScanRepository } from "@/server/repositories/QrLinkRepository";
@@ -40,6 +41,7 @@ import { DriverNotificationService } from "@/server/services/DriverNotificationS
 import { DriverService } from "@/server/services/DriverService";
 import { InboundService } from "@/server/services/InboundService";
 import { MessagingService } from "@/server/services/MessagingService";
+import { NoticeService } from "@/server/services/NoticeService";
 import { ProfileService } from "@/server/services/ProfileService";
 import { QrService } from "@/server/services/QrService";
 import { ShiftService } from "@/server/services/ShiftService";
@@ -83,10 +85,13 @@ export function buildTextingServices() {
     textService,
   );
   const notificationService = new DriverNotificationService(new DriverNotificationRepository(admin), textService);
+  // The 7 AM run sends notices held for quiet hours; it audits nothing (the admin's send did).
+  const noticeService = new NoticeService(new NoticeRepository(admin), new ProfileRepository(admin), async () => undefined, textService);
   return {
     shifts,
     recipients,
     notificationService,
+    noticeService,
     drivers: new TextingDriverRepository(admin),
     textService,
     broadcastService,
@@ -178,10 +183,19 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     },
   );
 
+  // Notices: the admin's own audit entry; drivers and batches through the service role.
+  const noticeService = new NoticeService(
+    new NoticeRepository(createAdminClient()),
+    profiles,
+    (entry) => adminRepository.writeAudit(entry),
+    new TextService(getSmsProvider(), () => new SmsLogRepository(createAdminClient()), reportError),
+  );
+
   return {
     shiftService,
     adminOpsService,
     messagingService,
+    noticeService,
     authService: new AuthService(auth, profiles),
     accountService: new AccountService(
       auth,
