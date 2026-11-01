@@ -15,7 +15,7 @@ interface DetailSheetProps {
 
 /**
  * Record details beside the list, so the admin never loses their place: a sheet from the
- * right edge, 480px on a desktop and the whole screen on a phone, with the actions in a
+ * right edge, 560px on a tablet, 640px on a desktop and the whole screen on a phone, with the actions in a
  * sticky footer.
  */
 export function DetailSheet({ open, onOpenChange, title, description, children, footer }: DetailSheetProps) {

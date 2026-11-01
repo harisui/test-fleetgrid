@@ -27,8 +27,8 @@ const SIDE_CLASSES: Record<SheetSide, string> = {
     "inset-x-0 bottom-0 max-h-[85dvh] rounded-t-sheet border-t-2 border-border-strong px-4 pt-3 pb-[max(1.5rem,env(safe-area-inset-bottom))]",
   /** A side panel from the left edge (the admin menu on a phone). */
   left: "inset-y-0 left-0 h-dvh w-80 max-w-[85vw] border-r border-border p-4",
-  /** A side panel from the right edge (record details): 480px on a desktop, the whole screen on a phone. */
-  right: "inset-y-0 right-0 h-dvh w-full border-l border-border p-0 sm:w-120",
+  /** A side panel from the right edge (record details): 560px on a tablet, 640px on a desktop, the whole screen on a phone. */
+  right: "inset-y-0 right-0 h-dvh w-full border-l border-border p-0 sm:w-140 lg:w-160",
 };
 
 /** Fades in like every other surface; it never springs. */
