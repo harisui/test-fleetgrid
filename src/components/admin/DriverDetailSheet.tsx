@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { DetailSheet } from "@/components/admin/DetailSheet";
+import { DriverOpsActions } from "@/components/admin/DriverOpsActions";
 import { SelfReportBadge } from "@/components/admin/SelfReportBadge";
 import { areaLabel, smsLabel } from "@/components/admin/DriversTable";
 import { Badge } from "@/components/ui/badge";
@@ -191,6 +192,15 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
             {areaLabel(detail)}
           </Badge>
         </div>
+
+        <DriverOpsActions
+          driverId={driver.id}
+          profileId={profile.id}
+          name={name}
+          noShowCount={driver.noShowCount}
+          paused={driver.shiftsPaused}
+          afterRemoveHref={closeHref}
+        />
 
         <Section title="Contact">
           <dl className="divide-y divide-border rounded-card border border-border bg-card">

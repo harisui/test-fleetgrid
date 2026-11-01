@@ -17,8 +17,14 @@ const actions = vi.hoisted(() => ({
 }));
 const toast = vi.hoisted(() => ({ success: vi.fn(), error: vi.fn() }));
 
+const opsActions = vi.hoisted(() => ({
+  pauseDriverAction: vi.fn(async () => ({ ok: true as const, data: null })),
+  unpauseDriverAction: vi.fn(async () => ({ ok: true as const, data: null })),
+  removeAccountAction: vi.fn(async () => ({ ok: true as const, data: null })),
+}));
 vi.mock("next/navigation", () => ({ useRouter: () => router, usePathname: () => "/admin/drivers" }));
 vi.mock("@/server/actions/admin.actions", () => actions);
+vi.mock("@/server/actions/admin-ops.actions", () => opsActions);
 vi.mock("sonner", () => ({ toast }));
 
 const ok = <T,>(data: T): Result<T> => ({ ok: true, data });
@@ -323,6 +329,34 @@ describe("DriverDetailSheet", () => {
     expect(toast.success).toHaveBeenCalledWith(expect.stringMatching(/^Approved\./));
     expect(router.refresh).toHaveBeenCalled();
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Approve Pat Driver?" })).not.toBeInTheDocument());
+  });
+
+  it("shows the no-shows, pauses shift texts after a dialog, and removes only after REMOVE is typed", async () => {
+    const base = detail();
+    render(
+      <DriverDetailSheet
+        detail={{ ...base, driver: { ...base.driver, noShowCount: 2 } }}
+        closeHref="/admin/drivers"
+      />,
+    );
+    expect(document.querySelector("[data-slot=no-shows]")).toHaveTextContent("2 no-shows.");
+    await userEvent.click(screen.getByRole("button", { name: "Pause shift texts" }));
+    const dialog = await screen.findByRole("dialog", { name: "Pause shift texts for Pat Driver?" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Pause" }));
+    await waitFor(() =>
+      expect(opsActions.pauseDriverAction).toHaveBeenCalledWith({ driverId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }),
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: "Remove" }));
+    const remove = await screen.findByRole("dialog", { name: "Remove Pat Driver?" });
+    const confirm = within(remove).getByRole("button", { name: "Remove for good" });
+    expect(confirm).toBeDisabled();
+    await userEvent.type(within(remove).getByLabelText("Type REMOVE to confirm"), "REMOVE");
+    await userEvent.click(confirm);
+    await waitFor(() =>
+      expect(opsActions.removeAccountAction).toHaveBeenCalledWith({ profileId: base.profile.id, confirm: "REMOVE" }),
+    );
+    expect(router.push).toHaveBeenCalledWith("/admin/drivers");
   });
 
   it("blocks after a destructive dialog that names the effect, and reports a refusal", async () => {

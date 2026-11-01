@@ -7,7 +7,14 @@ import { COMPLETE_STEP, login, PHONES, resetUser, seedCarrier, seedDriverAtStep,
  * in both themes, and the 403 for everyone who is not the admin.
  */
 
-const ADMIN_PAGES = ["/admin/drivers", "/admin/analytics"] as const;
+const ADMIN_PAGES = [
+  "/admin/drivers",
+  "/admin/carriers",
+  "/admin/subscriptions",
+  "/admin/shifts",
+  "/admin/service-areas",
+  "/admin/analytics",
+] as const;
 
 async function expectNoAccessibilityViolations(page: Page, label: string) {
   const results = await new AxeBuilder({ page })

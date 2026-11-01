@@ -17,8 +17,15 @@ beforeEach(() => {
 });
 
 describe("admin navigation", () => {
-  it("lists Drivers and Analytics, in that order, and marks the page or anything below it", () => {
-    expect(ADMIN_NAV.map((item) => item.label)).toEqual(["Drivers", "Analytics"]);
+  it("lists the pages in order, Milestone 3's among them, and marks the page or anything below it", () => {
+    expect(ADMIN_NAV.map((item) => item.label)).toEqual([
+      "Drivers",
+      "Carriers",
+      "Subscriptions",
+      "Shifts",
+      "Service areas",
+      "Analytics",
+    ]);
     expect(isAdminNavActive("/admin/drivers", "/admin/drivers")).toBe(true);
     expect(isAdminNavActive("/admin/drivers?status=all", "/admin/drivers")).toBe(false);
     expect(isAdminNavActive("/admin/drivers/abc", "/admin/drivers")).toBe(true);
