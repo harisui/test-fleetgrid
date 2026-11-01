@@ -71,6 +71,7 @@ describe("parseServerEnv", () => {
       ...validServer,
       ENABLE_TEST_LOGIN: false,
       PAYMENT_TEST_MODE: false,
+      SMS_TEST_MODE: false,
       CARRIER_DISABLED: false,
     });
   });

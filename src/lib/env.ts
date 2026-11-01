@@ -68,6 +68,9 @@ export const serverEnvSchema = clientEnvSchema
     // browser tests can run on a machine that also tries the Stripe sandbox by hand. Only
     // with ENABLE_TEST_LOGIN (src/server/providers/createPaymentProvider.ts).
     PAYMENT_TEST_MODE: flag,
+    // "true" keeps the fake text sender (src/server/providers/FakeSmsProvider.ts) even when
+    // the three Twilio keys are set, so tests and demos never text a real phone.
+    SMS_TEST_MODE: flag,
     // "true" hides the carrier side: /carrier/* and the carrier sign-up go to a "coming soon"
     // page (src/lib/carrier/availability.ts). Off unless set to exactly "true".
     CARRIER_DISABLED: flag,

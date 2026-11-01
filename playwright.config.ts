@@ -46,7 +46,8 @@ export default defineConfig({
     timeout: 180_000,
     // The carrier specs pay through the in-memory test checkout, even on a machine whose
     // .env.local carries the Stripe sandbox keys. A dev server you started yourself needs
-    // PAYMENT_TEST_MODE=true for those specs.
-    env: { PAYMENT_TEST_MODE: "true" },
+    // PAYMENT_TEST_MODE=true for those specs. SMS_TEST_MODE keeps the shift texts in the fake
+    // sender even where the Twilio keys are set.
+    env: { PAYMENT_TEST_MODE: "true", SMS_TEST_MODE: "true" },
   },
 });

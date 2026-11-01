@@ -228,6 +228,7 @@ describe("contactSettingsFrom and createContactService", () => {
     ENABLE_TEST_LOGIN: false,
     CARRIER_DISABLED: false,
     PAYMENT_TEST_MODE: false,
+    SMS_TEST_MODE: false,
   };
 
   it("defaults the addresses, and uses the built-in secret outside production only", () => {
