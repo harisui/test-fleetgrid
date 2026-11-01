@@ -8,6 +8,7 @@ import { activeAdminChild, ADMIN_NAV, isAdminNavActive } from "@/lib/admin/nav";
 const navigation = vi.hoisted(() => ({ pathname: "/admin/drivers" }));
 vi.mock("next/navigation", () => ({
   usePathname: () => navigation.pathname,
+  useSearchParams: () => new URLSearchParams(),
   useRouter: () => ({ push: vi.fn(), replace: vi.fn(), refresh: vi.fn() }),
 }));
 vi.mock("@/server/actions/auth.actions", () => ({ signOutAction: vi.fn() }));

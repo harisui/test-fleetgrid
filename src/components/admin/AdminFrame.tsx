@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { AdminMobileBar } from "@/components/admin/AdminMobileBar";
+import { AdminProgressBar } from "@/components/admin/AdminProgressBar";
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
 
 interface AdminFrameProps {
@@ -15,6 +16,7 @@ interface AdminFrameProps {
 export function AdminFrame({ adminLabel, children }: AdminFrameProps) {
   return (
     <div className="flex min-h-dvh bg-background text-foreground">
+      <AdminProgressBar />
       <a
         href="#main-content"
         className="sr-only z-50 rounded-md bg-background px-4 py-2 text-foreground focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:ring-ring"

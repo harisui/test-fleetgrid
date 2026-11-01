@@ -7,8 +7,9 @@ import { describe, expect, it } from "vitest";
  * Every visual value comes from src/styles/themes.css. This scans the source for anything
  * that bypasses the tokens: raw colors, Tailwind palette classes, arbitrary sizes, large
  * radii, big shadows, bouncy motion, confetti, emoji and exclamation marks in UI copy.
- * It also enforces the Workshop rule that the orange primary fill appears in exactly two
- * places: the primary button and the check badge.
+ * It also enforces the Workshop rule that the orange primary fill appears in exactly three
+ * places: the primary button, the check badge and the admin's page-load bar (user request
+ * of 2026-11-02).
  */
 
 const ROOT = "src";
@@ -26,6 +27,7 @@ const SIZE_UTILITIES =
 const PRIMARY_FILL_ALLOWED = [
   "src/components/ui/button.tsx",
   "src/components/shared/CheckBadge.tsx",
+  "src/components/admin/AdminProgressBar.tsx",
 ];
 
 interface Rule {

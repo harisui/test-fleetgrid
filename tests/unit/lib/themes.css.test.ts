@@ -88,6 +88,8 @@ describe("themes.css shared tokens", () => {
       "--dur-state": "0ms",
       "--dur-move": "0ms",
       "--dur-hint": "0ms",
+      "--dur-progress": "0ms",
+      "--dur-progress-done": "0ms",
       "--motion-fast": "0ms",
       "--motion-base": "0ms",
       "--motion-slow": "0ms",
@@ -105,6 +107,11 @@ describe("themes.css shared tokens", () => {
     expect(parsed.shared.root["--motion-distance-sm"]).toBe("8px");
     expect(parsed.shared.root["--motion-distance-md"]).toBe("12px");
     expect(parsed.shared.root["--motion-stagger"]).toBe("50ms");
+  });
+
+  it("the admin's page-load bar creeps for 8 seconds and fills in 300ms", () => {
+    expect(parsed.shared.root["--dur-progress"]).toBe("8000ms");
+    expect(parsed.shared.root["--dur-progress-done"]).toBe("300ms");
   });
 
   it("the scroll hint dips slowly and only a little", () => {
