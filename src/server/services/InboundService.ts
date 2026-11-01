@@ -66,20 +66,27 @@ export class InboundService {
 
     const intent = readInbound(message.body, driver?.smsOptedOut ?? false, message.optOutType);
     const result: InboundResult = { duplicate: false, intent: intent.type, outcome: null, replied: null };
-    if (!driver) return result;
+    if (!driver) {
+      await this.smsLog.setContext(message.sid, { inboundOutcome: "unknown_sender" });
+      return result;
+    }
 
     switch (intent.type) {
       case "opt_out":
+        await this.smsLog.setContext(message.sid, { inboundOutcome: "keyword" });
         await this.syncOptOut(driver, true, intent.keyword);
         return result;
       case "opt_in":
+        await this.smsLog.setContext(message.sid, { inboundOutcome: "keyword" });
         await this.syncOptOut(driver, false, intent.keyword);
         return result;
       case "help":
+        await this.smsLog.setContext(message.sid, { inboundOutcome: "keyword" });
         return result;
       case "yes":
         return this.book(driver, intent.code, message.sid, result);
       case "other":
+        await this.smsLog.setContext(message.sid, { inboundOutcome: "no_code" });
         result.replied = await this.reply(driver, "format_help", FORMAT_HELP_TEXT, null);
         return result;
     }
@@ -106,6 +113,7 @@ export class InboundService {
     if (!shiftCode) {
       const offers = await this.recipients.openOffersForDriver(driver.driverId);
       if (offers.length !== 1) {
+        await this.smsLog.setContext(sid, { inboundOutcome: "no_code" });
         result.replied = await this.reply(driver, "format_help", FORMAT_HELP_TEXT, null);
         return result;
       }
@@ -114,7 +122,10 @@ export class InboundService {
 
     const { outcome, shiftId } = await this.shifts.claim(driver.driverId, shiftCode);
     result.outcome = outcome;
-    if (shiftId) await this.smsLog.setContext(sid, { shiftId });
+    await this.smsLog.setContext(sid, {
+      ...(shiftId ? { shiftId } : {}),
+      inboundOutcome: outcome === "won" ? "booked" : outcome === "not_found" ? "no_code" : outcome,
+    });
 
     switch (outcome) {
       case "won": {

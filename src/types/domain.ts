@@ -383,12 +383,22 @@ export const ADMIN_ACTIONS = [
   "service_area_updated",
   "service_area_activated",
   "service_area_deactivated",
+  "notice_sent",
+  "notice_queued",
+  "message_resent",
   "qr_link_created",
   "qr_link_activated",
   "qr_link_deactivated",
 ] as const;
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];
-export type AuditTargetType = "driver" | "carrier" | "qr_link" | "shift" | "service_area";
+export type AuditTargetType =
+  | "driver"
+  | "carrier"
+  | "qr_link"
+  | "shift"
+  | "service_area"
+  | "notice_batch"
+  | "sms_message";
 
 /** One line of the admin audit log: who, when, what, to which record. */
 export interface AuditEntry {
@@ -473,8 +483,48 @@ export interface SmsMessage {
   errorCode: string | null;
   shiftId: string | null;
   driverId: string | null;
+  /** The admin notice it belongs to (0026). */
+  noticeBatchId: string | null;
+  /** The failed text this one resends; each text is resent at most once (0026). */
+  resendOf: string | null;
+  /** What an incoming reply turned out to be (0026). */
+  inboundOutcome: InboundOutcome | null;
   createdAt: string;
 }
+
+export type NoticeCategory = Enums["notice_category"];
+export type NoticeStatus = Enums["notice_status"];
+
+/** One admin notice (CR-3): what was chosen, the filled text, who sent it and the counts. */
+export interface NoticeBatch {
+  id: string;
+  category: NoticeCategory;
+  variables: Record<string, string>;
+  body: string;
+  areaId: string | null;
+  createdBy: string;
+  restoresBatchId: string | null;
+  recipientCount: number;
+  excludedOptedOut: number;
+  excludedNoConsent: number;
+  excludedBlocked: number;
+  sendAfter: string | null;
+  status: NoticeStatus;
+  sentAt: string | null;
+  createdAt: string;
+}
+
+export const INBOUND_OUTCOMES = [
+  "booked",
+  "already_yours",
+  "filled",
+  "closed",
+  "not_eligible",
+  "no_code",
+  "keyword",
+  "unknown_sender",
+] as const;
+export type InboundOutcome = (typeof INBOUND_OUTCOMES)[number];
 
 /** The booked driver as the shift's carrier sees them: this shift only. */
 export interface BookedDriverContact {

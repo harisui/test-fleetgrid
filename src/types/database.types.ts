@@ -156,6 +156,31 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"notice_batches": {
+                  Row: {
+                    "area_id": string | null,"body": string,"category": Database["public"]['Enums']["notice_category"],"created_at": string,"created_by": string,"excluded_blocked": number,"excluded_no_consent": number,"excluded_opted_out": number,"id": string,"recipient_count": number,"restores_batch_id": string | null,"send_after": string | null,"sent_at": string | null,"status": Database["public"]['Enums']["notice_status"],"updated_at": string,"variables": NonNullable<Json>
+                  }
+                  Insert: {
+                    "area_id"?: string | null,"body": string,"category": Database["public"]['Enums']["notice_category"],"created_at"?: string,"created_by": string,"excluded_blocked"?: number,"excluded_no_consent"?: number,"excluded_opted_out"?: number,"id"?: string,"recipient_count"?: number,"restores_batch_id"?: string | null,"send_after"?: string | null,"sent_at"?: string | null,"status"?: Database["public"]['Enums']["notice_status"],"updated_at"?: string,"variables"?: NonNullable<Json>
+                  }
+                  Update: {
+                    "area_id"?: string | null,"body"?: string,"category"?: Database["public"]['Enums']["notice_category"],"created_at"?: string,"created_by"?: string,"excluded_blocked"?: number,"excluded_no_consent"?: number,"excluded_opted_out"?: number,"id"?: string,"recipient_count"?: number,"restores_batch_id"?: string | null,"send_after"?: string | null,"sent_at"?: string | null,"status"?: Database["public"]['Enums']["notice_status"],"updated_at"?: string,"variables"?: NonNullable<Json>
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "notice_batches_area_id_fkey"
+      columns: ["area_id"]
+isOneToOne: false
+      referencedRelation: "service_areas"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "notice_batches_restores_batch_id_fkey"
+      columns: ["restores_batch_id"]
+isOneToOne: false
+      referencedRelation: "notice_batches"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"profiles": {
                   Row: {
                     "created_at": string,"id": string,"phone": string,"qr_link_id": string | null,"role": Database["public"]['Enums']["user_role"],"signup_landing_path": string | null,"signup_referrer": string | null,"signup_utm_campaign": string | null,"signup_utm_content": string | null,"signup_utm_medium": string | null,"signup_utm_source": string | null,"status": Database["public"]['Enums']["account_status"],"updated_at": string
@@ -260,13 +285,13 @@ isOneToOne: false
                   ]
                 },"sms_messages": {
                   Row: {
-                    "body": string,"created_at": string,"direction": Database["public"]['Enums']["sms_direction"],"driver_id": string | null,"error_code": string | null,"from_phone": string,"id": string,"kind": string,"provider_sid": string | null,"shift_id": string | null,"status": string | null,"to_phone": string,"updated_at": string
+                    "body": string,"created_at": string,"direction": Database["public"]['Enums']["sms_direction"],"driver_id": string | null,"error_code": string | null,"from_phone": string,"id": string,"inbound_outcome": string | null,"kind": string,"notice_batch_id": string | null,"provider_sid": string | null,"resend_of": string | null,"shift_id": string | null,"status": string | null,"to_phone": string,"updated_at": string
                   }
                   Insert: {
-                    "body": string,"created_at"?: string,"direction": Database["public"]['Enums']["sms_direction"],"driver_id"?: string | null,"error_code"?: string | null,"from_phone": string,"id"?: string,"kind": string,"provider_sid"?: string | null,"shift_id"?: string | null,"status"?: string | null,"to_phone": string,"updated_at"?: string
+                    "body": string,"created_at"?: string,"direction": Database["public"]['Enums']["sms_direction"],"driver_id"?: string | null,"error_code"?: string | null,"from_phone": string,"id"?: string,"inbound_outcome"?: string | null,"kind": string,"notice_batch_id"?: string | null,"provider_sid"?: string | null,"resend_of"?: string | null,"shift_id"?: string | null,"status"?: string | null,"to_phone": string,"updated_at"?: string
                   }
                   Update: {
-                    "body"?: string,"created_at"?: string,"direction"?: Database["public"]['Enums']["sms_direction"],"driver_id"?: string | null,"error_code"?: string | null,"from_phone"?: string,"id"?: string,"kind"?: string,"provider_sid"?: string | null,"shift_id"?: string | null,"status"?: string | null,"to_phone"?: string,"updated_at"?: string
+                    "body"?: string,"created_at"?: string,"direction"?: Database["public"]['Enums']["sms_direction"],"driver_id"?: string | null,"error_code"?: string | null,"from_phone"?: string,"id"?: string,"inbound_outcome"?: string | null,"kind"?: string,"notice_batch_id"?: string | null,"provider_sid"?: string | null,"resend_of"?: string | null,"shift_id"?: string | null,"status"?: string | null,"to_phone"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -274,6 +299,18 @@ isOneToOne: false
       columns: ["driver_id"]
 isOneToOne: false
       referencedRelation: "drivers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "sms_messages_notice_batch_id_fkey"
+      columns: ["notice_batch_id"]
+isOneToOne: false
+      referencedRelation: "notice_batches"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "sms_messages_resend_of_fkey"
+      columns: ["resend_of"]
+isOneToOne: true
+      referencedRelation: "sms_messages"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "sms_messages_shift_id_fkey"
@@ -398,6 +435,11 @@ isOneToOne: false
 "new_shift_code":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"notice_recipients":
+{ Args: { "p_area_id"?: string }; Returns: {
+              "driver_id": string,"exclusion": string,"phone": string
+            }[]
+                           },
 "profile_status":
 { Args: { "p_profile_id": string }; Returns: Database["public"]['Enums']["account_status"]
                            },
@@ -414,7 +456,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "account_status": "pending"|"approved"|"blocked","availability_type": "full_time"|"part_time"|"on_call"|"weekends","cdl_class": "A"|"B"|"none","document_type": "cdl_front"|"cdl_back"|"medical_card"|"certification"|"other","driving_style": "local_day_cab"|"regional","employment_type": "w2"|"contractor_1099"|"either","endorsement": "H"|"N"|"T"|"X","equipment_type": "container_drayage"|"dry_van"|"flatbed"|"reefer","heard_from": "flyer"|"facebook_instagram"|"google_search"|"friend_coworker"|"other","mvr_status": "clean"|"minor_1_2"|"major_3_plus","operator_type": "cdl_driver"|"yard_spotter"|"mechanic","recipient_status": "queued"|"sent"|"delivered"|"failed"|"booked"|"too_late"|"no_show","shift_status": "open"|"booked"|"cancelled"|"expired","sms_consent_event": "opt_in"|"opt_out"|"opt_in_again","sms_consent_source": "onboarding"|"sms_stop"|"sms_start"|"profile","sms_direction": "inbound"|"outbound","subscription_status": "trialing"|"active"|"past_due"|"canceled"|"unpaid"|"incomplete"|"incomplete_expired"|"paused","transmission_type": "automatic_only"|"manual_ok","user_role": "driver"|"carrier"|"admin"
+            "account_status": "pending"|"approved"|"blocked","availability_type": "full_time"|"part_time"|"on_call"|"weekends","cdl_class": "A"|"B"|"none","document_type": "cdl_front"|"cdl_back"|"medical_card"|"certification"|"other","driving_style": "local_day_cab"|"regional","employment_type": "w2"|"contractor_1099"|"either","endorsement": "H"|"N"|"T"|"X","equipment_type": "container_drayage"|"dry_van"|"flatbed"|"reefer","heard_from": "flyer"|"facebook_instagram"|"google_search"|"friend_coworker"|"other","mvr_status": "clean"|"minor_1_2"|"major_3_plus","notice_category": "policy_change"|"service_notice"|"service_restored"|"account_security","notice_status": "queued"|"sending"|"sent","operator_type": "cdl_driver"|"yard_spotter"|"mechanic","recipient_status": "queued"|"sent"|"delivered"|"failed"|"booked"|"too_late"|"no_show","shift_status": "open"|"booked"|"cancelled"|"expired","sms_consent_event": "opt_in"|"opt_out"|"opt_in_again","sms_consent_source": "onboarding"|"sms_stop"|"sms_start"|"profile","sms_direction": "inbound"|"outbound","subscription_status": "trialing"|"active"|"past_due"|"canceled"|"unpaid"|"incomplete"|"incomplete_expired"|"paused","transmission_type": "automatic_only"|"manual_ok","user_role": "driver"|"carrier"|"admin"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -534,7 +576,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "account_status": ["pending", "approved", "blocked"],"availability_type": ["full_time", "part_time", "on_call", "weekends"],"cdl_class": ["A", "B", "none"],"document_type": ["cdl_front", "cdl_back", "medical_card", "certification", "other"],"driving_style": ["local_day_cab", "regional"],"employment_type": ["w2", "contractor_1099", "either"],"endorsement": ["H", "N", "T", "X"],"equipment_type": ["container_drayage", "dry_van", "flatbed", "reefer"],"heard_from": ["flyer", "facebook_instagram", "google_search", "friend_coworker", "other"],"mvr_status": ["clean", "minor_1_2", "major_3_plus"],"operator_type": ["cdl_driver", "yard_spotter", "mechanic"],"recipient_status": ["queued", "sent", "delivered", "failed", "booked", "too_late", "no_show"],"shift_status": ["open", "booked", "cancelled", "expired"],"sms_consent_event": ["opt_in", "opt_out", "opt_in_again"],"sms_consent_source": ["onboarding", "sms_stop", "sms_start", "profile"],"sms_direction": ["inbound", "outbound"],"subscription_status": ["trialing", "active", "past_due", "canceled", "unpaid", "incomplete", "incomplete_expired", "paused"],"transmission_type": ["automatic_only", "manual_ok"],"user_role": ["driver", "carrier", "admin"]
+            "account_status": ["pending", "approved", "blocked"],"availability_type": ["full_time", "part_time", "on_call", "weekends"],"cdl_class": ["A", "B", "none"],"document_type": ["cdl_front", "cdl_back", "medical_card", "certification", "other"],"driving_style": ["local_day_cab", "regional"],"employment_type": ["w2", "contractor_1099", "either"],"endorsement": ["H", "N", "T", "X"],"equipment_type": ["container_drayage", "dry_van", "flatbed", "reefer"],"heard_from": ["flyer", "facebook_instagram", "google_search", "friend_coworker", "other"],"mvr_status": ["clean", "minor_1_2", "major_3_plus"],"notice_category": ["policy_change", "service_notice", "service_restored", "account_security"],"notice_status": ["queued", "sending", "sent"],"operator_type": ["cdl_driver", "yard_spotter", "mechanic"],"recipient_status": ["queued", "sent", "delivered", "failed", "booked", "too_late", "no_show"],"shift_status": ["open", "booked", "cancelled", "expired"],"sms_consent_event": ["opt_in", "opt_out", "opt_in_again"],"sms_consent_source": ["onboarding", "sms_stop", "sms_start", "profile"],"sms_direction": ["inbound", "outbound"],"subscription_status": ["trialing", "active", "past_due", "canceled", "unpaid", "incomplete", "incomplete_expired", "paused"],"transmission_type": ["automatic_only", "manual_ok"],"user_role": ["driver", "carrier", "admin"]
           }
         }
 } as const

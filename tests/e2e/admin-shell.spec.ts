@@ -13,6 +13,7 @@ const ADMIN_PAGES = [
   "/admin/subscriptions",
   "/admin/shifts",
   "/admin/service-areas",
+  "/admin/messaging",
   "/admin/analytics",
 ] as const;
 
@@ -73,7 +74,7 @@ test.describe("admin shell", () => {
     await login(page, PHONES.admin);
     await page.setViewportSize({ width: 1280, height: 900 });
     const reached: string[] = [];
-    for (let stop = 0; stop < 12; stop += 1) {
+    for (let stop = 0; stop < 20; stop += 1) {
       await page.keyboard.press("Tab");
       const name = await page.evaluate(() => {
         const el = document.activeElement as HTMLElement | null;

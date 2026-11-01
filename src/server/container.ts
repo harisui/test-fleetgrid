@@ -15,6 +15,7 @@ import { ConsentLogRepository } from "@/server/repositories/ConsentLogRepository
 import { DocumentRepository } from "@/server/repositories/DocumentRepository";
 import { DriverNotificationRepository } from "@/server/repositories/DriverNotificationRepository";
 import { DriverRepository } from "@/server/repositories/DriverRepository";
+import { MessagingRepository } from "@/server/repositories/MessagingRepository";
 import { DriverSearchRepository } from "@/server/repositories/DriverSearchRepository";
 import { ProfileRepository } from "@/server/repositories/ProfileRepository";
 import { QrLinkRepository, QrScanRepository } from "@/server/repositories/QrLinkRepository";
@@ -38,6 +39,7 @@ import { DriverSearchService } from "@/server/services/DriverSearchService";
 import { DriverNotificationService } from "@/server/services/DriverNotificationService";
 import { DriverService } from "@/server/services/DriverService";
 import { InboundService } from "@/server/services/InboundService";
+import { MessagingService } from "@/server/services/MessagingService";
 import { ProfileService } from "@/server/services/ProfileService";
 import { QrService } from "@/server/services/QrService";
 import { ShiftService } from "@/server/services/ShiftService";
@@ -165,9 +167,21 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     (userId) => subscriptionService.cancelForAccountDeletion(userId),
   );
 
+  // Activity reads with the admin's own client (RLS); a resend goes through the one sending path.
+  const messagingService = new MessagingService(
+    new MessagingRepository(supabase),
+    profiles,
+    (entry) => adminRepository.writeAudit(entry),
+    () => {
+      const texting = buildTextingServices();
+      return { texts: texting.textService, drivers: texting.drivers, recipients: texting.recipients };
+    },
+  );
+
   return {
     shiftService,
     adminOpsService,
+    messagingService,
     authService: new AuthService(auth, profiles),
     accountService: new AccountService(
       auth,

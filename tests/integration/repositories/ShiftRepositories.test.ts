@@ -148,8 +148,8 @@ describe("shift repositories", () => {
       status: "received",
       shiftId: shift.id,
     };
-    expect(await log.record(entry)).toBe(true);
-    expect(await log.record(entry)).toBe(false);
+    expect(await log.record(entry)).toEqual(expect.any(String));
+    expect(await log.record(entry)).toBeNull();
     expect((await log.listByShift(shift.id)).map((m) => m.providerSid)).toContain(entry.providerSid);
   });
 

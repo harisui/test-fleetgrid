@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AdminFrame } from "@/components/admin/AdminFrame";
 import { AdminPage } from "@/components/admin/AdminPage";
-import { ADMIN_NAV, isAdminNavActive } from "@/lib/admin/nav";
+import { activeAdminChild, ADMIN_NAV, isAdminNavActive } from "@/lib/admin/nav";
 
 const navigation = vi.hoisted(() => ({ pathname: "/admin/drivers" }));
 vi.mock("next/navigation", () => ({
@@ -24,12 +24,47 @@ describe("admin navigation", () => {
       "Subscriptions",
       "Shifts",
       "Service areas",
+      "Messaging",
       "Analytics",
     ]);
     expect(isAdminNavActive("/admin/drivers", "/admin/drivers")).toBe(true);
     expect(isAdminNavActive("/admin/drivers?status=all", "/admin/drivers")).toBe(false);
     expect(isAdminNavActive("/admin/drivers/abc", "/admin/drivers")).toBe(true);
     expect(isAdminNavActive("/admin/analytics", "/admin/drivers")).toBe(false);
+  });
+});
+
+describe("Messaging in the admin navigation", () => {
+  const messaging = ADMIN_NAV.find((item) => item.label === "Messaging")!;
+
+  it("has Activity (the default) and Send notice under it, each active on its own page", () => {
+    expect(messaging.children?.map((child) => [child.label, child.href])).toEqual([
+      ["Activity", "/admin/messaging"],
+      ["Send notice", "/admin/messaging/send"],
+    ]);
+    expect(activeAdminChild("/admin/messaging", messaging)).toBe("/admin/messaging");
+    expect(activeAdminChild("/admin/messaging/send", messaging)).toBe("/admin/messaging/send");
+    expect(activeAdminChild("/admin/drivers", messaging)).toBeNull();
+  });
+
+  it("marks the parent as the section and the child as the page, on both pages", () => {
+    for (const [path, page] of [
+      ["/admin/messaging", "Activity"],
+      ["/admin/messaging/send", "Send notice"],
+    ] as const) {
+      navigation.pathname = path;
+      const { unmount } = render(
+        <AdminFrame adminLabel="(555) 555-0102">
+          <p>content</p>
+        </AdminFrame>,
+      );
+      const sidebar = document.querySelector("[data-slot=admin-sidebar]") as HTMLElement;
+      const nav = within(sidebar).getByRole("navigation", { name: "Admin" });
+      expect(within(nav).getByRole("link", { name: "Messaging" })).toHaveAttribute("aria-current", "true");
+      expect(within(nav).getByRole("link", { name: page })).toHaveAttribute("aria-current", "page");
+      expect(nav.querySelectorAll("[aria-current=page]")).toHaveLength(1);
+      unmount();
+    }
   });
 });
 

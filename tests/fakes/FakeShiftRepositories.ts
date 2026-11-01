@@ -16,7 +16,7 @@ import type {
   ShiftListFilter,
   ShiftPatch,
 } from "@/server/repositories/ShiftRepository";
-import type { ISmsLogRepository, SmsLogEntry } from "@/server/repositories/SmsLogRepository";
+import type { ISmsLogRepository, SmsContext, SmsLogEntry } from "@/server/repositories/SmsLogRepository";
 import type { ITextingDriverRepository, TextingDriver } from "@/server/repositories/TextingDriverRepository";
 import type { BookedDriverContact, BroadcastRecipient, ClaimOutcome, Shift } from "@/types/domain";
 
@@ -215,16 +215,23 @@ export class FakeShiftWorld {
 }
 
 export class FakeSmsLog implements ISmsLogRepository {
-  entries: SmsLogEntry[] = [];
-  async record(entry: SmsLogEntry): Promise<boolean> {
-    if (entry.providerSid && this.entries.some((e) => e.providerSid === entry.providerSid)) return false;
-    this.entries.push({ ...entry });
-    return true;
+  entries: (SmsLogEntry & { id: string; inboundOutcome?: string })[] = [];
+  private seq = 0;
+  async record(entry: SmsLogEntry): Promise<string | null> {
+    if (entry.providerSid && this.entries.some((e) => e.providerSid === entry.providerSid)) return null;
+    if (entry.resendOf && this.entries.some((e) => e.resendOf === entry.resendOf)) return null;
+    const id = `m${++this.seq}`;
+    this.entries.push({ ...entry, id });
+    return id;
+  }
+  async updateById(id: string, update: { providerSid: string | null; status: string; errorCode: string | null }): Promise<void> {
+    const entry = this.entries.find((e) => e.id === id);
+    if (entry) Object.assign(entry, update);
   }
   async updateStatus(sid: string, status: string, errorCode: string | null): Promise<void> {
     for (const entry of this.entries) if (entry.providerSid === sid) Object.assign(entry, { status, errorCode });
   }
-  async setContext(sid: string, context: { kind?: string; shiftId?: string | null; driverId?: string | null }): Promise<void> {
+  async setContext(sid: string, context: SmsContext): Promise<void> {
     for (const entry of this.entries) if (entry.providerSid === sid) Object.assign(entry, context);
   }
   async listByShift(): Promise<never[]> {
