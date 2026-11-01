@@ -171,6 +171,24 @@ describe("broadcasting and replies", () => {
     expect(sms.sent).toHaveLength(0);
   });
 
+  it("never texts a number that opted out, and logs a refused send with its error", async () => {
+    const texts = new TextService(sms, () => smsLog);
+    expect(await texts.send({ ...drivers[0], smsOptedOut: true }, "approved", "x")).toMatchObject({ sent: false, status: "skipped_opted_out" });
+    expect(sms.sent).toHaveLength(0);
+    sms.failing.add(drivers[1].phone);
+    expect(await texts.send(drivers[1], "approved", "x")).toMatchObject({ sent: false, status: "failed", errorCode: "30003" });
+    expect(smsLog.outbound().at(-1)).toMatchObject({ toPhone: drivers[1].phone, status: "failed", errorCode: "30003" });
+  });
+
+  it("a second broadcast of the same round sends nothing (another call got there first)", async () => {
+    await broadcasts.broadcast(shift.id, world.now());
+    // Put the round back as if the second call had read the shift before the first wrote it.
+    world.shifts.set(shift.id, { ...world.shifts.get(shift.id)!, broadcastRound: 0 });
+    sms.sent = [];
+    expect(await broadcasts.broadcast(shift.id, world.now())).toMatchObject({ offered: 0, sent: 0 });
+    expect(sms.sent).toHaveLength(0);
+  });
+
   it("delivery reports reach the offer, never over a booking", async () => {
     await broadcasts.broadcast(shift.id, world.now());
     const [first, second] = world.recipients;

@@ -1,3 +1,4 @@
+import { QUIET_HOURS_DRIVER } from "@/content/quiet-hours";
 import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import CarriersPage from "@/app/(public)/carriers/page";
@@ -6,7 +7,7 @@ import PrivacyPage, { PRIVACY_SECTIONS } from "@/app/(public)/privacy/page";
 import SmsTermsPage, { SMS_TERMS_SECTIONS } from "@/app/(public)/sms-terms/page";
 import TermsPage, { TERMS_SECTIONS } from "@/app/(public)/terms/page";
 import { LegalHeading, LegalPage, legalSectionId } from "@/components/layout/LegalPage";
-import { LEGAL_EFFECTIVE_DATE, SMS_CONSENT_TEXT } from "@/lib/constants";
+import { SMS_TERMS_EFFECTIVE_DATE, LEGAL_EFFECTIVE_DATE, SMS_CONSENT_TEXT } from "@/lib/constants";
 
 const navigation = vi.hoisted(() => ({
   redirect: vi.fn((to: string) => {
@@ -384,6 +385,18 @@ describe("/privacy", () => {
 });
 
 describe("/sms-terms", () => {
+  it("states the quiet hours under Message frequency, with its own date (client decision of 2026-11-01)", () => {
+    render(<SmsTermsPage />);
+    expect(screen.getByText(`Last updated ${SMS_TERMS_EFFECTIVE_DATE}`)).toBeInTheDocument();
+    expect(SMS_TERMS_EFFECTIVE_DATE).toBe("November 1, 2026");
+    const heading = screen.getByRole("heading", { name: "Message frequency" });
+    const section: string[] = [];
+    for (let node = heading.nextElementSibling; node && node.tagName === "P"; node = node.nextElementSibling) {
+      section.push(node.textContent ?? "");
+    }
+    expect(section).toContain(QUIET_HOURS_DRIVER);
+  });
+
   it("names the program and the company", () => {
     render(<SmsTermsPage />);
     expect(screen.getByRole("heading", { name: "Program name" })).toBeInTheDocument();

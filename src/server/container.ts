@@ -2,9 +2,11 @@ import { getServerEnv, getSiteEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { getPaymentProvider } from "@/server/providers/createPaymentProvider";
+import { APPROVED_TEXT } from "@/lib/shifts/texts";
 import { createSmsProvider, type ISmsProvider } from "@/server/providers/SmsProvider";
 import { FileZipProvider } from "@/server/providers/ZipProvider";
 import { AccountRepository } from "@/server/repositories/AccountRepository";
+import { AdminOpsRepository } from "@/server/repositories/AdminOpsRepository";
 import { AdminRepository } from "@/server/repositories/AdminRepository";
 import { AuthRepository } from "@/server/repositories/AuthRepository";
 import { BroadcastRepository } from "@/server/repositories/BroadcastRepository";
@@ -25,6 +27,7 @@ import { TosRepository } from "@/server/repositories/TosRepository";
 import { WaitlistRepository } from "@/server/repositories/WaitlistRepository";
 import { WebhookEventRepository } from "@/server/repositories/WebhookEventRepository";
 import { AccountService } from "@/server/services/AccountService";
+import { AdminOpsService } from "@/server/services/AdminOpsService";
 import { AdminService } from "@/server/services/AdminService";
 import { AnalyticsService } from "@/server/services/AnalyticsService";
 import { AuthService } from "@/server/services/AuthService";
@@ -51,6 +54,11 @@ function getSmsProvider(): ISmsProvider {
   return smsProvider;
 }
 
+/** "fake" when no real texts go out: local, tests and previews. */
+export function smsProviderKind(): ISmsProvider["kind"] {
+  return getSmsProvider().kind;
+}
+
 const reportError = (message: string, detail?: unknown) => console.error(`[FleetGrid] ${message}`, detail);
 
 /**
@@ -71,7 +79,14 @@ export function buildTextingServices() {
     new ConsentLogRepository(admin),
     textService,
   );
-  return { shifts, recipients, textService, broadcastService, inboundService, smsKind: getSmsProvider().kind };
+  return {
+    shifts,
+    recipients,
+    drivers: new TextingDriverRepository(admin),
+    textService,
+    broadcastService,
+    inboundService,
+  };
 }
 
 /** Wires repositories into services for one Supabase client. */
@@ -137,8 +152,19 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     new TextService(getSmsProvider(), () => new SmsLogRepository(createAdminClient()), reportError),
   );
 
+  const adminOpsService = new AdminOpsService(
+    new AdminOpsRepository(supabase),
+    adminRepository,
+    profiles,
+    documents,
+    zipProvider,
+    () => new AccountRepository(createAdminClient()),
+    (userId) => subscriptionService.cancelForAccountDeletion(userId),
+  );
+
   return {
     shiftService,
+    adminOpsService,
     authService: new AuthService(auth, profiles),
     accountService: new AccountService(
       auth,
@@ -164,7 +190,20 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     carrierService,
     subscriptionService,
     driverSearchService: new DriverSearchService(carrierService, driverSearch, documents),
-    adminService: new AdminService(adminRepository, profiles, serviceAreas, documents, qrLinks),
+    adminService: new AdminService(
+      adminRepository,
+      profiles,
+      serviceAreas,
+      documents,
+      qrLinks,
+      undefined,
+      async ({ driverId, smsOptIn }) => {
+        if (!smsOptIn) return;
+        const { drivers, textService } = buildTextingServices();
+        const driver = await drivers.findById(driverId);
+        if (driver) await textService.send(driver, "approved", APPROVED_TEXT);
+      },
+    ),
     qrService,
     analyticsService: new AnalyticsService(
       adminRepository,

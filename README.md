@@ -54,7 +54,8 @@ Copy `.env.example` to `.env.local`. The app validates these at startup (`src/li
 | `NEXT_PUBLIC_SHOW_PHONE`, `NEXT_PUBLIC_SHOW_SMS_NUMBER` | Website | optional. `true` shows the toll-free number for calls (footer, Contact page) or as the shift-text sender in the footer. Both off unless set to exactly `true`; keep them off until the client confirms calls are answered and Twilio has approved the number. |
 | `RESEND_API_KEY`, `CONTACT_TO`, `CONTACT_FROM`, `CONTACT_FORM_SECRET` | Website | the contact form. The key from the client's Resend account (domain verified there); `CONTACT_TO` defaults to the support address and `CONTACT_FROM` to `FleetGrid <noreply@fleetgridus.com>`; the secret is any long random string and signs the form's timestamp. Empty locally: the message is logged, not sent. In production a missing key or secret shows the form's error state, never a fake success. Rate limit: 5 per address per hour and 20 a day, counted per server instance. Server only. |
 | `CARRIER_DISABLED`                               | Milestone 2 | optional. `true` hides the carrier side: the landing page button, `/login?role=carrier`, the role picker and every `/carrier` page lead to a "Carriers: coming soon" page at `/carriers`, and no carrier profile can be created. Off unless set to exactly `true`. |
-| `TWILIO_*`                                       | Milestone 3 | not needed yet. Login codes are sent and checked by Supabase Auth, whose SMS provider (Twilio Verify or a Twilio Messaging Service) is chosen in the Supabase dashboard, not here; see "Login codes" under Deploying. |
+| `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_MESSAGING_SERVICE_SID` | Milestone 3 | the shift texts (Production only; see "Shift texts" under Deploying). Leave empty locally: the fake sender stands in. Login codes do not use these; Supabase Auth sends them through Twilio Verify. Server only. |
+| `SMS_TEST_MODE`                                  | Milestone 3 | `true` keeps the fake sender even with the Twilio keys set (the browser tests set it). |
 | `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID_MONTHLY`, `STRIPE_WEBHOOK_SECRET` | Milestone 2 | the Stripe dashboard (test mode locally). With all three set, checkout and the webhook use Stripe. Leave them empty locally: with `ENABLE_TEST_LOGIN=true` an in-memory provider stands in and checkout goes to a page inside the app. Server only. |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`             | Milestone 2 | not used yet (Checkout is hosted by Stripe)            |
 
@@ -250,28 +251,53 @@ The user must have logged in once and chosen a role first, so that a profile row
 7. In Stripe, add a webhook endpoint at `https://<your-domain>/api/stripe/webhook` for `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `customer.subscription.paused`, `customer.subscription.resumed`, `invoice.paid` and `invoice.payment_failed`, and turn on the Customer Portal (Settings, Billing) with cancellation allowed.
 8. Deploy, then check `https://<your-domain>/api/health` returns `{"ok":true}`.
 
-### Login codes (Twilio Verify now, the toll-free number later)
+### Login codes (Twilio Verify, always)
 
 The app never sends the login SMS itself: `signInWithOtp` asks Supabase Auth to send the code
 and `verifyOtp` asks it to check the code, through whichever SMS provider the Supabase
-dashboard names (Authentication, Sign In / Providers, Phone, "SMS provider"). Switching
-providers is that one setting; no deploy, no environment variable, no code change, and
-signed-in users stay signed in.
+dashboard names (Authentication, Sign In / Providers, Phone, "SMS provider").
 
-- **Until the toll-free number is approved (client decision, 2026-10-23):** provider
-  **Twilio Verify**, with the Twilio Account SID, the Auth Token and the Verify Service SID
-  (`VA...`, Twilio console, Verify, Services). Verify sends from Twilio's own numbers, so it
-  works before any number of ours is approved. The text reads "Your FleetGrid verification
-  code is: 123456", so the Verify Service's friendly name must be `FleetGrid` and its code
-  length 6 (the defaults). The Supabase SMS template is not used on this path. About $0.05 a
-  successful check plus the SMS.
-- **Once Twilio approves the toll-free number:** provider **Twilio**, with the same Account
-  SID and Auth Token and the Messaging Service SID (`MG...`) that holds the number. Codes then
-  come from (888) 869-2040 with the Supabase template "Your FleetGrid code is {{ .Code }}".
+- **Provider: Twilio Verify** (client decision 2026-10-23; kept on 2026-11-01), with the
+  Twilio Account SID, the Auth Token and the Verify Service SID (`VA...`, Twilio console,
+  Verify, Services). The text reads "Your FleetGrid verification code is: 123456", so the
+  Verify Service's friendly name must be `FleetGrid` and its code length 6 (the defaults).
+- **Do not move login codes to the toll-free number** (decision of 2026-11-01). A driver who
+  texts STOP to (888) 869-2040 is blocked from every message on that number, login codes
+  included, and could no longer sign in. Verify sends from Twilio's own numbers, so a STOP to
+  the shift texts never locks anyone out.
+- The hosted project must have no test phone numbers (Phone, "Test Phone Numbers and OTPs"
+  empty), and the OTP expiry should be about 600 seconds, not 60.
 
 The test numbers in `supabase/config.toml` never reach either provider; locally the provider
-block there is a dummy. The `TWILIO_*` variables in `.env.example` are for the app's own
-texts in Milestone 3 (shift offers), not for login codes.
+block there is a dummy.
+
+### Shift texts (Milestone 3, Broadcast Shift)
+
+The app sends the shift texts itself, through Twilio's REST API and the Messaging Service
+that holds the approved toll-free number (`src/server/providers/SmsProvider.ts`).
+
+1. Vercel, **Production only** (not Preview): `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`,
+   `TWILIO_MESSAGING_SERVICE_SID` (`MG...`). Without all three, or with `SMS_TEST_MODE=true`,
+   the fake sender records texts instead of sending them, and each carrier shift page shows
+   "Test mode: reply as a driver" so the loop can be shown without phones. Previews stay on
+   the fake because the keys are not set there.
+2. Twilio console, Messaging, Services, the FleetGrid service, Integration: "Send a webhook"
+   with the request URL `https://fleetgridus.com/api/twilio/inbound` (POST). Exactly this
+   address: no `www`, no preview URL. The app checks Twilio's signature against it.
+   Each text the app sends asks for delivery reports at
+   `https://fleetgridus.com/api/twilio/status`.
+3. Same service, Opt-Out Management: Advanced Opt-Out on, with the STOP, START and HELP
+   replies in the words of the SMS Terms. The app never answers STOP, STOPALL, UNSUBSCRIBE,
+   CANCEL, END, QUIT, START, UNSTOP, HELP or INFO; it logs them and syncs the opt-out.
+   Twilio also counts a bare YES as an opt-in keyword; the app treats a bare YES as a booking
+   only from a number that has not opted out. Removing YES from Twilio's opt-in keywords
+   avoids Twilio's opt-in reply landing next to the booked text.
+4. `CRON_SECRET` is already set for the other jobs; `/api/cron/shifts` (vercel.json, 7 AM
+   Houston in summer and winter time) sends the broadcasts held for quiet hours and marks
+   expired shifts. On Vercel Pro, change its schedule to `*/15 * * * *`.
+
+Quiet hours: a shift posted between 9 PM and 7 AM Houston time is texted at 7:00 AM, unless
+it starts within 12 hours. The carrier sees "Post. Sends at 7:00 AM" before posting.
 
 ## Data
 

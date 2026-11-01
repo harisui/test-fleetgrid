@@ -1,3 +1,4 @@
+import { QUIET_HOURS_CARRIER } from "@/content/quiet-hours";
 import { LAUNCH_LINE } from "@/lib/launch";
 
 /**
@@ -215,6 +216,7 @@ export const CARRIERS = {
         text: "A driver who replies after it is booked gets a text saying so.",
       },
     ],
+    quietHours: QUIET_HOURS_CARRIER,
   },
   pricing: {
     id: "pricing",

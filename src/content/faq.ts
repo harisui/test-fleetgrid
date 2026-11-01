@@ -1,3 +1,4 @@
+import { CANCELLED_SHIFT_DRIVER, QUIET_HOURS_CARRIER, QUIET_HOURS_DRIVER } from "@/content/quiet-hours";
 import { SUBSCRIPTION_PRICE_LABEL } from "@/lib/constants";
 import type { CopyStatus } from "@/content/marketing";
 
@@ -72,7 +73,12 @@ export const FAQ_CARRIERS: FaqGroup = {
       id: "carrier-two-yes",
       question: "What if two drivers reply YES?",
       answer:
-        "The first valid reply wins. Every other driver gets a text saying the shift was filled.",
+        "The first valid reply wins. A driver who replies after that gets a text saying the shift is already booked. Nobody else is texted.",
+    },
+    {
+      id: "carrier-quiet-hours",
+      question: "When do the texts go out?",
+      answer: QUIET_HOURS_CARRIER,
     },
     {
       id: "carrier-pay",
@@ -146,6 +152,16 @@ export const FAQ_DRIVERS: FaqGroup = {
       question: "What does first YES wins mean?",
       answer:
         "Several drivers get the same offer. The first one whose YES and code reach FleetGrid gets the shift.",
+    },
+    {
+      id: "driver-quiet-hours",
+      question: "Will you text me at night?",
+      answer: QUIET_HOURS_DRIVER,
+    },
+    {
+      id: "driver-cancelled",
+      question: "What if the company cancels my shift?",
+      answer: CANCELLED_SHIFT_DRIVER,
     },
     {
       id: "driver-filled",

@@ -71,7 +71,9 @@ export default function CarriersPage() {
           >
             {hero.title}
           </h1>
-          <p className="max-w-reading text-body-lg leading-body-lg text-muted-foreground">{hero.text}</p>
+          <p className="max-w-reading text-body-lg leading-body-lg text-muted-foreground">
+            {hero.text}
+          </p>
           <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
             <Button asChild className="sm:min-w-48">
               <Link href={hero.primary.href}>{hero.primary.label}</Link>
@@ -87,13 +89,31 @@ export default function CarriersPage() {
         </section>
 
         {/* The nine filters, as the search offers them. */}
-        <Reveal as="section" id={search.id} aria-labelledby="search-title" className="flex flex-col gap-8 scroll-mt-24">
-          <SectionHeading id="search-title" eyebrow={search.eyebrow} title={search.title} text={search.text} />
-          <ul className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3" aria-label="Search filters">
+        <Reveal
+          as="section"
+          id={search.id}
+          aria-labelledby="search-title"
+          className="flex flex-col gap-8 scroll-mt-24"
+        >
+          <SectionHeading
+            id="search-title"
+            eyebrow={search.eyebrow}
+            title={search.title}
+            text={search.text}
+          />
+          <ul
+            className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
+            aria-label="Search filters"
+          >
             <Stagger>
               {search.filters.map((filter, index) => (
                 <Reveal as="li" key={filter.label}>
-                  <FeatureCard icon={FILTER_ICONS[index]} title={filter.label} text={filter.detail} layout="row" />
+                  <FeatureCard
+                    icon={FILTER_ICONS[index]}
+                    title={filter.label}
+                    text={filter.detail}
+                    layout="row"
+                  />
                 </Reveal>
               ))}
             </Stagger>
@@ -101,33 +121,57 @@ export default function CarriersPage() {
         </Reveal>
 
         {/* Broadcast Shift: steps beside the sample thread. */}
-        <Reveal as="section" id={broadcast.id} aria-labelledby="broadcast-title" className="flex flex-col gap-8 scroll-mt-24">
-          <SectionHeading id="broadcast-title" eyebrow={broadcast.eyebrow} title={broadcast.title} />
+        <Reveal
+          as="section"
+          id={broadcast.id}
+          aria-labelledby="broadcast-title"
+          className="flex flex-col gap-8 scroll-mt-24"
+        >
+          <SectionHeading
+            id="broadcast-title"
+            eyebrow={broadcast.eyebrow}
+            title={broadcast.title}
+          />
           <div className="grid grid-cols-1 gap-8 md:grid-cols-2 md:items-center lg:gap-12">
-            <ol className="flex flex-col gap-4" aria-label="Broadcast Shift steps">
-              <Stagger>
-                {broadcast.steps.map((step, index) => (
-                  <Reveal as="li" key={step.title} className="flex gap-4">
-                    <span
-                      aria-hidden="true"
-                      className="flex size-12 shrink-0 items-center justify-center rounded-field border border-border bg-muted font-heading text-number leading-number font-bold"
-                    >
-                      {index + 1}
-                    </span>
-                    <span className="flex flex-col gap-1">
-                      <span className="text-label leading-label font-semibold">{step.title}</span>
-                      <span className="text-helper leading-helper text-muted-foreground">{step.text}</span>
-                    </span>
-                  </Reveal>
-                ))}
-              </Stagger>
-            </ol>
+            <div className="flex flex-col gap-6">
+              <ol className="flex flex-col gap-4" aria-label="Broadcast Shift steps">
+                <Stagger>
+                  {broadcast.steps.map((step, index) => (
+                    <Reveal as="li" key={step.title} className="flex gap-4">
+                      <span
+                        aria-hidden="true"
+                        className="flex size-12 shrink-0 items-center justify-center rounded-field border border-border bg-muted font-heading text-number leading-number font-bold"
+                      >
+                        {index + 1}
+                      </span>
+                      <span className="flex flex-col gap-1">
+                        <span className="text-label leading-label font-semibold">{step.title}</span>
+                        <span className="text-helper leading-helper text-muted-foreground">
+                          {step.text}
+                        </span>
+                      </span>
+                    </Reveal>
+                  ))}
+                </Stagger>
+              </ol>
+              <p
+                className="text-helper leading-helper text-muted-foreground"
+                data-slot="quiet-hours"
+              >
+                {broadcast.quietHours}
+              </p>
+            </div>
             <SmsThread className="justify-self-center md:justify-self-end" />
           </div>
         </Reveal>
 
         {/* Pricing. */}
-        <Reveal as="section" id={pricing.id} aria-labelledby="pricing-title" className="flex flex-col gap-8 scroll-mt-24">
+        <Reveal
+          as="section"
+          id={pricing.id}
+          aria-labelledby="pricing-title"
+          className="flex flex-col gap-8 scroll-mt-24"
+        >
           <SectionHeading id="pricing-title" eyebrow={pricing.eyebrow} title={pricing.title} />
           <div className="grid grid-cols-1 gap-8 md:grid-cols-5 md:items-start lg:gap-12">
             <div
@@ -144,7 +188,9 @@ export default function CarriersPage() {
                   <span className="font-heading text-5xl leading-none font-bold" data-slot="price">
                     {pricing.price}
                   </span>
-                  <span className="text-label leading-label text-muted-foreground">{pricing.period}</span>
+                  <span className="text-label leading-label text-muted-foreground">
+                    {pricing.period}
+                  </span>
                 </p>
                 <ul className="flex flex-col gap-3" aria-label="Included">
                   {pricing.included.map((line) => (
@@ -157,12 +203,19 @@ export default function CarriersPage() {
                 </Button>
               </div>
             </div>
-            <p className="text-body-lg leading-body-lg text-muted-foreground md:col-span-2">{pricing.framing}</p>
+            <p className="text-body-lg leading-body-lg text-muted-foreground md:col-span-2">
+              {pricing.framing}
+            </p>
           </div>
         </Reveal>
 
         {/* The ZIP check. */}
-        <Reveal as="section" id={serviceArea.id} aria-labelledby="service-area-title" className="flex flex-col gap-6 scroll-mt-24">
+        <Reveal
+          as="section"
+          id={serviceArea.id}
+          aria-labelledby="service-area-title"
+          className="flex flex-col gap-6 scroll-mt-24"
+        >
           <SectionHeading
             id="service-area-title"
             eyebrow={serviceArea.eyebrow}
@@ -188,7 +241,10 @@ export default function CarriersPage() {
                 ))}
               </ul>
             </SignPanel>
-            <section aria-labelledby="is-not-title" className="flex flex-col gap-4 rounded-card border border-border-strong bg-card p-6">
+            <section
+              aria-labelledby="is-not-title"
+              className="flex flex-col gap-4 rounded-card border border-border-strong bg-card p-6"
+            >
               <h2 id="is-not-title" className="font-heading text-h2 leading-h2 font-semibold">
                 {isAndIsNot.isNot.title}
               </h2>
@@ -201,9 +257,20 @@ export default function CarriersPage() {
           </div>
         </Reveal>
 
-        <FaqExcerpt id={faq.id} eyebrow={faq.eyebrow} title={faq.title} entries={CARRIER_FAQ_EXCERPT} more={faq.more} />
+        <FaqExcerpt
+          id={faq.id}
+          eyebrow={faq.eyebrow}
+          title={faq.title}
+          entries={CARRIER_FAQ_EXCERPT}
+          more={faq.more}
+        />
 
-        <CtaBand title={finalCta.title} text={finalCta.text} primary={finalCta.primary} secondary={finalCta.secondary} />
+        <CtaBand
+          title={finalCta.title}
+          text={finalCta.text}
+          primary={finalCta.primary}
+          secondary={finalCta.secondary}
+        />
       </div>
     </AppShell>
   );

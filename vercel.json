@@ -7,6 +7,14 @@
     {
       "path": "/api/cron/heartbeat",
       "schedule": "30 6 * * *"
+    },
+    {
+      "path": "/api/cron/shifts",
+      "schedule": "0 12 * * *"
+    },
+    {
+      "path": "/api/cron/shifts",
+      "schedule": "0 13 * * *"
     }
   ]
 }

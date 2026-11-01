@@ -89,6 +89,9 @@ export class AdminService {
     private readonly documents: IDocumentRepository,
     private readonly qrLinks: IQrLinkRepository,
     private readonly now: () => Date = () => new Date(),
+    /** Part 3b: texts a driver with shift texts on when they are approved. Never throws. */
+    private readonly onDriverApproved: (driver: { driverId: string; smsOptIn: boolean }) => Promise<void> = async () =>
+      undefined,
   ) {}
 
   async getDriversPage(adminId: string, input: unknown): Promise<AdminDriversPage> {
@@ -169,6 +172,9 @@ export class AdminService {
       targetId: driverId,
       detail: { from: previous, to: status, name: row.driver.fullName },
     });
+    if (status === "approved") {
+      await this.onDriverApproved({ driverId, smsOptIn: row.driver.smsOptIn }).catch(() => undefined);
+    }
     return updated;
   }
 

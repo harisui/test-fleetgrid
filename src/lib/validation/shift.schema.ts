@@ -18,6 +18,7 @@ export const SHIFT_TIME_MESSAGE = "Enter a time, like 06:00";
 export const SHIFT_START_PAST_MESSAGE = "The shift must start in the future";
 export const WORK_MESSAGE = "Describe the work in at least 10 characters";
 export const ONSITE_NAME_MESSAGE = "Enter who the driver should ask for on site";
+export const SHIFT_OUTSIDE_AREA_MESSAGE = "This ZIP is outside the areas FleetGrid serves.";
 export const ONSITE_PHONE_MESSAGE = "Enter a 10-digit US number for the on-site contact";
 
 const checkbox = z.preprocess((value) => value === true || value === "true" || value === "on", z.boolean());

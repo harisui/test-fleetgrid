@@ -5,6 +5,7 @@ import CarriersPage from "@/app/(public)/carriers/page";
 import { ZipCheck } from "@/components/marketing/ZipCheck";
 import { CARRIER_FAQ_EXCERPT } from "@/content/faq";
 import { CARRIERS } from "@/content/marketing";
+import { QUIET_HOURS_CARRIER } from "@/content/quiet-hours";
 import { SMS_SAMPLE_OFFER, SMS_SAMPLE_REPLY } from "@/content/sms-samples";
 import type { Result } from "@/server/errors/AppError";
 
@@ -72,6 +73,8 @@ describe("/carriers", () => {
     const steps = screen.getByRole("list", { name: "Broadcast Shift steps" });
     expect(within(steps).getAllByRole("listitem")).toHaveLength(4);
     expect(steps).toHaveTextContent("random order");
+    // The client's quiet-hours line (2026-11-01), under the steps.
+    expect(document.querySelector("[data-slot=quiet-hours]")).toHaveTextContent(QUIET_HOURS_CARRIER);
     const thread = screen.getByRole("group", { name: /sample text thread/ });
     expect(thread).toHaveTextContent(SMS_SAMPLE_OFFER);
     expect(thread).toHaveTextContent(SMS_SAMPLE_REPLY);

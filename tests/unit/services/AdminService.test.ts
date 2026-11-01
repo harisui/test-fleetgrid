@@ -327,6 +327,26 @@ describe("AdminService", () => {
       expect(profiles.rows.get(USER_ID)?.status).toBe("pending");
     });
 
+    it("tells the approval hook (the approved text) only on approval, with the driver's consent", async () => {
+      const approvals: { driverId: string; smsOptIn: boolean }[] = [];
+      const notifying = new AdminService(
+        admin,
+        profiles,
+        new FakeServiceAreaRepository(),
+        documents,
+        new FakeQrLinkRepository([QR_LINK]),
+        () => NOW,
+        async (driver) => {
+          approvals.push(driver);
+          throw new Error("a failed text never fails the approval");
+        },
+      );
+      expect((await notifying.approveDriver(ADMIN_ID, { driverId: D1 })).status).toBe("approved");
+      await notifying.blockDriver(ADMIN_ID, { driverId: D1 });
+      await notifying.approveDriver(ADMIN_ID, { driverId: D2 });
+      expect(approvals).toEqual([{ driverId: D1, smsOptIn: true }]);
+    });
+
     it("does nothing, and logs nothing, when the status is already so", async () => {
       const same = await service.approveDriver(ADMIN_ID, { driverId: D2 });
       expect(same.status).toBe("approved");

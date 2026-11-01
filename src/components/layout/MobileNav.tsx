@@ -13,6 +13,11 @@ interface MobileNavProps {
 export function MobileNav({ navItems }: MobileNavProps) {
   const pathname = usePathname();
   if (navItems.length === 0) return null;
+  // The longest matching link wins, so "/driver" is not active on "/driver/profile".
+  const activeHref = navItems
+    .map((item) => item.href)
+    .filter((href) => pathname === href || pathname.startsWith(`${href}/`))
+    .sort((a, b) => b.length - a.length)[0];
 
   return (
     <nav
@@ -21,7 +26,7 @@ export function MobileNav({ navItems }: MobileNavProps) {
     >
       <ul className="mx-auto flex max-w-5xl">
         {navItems.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const active = item.href === activeHref;
           return (
             <li key={item.href} className="flex-1">
               <Link

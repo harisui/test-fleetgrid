@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { LegalHeading, LegalPage } from "@/components/layout/LegalPage";
-import { SMS_CONSENT_TEXT, SMS_PROGRAM_NAME } from "@/lib/constants";
+import { QUIET_HOURS_DRIVER } from "@/content/quiet-hours";
+import { SMS_CONSENT_TEXT, SMS_PROGRAM_NAME, SMS_TERMS_EFFECTIVE_DATE } from "@/lib/constants";
 import { formatE164ForDisplay } from "@/lib/phone";
 import { BUSINESS_NAME, getSupportContact } from "@/lib/support";
 import { pageMetadata } from "@/lib/seo";
@@ -27,7 +28,12 @@ export const SMS_TERMS_SECTIONS = [
 export default function SmsTermsPage() {
   const support = getSupportContact();
   return (
-    <LegalPage path="/sms-terms" title="SMS Terms" sections={SMS_TERMS_SECTIONS}>
+    <LegalPage
+      path="/sms-terms"
+      title="SMS Terms"
+      effective={SMS_TERMS_EFFECTIVE_DATE}
+      sections={SMS_TERMS_SECTIONS}
+    >
       <LegalHeading>Program name</LegalHeading>
       <p>
         {SMS_PROGRAM_NAME}, sent by {BUSINESS_NAME}.
@@ -52,6 +58,7 @@ export default function SmsTermsPage() {
       <p>
         Message frequency varies. It depends on how many matching shifts are posted in your area.
       </p>
+      <p>{QUIET_HOURS_DRIVER}</p>
 
       <LegalHeading>Cost</LegalHeading>
       <p>Msg &amp; data rates may apply. FleetGrid does not charge drivers for messages.</p>
@@ -88,8 +95,7 @@ export default function SmsTermsPage() {
 
       <LegalHeading>Privacy</LegalHeading>
       <p>
-        We do not sell your phone number or share it with third parties for their marketing. See
-        our{" "}
+        We do not sell your phone number or share it with third parties for their marketing. See our{" "}
         <Link href="/privacy" className={linkClass}>
           Privacy Policy
         </Link>{" "}

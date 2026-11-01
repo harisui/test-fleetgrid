@@ -2,6 +2,7 @@ import { displayStatus, sendAfterFor } from "@/lib/shifts/schedule";
 import { cancelledText } from "@/lib/shifts/texts";
 import {
   cancelShiftSchema,
+  SHIFT_OUTSIDE_AREA_MESSAGE,
   SHIFT_START_PAST_MESSAGE,
   shiftIdSchema,
   shiftPostSchema,
@@ -24,7 +25,7 @@ import type {
   ShiftRequirements,
 } from "@/types/domain";
 
-export const SHIFT_OUTSIDE_AREA_MESSAGE = "This ZIP is outside the areas FleetGrid serves.";
+export { SHIFT_OUTSIDE_AREA_MESSAGE };
 
 /** What the carrier's shift page shows. */
 export interface CarrierShiftDetail {
@@ -152,9 +153,14 @@ export class ShiftService {
     return { shift: (await this.admin.shifts().findById(shift.id)) ?? shift, broadcast };
   }
 
-  /** The driver's booked shifts (RLS: only their own), soonest first. */
-  async listDriverShifts(driverId: string): Promise<Shift[]> {
-    return this.shifts.listBookedByDriver(driverId);
+  /** The driver's booked shifts (RLS: only their own): those not yet over, soonest first, then the past ones, latest first. */
+  async listDriverShifts(driverId: string): Promise<{ upcoming: Shift[]; past: Shift[] }> {
+    const shifts = await this.shifts.listBookedByDriver(driverId);
+    const now = this.now().getTime();
+    return {
+      upcoming: shifts.filter((shift) => new Date(shift.endsAt).getTime() > now),
+      past: shifts.filter((shift) => new Date(shift.endsAt).getTime() <= now).reverse(),
+    };
   }
 
   /** The status to show, with open shifts past their time shown as expired. */

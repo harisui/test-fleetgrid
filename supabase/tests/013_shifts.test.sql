@@ -233,7 +233,7 @@ select is((select count(*) from public.sms_messages), 0::bigint, 'a driver reads
 select pg_temp.sign_out();
 
 select pg_temp.sign_in(pg_temp.uid('01'));
-select is((select count(*) from public.sms_messages), 1::bigint, 'an admin reads the text log');
+select is((select count(*) from public.sms_messages where provider_sid = 'SM1'), 1::bigint, 'an admin reads the text log');
 select is((select count(*) from public.shifts), 1::bigint, 'an admin reads every shift');
 select pg_temp.sign_out();
 

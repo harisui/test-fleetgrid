@@ -5,6 +5,7 @@ import DriversPage from "@/app/(public)/drivers/page";
 import FaqPage from "@/app/(public)/faq/page";
 import { Faq } from "@/components/marketing/Faq";
 import { DRIVER_FAQ_EXCERPT, FAQ_GROUPS } from "@/content/faq";
+import { CANCELLED_SHIFT_DRIVER, QUIET_HOURS_CARRIER, QUIET_HOURS_DRIVER } from "@/content/quiet-hours";
 import { DRIVERS } from "@/content/marketing";
 import { SMS_SAMPLE_OFFER } from "@/content/sms-samples";
 
@@ -106,8 +107,14 @@ describe("/faq", () => {
   it("the consent answer says No, and no answer promises a turnaround", () => {
     const required = ALL_ENTRIES.find((entry) => entry.id === "texts-required")!;
     expect(required.answer.startsWith("No.")).toBe(true);
+    // The client's quiet-hours rule says "within 12 hours" of a shift's start: a rule about
+    // texts, not a turnaround, so only her exact sentences are let through.
+    const quietHours: string[] = [QUIET_HOURS_CARRIER, QUIET_HOURS_DRIVER];
     for (const entry of ALL_ENTRIES) {
-      expect(entry.answer, entry.id).not.toMatch(/business day|within \d+ (hours|days)/i);
+      expect(entry.answer, entry.id).not.toMatch(/business day/i);
+      if (!quietHours.includes(entry.answer)) {
+        expect(entry.answer, entry.id).not.toMatch(/within \d+ (hours|days)/i);
+      }
     }
   });
 
@@ -126,6 +133,26 @@ describe("/faq", () => {
     expect(answer.closest("[hidden]")).toBeNull();
     await userEvent.click(button);
     expect(button).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("carries the client's quiet-hours and cancellation sentences word for word (2026-11-01)", () => {
+    expect(QUIET_HOURS_CARRIER).toBe(
+      "Late-night posts are sent at 7 AM so drivers aren't woken up, unless the shift starts within 12 hours.",
+    );
+    expect(QUIET_HOURS_DRIVER).toBe(
+      "We don't send shift alerts between 9 PM and 7 AM Houston time, unless a shift starts within 12 hours.",
+    );
+    expect(CANCELLED_SHIFT_DRIVER).toBe("If a company cancels your booked shift, we text you right away.");
+    const answer = (id: string) => ALL_ENTRIES.find((entry) => entry.id === id)?.answer;
+    expect(answer("carrier-quiet-hours")).toBe(QUIET_HOURS_CARRIER);
+    expect(answer("driver-quiet-hours")).toBe(QUIET_HOURS_DRIVER);
+    expect(answer("driver-cancelled")).toBe(CANCELLED_SHIFT_DRIVER);
+    // Only a late YES hears that a shift is booked; there is no blast.
+    expect(answer("carrier-two-yes")).not.toMatch(/every other driver/i);
+    render(<FaqPage />);
+    for (const text of [QUIET_HOURS_CARRIER, QUIET_HOURS_DRIVER, CANCELLED_SHIFT_DRIVER]) {
+      expect(screen.getByRole("main")).toHaveTextContent(text);
+    }
   });
 
   it("a link with a hash opens that answer", () => {
