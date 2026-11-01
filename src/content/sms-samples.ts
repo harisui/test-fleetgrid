@@ -30,6 +30,18 @@ export const SMS_SAMPLE_CONFIRMATION =
 export const SMS_SAMPLE_FILLED =
   "FleetGrid: This shift is already booked. We'll text you about the next matching shift. Reply STOP to opt out.";
 
+/**
+ * The two one-time driver texts (change request of 2026-11-01, approved by Annie), word for
+ * word. They have no variables.
+ */
+/** Reminder: once, to a consenting driver whose card is unfinished and idle for 24 hours. */
+export const SMS_REMINDER =
+  "FleetGrid: Your driver profile is almost done. Finish it to get shift texts: fleetgridus.com/driver. Reply STOP to opt out.";
+
+/** Approved: once, to a consenting driver when an admin approves them. */
+export const SMS_APPROVED =
+  "FleetGrid: Your profile is approved. You'll get texts when matching shifts open. Reply STOP to opt out.";
+
 export const SMS_SAMPLE_THREAD: readonly SmsBubble[] = [
   { direction: "in", text: SMS_SAMPLE_OFFER },
   { direction: "out", text: SMS_SAMPLE_REPLY },

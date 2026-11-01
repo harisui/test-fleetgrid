@@ -218,7 +218,7 @@ insert into public.broadcast_recipients (shift_id, driver_id, round, position, c
   ('50000001-0000-4000-8000-000000000000', pg_temp.did('19'), 1, 2, '4821', 'sent'),
   ('50000001-0000-4000-8000-000000000000', pg_temp.did('15'), 1, 3, '4821', 'sent');
 insert into public.sms_messages (direction, kind, from_phone, to_phone, body, provider_sid) values
-  ('outbound', 'offer', '+18888692040', '+15555559311', 'FleetGrid: New shift', 'SM1');
+  ('outbound', 'offer', '+18888692040', '+15555559311', 'FleetGrid: New shift', 'SMpgtap013');
 
 select pg_temp.sign_in(pg_temp.uid('02'));
 select is((select count(*) from public.broadcast_recipients), 3::bigint, 'the carrier reads their shift''s recipients');
@@ -233,7 +233,7 @@ select is((select count(*) from public.sms_messages), 0::bigint, 'a driver reads
 select pg_temp.sign_out();
 
 select pg_temp.sign_in(pg_temp.uid('01'));
-select is((select count(*) from public.sms_messages where provider_sid = 'SM1'), 1::bigint, 'an admin reads the text log');
+select is((select count(*) from public.sms_messages where provider_sid = 'SMpgtap013'), 1::bigint, 'an admin reads the text log');
 select is((select count(*) from public.shifts), 1::bigint, 'an admin reads every shift');
 select pg_temp.sign_out();
 

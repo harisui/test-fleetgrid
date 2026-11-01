@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { GET as remindersCron } from "@/app/api/cron/reminders/route";
 import { GET as shiftsCron } from "@/app/api/cron/shifts/route";
 import { POST as inbound } from "@/app/api/twilio/inbound/route";
 import { POST as status } from "@/app/api/twilio/status/route";
@@ -10,6 +11,7 @@ const services = vi.hoisted(() => ({
   inboundService: { handle: vi.fn(), handleStatus: vi.fn() },
   broadcastService: { dispatchDue: vi.fn() },
   shifts: { expire: vi.fn() },
+  notificationService: { sendDueApprovalTexts: vi.fn(), sendDueReminders: vi.fn() },
 }));
 
 vi.mock("@/lib/env", () => ({ getServerEnv: () => env }));
@@ -104,13 +106,25 @@ describe("POST /api/twilio/status", () => {
 });
 
 describe("GET /api/cron/shifts", () => {
-  it("needs the cron token, then expires and sends what is due", async () => {
+  it("needs the cron token, then expires and sends what is due, the held approval texts too", async () => {
     services.shifts.expire.mockResolvedValue(2);
     services.broadcastService.dispatchDue.mockResolvedValue(1);
+    services.notificationService.sendDueApprovalTexts.mockResolvedValue(3);
     expect((await shiftsCron(new Request("http://localhost/api/cron/shifts"))).status).toBe(401);
     const response = await shiftsCron(
       new Request("http://localhost/api/cron/shifts", { headers: { authorization: "Bearer s3cret" } }),
     );
-    expect(await response.json()).toEqual({ ok: true, expired: 2, dispatched: 1 });
+    expect(await response.json()).toEqual({ ok: true, expired: 2, dispatched: 1, approvals: 3 });
+  });
+});
+
+describe("GET /api/cron/reminders", () => {
+  it("needs the cron token, then sends the due reminders", async () => {
+    services.notificationService.sendDueReminders.mockResolvedValue(4);
+    expect((await remindersCron(new Request("http://localhost/api/cron/reminders"))).status).toBe(401);
+    const response = await remindersCron(
+      new Request("http://localhost/api/cron/reminders", { headers: { authorization: "Bearer s3cret" } }),
+    );
+    expect(await response.json()).toEqual({ ok: true, reminders: 4 });
   });
 });

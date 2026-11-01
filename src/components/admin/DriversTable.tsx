@@ -35,6 +35,12 @@ export function smsLabel(row: Pick<AdminDriverRow, "driver">): string {
 
 const signedUp = (row: AdminDriverRow) => format(new Date(row.driver.createdAt), "MMM d, yyyy");
 
+
+/** The one profile reminder (change request of 2026-11-01): its date, or "Not sent". */
+export function reminderLabel(row: { driver: { reminderSentAt: string | null } }): string {
+  return row.driver.reminderSentAt ? format(new Date(row.driver.reminderSentAt), "MMM d, yyyy") : "Not sent";
+}
+
 const COLUMNS: DataColumn<AdminDriverRow>[] = [
   { key: "name", header: "Driver", cell: (row) => row.driver.fullName, sortable: true },
   { key: "phone", header: "Phone", cell: (row) => formatE164ForDisplay(row.profile.phone), mono: true },
@@ -61,6 +67,7 @@ const COLUMNS: DataColumn<AdminDriverRow>[] = [
   },
   { key: "status", header: "Review", cell: (row) => <AdminStatusBadge status={row.profile.status} />, sortable: true },
   { key: "sms", header: "SMS", cell: smsLabel },
+  { key: "reminder", header: "Reminder sent", cell: reminderLabel },
   {
     key: "selfReport",
     header: "Clearinghouse and SAP",

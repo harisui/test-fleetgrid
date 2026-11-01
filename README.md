@@ -299,6 +299,11 @@ that holds the approved toll-free number (`src/server/providers/SmsProvider.ts`)
 Quiet hours: a shift posted between 9 PM and 7 AM Houston time is texted at 7:00 AM, unless
 it starts within 12 hours. The carrier sees "Post. Sends at 7:00 AM" before posting.
 
+Two one-time driver texts use the same sender and log: the profile reminder (once, to a
+consenting driver whose card is unfinished and idle for 24 hours, 10 AM to 7 PM Houston,
+`/api/cron/reminders` daily at 16:00 UTC, hourly on Pro) and the approval text (once, when
+an admin approves a consenting driver, held to 7 AM at night).
+
 ## Data
 
 - `src/data/us-zips.tsv`: US ZIP codes with their city and state, used to fill in the location

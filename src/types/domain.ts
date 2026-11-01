@@ -258,6 +258,10 @@ export interface Driver {
   noShowCount: number;
   /** An admin's pause: no shift texts while true. */
   shiftsPaused: boolean;
+  /** When the one profile reminder text went out; null until then (0025). */
+  reminderSentAt: string | null;
+  /** When the one approval text went out; null until then (0025). */
+  approvalTextSentAt: string | null;
   /** The optional "How did you hear about FleetGrid?" answer, with the free text for Other. */
   heardFrom: HeardFrom | null;
   heardFromOther: string | null;

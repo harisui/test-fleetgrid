@@ -63,6 +63,8 @@ export class FakeDriverRepository implements IDriverRepository {
       smsOptedOutAt: null,
       noShowCount: 0,
       shiftsPaused: false,
+      reminderSentAt: null,
+      approvalTextSentAt: null,
       heardFrom: null,
       heardFromOther: null,
       clearinghouseSelfReportedAt: null,

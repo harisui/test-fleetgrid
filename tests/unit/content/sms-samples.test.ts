@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import {
+  SMS_APPROVED,
+  SMS_REMINDER,
   SMS_SAMPLE_CONFIRMATION,
   SMS_SAMPLE_FILLED,
   SMS_SAMPLE_OFFER,
@@ -37,5 +39,17 @@ describe("the SMS templates (Twilio 30468)", () => {
     const [offer, reply] = threadWithCode("7310");
     expect(offer.text).toBe(SMS_SAMPLE_OFFER.replace("4821", "7310"));
     expect(reply.text).toBe("YES 7310");
+  });
+});
+
+describe("the one-time driver texts (change request of 2026-11-01, approved by Annie)", () => {
+  it("are word for word and fit one text", () => {
+    expect(SMS_REMINDER).toBe(
+      "FleetGrid: Your driver profile is almost done. Finish it to get shift texts: fleetgridus.com/driver. Reply STOP to opt out.",
+    );
+    expect(SMS_APPROVED).toBe(
+      "FleetGrid: Your profile is approved. You'll get texts when matching shifts open. Reply STOP to opt out.",
+    );
+    for (const text of [SMS_REMINDER, SMS_APPROVED]) expect(text.length).toBeLessThan(160);
   });
 });

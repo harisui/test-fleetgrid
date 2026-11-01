@@ -2,7 +2,6 @@ import { getServerEnv, getSiteEnv } from "@/lib/env";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { getPaymentProvider } from "@/server/providers/createPaymentProvider";
-import { APPROVED_TEXT } from "@/lib/shifts/texts";
 import { createSmsProvider, type ISmsProvider } from "@/server/providers/SmsProvider";
 import { FileZipProvider } from "@/server/providers/ZipProvider";
 import { AccountRepository } from "@/server/repositories/AccountRepository";
@@ -14,6 +13,7 @@ import type { TypedSupabaseClient } from "@/server/repositories/BaseRepository";
 import { CarrierRepository } from "@/server/repositories/CarrierRepository";
 import { ConsentLogRepository } from "@/server/repositories/ConsentLogRepository";
 import { DocumentRepository } from "@/server/repositories/DocumentRepository";
+import { DriverNotificationRepository } from "@/server/repositories/DriverNotificationRepository";
 import { DriverRepository } from "@/server/repositories/DriverRepository";
 import { DriverSearchRepository } from "@/server/repositories/DriverSearchRepository";
 import { ProfileRepository } from "@/server/repositories/ProfileRepository";
@@ -35,6 +35,7 @@ import { BroadcastService } from "@/server/services/BroadcastService";
 import { CarrierService } from "@/server/services/CarrierService";
 import { DocumentService } from "@/server/services/DocumentService";
 import { DriverSearchService } from "@/server/services/DriverSearchService";
+import { DriverNotificationService } from "@/server/services/DriverNotificationService";
 import { DriverService } from "@/server/services/DriverService";
 import { InboundService } from "@/server/services/InboundService";
 import { ProfileService } from "@/server/services/ProfileService";
@@ -79,9 +80,11 @@ export function buildTextingServices() {
     new ConsentLogRepository(admin),
     textService,
   );
+  const notificationService = new DriverNotificationService(new DriverNotificationRepository(admin), textService);
   return {
     shifts,
     recipients,
+    notificationService,
     drivers: new TextingDriverRepository(admin),
     textService,
     broadcastService,
@@ -197,12 +200,8 @@ export function buildContainer(supabase: TypedSupabaseClient) {
       documents,
       qrLinks,
       undefined,
-      async ({ driverId, smsOptIn }) => {
-        if (!smsOptIn) return;
-        const { drivers, textService } = buildTextingServices();
-        const driver = await drivers.findById(driverId);
-        if (driver) await textService.send(driver, "approved", APPROVED_TEXT);
-      },
+      // The approval text: once, only with consent and not opted out, held for quiet hours.
+      ({ driverId }) => buildTextingServices().notificationService.onDriverApproved(driverId),
     ),
     qrService,
     analyticsService: new AnalyticsService(

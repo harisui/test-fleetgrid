@@ -255,6 +255,6 @@ export class RecordingSmsProvider implements ISmsProvider {
   async send(message: OutboundSms): Promise<SentSms> {
     if (this.failing.has(message.to)) throw new SmsSendError("refused", "30003");
     this.sent.push(message);
-    return { sid: `SM${++this.seq}`, status: "queued" };
+    return { sid: `SMrec${process.pid}x${Date.now()}x${++this.seq}`, status: "queued" };
   }
 }

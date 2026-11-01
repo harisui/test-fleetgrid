@@ -3,7 +3,7 @@ import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { SMS_SAMPLE_CONFIRMATION, SMS_SAMPLE_FILLED, SMS_SAMPLE_OFFER } from "@/content/sms-samples";
 import { readInbound } from "@/lib/shifts/inbound";
-import { displayStatus, isBookable, sendAfterFor } from "@/lib/shifts/schedule";
+import { displayStatus, isBookable, isReminderWindow, quietHoursSendAt, sendAfterFor } from "@/lib/shifts/schedule";
 import { BROADCAST_CAP, shuffleAndCap } from "@/lib/shifts/shuffle";
 import {
   APPROVED_TEXT,
@@ -95,6 +95,21 @@ describe("quiet hours", () => {
     expect(sendAfterFor(new Date("2026-12-10T23:00:00-06:00"), new Date("2026-12-12T06:00:00-06:00"))).toEqual(
       new Date("2026-12-11T07:00:00-06:00"),
     );
+  });
+
+  it("hold any text at night until 7 AM, the approval text included", () => {
+    expect(quietHoursSendAt(houston("2026-10-20T15:00:00"))).toBeNull();
+    expect(quietHoursSendAt(houston("2026-10-20T22:30:00"))).toEqual(houston("2026-10-21T07:00:00"));
+    expect(quietHoursSendAt(houston("2026-10-21T06:59:00"))).toEqual(houston("2026-10-21T07:00:00"));
+  });
+
+  it("the reminder goes only between 10 AM and 7 PM Houston time", () => {
+    expect(isReminderWindow(houston("2026-10-20T09:59:00"))).toBe(false);
+    expect(isReminderWindow(houston("2026-10-20T10:00:00"))).toBe(true);
+    expect(isReminderWindow(houston("2026-10-20T18:59:00"))).toBe(true);
+    expect(isReminderWindow(houston("2026-10-20T19:00:00"))).toBe(false);
+    expect(isReminderWindow(new Date("2026-12-10T16:00:00Z"))).toBe(true); // the daily cron, winter
+    expect(isReminderWindow(new Date("2026-07-10T16:00:00Z"))).toBe(true); // and summer
   });
 
   it("an open shift past its start is expired, a released one until its end", () => {

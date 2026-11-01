@@ -1,5 +1,5 @@
 import { formatInTimeZone } from "date-fns-tz";
-import { SMS_SAMPLE_FILLED } from "@/content/sms-samples";
+import { SMS_APPROVED, SMS_REMINDER, SMS_SAMPLE_FILLED } from "@/content/sms-samples";
 import type { CdlClass } from "@/types/domain";
 
 /**
@@ -47,16 +47,18 @@ export function bookedText(shift: ShiftTextFields): string {
 export const FILLED_TEXT = SMS_SAMPLE_FILLED;
 
 /** The texts whose words still wait for the client (decisions of 2026-11-01). */
-export const PENDING_APPROVAL = ["approved", "format_help", "closed"] as const;
+export const PENDING_APPROVAL = ["format_help", "closed"] as const;
 
 /** To the booked driver when the carrier cancels (decision 2; the client approved it 2026-11-01). */
 export function cancelledText(shift: ShiftTextFields): string {
   return `FleetGrid: Your booked shift on ${formatShiftWhen(shift.startsAt)} in ${formatShiftPlace(shift)} was cancelled by the company that posted it. Reply HELP for help.`;
 }
 
-/** To a driver with texts on when an admin approves them (part 3b, pending the client's yes). */
-export const APPROVED_TEXT =
-  "FleetGrid: Your FleetGrid profile is approved. We'll text you when a shift that matches your card is posted near you. Reply STOP to opt out.";
+/** To a driver with texts on when an admin approves them, once (Annie approved 2026-11-01). */
+export const APPROVED_TEXT = SMS_APPROVED;
+
+/** To a driver with texts on whose card is unfinished and idle for 24 hours, once (Annie approved 2026-11-01). */
+export const REMINDER_TEXT = SMS_REMINDER;
 
 /** A reply FleetGrid cannot read: how to book (pending the client's yes). */
 export const FORMAT_HELP_TEXT =
@@ -74,5 +76,6 @@ export type SmsKind =
   | "closed"
   | "cancelled"
   | "approved"
+  | "reminder"
   | "format_help"
   | "inbound";

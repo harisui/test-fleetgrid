@@ -214,6 +214,14 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
             </div>
             <Row label="Location" value={driver.zip ? `${driver.city ?? ""}, ${driver.state ?? ""} ${driver.zip}`.replace(/^, /, "") : "Not yet"} />
             <Row label="Shift texts" value={smsLabel(detail)} />
+            <Row
+              label="Reminder sent"
+              value={driver.reminderSentAt ? format(new Date(driver.reminderSentAt), "MMMM d, yyyy h:mm a") : "Not sent"}
+            />
+            <Row
+              label="Approval text"
+              value={driver.approvalTextSentAt ? format(new Date(driver.approvalTextSentAt), "MMMM d, yyyy h:mm a") : "Not sent"}
+            />
           </dl>
         </Section>
 

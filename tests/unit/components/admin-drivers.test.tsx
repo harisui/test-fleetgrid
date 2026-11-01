@@ -108,6 +108,7 @@ describe("DriversTable", () => {
       "Profile",
       "Review",
       "SMS",
+      "Reminder sent",
       "Clearinghouse and SAP",
       "Source",
       "Signed up",
