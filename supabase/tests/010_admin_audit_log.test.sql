@@ -51,7 +51,7 @@ select throws_ok(
   '23514', null, 'the action is a lowercase snake_case word');
 select throws_ok(
   $$insert into public.admin_audit_log (admin_id, admin_phone, action, target_type, target_id)
-    values ('a1111111-1111-4111-8111-111111111111', '+15555559101', 'driver_approved', 'shift', 'a3333333-3333-4333-8333-333333333333')$$,
+    values ('a1111111-1111-4111-8111-111111111111', '+15555559101', 'driver_approved', 'invoice', 'a3333333-3333-4333-8333-333333333333')$$,
   '23514', null, 'the target type is one of the known kinds');
 select throws_ok(
   $$insert into public.admin_audit_log (admin_id, admin_phone, action, target_type, target_id)

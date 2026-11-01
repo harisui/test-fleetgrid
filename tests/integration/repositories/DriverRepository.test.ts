@@ -80,6 +80,8 @@ describe("DriverRepository (local Supabase)", () => {
       smsOptInText: null,
       smsOptedOut: false,
       smsOptedOutAt: null,
+      noShowCount: 0,
+      shiftsPaused: false,
       cardCompleted: false,
     });
     expect(created.id).toMatch(/^[0-9a-f-]{36}$/);

@@ -61,6 +61,8 @@ export class FakeDriverRepository implements IDriverRepository {
       smsOptInText: input.smsOptInText ?? null,
       smsOptedOut: false,
       smsOptedOutAt: null,
+      noShowCount: 0,
+      shiftsPaused: false,
       heardFrom: null,
       heardFromOther: null,
       clearinghouseSelfReportedAt: null,

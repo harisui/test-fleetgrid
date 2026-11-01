@@ -20,6 +20,9 @@ export type TransmissionType = Enums["transmission_type"];
 export type EquipmentType = Enums["equipment_type"];
 export type MvrStatus = Enums["mvr_status"];
 export type SubscriptionStatus = Enums["subscription_status"];
+export type ShiftStatus = Enums["shift_status"];
+export type RecipientStatus = Enums["recipient_status"];
+export type SmsDirection = Enums["sms_direction"];
 
 export const USER_ROLES = ["driver", "carrier", "admin"] as const satisfies readonly UserRole[];
 /** Roles a user can pick for themselves at sign-up. */
@@ -251,6 +254,10 @@ export interface Driver {
   smsOptInText: string | null;
   smsOptedOut: boolean;
   smsOptedOutAt: string | null;
+  /** Booked shifts released because the driver did not show (Milestone 3). */
+  noShowCount: number;
+  /** An admin's pause: no shift texts while true. */
+  shiftsPaused: boolean;
   /** The optional "How did you hear about FleetGrid?" answer, with the free text for Other. */
   heardFrom: HeardFrom | null;
   heardFromOther: string | null;
@@ -360,12 +367,24 @@ export const ADMIN_ACTIONS = [
   "driver_approved",
   "driver_blocked",
   "driver_reopened",
+  "driver_removed",
+  "driver_paused",
+  "driver_unpaused",
+  "carrier_approved",
+  "carrier_blocked",
+  "carrier_reopened",
+  "carrier_removed",
+  "shift_cancelled",
+  "service_area_created",
+  "service_area_updated",
+  "service_area_activated",
+  "service_area_deactivated",
   "qr_link_created",
   "qr_link_activated",
   "qr_link_deactivated",
 ] as const;
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];
-export type AuditTargetType = "driver" | "carrier" | "qr_link";
+export type AuditTargetType = "driver" | "carrier" | "qr_link" | "shift" | "service_area";
 
 /** One line of the admin audit log: who, when, what, to which record. */
 export interface AuditEntry {
@@ -378,6 +397,91 @@ export interface AuditEntry {
   detail: Record<string, unknown>;
   createdAt: string;
 }
+
+/** What a shift asks of a driver. The class is the lowest that will do (A covers B). */
+export interface ShiftRequirements {
+  cdlClass: Exclude<CdlClass, "none">;
+  endorsements: Endorsement[];
+  minYears: number;
+  equipmentTypes: EquipmentType[];
+  twicRequired: boolean;
+  medicalRequired: boolean;
+  manualRequired: boolean;
+}
+
+/** A carrier's shift, broadcast by text (Milestone 3). Times are ISO strings. */
+export interface Shift extends ShiftRequirements {
+  id: string;
+  carrierId: string;
+  status: ShiftStatus;
+  shortCode: string;
+  startsAt: string;
+  endsAt: string;
+  zip: string;
+  city: string;
+  state: string;
+  lat: number;
+  lng: number;
+  payText: string | null;
+  workDescription: string;
+  onsiteContactName: string;
+  onsiteContactPhone: string;
+  /** Quiet hours: the broadcast waits until this time. Null sends at once. */
+  sendAfter: string | null;
+  broadcastRound: number;
+  broadcastAt: string | null;
+  releasedAt: string | null;
+  bookedDriverId: string | null;
+  bookedAt: string | null;
+  cancelledAt: string | null;
+  cancelReason: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** One driver offered a shift in one round. */
+export interface BroadcastRecipient {
+  id: string;
+  shiftId: string;
+  driverId: string;
+  round: number;
+  position: number;
+  code: string;
+  status: RecipientStatus;
+  messageSid: string | null;
+  errorCode: string | null;
+  sentAt: string | null;
+  deliveredAt: string | null;
+  repliedAt: string | null;
+  createdAt: string;
+}
+
+/** One text in or out, as the log keeps it (admins only). */
+export interface SmsMessage {
+  id: string;
+  direction: SmsDirection;
+  kind: string;
+  fromPhone: string;
+  toPhone: string;
+  body: string;
+  providerSid: string | null;
+  status: string | null;
+  errorCode: string | null;
+  shiftId: string | null;
+  driverId: string | null;
+  createdAt: string;
+}
+
+/** The booked driver as the shift's carrier sees them: this shift only. */
+export interface BookedDriverContact {
+  driverId: string;
+  fullName: string;
+  phone: string;
+}
+
+/** What a YES with a code did (claim_shift in 0023). */
+export const CLAIM_OUTCOMES = ["won", "already_yours", "filled", "closed", "not_eligible", "not_found"] as const;
+export type ClaimOutcome = (typeof CLAIM_OUTCOMES)[number];
 
 /** A listed driver as a search result: the card and how far it is from the yard. */
 export interface DriverMatch {

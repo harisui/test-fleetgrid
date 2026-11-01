@@ -43,7 +43,8 @@ select columns_are('public', 'drivers', array[
   'certifications', 'bio', 'sms_opt_in', 'sms_opt_in_at', 'sms_opt_in_text', 'sms_opted_out',
   'sms_opted_out_at', 'onboarding_step', 'card_completed', 'created_at', 'updated_at',
   'employment_type', 'driving_styles', 'transmission', 'equipment_types', 'twic_active',
-  'medical_card_active', 'clearinghouse_registered', 'mvr_status', 'heard_from', 'heard_from_other']);
+  'medical_card_active', 'clearinghouse_registered', 'mvr_status', 'heard_from', 'heard_from_other',
+  'no_show_count', 'shifts_paused']);
 select columns_are('public', 'driver_documents', array[
   'id', 'driver_id', 'type', 'storage_path', 'file_name', 'mime_type', 'size_bytes',
   'created_at', 'updated_at']);

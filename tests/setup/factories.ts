@@ -113,6 +113,8 @@ export function buildDriver(overrides: Partial<LocatedDriver> = {}): LocatedDriv
       smsOptInText: SMS_CONSENT_TEXT,
       smsOptedOut: false,
       smsOptedOutAt: null,
+      noShowCount: 0,
+      shiftsPaused: false,
       heardFrom: null,
       heardFromOther: null,
       clearinghouseSelfReportedAt: null,

@@ -124,6 +124,8 @@ export function mapDriver(row: DriverRow & { driver_clearinghouse_self_reports?:
     smsOptInText: row.sms_opt_in_text,
     smsOptedOut: row.sms_opted_out,
     smsOptedOutAt: row.sms_opted_out_at,
+    noShowCount: row.no_show_count,
+    shiftsPaused: row.shifts_paused,
     heardFrom: row.heard_from,
     heardFromOther: row.heard_from_other,
     clearinghouseSelfReportedAt: selfReportedAt(row.driver_clearinghouse_self_reports),
