@@ -218,6 +218,8 @@ describe("MessagingService", () => {
     expect(account.accountGroups.map((g) => [g.kind, g.total, g.delivered, g.failed])).toEqual([
       ["approved", 2, 1, 1],
       ["reminder", 1, 1, 0],
+      ["welcome", 0, 0, 0],
+      ["doc_reminder", 0, 0, 0],
       ["cancelled", 0, 0, 0],
       ["security", 0, 0, 0],
     ]);
@@ -243,6 +245,7 @@ describe("MessagingService", () => {
         restoresBatchId: null,
         recipientCount: 2,
         excludedOptedOut: 0,
+        excludedRecent: 0,
         excludedNoConsent: 0,
         excludedBlocked: 0,
         sendAfter: null,

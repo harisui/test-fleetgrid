@@ -26,6 +26,7 @@ import {
   buildProfile,
   OTHER_USER_ID,
   SCREEN_INPUTS,
+  TEST_PHONES,
   USER_ID,
   validCard,
 } from "../../setup/factories";
@@ -463,6 +464,59 @@ describe("DriverService", () => {
 
     it("needs a card first", async () => {
       expect((await expectAppError(service.setCdlState(USER_ID, { cdlState: "TX" }))).code).toBe("VALIDATION");
+    });
+  });
+
+  describe("the welcome text (CR-5)", () => {
+    let welcomed: { driverId: string; phone: string }[];
+    let reported: string[];
+    let withWelcome: DriverService;
+
+    beforeEach(() => {
+      welcomed = [];
+      reported = [];
+      withWelcome = new DriverService(
+        drivers,
+        profiles,
+        zips,
+        areas,
+        () => consentLog,
+        () => NOW,
+        async (driver) => {
+          welcomed.push(driver);
+        },
+        (message) => reported.push(message),
+      );
+    });
+
+    it("goes right after the first screen, only when the box is ticked", async () => {
+      await withWelcome.saveScreen(USER_ID, "lead", SCREEN_INPUTS.lead);
+      expect(welcomed).toEqual([]);
+      const driver = await withWelcome.saveScreen(USER_ID, "lead", { ...SCREEN_INPUTS.lead, consent: true });
+      expect(welcomed).toEqual([{ driverId: driver.id, phone: TEST_PHONES.driver }]);
+    });
+
+    it("goes when the box is ticked on the sign-up's last screen instead, never when it is left empty", async () => {
+      const sign = async (consent: boolean) => {
+        for (const stepId of SAVABLE_STEP_IDS) {
+          if (stepId === "consent") return withWelcome.saveScreen(USER_ID, "consent", { consent });
+          await withWelcome.saveScreen(USER_ID, stepId, SCREEN_INPUTS[stepId]);
+        }
+      };
+      await sign(false);
+      expect(welcomed).toEqual([]);
+      drivers.rows.clear();
+      await sign(true);
+      expect(welcomed).toHaveLength(1);
+    });
+
+    it("never fails the sign-up when the text fails", async () => {
+      const failing = new DriverService(drivers, profiles, zips, areas, () => consentLog, () => NOW, async () => {
+        throw new Error("Twilio down");
+      }, (message) => reported.push(message));
+      const driver = await failing.saveScreen(USER_ID, "lead", { ...SCREEN_INPUTS.lead, consent: true });
+      expect(driver.smsOptIn).toBe(true);
+      expect(reported).toEqual(["The welcome text was not sent"]);
     });
   });
 

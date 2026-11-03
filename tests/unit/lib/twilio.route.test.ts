@@ -11,8 +11,9 @@ const services = vi.hoisted(() => ({
   inboundService: { handle: vi.fn(), handleStatus: vi.fn() },
   broadcastService: { dispatchDue: vi.fn() },
   shifts: { expire: vi.fn() },
-  notificationService: { sendDueApprovalTexts: vi.fn(), sendDueReminders: vi.fn() },
+  notificationService: { sendDueApprovalTexts: vi.fn(), sendDueReminders: vi.fn(), sendDueWelcomeTexts: vi.fn() },
   noticeService: { dispatchDue: vi.fn() },
+  docReminderService: { dispatchDue: vi.fn() },
 }));
 
 vi.mock("@/lib/env", () => ({ getServerEnv: () => env }));
@@ -107,16 +108,18 @@ describe("POST /api/twilio/status", () => {
 });
 
 describe("GET /api/cron/shifts", () => {
-  it("needs the cron token, then expires and sends what is due, the held approval texts too", async () => {
+  it("needs the cron token, then expires and sends what is due, the held approval, welcome and documents texts too", async () => {
     services.shifts.expire.mockResolvedValue(2);
     services.broadcastService.dispatchDue.mockResolvedValue(1);
     services.notificationService.sendDueApprovalTexts.mockResolvedValue(3);
     services.noticeService.dispatchDue.mockResolvedValue(5);
+    services.notificationService.sendDueWelcomeTexts.mockResolvedValue(6);
+    services.docReminderService.dispatchDue.mockResolvedValue(7);
     expect((await shiftsCron(new Request("http://localhost/api/cron/shifts"))).status).toBe(401);
     const response = await shiftsCron(
       new Request("http://localhost/api/cron/shifts", { headers: { authorization: "Bearer s3cret" } }),
     );
-    expect(await response.json()).toEqual({ ok: true, expired: 2, dispatched: 1, approvals: 3, notices: 5 });
+    expect(await response.json()).toEqual({ ok: true, expired: 2, dispatched: 1, approvals: 3, notices: 5, welcomes: 6, docReminders: 7 });
   });
 });
 

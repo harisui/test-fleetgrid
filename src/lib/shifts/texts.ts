@@ -77,6 +77,8 @@ export type SmsKind =
   | "cancelled"
   | "approved"
   | "reminder"
+  | "welcome"
+  | "doc_reminder"
   | "notice"
   | "security"
   | "format_help"

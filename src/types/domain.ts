@@ -392,6 +392,8 @@ export const ADMIN_ACTIONS = [
   "service_area_deactivated",
   "notice_sent",
   "notice_queued",
+  "doc_reminder_sent",
+  "doc_reminder_queued",
   "message_resent",
   "qr_link_created",
   "qr_link_activated",
@@ -515,6 +517,8 @@ export interface NoticeBatch {
   excludedOptedOut: number;
   excludedNoConsent: number;
   excludedBlocked: number;
+  /** Documents reminders only: left out because one went in the last 3 days. */
+  excludedRecent: number;
   sendAfter: string | null;
   status: NoticeStatus;
   sentAt: string | null;

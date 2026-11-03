@@ -22,6 +22,7 @@ export interface NewNoticeBatch {
   excludedOptedOut: number;
   excludedNoConsent: number;
   excludedBlocked: number;
+  excludedRecent?: number;
   sendAfter: string | null;
 }
 
@@ -41,7 +42,8 @@ export interface INoticeRepository {
   /** Moves a queued batch to sending; null when another run already took it. */
   claimBatch(id: string): Promise<NoticeBatch | null>;
   finishBatch(id: string, recipientCount: number): Promise<void>;
-  listDue(now: string): Promise<NoticeBatch[]>;
+  /** Queued batches whose time has come, of these categories (the notices, or the documents reminders). */
+  listDue(now: string, categories?: NoticeCategory[]): Promise<NoticeBatch[]>;
   listSince(category: NoticeCategory, since: string): Promise<NoticeBatch[]>;
   findBatch(id: string): Promise<NoticeBatch | null>;
   restoredBatchIds(ids: string[]): Promise<string[]>;
@@ -94,6 +96,7 @@ export class NoticeRepository extends BaseRepository implements INoticeRepositor
         excluded_opted_out: batch.excludedOptedOut,
         excluded_no_consent: batch.excludedNoConsent,
         excluded_blocked: batch.excludedBlocked,
+        excluded_recent: batch.excludedRecent ?? 0,
         send_after: batch.sendAfter,
       })
       .select("*")
@@ -116,10 +119,10 @@ export class NoticeRepository extends BaseRepository implements INoticeRepositor
     if (error) throw this.toAppError(error);
   }
 
-  async listDue(now: string): Promise<NoticeBatch[]> {
-    const rows = this.unwrap(
-      await this.supabase.from("notice_batches").select("*").eq("status", "queued").lte("send_after", now).limit(20),
-    );
+  async listDue(now: string, categories?: NoticeCategory[]): Promise<NoticeBatch[]> {
+    let query = this.supabase.from("notice_batches").select("*").eq("status", "queued").lte("send_after", now);
+    if (categories) query = query.in("category", categories);
+    const rows = this.unwrap(await query.limit(20));
     return rows.map(mapNoticeBatch);
   }
 

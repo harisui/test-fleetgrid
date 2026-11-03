@@ -34,6 +34,8 @@ const NEVER_RETRY: Record<string, string> = {
 export const ACCOUNT_KIND_LABELS: Record<AccountKind, string> = {
   approved: "Approval",
   reminder: "Profile reminder",
+  welcome: "Welcome",
+  doc_reminder: "Documents reminder",
   cancelled: "Cancellation",
   security: "Security",
 };

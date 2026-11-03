@@ -15,6 +15,10 @@ declare
   v_type text;
   v_path text;
 begin
+  -- The drivers are already approved, so a new document or the override would otherwise send
+  -- them back to Registered for re-review (0028). The seed builds the end state directly.
+  alter table public.driver_documents disable trigger driver_documents_rereview;
+  alter table public.drivers disable trigger drivers_rereview;
   for v_driver in
     select d.id, d.profile_id, d.cdl_state from public.drivers d
     join public.profiles p on p.id = d.profile_id
@@ -32,6 +36,8 @@ begin
       values (v_driver.id, v_type::public.document_type, v_path, v_type || '.png', 'image/png', 1024);
     end loop;
   end loop;
+  alter table public.driver_documents enable trigger driver_documents_rereview;
+  alter table public.drivers enable trigger drivers_rereview;
 end;
 $$;
 

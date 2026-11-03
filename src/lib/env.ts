@@ -61,6 +61,9 @@ export const serverEnvSchema = clientEnvSchema
     // Salts the one-way hash of a visitor's address when a QR short link is scanned
     // (src/lib/qr/hash.ts). Unset, a fixed salt is used; production sets its own.
     IP_HASH_SALT: optionalString,
+    // Keys the HMAC of a phone number in welcome_texts, so the welcome goes once per number
+    // ever without keeping the number (src/lib/sms/driverTexts.ts). Set once; never change it.
+    PHONE_HASH_SECRET: optionalString,
     // Test conveniences, all behind one flag that is off unless set to "true": the login and
     // code forms start filled with TEST_PHONE_DRIVER and TEST_OTP (src/lib/auth/prefill.ts).
     ENABLE_TEST_LOGIN: flag,

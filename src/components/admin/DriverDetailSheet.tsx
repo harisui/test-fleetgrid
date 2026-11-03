@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { DetailSheet } from "@/components/admin/DetailSheet";
+import { DocReminderButton } from "@/components/admin/DocReminderButton";
 import { DriverOpsActions } from "@/components/admin/DriverOpsActions";
 import { NotTexasBadge } from "@/components/admin/NotTexasBadge";
 import { ShiftReadyReview } from "@/components/admin/ShiftReadyReview";
@@ -31,6 +32,7 @@ import {
   blockDriverAction,
   reopenDriverAction,
 } from "@/server/actions/admin.actions";
+import type { DocReminderPreview } from "@/server/services/DocReminderService";
 import type { AdminDriverDetail } from "@/server/services/AdminService";
 import {
   AVAILABILITY_LABELS,
@@ -44,6 +46,8 @@ interface DriverDetailSheetProps {
   detail: AdminDriverDetail | null;
   /** The list without the open driver. */
   closeHref: string;
+  /** The documents reminder, for a Registered driver missing a document (CR-5). */
+  docReminder?: DocReminderPreview | null;
 }
 
 const ACTIONS: Record<AccountStatus, typeof approveDriverAction> = {
@@ -88,7 +92,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
  * the audit log. Approve and Block each ask first; Approve is off while the card is not
  * finished, with the reason under it.
  */
-export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps) {
+export function DriverDetailSheet({ detail, closeHref, docReminder = null }: DriverDetailSheetProps) {
   const router = useRouter();
   const [confirming, setConfirming] = useState<AccountStatus>();
   const [pending, setPending] = useState(false);
@@ -225,6 +229,8 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
           }}
           overrideError={overrideError}
         />
+
+        {docReminder && <DocReminderButton driverId={driver.id} name={name} initial={docReminder} />}
 
         <DriverOpsActions
           driverId={driver.id}

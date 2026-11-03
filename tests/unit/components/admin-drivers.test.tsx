@@ -26,6 +26,11 @@ vi.mock("next/navigation", () => ({ useRouter: () => router, usePathname: () => 
 vi.mock("@/server/actions/admin.actions", () => actions);
 vi.mock("@/server/actions/admin-ops.actions", () => opsActions);
 vi.mock("sonner", () => ({ toast }));
+const reminderActions = vi.hoisted(() => ({
+  previewDocReminderAction: vi.fn(),
+  sendDocReminderAction: vi.fn(),
+}));
+vi.mock("@/server/actions/docReminder.actions", () => reminderActions);
 
 const ok = <T,>(data: T): Result<T> => ({ ok: true, data });
 
@@ -450,6 +455,29 @@ describe("DriverDetailSheet", () => {
     await userEvent.click(block);
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith("Only FleetGrid staff can do this"));
     expect(router.refresh).not.toHaveBeenCalled();
+  });
+
+  it("offers the documents reminder only when the page passes one (a Registered driver missing a document)", () => {
+    const { rerender } = render(<DriverDetailSheet detail={detail()} closeHref="/admin/drivers" />);
+    expect(screen.queryByRole("button", { name: "Send documents reminder" })).not.toBeInTheDocument();
+    rerender(
+      <DriverDetailSheet
+        detail={detail()}
+        closeHref="/admin/drivers"
+        docReminder={{
+          body: "FleetGrid: To start getting shift offers, please upload your medical card at fleetgridus.com/driver. Reply STOP to opt out.",
+          characters: 121,
+          segments: 1,
+          count: 1,
+          excluded: { optedOut: 0, noConsent: 0, recent: 0 },
+          byItems: { "CDL photos": 0, "medical card": 1, "CDL photos and medical card": 0 },
+          sendAfter: null,
+          blocked: null,
+          confirmPhrase: "SEND 1",
+        }}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Send documents reminder" })).toBeEnabled();
   });
 
   it("holds Mark Shift-Ready for an unfinished card and says why; Block stays available", () => {

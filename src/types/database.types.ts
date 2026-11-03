@@ -139,13 +139,13 @@ isOneToOne: false
                   ]
                 },"drivers": {
                   Row: {
-                    "approval_text_due_at": string | null,"approval_text_sent_at": string | null,"availability": (Database["public"]['Enums']["availability_type"])[],"bio": string | null,"card_completed": boolean,"cdl_class": Database["public"]['Enums']["cdl_class"],"cdl_state": string | null,"certifications": (string)[],"city": string | null,"clearinghouse_registered": boolean | null,"created_at": string,"driving_styles": (Database["public"]['Enums']["driving_style"])[],"employment_type": Database["public"]['Enums']["employment_type"] | null,"endorsements": (Database["public"]['Enums']["endorsement"])[],"equipment_types": (Database["public"]['Enums']["equipment_type"])[],"full_name": string,"heard_from": Database["public"]['Enums']["heard_from"] | null,"heard_from_other": string | null,"id": string,"lat": number | null,"lng": number | null,"medical_card_active": boolean | null,"mvr_status": Database["public"]['Enums']["mvr_status"] | null,"no_show_count": number,"onboarding_step": number,"operator_types": (Database["public"]['Enums']["operator_type"])[],"profile_id": string,"reminder_sent_at": string | null,"rereview_needed": boolean,"service_radius_miles": number,"shift_ready_override_reason": string | null,"shifts_paused": boolean,"sms_opt_in": boolean,"sms_opt_in_at": string | null,"sms_opt_in_text": string | null,"sms_opted_out": boolean,"sms_opted_out_at": string | null,"state": string | null,"transmission": Database["public"]['Enums']["transmission_type"] | null,"twic_active": boolean | null,"updated_at": string,"years_experience": number | null,"zip": string | null
+                    "approval_text_due_at": string | null,"approval_text_sent_at": string | null,"availability": (Database["public"]['Enums']["availability_type"])[],"bio": string | null,"card_completed": boolean,"cdl_class": Database["public"]['Enums']["cdl_class"],"cdl_state": string | null,"certifications": (string)[],"city": string | null,"clearinghouse_registered": boolean | null,"created_at": string,"driving_styles": (Database["public"]['Enums']["driving_style"])[],"employment_type": Database["public"]['Enums']["employment_type"] | null,"endorsements": (Database["public"]['Enums']["endorsement"])[],"equipment_types": (Database["public"]['Enums']["equipment_type"])[],"full_name": string,"heard_from": Database["public"]['Enums']["heard_from"] | null,"heard_from_other": string | null,"id": string,"last_doc_reminder_at": string | null,"lat": number | null,"lng": number | null,"medical_card_active": boolean | null,"mvr_status": Database["public"]['Enums']["mvr_status"] | null,"no_show_count": number,"onboarding_step": number,"operator_types": (Database["public"]['Enums']["operator_type"])[],"profile_id": string,"reminder_sent_at": string | null,"rereview_needed": boolean,"service_radius_miles": number,"shift_ready_override_reason": string | null,"shifts_paused": boolean,"sms_opt_in": boolean,"sms_opt_in_at": string | null,"sms_opt_in_text": string | null,"sms_opted_out": boolean,"sms_opted_out_at": string | null,"state": string | null,"transmission": Database["public"]['Enums']["transmission_type"] | null,"twic_active": boolean | null,"updated_at": string,"years_experience": number | null,"zip": string | null
                   }
                   Insert: {
-                    "approval_text_due_at"?: string | null,"approval_text_sent_at"?: string | null,"availability"?: (Database["public"]['Enums']["availability_type"])[],"bio"?: string | null,"card_completed"?: boolean,"cdl_class"?: Database["public"]['Enums']["cdl_class"],"cdl_state"?: string | null,"certifications"?: (string)[],"city"?: string | null,"clearinghouse_registered"?: boolean | null,"created_at"?: string,"driving_styles"?: (Database["public"]['Enums']["driving_style"])[],"employment_type"?: Database["public"]['Enums']["employment_type"] | null,"endorsements"?: (Database["public"]['Enums']["endorsement"])[],"equipment_types"?: (Database["public"]['Enums']["equipment_type"])[],"full_name": string,"heard_from"?: Database["public"]['Enums']["heard_from"] | null,"heard_from_other"?: string | null,"id"?: string,"lat"?: number | null,"lng"?: number | null,"medical_card_active"?: boolean | null,"mvr_status"?: Database["public"]['Enums']["mvr_status"] | null,"no_show_count"?: number,"onboarding_step"?: number,"operator_types"?: (Database["public"]['Enums']["operator_type"])[],"profile_id": string,"reminder_sent_at"?: string | null,"rereview_needed"?: boolean,"service_radius_miles"?: number,"shift_ready_override_reason"?: string | null,"shifts_paused"?: boolean,"sms_opt_in"?: boolean,"sms_opt_in_at"?: string | null,"sms_opt_in_text"?: string | null,"sms_opted_out"?: boolean,"sms_opted_out_at"?: string | null,"state"?: string | null,"transmission"?: Database["public"]['Enums']["transmission_type"] | null,"twic_active"?: boolean | null,"updated_at"?: string,"years_experience"?: number | null,"zip"?: string | null
+                    "approval_text_due_at"?: string | null,"approval_text_sent_at"?: string | null,"availability"?: (Database["public"]['Enums']["availability_type"])[],"bio"?: string | null,"card_completed"?: boolean,"cdl_class"?: Database["public"]['Enums']["cdl_class"],"cdl_state"?: string | null,"certifications"?: (string)[],"city"?: string | null,"clearinghouse_registered"?: boolean | null,"created_at"?: string,"driving_styles"?: (Database["public"]['Enums']["driving_style"])[],"employment_type"?: Database["public"]['Enums']["employment_type"] | null,"endorsements"?: (Database["public"]['Enums']["endorsement"])[],"equipment_types"?: (Database["public"]['Enums']["equipment_type"])[],"full_name": string,"heard_from"?: Database["public"]['Enums']["heard_from"] | null,"heard_from_other"?: string | null,"id"?: string,"last_doc_reminder_at"?: string | null,"lat"?: number | null,"lng"?: number | null,"medical_card_active"?: boolean | null,"mvr_status"?: Database["public"]['Enums']["mvr_status"] | null,"no_show_count"?: number,"onboarding_step"?: number,"operator_types"?: (Database["public"]['Enums']["operator_type"])[],"profile_id": string,"reminder_sent_at"?: string | null,"rereview_needed"?: boolean,"service_radius_miles"?: number,"shift_ready_override_reason"?: string | null,"shifts_paused"?: boolean,"sms_opt_in"?: boolean,"sms_opt_in_at"?: string | null,"sms_opt_in_text"?: string | null,"sms_opted_out"?: boolean,"sms_opted_out_at"?: string | null,"state"?: string | null,"transmission"?: Database["public"]['Enums']["transmission_type"] | null,"twic_active"?: boolean | null,"updated_at"?: string,"years_experience"?: number | null,"zip"?: string | null
                   }
                   Update: {
-                    "approval_text_due_at"?: string | null,"approval_text_sent_at"?: string | null,"availability"?: (Database["public"]['Enums']["availability_type"])[],"bio"?: string | null,"card_completed"?: boolean,"cdl_class"?: Database["public"]['Enums']["cdl_class"],"cdl_state"?: string | null,"certifications"?: (string)[],"city"?: string | null,"clearinghouse_registered"?: boolean | null,"created_at"?: string,"driving_styles"?: (Database["public"]['Enums']["driving_style"])[],"employment_type"?: Database["public"]['Enums']["employment_type"] | null,"endorsements"?: (Database["public"]['Enums']["endorsement"])[],"equipment_types"?: (Database["public"]['Enums']["equipment_type"])[],"full_name"?: string,"heard_from"?: Database["public"]['Enums']["heard_from"] | null,"heard_from_other"?: string | null,"id"?: string,"lat"?: number | null,"lng"?: number | null,"medical_card_active"?: boolean | null,"mvr_status"?: Database["public"]['Enums']["mvr_status"] | null,"no_show_count"?: number,"onboarding_step"?: number,"operator_types"?: (Database["public"]['Enums']["operator_type"])[],"profile_id"?: string,"reminder_sent_at"?: string | null,"rereview_needed"?: boolean,"service_radius_miles"?: number,"shift_ready_override_reason"?: string | null,"shifts_paused"?: boolean,"sms_opt_in"?: boolean,"sms_opt_in_at"?: string | null,"sms_opt_in_text"?: string | null,"sms_opted_out"?: boolean,"sms_opted_out_at"?: string | null,"state"?: string | null,"transmission"?: Database["public"]['Enums']["transmission_type"] | null,"twic_active"?: boolean | null,"updated_at"?: string,"years_experience"?: number | null,"zip"?: string | null
+                    "approval_text_due_at"?: string | null,"approval_text_sent_at"?: string | null,"availability"?: (Database["public"]['Enums']["availability_type"])[],"bio"?: string | null,"card_completed"?: boolean,"cdl_class"?: Database["public"]['Enums']["cdl_class"],"cdl_state"?: string | null,"certifications"?: (string)[],"city"?: string | null,"clearinghouse_registered"?: boolean | null,"created_at"?: string,"driving_styles"?: (Database["public"]['Enums']["driving_style"])[],"employment_type"?: Database["public"]['Enums']["employment_type"] | null,"endorsements"?: (Database["public"]['Enums']["endorsement"])[],"equipment_types"?: (Database["public"]['Enums']["equipment_type"])[],"full_name"?: string,"heard_from"?: Database["public"]['Enums']["heard_from"] | null,"heard_from_other"?: string | null,"id"?: string,"last_doc_reminder_at"?: string | null,"lat"?: number | null,"lng"?: number | null,"medical_card_active"?: boolean | null,"mvr_status"?: Database["public"]['Enums']["mvr_status"] | null,"no_show_count"?: number,"onboarding_step"?: number,"operator_types"?: (Database["public"]['Enums']["operator_type"])[],"profile_id"?: string,"reminder_sent_at"?: string | null,"rereview_needed"?: boolean,"service_radius_miles"?: number,"shift_ready_override_reason"?: string | null,"shifts_paused"?: boolean,"sms_opt_in"?: boolean,"sms_opt_in_at"?: string | null,"sms_opt_in_text"?: string | null,"sms_opted_out"?: boolean,"sms_opted_out_at"?: string | null,"state"?: string | null,"transmission"?: Database["public"]['Enums']["transmission_type"] | null,"twic_active"?: boolean | null,"updated_at"?: string,"years_experience"?: number | null,"zip"?: string | null
                   }
                   Relationships: [
                     {
@@ -158,13 +158,13 @@ isOneToOne: true
                   ]
                 },"notice_batches": {
                   Row: {
-                    "area_id": string | null,"body": string,"category": Database["public"]['Enums']["notice_category"],"created_at": string,"created_by": string,"excluded_blocked": number,"excluded_no_consent": number,"excluded_opted_out": number,"id": string,"recipient_count": number,"restores_batch_id": string | null,"send_after": string | null,"sent_at": string | null,"status": Database["public"]['Enums']["notice_status"],"updated_at": string,"variables": NonNullable<Json>
+                    "area_id": string | null,"body": string,"category": Database["public"]['Enums']["notice_category"],"created_at": string,"created_by": string,"excluded_blocked": number,"excluded_no_consent": number,"excluded_opted_out": number,"excluded_recent": number,"id": string,"recipient_count": number,"restores_batch_id": string | null,"send_after": string | null,"sent_at": string | null,"status": Database["public"]['Enums']["notice_status"],"updated_at": string,"variables": NonNullable<Json>
                   }
                   Insert: {
-                    "area_id"?: string | null,"body": string,"category": Database["public"]['Enums']["notice_category"],"created_at"?: string,"created_by": string,"excluded_blocked"?: number,"excluded_no_consent"?: number,"excluded_opted_out"?: number,"id"?: string,"recipient_count"?: number,"restores_batch_id"?: string | null,"send_after"?: string | null,"sent_at"?: string | null,"status"?: Database["public"]['Enums']["notice_status"],"updated_at"?: string,"variables"?: NonNullable<Json>
+                    "area_id"?: string | null,"body": string,"category": Database["public"]['Enums']["notice_category"],"created_at"?: string,"created_by": string,"excluded_blocked"?: number,"excluded_no_consent"?: number,"excluded_opted_out"?: number,"excluded_recent"?: number,"id"?: string,"recipient_count"?: number,"restores_batch_id"?: string | null,"send_after"?: string | null,"sent_at"?: string | null,"status"?: Database["public"]['Enums']["notice_status"],"updated_at"?: string,"variables"?: NonNullable<Json>
                   }
                   Update: {
-                    "area_id"?: string | null,"body"?: string,"category"?: Database["public"]['Enums']["notice_category"],"created_at"?: string,"created_by"?: string,"excluded_blocked"?: number,"excluded_no_consent"?: number,"excluded_opted_out"?: number,"id"?: string,"recipient_count"?: number,"restores_batch_id"?: string | null,"send_after"?: string | null,"sent_at"?: string | null,"status"?: Database["public"]['Enums']["notice_status"],"updated_at"?: string,"variables"?: NonNullable<Json>
+                    "area_id"?: string | null,"body"?: string,"category"?: Database["public"]['Enums']["notice_category"],"created_at"?: string,"created_by"?: string,"excluded_blocked"?: number,"excluded_no_consent"?: number,"excluded_opted_out"?: number,"excluded_recent"?: number,"id"?: string,"recipient_count"?: number,"restores_batch_id"?: string | null,"send_after"?: string | null,"sent_at"?: string | null,"status"?: Database["public"]['Enums']["notice_status"],"updated_at"?: string,"variables"?: NonNullable<Json>
                   }
                   Relationships: [
                     {
@@ -371,6 +371,25 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"welcome_texts": {
+                  Row: {
+                    "created_at": string,"driver_id": string | null,"due_at": string,"phone_hash": string,"sent_at": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"driver_id"?: string | null,"due_at"?: string,"phone_hash": string,"sent_at"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"driver_id"?: string | null,"due_at"?: string,"phone_hash"?: string,"sent_at"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "welcome_texts_driver_id_fkey"
+      columns: ["driver_id"]
+isOneToOne: false
+      referencedRelation: "drivers"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Views: {
@@ -393,6 +412,11 @@ isOneToOne: false
               "driver_id": string,"phone": string
             }[]
                            },
+"claim_doc_reminder":
+{ Args: { "p_driver_id": string }; Returns: {
+              "missing": (string)[],"phone": string
+            }[]
+                           },
 "claim_profile_reminders":
 { Args: { "p_limit"?: number }; Returns: {
               "driver_id": string,"phone": string
@@ -403,6 +427,11 @@ isOneToOne: false
               "outcome": string,"shift_id": string
             }[]
                            },
+"claim_welcome_texts":
+{ Args: { "p_driver_id"?: string }; Returns: {
+              "driver_id": string,"full_name": string,"phone": string
+            }[]
+                           },
 "current_carrier_id":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
@@ -411,6 +440,11 @@ isOneToOne: false
                            },
 "demote_driver_for_rereview":
 { Args: { "p_driver_id": string,"p_reason": string }; Returns: undefined
+                           },
+"doc_reminder_candidates":
+{ Args: { "p_driver_id"?: string }; Returns: {
+              "driver_id": string,"exclusion": string,"last_doc_reminder_at": string,"missing": (string)[],"phone": string
+            }[]
                            },
 "expire_shifts":
 { Args: Record<PropertyKey, never>; Returns: number
@@ -438,6 +472,9 @@ isOneToOne: false
 "miles_between":
 { Args: { "lat1": number,"lat2": number,"lng1": number,"lng2": number }; Returns: number
                            },
+"missing_documents":
+{ Args: { "p_driver_id": string }; Returns: (string)[]
+                           },
 "new_shift_code":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
@@ -452,6 +489,9 @@ isOneToOne: false
 "queue_approval_text":
 { Args: { "p_driver_id": string,"p_due_at": string }; Returns: boolean
                            },
+"queue_welcome_text":
+{ Args: { "p_driver_id": string,"p_due_at": string,"p_phone_hash": string }; Returns: boolean
+                           },
 "release_shift":
 { Args: { "p_shift_id": string }; Returns: string
                            },
@@ -465,7 +505,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "account_status": "pending"|"approved"|"blocked","availability_type": "full_time"|"part_time"|"on_call"|"weekends","cdl_class": "A"|"B"|"none","document_type": "cdl_front"|"cdl_back"|"medical_card"|"certification"|"other","driving_style": "local_day_cab"|"regional","employment_type": "w2"|"contractor_1099"|"either","endorsement": "H"|"N"|"T"|"X","equipment_type": "container_drayage"|"dry_van"|"flatbed"|"reefer","heard_from": "flyer"|"facebook_instagram"|"google_search"|"friend_coworker"|"other","mvr_status": "clean"|"minor_1_2"|"major_3_plus","notice_category": "policy_change"|"service_notice"|"service_restored"|"account_security","notice_status": "queued"|"sending"|"sent","operator_type": "cdl_driver"|"yard_spotter"|"mechanic","recipient_status": "queued"|"sent"|"delivered"|"failed"|"booked"|"too_late"|"no_show","shift_status": "open"|"booked"|"cancelled"|"expired","sms_consent_event": "opt_in"|"opt_out"|"opt_in_again","sms_consent_source": "onboarding"|"sms_stop"|"sms_start"|"profile","sms_direction": "inbound"|"outbound","subscription_status": "trialing"|"active"|"past_due"|"canceled"|"unpaid"|"incomplete"|"incomplete_expired"|"paused","transmission_type": "automatic_only"|"manual_ok","user_role": "driver"|"carrier"|"admin"
+            "account_status": "pending"|"approved"|"blocked","availability_type": "full_time"|"part_time"|"on_call"|"weekends","cdl_class": "A"|"B"|"none","document_type": "cdl_front"|"cdl_back"|"medical_card"|"certification"|"other","driving_style": "local_day_cab"|"regional","employment_type": "w2"|"contractor_1099"|"either","endorsement": "H"|"N"|"T"|"X","equipment_type": "container_drayage"|"dry_van"|"flatbed"|"reefer","heard_from": "flyer"|"facebook_instagram"|"google_search"|"friend_coworker"|"other","mvr_status": "clean"|"minor_1_2"|"major_3_plus","notice_category": "policy_change"|"service_notice"|"service_restored"|"account_security"|"doc_reminder","notice_status": "queued"|"sending"|"sent","operator_type": "cdl_driver"|"yard_spotter"|"mechanic","recipient_status": "queued"|"sent"|"delivered"|"failed"|"booked"|"too_late"|"no_show","shift_status": "open"|"booked"|"cancelled"|"expired","sms_consent_event": "opt_in"|"opt_out"|"opt_in_again","sms_consent_source": "onboarding"|"sms_stop"|"sms_start"|"profile","sms_direction": "inbound"|"outbound","subscription_status": "trialing"|"active"|"past_due"|"canceled"|"unpaid"|"incomplete"|"incomplete_expired"|"paused","transmission_type": "automatic_only"|"manual_ok","user_role": "driver"|"carrier"|"admin"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -585,7 +625,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "account_status": ["pending", "approved", "blocked"],"availability_type": ["full_time", "part_time", "on_call", "weekends"],"cdl_class": ["A", "B", "none"],"document_type": ["cdl_front", "cdl_back", "medical_card", "certification", "other"],"driving_style": ["local_day_cab", "regional"],"employment_type": ["w2", "contractor_1099", "either"],"endorsement": ["H", "N", "T", "X"],"equipment_type": ["container_drayage", "dry_van", "flatbed", "reefer"],"heard_from": ["flyer", "facebook_instagram", "google_search", "friend_coworker", "other"],"mvr_status": ["clean", "minor_1_2", "major_3_plus"],"notice_category": ["policy_change", "service_notice", "service_restored", "account_security"],"notice_status": ["queued", "sending", "sent"],"operator_type": ["cdl_driver", "yard_spotter", "mechanic"],"recipient_status": ["queued", "sent", "delivered", "failed", "booked", "too_late", "no_show"],"shift_status": ["open", "booked", "cancelled", "expired"],"sms_consent_event": ["opt_in", "opt_out", "opt_in_again"],"sms_consent_source": ["onboarding", "sms_stop", "sms_start", "profile"],"sms_direction": ["inbound", "outbound"],"subscription_status": ["trialing", "active", "past_due", "canceled", "unpaid", "incomplete", "incomplete_expired", "paused"],"transmission_type": ["automatic_only", "manual_ok"],"user_role": ["driver", "carrier", "admin"]
+            "account_status": ["pending", "approved", "blocked"],"availability_type": ["full_time", "part_time", "on_call", "weekends"],"cdl_class": ["A", "B", "none"],"document_type": ["cdl_front", "cdl_back", "medical_card", "certification", "other"],"driving_style": ["local_day_cab", "regional"],"employment_type": ["w2", "contractor_1099", "either"],"endorsement": ["H", "N", "T", "X"],"equipment_type": ["container_drayage", "dry_van", "flatbed", "reefer"],"heard_from": ["flyer", "facebook_instagram", "google_search", "friend_coworker", "other"],"mvr_status": ["clean", "minor_1_2", "major_3_plus"],"notice_category": ["policy_change", "service_notice", "service_restored", "account_security", "doc_reminder"],"notice_status": ["queued", "sending", "sent"],"operator_type": ["cdl_driver", "yard_spotter", "mechanic"],"recipient_status": ["queued", "sent", "delivered", "failed", "booked", "too_late", "no_show"],"shift_status": ["open", "booked", "cancelled", "expired"],"sms_consent_event": ["opt_in", "opt_out", "opt_in_again"],"sms_consent_source": ["onboarding", "sms_stop", "sms_start", "profile"],"sms_direction": ["inbound", "outbound"],"subscription_status": ["trialing", "active", "past_due", "canceled", "unpaid", "incomplete", "incomplete_expired", "paused"],"transmission_type": ["automatic_only", "manual_ok"],"user_role": ["driver", "carrier", "admin"]
           }
         }
 } as const

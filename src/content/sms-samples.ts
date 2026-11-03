@@ -43,6 +43,29 @@ export const SMS_APPROVED =
   "FleetGrid: Your profile is approved. You'll get texts when matching shifts open. Reply STOP to opt out.";
 
 /**
+ * The Shift-Ready texts (change request CR-5, approved by Annie 2026-11-03), word for word.
+ */
+/** Welcome: once per phone number ever, right after the first screen, with consent. */
+export function welcomeText(firstName: string | null): string {
+  return firstName
+    ? `FleetGrid: Thanks for signing up, ${firstName}. Upload your CDL and medical card at fleetgridus.com/driver to start getting shift offers. Reply STOP to opt out.`
+    : SMS_WELCOME_NO_NAME;
+}
+
+/** The welcome when the first name is missing, too long or not plain GSM-7 (decision 5). */
+export const SMS_WELCOME_NO_NAME =
+  "FleetGrid: Thanks for signing up. Upload your CDL and medical card at fleetgridus.com/driver to start getting shift offers. Reply STOP to opt out.";
+
+/** The missing documents, as the reminder names them: only these three wordings. */
+export const DOC_REMINDER_ITEMS = ["CDL photos", "medical card", "CDL photos and medical card"] as const;
+export type DocReminderItems = (typeof DOC_REMINDER_ITEMS)[number];
+
+/** Missing documents: from an admin, at most once per 3 days. */
+export function docReminderText(items: DocReminderItems): string {
+  return `FleetGrid: To start getting shift offers, please upload your ${items} at fleetgridus.com/driver. Reply STOP to opt out.`;
+}
+
+/**
  * Admin notices (change request CR-3, 2026-11-01). Account notifications under the approved
  * toll-free use case (TWO_FACTOR_AUTHENTICATION, ACCOUNT_NOTIFICATIONS), never marketing.
  * The admin only picks from these lists; nothing typed reaches a text. The verb agrees with

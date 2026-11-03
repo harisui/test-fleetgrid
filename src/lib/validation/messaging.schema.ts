@@ -5,7 +5,7 @@ import { z } from "zod";
 export const MESSAGING_PERIODS = ["today", "7d", "30d"] as const;
 export const MESSAGING_TABS = ["broadcasts", "account", "notices", "unmatched"] as const;
 export const MESSAGE_STATUS_FILTERS = ["", "sent", "delivered", "failed"] as const;
-export const ACCOUNT_KINDS = ["approved", "reminder", "cancelled", "security"] as const;
+export const ACCOUNT_KINDS = ["approved", "reminder", "welcome", "doc_reminder", "cancelled", "security"] as const;
 export type AccountKind = (typeof ACCOUNT_KINDS)[number];
 
 const first = (value: unknown) => (Array.isArray(value) ? value[0] : value);

@@ -72,7 +72,25 @@ export class DriverService {
     /** The SMS consent audit log, built on demand because only the service role may write it. */
     private readonly consentLog: () => IConsentLogRepository,
     private readonly now: () => Date = () => new Date(),
+    /**
+     * The welcome text (CR-5): called when a driver who agreed to texts saves the first
+     * screen, or ticks the box on the sign-up's last one. Sent once per number ever.
+     */
+    private readonly onSignedUpWithTexts: (driver: { driverId: string; phone: string }) => Promise<void> = async () => undefined,
+    private readonly report: (message: string, detail?: unknown) => void = () => undefined,
   ) {}
+
+  /** Queues the welcome for a driver with texts on. A failed text never fails the sign-up. */
+  private async welcome(userId: string, driver: Driver): Promise<Driver> {
+    if (!driver.smsOptIn || driver.smsOptedOut) return driver;
+    try {
+      const profile = await this.profiles.findById(userId);
+      if (profile) await this.onSignedUpWithTexts({ driverId: driver.id, phone: profile.phone });
+    } catch (error) {
+      this.report("The welcome text was not sent", error);
+    }
+    return driver;
+  }
 
   /**
    * The city, state and coordinates of a ZIP, from the bundled dataset. The client sends the
@@ -124,7 +142,7 @@ export class DriverService {
     await this.requireDriverProfile(userId);
     const existing = await this.drivers.findByProfileId(userId);
 
-    if (stepId === "lead") return this.locate(await this.saveLead(userId, existing, input));
+    if (stepId === "lead") return this.locate(await this.welcome(userId, await this.saveLead(userId, existing, input)));
 
     if (!existing) throw AppError.validation("Start with the first step");
     if (stepNumber(stepId) > existing.onboardingStep) {
@@ -233,7 +251,8 @@ export class DriverService {
    */
   private async saveConsent(userId: string, existing: Driver, input: unknown): Promise<Driver> {
     const { consent } = parseInput(consentScreenSchema, input);
-    return this.completeCard(userId, existing, await this.consentPatch(userId, existing, consent, "onboarding"));
+    const saved = await this.completeCard(userId, existing, await this.consentPatch(userId, existing, consent, "onboarding"));
+    return consent ? this.welcome(userId, saved) : saved;
   }
 
   /** Marks the card finished with `patch`, once every required answer is there. */

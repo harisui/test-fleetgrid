@@ -45,7 +45,7 @@ class FakeNotices implements INoticeRepository {
     return areaId ? this.inArea : this.people;
   }
   async insertBatch(batch: NewNoticeBatch): Promise<NoticeBatch> {
-    const created: NoticeBatch = { ...batch, id: `b0000000-0000-4000-8000-00000000000${++this.seq}`, status: "queued", sentAt: null, createdAt: this.clock().toISOString() };
+    const created: NoticeBatch = { ...batch, excludedRecent: batch.excludedRecent ?? 0, id: `b0000000-0000-4000-8000-00000000000${++this.seq}`, status: "queued", sentAt: null, createdAt: this.clock().toISOString() };
     this.batches.push(created);
     return created;
   }
@@ -60,8 +60,10 @@ class FakeNotices implements INoticeRepository {
     batch.status = "sent";
     batch.recipientCount = count;
   }
-  async listDue(now: string) {
-    return this.batches.filter((b) => b.status === "queued" && b.sendAfter !== null && b.sendAfter <= now);
+  async listDue(now: string, categories?: NoticeCategory[]) {
+    return this.batches.filter(
+      (b) => b.status === "queued" && b.sendAfter !== null && b.sendAfter <= now && (!categories || categories.includes(b.category)),
+    );
   }
   async listSince(category: NoticeCategory, since: string) {
     return this.batches.filter((b) => b.category === category && b.createdAt >= since);

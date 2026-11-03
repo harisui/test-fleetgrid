@@ -24,6 +24,7 @@ export function mapNoticeBatch(row: BatchRow): NoticeBatch {
     excludedOptedOut: row.excluded_opted_out,
     excludedNoConsent: row.excluded_no_consent,
     excludedBlocked: row.excluded_blocked,
+    excludedRecent: row.excluded_recent,
     sendAfter: row.send_after,
     status: row.status,
     sentAt: row.sent_at,

@@ -7,8 +7,14 @@ import {
   SMS_SAMPLE_FILLED,
   SMS_SAMPLE_OFFER,
   SMS_SAMPLE_REPLY,
+  SMS_WELCOME_NO_NAME,
+  DOC_REMINDER_ITEMS,
+  docReminderText,
   threadWithCode,
+  welcomeText,
 } from "@/content/sms-samples";
+import { docReminderItems, WELCOME_NAME_MAX, welcomeFirstName } from "@/lib/sms/driverTexts";
+import { smsSegments } from "@/lib/sms/segments";
 
 /**
  * The three shift texts, word for word as revised for Twilio's toll-free review (rejection
@@ -51,5 +57,57 @@ describe("the one-time driver texts (change request of 2026-11-01, approved by A
       "FleetGrid: Your profile is approved. You'll get texts when matching shifts open. Reply STOP to opt out.",
     );
     for (const text of [SMS_REMINDER, SMS_APPROVED]) expect(text.length).toBeLessThan(160);
+  });
+});
+
+describe("the Shift-Ready texts (change request CR-5, approved by Annie 2026-11-03)", () => {
+  it("are word for word", () => {
+    expect(welcomeText("Maria")).toBe(
+      "FleetGrid: Thanks for signing up, Maria. Upload your CDL and medical card at fleetgridus.com/driver to start getting shift offers. Reply STOP to opt out.",
+    );
+    expect(welcomeText(null)).toBe(SMS_WELCOME_NO_NAME);
+    expect(SMS_WELCOME_NO_NAME).toBe(
+      "FleetGrid: Thanks for signing up. Upload your CDL and medical card at fleetgridus.com/driver to start getting shift offers. Reply STOP to opt out.",
+    );
+    expect(docReminderText("CDL photos")).toBe(
+      "FleetGrid: To start getting shift offers, please upload your CDL photos at fleetgridus.com/driver. Reply STOP to opt out.",
+    );
+    expect(DOC_REMINDER_ITEMS).toEqual(["CDL photos", "medical card", "CDL photos and medical card"]);
+  });
+
+  it("are GSM-7 and under 160, with the longest first name the welcome allows", () => {
+    const texts = [
+      welcomeText("A".repeat(WELCOME_NAME_MAX)),
+      SMS_WELCOME_NO_NAME,
+      ...DOC_REMINDER_ITEMS.map((items) => docReminderText(items)),
+    ];
+    for (const text of texts) {
+      expect(smsSegments(text).encoding, text).toBe("GSM-7");
+      expect(smsSegments(text).characters, text).toBeLessThan(160);
+      expect(text.startsWith("FleetGrid: "), text).toBe(true);
+      expect(text.endsWith("Reply STOP to opt out."), text).toBe(true);
+      expect(text).not.toMatch(/verified/i);
+    }
+  });
+
+  it("leave the name out when it is missing, too long or not GSM-7", () => {
+    expect(welcomeFirstName("Maria Lopez")).toBe("Maria");
+    expect(welcomeFirstName("  Jo   Ann ")).toBe("Jo");
+    expect(welcomeFirstName("A".repeat(WELCOME_NAME_MAX))).toBe("A".repeat(WELCOME_NAME_MAX));
+    expect(welcomeFirstName("A".repeat(WELCOME_NAME_MAX + 1))).toBeNull();
+    expect(welcomeFirstName("Łukasz Nowak")).toBeNull();
+    expect(welcomeFirstName("😀 Smith")).toBeNull();
+    expect(welcomeFirstName("")).toBeNull();
+    expect(welcomeFirstName(null)).toBeNull();
+  });
+
+  it("name the missing documents only from the checklist", () => {
+    expect(docReminderItems(["cdl_front"])).toBe("CDL photos");
+    expect(docReminderItems(["cdl_back"])).toBe("CDL photos");
+    expect(docReminderItems(["cdl_front", "cdl_back"])).toBe("CDL photos");
+    expect(docReminderItems(["medical_card"])).toBe("medical card");
+    expect(docReminderItems(["cdl_back", "medical_card"])).toBe("CDL photos and medical card");
+    expect(docReminderItems(["cdl_state", "last_name", "profile"])).toBeNull();
+    expect(docReminderItems([])).toBeNull();
   });
 });

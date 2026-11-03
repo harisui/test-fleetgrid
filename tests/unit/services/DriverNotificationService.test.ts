@@ -1,9 +1,10 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { SMS_APPROVED, SMS_REMINDER } from "@/content/sms-samples";
+import { SMS_APPROVED, SMS_REMINDER, SMS_WELCOME_NO_NAME, welcomeText } from "@/content/sms-samples";
 import { parseServerEnv } from "@/lib/env";
+import { phoneHash } from "@/lib/sms/driverTexts";
 import { createSmsProvider, FakeSmsProvider, TwilioSmsProvider } from "@/server/providers/SmsProvider";
-import type { ClaimedText, IDriverNotificationRepository } from "@/server/repositories/DriverNotificationRepository";
+import type { ClaimedText, ClaimedWelcome, IDriverNotificationRepository } from "@/server/repositories/DriverNotificationRepository";
 import { DriverNotificationService } from "@/server/services/DriverNotificationService";
 import { TextService } from "@/server/services/TextService";
 import { FakeSmsLog, RecordingSmsProvider } from "../../fakes/FakeShiftRepositories";
@@ -38,6 +39,27 @@ class FakeNotifications implements IDriverNotificationRepository {
     );
     for (const [id] of due) this.sent.add(id);
     return due.map(([id]) => (id === "d1" ? A : B));
+  }
+  /** The welcome table: hash to driver and time; a hash is kept forever. */
+  welcomes = new Map<string, { driverId: string; dueAt: string; sent: boolean }>();
+  names: Record<string, string | null> = { d1: "Maria Lopez", d2: null };
+  async queueWelcomeText(hash: string, driverId: string, dueAt: string | null) {
+    if (this.welcomes.has(hash)) return false;
+    this.welcomes.set(hash, { driverId, dueAt: dueAt ?? this.clock().toISOString(), sent: false });
+    return true;
+  }
+  async claimWelcomeTexts(driverId?: string): Promise<ClaimedWelcome[]> {
+    const due = [...this.welcomes.values()].filter(
+      (w) => (!driverId || w.driverId === driverId) && !w.sent && w.dueAt <= this.clock().toISOString() && this.consenting.has(w.driverId),
+    );
+    for (const w of due) w.sent = true;
+    return due.map((w) => ({ ...(w.driverId === "d1" ? A : B), fullName: this.names[w.driverId] ?? null }));
+  }
+  async docReminderCandidates() {
+    return [];
+  }
+  async claimDocReminder() {
+    return null;
   }
 }
 
@@ -94,6 +116,40 @@ describe("DriverNotificationService", () => {
     now = new Date(SEVEN);
     expect(await service.sendDueApprovalTexts()).toBe(1);
     expect(sms.sent).toEqual([{ to: A.phone, body: SMS_APPROVED }]);
+  });
+
+  it("welcomes a new driver by first name at once by day, once per number ever, logged as welcome", async () => {
+    await service.onDriverSignedUp("d1", A.phone);
+    expect(sms.sent).toEqual([{ to: A.phone, body: welcomeText("Maria") }]);
+    expect(log.outbound().map((entry) => entry.kind)).toEqual(["welcome"]);
+    // The same number on a new account (deleted and signed up again) is never welcomed again.
+    await service.onDriverSignedUp("d2", A.phone);
+    await service.onDriverSignedUp("d1", A.phone);
+    expect(sms.sent).toHaveLength(1);
+  });
+
+  it("keys the welcome by an HMAC of the number, never the number itself", async () => {
+    await service.onDriverSignedUp("d1", A.phone);
+    const [key] = [...repo.welcomes.keys()];
+    expect(key).toMatch(/^[0-9a-f]{64}$/);
+    expect(key).toBe(phoneHash(A.phone));
+    expect(key).not.toContain(A.phone.slice(2));
+    expect(phoneHash(A.phone, "another-secret")).not.toBe(key);
+  });
+
+  it("holds a night welcome until 7 AM, and leaves the name out when there is none", async () => {
+    now = NIGHT;
+    await service.onDriverSignedUp("d2", B.phone);
+    expect(sms.sent).toEqual([]);
+    now = new Date(SEVEN);
+    expect(await service.sendDueWelcomeTexts()).toBe(1);
+    expect(sms.sent).toEqual([{ to: B.phone, body: SMS_WELCOME_NO_NAME }]);
+  });
+
+  it("never welcomes a driver without consent", async () => {
+    repo.consenting.delete("d2");
+    await service.onDriverSignedUp("d2", B.phone);
+    expect(sms.sent).toEqual([]);
   });
 
   it("texts nobody who has not opted in or has replied STOP", async () => {

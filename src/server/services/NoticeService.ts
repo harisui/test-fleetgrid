@@ -15,6 +15,7 @@ import { SHIFT_TIME_ZONE } from "@/lib/shifts/texts";
 import { smsSegments } from "@/lib/sms/segments";
 import {
   driverSearchQuerySchema,
+  NOTICE_CATEGORIES,
   noticeChoicesSchema,
   sendNoticeSchema,
   type NoticeChoices,
@@ -216,7 +217,7 @@ export class NoticeService {
 
   /** The 7 AM run: batches held for quiet hours whose time has come. */
   async dispatchDue(): Promise<number> {
-    const due = await this.notices.listDue(this.now().toISOString());
+    const due = await this.notices.listDue(this.now().toISOString(), [...NOTICE_CATEGORIES]);
     let sent = 0;
     for (const batch of due) sent += await this.dispatch(batch.id);
     return sent;

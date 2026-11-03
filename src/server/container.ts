@@ -38,6 +38,7 @@ import { CarrierService } from "@/server/services/CarrierService";
 import { DocumentService } from "@/server/services/DocumentService";
 import { DriverSearchService } from "@/server/services/DriverSearchService";
 import { DriverNotificationService } from "@/server/services/DriverNotificationService";
+import { DocReminderService } from "@/server/services/DocReminderService";
 import { DriverService } from "@/server/services/DriverService";
 import { InboundService } from "@/server/services/InboundService";
 import { MessagingService } from "@/server/services/MessagingService";
@@ -84,14 +85,28 @@ export function buildTextingServices() {
     new ConsentLogRepository(admin),
     textService,
   );
-  const notificationService = new DriverNotificationService(new DriverNotificationRepository(admin), textService);
+  const notificationService = new DriverNotificationService(
+    new DriverNotificationRepository(admin),
+    textService,
+    undefined,
+    getServerEnv().PHONE_HASH_SECRET,
+  );
   // The 7 AM run sends notices held for quiet hours; it audits nothing (the admin's send did).
   const noticeService = new NoticeService(new NoticeRepository(admin), new ProfileRepository(admin), async () => undefined, textService);
+  // The 7 AM run sends documents reminders held for quiet hours; the admin's send audited them.
+  const docReminderService = new DocReminderService(
+    new DriverNotificationRepository(admin),
+    new NoticeRepository(admin),
+    new ProfileRepository(admin),
+    async () => undefined,
+    textService,
+  );
   return {
     shifts,
     recipients,
     notificationService,
     noticeService,
+    docReminderService,
     drivers: new TextingDriverRepository(admin),
     textService,
     broadcastService,
@@ -191,11 +206,21 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     new TextService(getSmsProvider(), () => new SmsLogRepository(createAdminClient()), reportError),
   );
 
+  // Documents reminders (CR-5): the admin's own audit entry; drivers and batches through the service role.
+  const docReminderService = new DocReminderService(
+    new DriverNotificationRepository(createAdminClient()),
+    new NoticeRepository(createAdminClient()),
+    profiles,
+    (entry) => adminRepository.writeAudit(entry),
+    new TextService(getSmsProvider(), () => new SmsLogRepository(createAdminClient()), reportError),
+  );
+
   return {
     shiftService,
     adminOpsService,
     messagingService,
     noticeService,
+    docReminderService,
     authService: new AuthService(auth, profiles),
     accountService: new AccountService(
       auth,
@@ -215,6 +240,10 @@ export function buildContainer(supabase: TypedSupabaseClient) {
       zipProvider,
       serviceAreas,
       () => new ConsentLogRepository(createAdminClient()),
+      undefined,
+      // The welcome text (CR-5): once per number ever, only with consent, held for quiet hours.
+      ({ driverId, phone }) => buildTextingServices().notificationService.onDriverSignedUp(driverId, phone),
+      reportError,
     ),
     documentService: new DocumentService(documents, drivers, profiles),
     zipLookupService: new ZipLookupService(zipProvider, serviceAreas),

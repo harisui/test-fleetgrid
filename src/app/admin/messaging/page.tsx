@@ -39,6 +39,7 @@ const CATEGORY_LABELS = {
   service_notice: "Service notice",
   service_restored: "Service restored",
   account_security: "Account security",
+  doc_reminder: "Documents reminder",
 } as const;
 
 type Link = Partial<Record<keyof MessagingQuery, string | undefined>>;
