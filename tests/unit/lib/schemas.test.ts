@@ -179,10 +179,18 @@ describe("driverLicensesSchema (CDL and licenses)", () => {
     expect(driverLicensesSchema.parse(validLicenses())).toEqual({
       employmentType: "w2",
       cdlClass: "A",
+      cdlState: "TX",
       endorsements: ["H", "T"],
       yearsExperience: 8,
       certifications: ["OSHA 10"],
     });
+  });
+
+  it("needs the state that issued the CDL, one of the 50 states or DC (CR-5)", () => {
+    expect(driverLicensesSchema.parse(validLicenses({ cdlState: "DC" })).cdlState).toBe("DC");
+    for (const cdlState of [undefined, "", "ZZ", "tx", "Texas"]) {
+      expect(driverLicensesSchema.safeParse(validLicenses({ cdlState })).success, String(cdlState)).toBe(false);
+    }
   });
 
   it("removes duplicates and applies the letter rules", () => {
@@ -390,6 +398,7 @@ describe("driverCardSchema (profile edit)", () => {
       serviceRadiusMiles: 50,
       employmentType: "w2",
       cdlClass: "A",
+      cdlState: "TX",
       endorsements: ["H", "T"],
       yearsExperience: 8,
       certifications: ["OSHA 10"],

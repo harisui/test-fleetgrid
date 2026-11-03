@@ -31,6 +31,7 @@ export interface CreateDriverInput {
   lat?: number | null;
   lng?: number | null;
   cdlClass?: CdlClass;
+  cdlState?: string | null;
   serviceRadiusMiles?: number;
   smsOptIn?: boolean;
   smsOptInAt?: string | null;
@@ -48,6 +49,7 @@ export interface DriverPatch {
   lng?: number | null;
   operatorTypes?: OperatorType[];
   cdlClass?: CdlClass;
+  cdlState?: string | null;
   endorsements?: Endorsement[];
   yearsExperience?: number;
   certifications?: string[];
@@ -100,6 +102,7 @@ export function mapDriver(row: DriverRow & { driver_clearinghouse_self_reports?:
     fullName: row.full_name,
     operatorTypes: row.operator_types,
     cdlClass: row.cdl_class,
+    cdlState: row.cdl_state,
     endorsements: row.endorsements,
     yearsExperience: row.years_experience,
     city: row.city,
@@ -150,6 +153,7 @@ export function toDriverUpdate(patch: DriverPatch): DriverUpdate {
     lng: "lng",
     operatorTypes: "operator_types",
     cdlClass: "cdl_class",
+    cdlState: "cdl_state",
     endorsements: "endorsements",
     yearsExperience: "years_experience",
     certifications: "certifications",
@@ -205,6 +209,7 @@ export class DriverRepository extends BaseRepository implements IDriverRepositor
         ...(input.lat !== undefined && { lat: input.lat }),
         ...(input.lng !== undefined && { lng: input.lng }),
         ...(input.cdlClass !== undefined && { cdl_class: input.cdlClass }),
+        ...(input.cdlState !== undefined && { cdl_state: input.cdlState }),
         ...(input.serviceRadiusMiles !== undefined && {
           service_radius_miles: input.serviceRadiusMiles,
         }),

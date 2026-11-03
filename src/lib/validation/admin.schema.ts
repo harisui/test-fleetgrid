@@ -20,6 +20,8 @@ export const AREA_FILTERS = ["", "in", "out"] as const;
 export const SOURCE_FILTERS = ["", "qr", "campaign", "direct"] as const;
 /** The self-reported Clearinghouse and SAP answer: given, or not answered. */
 export const SELF_REPORT_FILTERS = ["", "yes", "none"] as const;
+/** The state that issued the CDL (CR-5): Texas, another state, or not answered yet. */
+export const CDL_STATE_FILTERS = ["", "tx", "other", "none"] as const;
 export const DRIVER_SORTS = ["created", "name", "status"] as const;
 export const SORT_DIRECTIONS = ["asc", "desc"] as const;
 
@@ -36,6 +38,7 @@ export const adminDriversQuerySchema = z.object({
   area: oneOf(AREA_FILTERS, ""),
   source: oneOf(SOURCE_FILTERS, ""),
   selfReport: oneOf(SELF_REPORT_FILTERS, ""),
+  cdl: oneOf(CDL_STATE_FILTERS, ""),
   /** One QR code's sign-ups only (linked from the Analytics page). */
   qr: optionalId,
   /** Name, phone or ZIP. */

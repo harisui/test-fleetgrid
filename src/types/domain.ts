@@ -223,6 +223,8 @@ export interface Driver {
   fullName: string;
   operatorTypes: OperatorType[];
   cdlClass: CdlClass;
+  /** The state that issued the CDL, a two-letter code (CR-5). Null on cards saved before it was asked. */
+  cdlState: string | null;
   endorsements: Endorsement[];
   yearsExperience: number | null;
   city: string | null;

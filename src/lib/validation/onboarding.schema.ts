@@ -3,6 +3,7 @@ import {
   FULL_NAME_MAX_LENGTH,
   SERVICE_RADIUS_MAX_MILES,
   SERVICE_RADIUS_MIN_MILES,
+  US_STATE_CODES,
   YEARS_EXPERIENCE_MAX,
 } from "@/lib/constants";
 import { normalizeEndorsements } from "@/lib/onboarding/options";
@@ -80,6 +81,13 @@ const yesNo = (message: string) => z.boolean({ error: message });
 /** A or B. FleetGrid lists CDL drivers only at launch, so "none" is not an answer here. */
 export const cdlClassScreenSchema = z.object({
   cdlClass: z.enum(CDL_HELD_CLASSES, { error: CDL_CLASS_MESSAGE }),
+});
+
+export const CDL_STATE_MESSAGE = "Pick the state that issued your CDL";
+
+/** The state that issued the CDL (CR-5): on the lead, on the one-time question, on the profile. */
+export const cdlStateSchema = z.object({
+  cdlState: z.enum(US_STATE_CODES as [string, ...string[]], { error: CDL_STATE_MESSAGE }),
 });
 
 export const experienceScreenSchema = z.object({
@@ -160,6 +168,7 @@ export const leadScreenSchema = z.object({
   ...nameScreenSchema.shape,
   ...zipScreenSchema.shape,
   ...cdlClassScreenSchema.shape,
+  ...cdlStateSchema.shape,
   ...consentScreenSchema.shape,
 });
 

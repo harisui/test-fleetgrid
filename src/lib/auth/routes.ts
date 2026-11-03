@@ -5,6 +5,8 @@ import type { Profile, UserRole } from "@/types/domain";
 export const LOGIN_PATH = "/login";
 export const VERIFY_PATH = "/verify";
 export const CHOOSE_ROLE_PATH = "/choose-role";
+/** "Which state issued your CDL?", asked once of cards saved before CR-5. */
+export const CDL_STATE_PATH = "/driver/cdl-state";
 /** Where the carrier area goes while the carrier side is switched off (CARRIER_DISABLED). */
 export const CARRIER_COMING_SOON_PATH = "/carriers";
 const CARRIER_PREFIX = "/carrier";

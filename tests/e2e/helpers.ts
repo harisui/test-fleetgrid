@@ -295,6 +295,8 @@ function driverRowAtStep(stepNumber: number) {
     // CDL drivers only at launch: set on every card, never asked.
     operator_types: ["cdl_driver" as const],
     cdl_class: CARD_ANSWERS.cdl_class,
+    // Asked on the lead since CR-5; a card without it is sent to the one-time question.
+    cdl_state: "TX",
     ...(answered(2) && { service_radius_miles: CARD_ANSWERS.service_radius_miles }),
     years_experience: or(answered(3), CARD_ANSWERS.years_experience),
     mvr_status: or(answered(4), CARD_ANSWERS.mvr_status),

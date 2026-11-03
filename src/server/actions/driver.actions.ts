@@ -57,6 +57,17 @@ export async function updateSmsConsentAction(input: unknown): Promise<Result<Loc
 }
 
 /** The profile page's "Clearinghouse and SAP" box: ticked saves a yes, unticked withdraws it. */
+/** Saves the state that issued the CDL (CR-5), from the one-time question. */
+export async function setCdlStateAction(input: unknown): Promise<Result<LocatedDriver>> {
+  return runAction(async () => {
+    const { user } = await requireRole("driver");
+    const { driverService } = await getContainer();
+    const driver = await driverService.setCdlState(user.id, input);
+    revalidatePath("/driver", "layout");
+    return driver;
+  });
+}
+
 export async function updateClearinghouseSelfReportAction(input: unknown): Promise<Result<LocatedDriver>> {
   return runAction(async () => {
     const { user } = await requireRole("driver");

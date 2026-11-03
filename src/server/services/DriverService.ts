@@ -17,6 +17,7 @@ import {
   endorsementsScreenSchema,
   equipmentScreenSchema,
   experienceScreenSchema,
+  cdlStateSchema,
   clearinghouseScreenSchema,
   heardFromScreenSchema,
   leadScreenSchema,
@@ -251,6 +252,24 @@ export class DriverService {
    * The profile page's "Clearinghouse and SAP" box: ticked saves a yes with a new time,
    * unticked deletes the answer and its date. Never touches progress or completion.
    */
+  /**
+   * The CDL state on its own (CR-5): the one question a card saved before CR-5 must answer
+   * before any other driver page. Any card may change it; nobody clears it.
+   */
+  async setCdlState(userId: string, input: unknown): Promise<LocatedDriver> {
+    const { cdlState } = parseInput(cdlStateSchema, input);
+    await this.requireDriverProfile(userId);
+    const existing = await this.drivers.findByProfileId(userId);
+    if (!existing) throw AppError.validation("Start with the first step");
+    return this.locate(await this.drivers.update(userId, { cdlState }));
+  }
+
+  /** True when the driver has a card but has not said which state issued the CDL (CR-5). */
+  async needsCdlState(userId: string): Promise<boolean> {
+    const existing = await this.drivers.findByProfileId(userId);
+    return existing !== null && existing.cdlState === null;
+  }
+
   async setClearinghouseSelfReport(userId: string, input: unknown): Promise<LocatedDriver> {
     const { clearinghouseConfirmed } = parseInput(clearinghouseScreenSchema, input);
     await this.requireDriverProfile(userId);

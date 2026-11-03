@@ -1,12 +1,12 @@
 import type { Metadata } from "next";
 import { DocumentUploader } from "@/components/driver/DocumentUploader";
-import { requireRole } from "@/lib/auth/guards";
+import { requireDriverWithCdlState } from "@/lib/auth/guards";
 import { getContainer } from "@/server/container";
 
 export const metadata: Metadata = { title: "My documents" };
 
 export default async function DriverDocumentsPage() {
-  const { user } = await requireRole("driver");
+  const { user } = await requireDriverWithCdlState();
   const { documentService } = await getContainer();
   const documents = await documentService.list(user.id);
 

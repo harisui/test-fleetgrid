@@ -37,6 +37,7 @@ export class FakeDriverRepository implements IDriverRepository {
       fullName: input.fullName,
       operatorTypes: input.operatorTypes ?? [],
       cdlClass: input.cdlClass ?? "none",
+      cdlState: input.cdlState ?? null,
       endorsements: [],
       yearsExperience: null,
       city: input.city ?? null,

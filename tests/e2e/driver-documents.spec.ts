@@ -24,7 +24,7 @@ async function startWithCard(page: Page): Promise<string> {
   const userId = await seedUser(PHONES.driver, "driver");
   const { data, error } = await adminClient()
     .from("drivers")
-    .insert({ profile_id: userId, full_name: "Pat Driver", state: "TX", zip: "75201" })
+    .insert({ profile_id: userId, full_name: "Pat Driver", state: "TX", zip: "75201", cdl_state: "TX" })
     .select("id")
     .single();
   if (error) throw error;
@@ -253,7 +253,7 @@ test.describe("driver documents", () => {
     const otherId = await seedUser(PHONES.secondDriver, "driver");
     await adminClient()
       .from("drivers")
-      .insert({ profile_id: otherId, full_name: "Other Driver", state: "IL", zip: "60601" });
+      .insert({ profile_id: otherId, full_name: "Other Driver", state: "IL", zip: "60601", cdl_state: "IL" });
     const context = await browser.newContext();
     const otherPage = await context.newPage();
     await login(otherPage, PHONES.secondDriver);

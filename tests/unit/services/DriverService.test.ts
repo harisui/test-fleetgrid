@@ -4,6 +4,7 @@ import { SMS_CONSENT_TEXT } from "@/lib/constants";
 import { SAVABLE_STEP_IDS, stepNumber, type SavableStepId } from "@/lib/onboarding/steps";
 import {
   CDL_CLASS_MESSAGE,
+  CDL_STATE_MESSAGE,
   CONSENT_MESSAGE,
   EQUIPMENT_MESSAGE,
   MEDICAL_CARD_MESSAGE,
@@ -179,6 +180,7 @@ describe("DriverService", () => {
         fullName: "  Pat Driver ",
         zip: "75201-1234",
         cdlClass: "B",
+        cdlState: "TX",
       });
       expect(driver).toMatchObject({
         profileId: USER_ID,
@@ -189,6 +191,7 @@ describe("DriverService", () => {
         lat: 32.78111,
         lng: -96.79722,
         cdlClass: "B",
+        cdlState: "TX",
         onboardingStep: stepNumber("distance"),
         cardCompleted: false,
         // CDL drivers only at launch: the work type is set, not asked.
@@ -249,6 +252,7 @@ describe("DriverService", () => {
         fullName: "Enter your name",
         zip: "Enter a 5-digit ZIP code, like 60601",
         cdlClass: CDL_CLASS_MESSAGE,
+        cdlState: CDL_STATE_MESSAGE,
       });
       expect(drivers.rows.size).toBe(0);
     });
@@ -274,8 +278,9 @@ describe("DriverService", () => {
         fullName: "Patricia Driver",
         zip: "60601",
         cdlClass: "B",
+        cdlState: "IL",
       });
-      expect(driver).toMatchObject({ fullName: "Patricia Driver", city: "Chicago", cdlClass: "B" });
+      expect(driver).toMatchObject({ fullName: "Patricia Driver", city: "Chicago", cdlClass: "B", cdlState: "IL" });
       expect(driver.onboardingStep).toBe(stepNumber("record"));
       expect(driver.yearsExperience).toBe(8);
     });
@@ -433,6 +438,31 @@ describe("DriverService", () => {
       expect(driver.cardCompleted).toBe(true);
       expect(driver.clearinghouseSelfReportedAt).toBeNull();
       expect(missingCardFields(card())).toEqual([]);
+    });
+  });
+
+  describe("the CDL state (CR-5)", () => {
+    it("saves it from the lead, and a card saved before CR-5 needs it", async () => {
+      expect(await service.needsCdlState(USER_ID)).toBe(false);
+      await service.saveScreen(USER_ID, "lead", SCREEN_INPUTS.lead);
+      expect(card().cdlState).toBe("TX");
+      expect(await service.needsCdlState(USER_ID)).toBe(false);
+      drivers.rows.set(USER_ID, { ...card(), cdlState: null });
+      expect(await service.needsCdlState(USER_ID)).toBe(true);
+    });
+
+    it("the one-time question saves a known state only", async () => {
+      await service.saveScreen(USER_ID, "lead", SCREEN_INPUTS.lead);
+      drivers.rows.set(USER_ID, { ...card(), cdlState: null });
+      expect((await service.setCdlState(USER_ID, { cdlState: "OK" })).cdlState).toBe("OK");
+      expect(await service.needsCdlState(USER_ID)).toBe(false);
+      const error = await expectAppError(service.setCdlState(USER_ID, { cdlState: "ZZ" }));
+      expect(error.fieldErrors).toEqual({ cdlState: CDL_STATE_MESSAGE });
+      expect(card().cdlState).toBe("OK");
+    });
+
+    it("needs a card first", async () => {
+      expect((await expectAppError(service.setCdlState(USER_ID, { cdlState: "TX" }))).code).toBe("VALIDATION");
     });
   });
 

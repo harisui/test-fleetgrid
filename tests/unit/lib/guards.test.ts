@@ -4,6 +4,7 @@ import {
   requireActiveSubscription,
   requireAdmin,
   requireCarrierStage,
+  requireDriverWithCdlState,
   requireRole,
   requireSession,
   requireUser,
@@ -25,10 +26,11 @@ const authService = vi.hoisted(() => ({
   signOut: vi.fn(),
 }));
 const carrierService = vi.hoisted(() => ({ getAccess: vi.fn() }));
+const driverService = vi.hoisted(() => ({ needsCdlState: vi.fn() }));
 const subscriptionService = vi.hoisted(() => ({ needsRecheck: vi.fn(), refreshAccess: vi.fn() }));
 
 vi.mock("@/server/container", () => ({
-  getContainer: async () => ({ authService, carrierService, subscriptionService }),
+  getContainer: async () => ({ authService, carrierService, subscriptionService, driverService }),
 }));
 /** forbidden() throws too: Next.js renders the 403 page in place of the route. */
 class ForbiddenSignal extends Error {
@@ -257,5 +259,22 @@ describe("requireRole", () => {
     signedInAs(buildProfile({ status: "blocked" }));
     authService.signOut.mockRejectedValue(new Error("network"));
     await expect(redirectOf(requireRole("driver"))).resolves.toBe("/login?blocked=1");
+  });
+});
+
+describe("requireDriverWithCdlState (CR-5)", () => {
+  beforeEach(() => {
+    authService.getSession.mockResolvedValue({ user, profile: buildProfile({ status: "approved" }) });
+  });
+
+  it("sends a driver whose card has no CDL state to the one-time question first", async () => {
+    driverService.needsCdlState.mockResolvedValue(true);
+    await expect(requireDriverWithCdlState()).rejects.toMatchObject({ to: "/driver/cdl-state" });
+    expect(driverService.needsCdlState).toHaveBeenCalledWith(USER_ID);
+  });
+
+  it("lets a driver with a CDL state, or without a card yet, through", async () => {
+    driverService.needsCdlState.mockResolvedValue(false);
+    await expect(requireDriverWithCdlState()).resolves.toMatchObject({ user });
   });
 });

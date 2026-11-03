@@ -88,6 +88,26 @@ describe("DriverTiles", () => {
 });
 
 describe("DriversTable", () => {
+  it("shows the CDL state, with the Not Texas CDL badge for any other state (CR-5)", () => {
+    const louisiana = row({
+      driver: buildDriver({ id: "d3", profileId: OTHER_USER_ID, fullName: "Lou Isiana", cdlState: "LA" }),
+      profile: buildProfile({ id: OTHER_USER_ID, phone: "+15555550108", status: "pending" }),
+    });
+    const unanswered = row({
+      driver: buildDriver({ id: "d4", profileId: "d4", fullName: "No State", cdlState: null }),
+      profile: buildProfile({ id: "d4", phone: "+15555550109", status: "pending" }),
+    });
+    render(<DriversTable page={page({ rows: [row(), louisiana, unanswered], total: 3 })} />);
+    const table = screen.getByRole("table", { name: "Drivers" });
+    const rowOf = (name: string) => within(table).getByText(name).closest("tr") as HTMLElement;
+    expect(rowOf("Lou Isiana")).toHaveTextContent("LANot Texas CDL");
+    expect(within(rowOf("Lou Isiana")).getByText("Not Texas CDL").closest("[data-slot=not-texas]")).toHaveAttribute("data-variant", "warning");
+    expect(rowOf("No State")).toHaveTextContent("Not answered");
+    expect(rowOf("Pat Driver")).not.toHaveTextContent("Not Texas CDL");
+    expect(screen.getByRole("combobox", { name: "CDL state" })).toBeInTheDocument();
+  });
+
+
   it("lists each driver with the phone, the area, the card state and the review status, linking to the sheet", () => {
     const incomplete = row({
       driver: buildDriver({ id: "d2", profileId: OTHER_USER_ID, fullName: "Lee Lead", zip: null, city: null, lat: null, lng: null, cardCompleted: false, smsOptIn: false }),
@@ -106,6 +126,7 @@ describe("DriversTable", () => {
       "Class",
       "Endorsements",
       "Profile",
+      "CDL state",
       "Review",
       "SMS",
       "Reminder sent",

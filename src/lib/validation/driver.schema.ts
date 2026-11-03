@@ -12,6 +12,7 @@ import {
 import { normalizeEndorsements } from "@/lib/onboarding/options";
 import {
   CDL_CLASS_MESSAGE,
+  cdlStateSchema,
   EQUIPMENT_MESSAGE,
   MEDICAL_CARD_MESSAGE,
   MVR_MESSAGE,
@@ -120,6 +121,7 @@ const certificationsSchema = z
 
 export const driverLicensesSchema = z.object({
   cdlClass: z.enum(CDL_HELD_CLASSES, { error: CDL_CLASS_MESSAGE }),
+  ...cdlStateSchema.shape,
   // The same letter rule as onboarding: X brings H and N.
   endorsements: z.array(z.enum(ENDORSEMENTS)).default([]).transform(normalizeEndorsements),
   yearsExperience: wholeNumber({

@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { OnboardingFlow } from "@/components/driver/OnboardingFlow";
-import { requireRole } from "@/lib/auth/guards";
+import { requireDriverWithCdlState } from "@/lib/auth/guards";
 import { getSupportContact } from "@/lib/support";
 import { getContainer } from "@/server/container";
 
 export const metadata: Metadata = { title: "Set up your profile" };
 
 export default async function DriverOnboardingPage() {
-  const { user } = await requireRole("driver");
+  const { user } = await requireDriverWithCdlState();
   const { driverService } = await getContainer();
   const state = await driverService.getOnboardingState(user.id);
 

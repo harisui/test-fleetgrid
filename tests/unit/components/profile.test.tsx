@@ -371,6 +371,7 @@ describe("ProfileEditor", () => {
         serviceRadiusMiles: 50,
         employmentType: "either",
         cdlClass: "B",
+        cdlState: "TX",
         endorsements: ["H", "T"],
         yearsExperience: 10,
         certifications: ["OSHA 10"],

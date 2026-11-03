@@ -36,6 +36,8 @@ async function startWithCompletedCard(
     .insert({
       profile_id: userId,
       full_name: "Pat Driver",
+      // Asked on the lead since CR-5; without it every driver page asks it first.
+      cdl_state: "TX",
       city: place.city,
       state: place.state,
       zip: place.zip,

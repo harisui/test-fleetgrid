@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { ShiftStatusBadge } from "@/components/shifts/ShiftStatusBadge";
 import { ShiftSummary } from "@/components/shifts/ShiftSummary";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { requireRole } from "@/lib/auth/guards";
+import { requireDriverWithCdlState } from "@/lib/auth/guards";
 import { formatE164ForDisplay } from "@/lib/phone";
 import { getContainer } from "@/server/container";
 import type { Shift } from "@/types/domain";
@@ -48,7 +48,7 @@ function ShiftCard({ shift }: { shift: Shift }) {
  * here instead of carrying the contact).
  */
 export default async function MyShiftsPage() {
-  const { user } = await requireRole("driver");
+  const { user } = await requireDriverWithCdlState();
   const { driverService, shiftService } = await getContainer();
   const state = await driverService.getOnboardingState(user.id);
   if (!state.completed || !state.driver) redirect("/driver/onboarding");

@@ -192,10 +192,20 @@ describe("About page, the lead: name, ZIP, class and the optional box on one scr
       fullName: "Pat Driver",
       zip: "77002",
       cdlClass: "A",
+      // Texas is the default CDL state on the lead (CR-5).
+      cdlState: "TX",
       consent: false,
     });
     expect(heading()).toHaveFocus();
     expect(screen.getByText("How far will you travel for work?")).toBeInTheDocument();
+  });
+
+  it("asks the CDL state next to the class, Texas picked to start, in the theme dropdown (CR-5)", () => {
+    renderFlow("lead", null);
+    const state = screen.getByRole("combobox", { name: "CDL state" });
+    expect(state).toHaveTextContent("Texas");
+    expect(state).toHaveAttribute("aria-required", "true");
+    expect(document.querySelector("select:not([aria-hidden=true])")).toBeNull();
   });
 
   it("offers Class A and B only, with no Class C and no No CDL card", () => {
@@ -235,6 +245,7 @@ describe("About page, the lead: name, ZIP, class and the optional box on one scr
       fullName: "Pat Driver",
       zip: "77002",
       cdlClass: "B",
+      cdlState: "TX",
       consent: true,
     });
   });

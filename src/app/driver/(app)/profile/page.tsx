@@ -4,13 +4,13 @@ import { DeleteAccountCard } from "@/components/account/DeleteAccountCard";
 import { AccountStatusCard } from "@/components/driver/AccountStatusCard";
 import { ClearinghouseSelfReportControl } from "@/components/driver/ClearinghouseSelfReportControl";
 import { ProfileEditor } from "@/components/driver/ProfileEditor";
-import { requireRole } from "@/lib/auth/guards";
+import { requireDriverWithCdlState } from "@/lib/auth/guards";
 import { getContainer } from "@/server/container";
 
 export const metadata: Metadata = { title: "My profile" };
 
 export default async function DriverProfilePage() {
-  const { user, profile } = await requireRole("driver");
+  const { user, profile } = await requireDriverWithCdlState();
   const { driverService } = await getContainer();
   const state = await driverService.getOnboardingState(user.id);
   if (!state.completed || !state.driver) redirect("/driver/onboarding");

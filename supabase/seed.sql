@@ -113,14 +113,15 @@ begin
     values (v_id, 'driver', v_phone, v_status);
 
     insert into public.drivers (
-      profile_id, full_name, operator_types, cdl_class, endorsements, years_experience,
+      profile_id, full_name, operator_types, cdl_class, cdl_state, endorsements, years_experience,
       city, state, zip, lat, lng, service_radius_miles, availability, certifications, bio,
       employment_type, driving_styles, transmission, equipment_types,
       twic_active, medical_card_active, clearinghouse_registered, mvr_status,
       sms_opt_in, sms_opt_in_at, sms_opt_in_text, sms_opted_out, sms_opted_out_at,
       onboarding_step, card_completed
     ) values (
-      v_id, v_names[i], v_operator_types, v_cdl, v_endorsements, (i * 3) % 31,
+      -- The CDL state (CR-5): Texas, except driver 5, licensed in Louisiana.
+      v_id, v_names[i], v_operator_types, v_cdl, case when i = 5 then 'LA' else 'TX' end, v_endorsements, (i * 3) % 31,
       v_place[1][1], v_place[1][2], v_place[1][3], v_place[1][4]::numeric, v_place[1][5]::numeric,
       25 + (i % 6) * 25, v_availability,
       case when i % 3 = 0 then array['Forklift'] when i % 3 = 1 then array['OSHA 10'] else '{}'::text[] end,

@@ -5,11 +5,13 @@ import { Users } from "lucide-react";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { DataTable, type DataColumn } from "@/components/admin/DataTable";
 import { FilterBar } from "@/components/admin/FilterBar";
+import { NotTexasBadge } from "@/components/admin/NotTexasBadge";
 import { SelfReportBadge } from "@/components/admin/SelfReportBadge";
 import { Badge } from "@/components/ui/badge";
 import {
   ADMIN_DRIVERS_PATH,
   AREA_OPTIONS,
+  CDL_STATE_FILTER_OPTIONS,
   COMPLETE_OPTIONS,
   driversFilters,
   driversHref,
@@ -65,6 +67,7 @@ const COLUMNS: DataColumn<AdminDriverRow>[] = [
         <AdminStatusBadge status="incomplete" />
       ),
   },
+  { key: "cdlState", header: "CDL state", cell: cdlStateCell },
   { key: "status", header: "Review", cell: (row) => <AdminStatusBadge status={row.profile.status} />, sortable: true },
   { key: "sms", header: "SMS", cell: smsLabel },
   { key: "reminder", header: "Reminder sent", cell: reminderLabel },
@@ -76,6 +79,18 @@ const COLUMNS: DataColumn<AdminDriverRow>[] = [
   { key: "source", header: "Source", cell: (row) => row.source.label, wrap: true },
   { key: "created", header: "Signed up", cell: signedUp, sortable: true },
 ];
+
+/** The state that issued the CDL, with the "Not Texas CDL" badge for any other (CR-5). */
+function cdlStateCell(row: AdminDriverRow) {
+  if (row.driver.cdlState === null) return "Not answered";
+  if (row.driver.cdlState === "TX") return "TX";
+  return (
+    <span className="flex items-center gap-2">
+      {row.driver.cdlState}
+      <NotTexasBadge />
+    </span>
+  );
+}
 
 /** One driver as a card on a phone. */
 function DriverCard({ row }: { row: AdminDriverRow }) {
@@ -96,6 +111,7 @@ function DriverCard({ row }: { row: AdminDriverRow }) {
       </span>
       <span className="text-helper leading-helper text-muted-foreground">{row.source.label}</span>
       {row.driver.clearinghouseSelfReportedAt && <SelfReportBadge className="self-start" />}
+      {row.driver.cdlState !== null && row.driver.cdlState !== "TX" && <NotTexasBadge className="self-start" />}
     </div>
   );
 }
@@ -104,7 +120,9 @@ function DriverCard({ row }: { row: AdminDriverRow }) {
 export function DriversTable({ page }: { page: AdminDriversPage }) {
   const { query } = page;
   const base = driversFilters(query);
-  const filtered = Boolean(query.q || query.status || query.complete || query.area || query.source || query.selfReport || query.qr);
+  const filtered = Boolean(
+    query.q || query.status || query.complete || query.area || query.source || query.selfReport || query.cdl || query.qr,
+  );
   return (
     <section aria-label="Drivers list" className="flex flex-col gap-4">
       <FilterBar
@@ -116,6 +134,7 @@ export function DriversTable({ page }: { page: AdminDriversPage }) {
           { name: "area", label: "Area", value: query.area, options: AREA_OPTIONS },
           { name: "source", label: "Source", value: query.source, options: SOURCE_OPTIONS },
           { name: "selfReport", label: "Clearinghouse and SAP", value: query.selfReport, options: SELF_REPORT_OPTIONS },
+          { name: "cdl", label: "CDL state", value: query.cdl, options: CDL_STATE_FILTER_OPTIONS },
           {
             name: "qr",
             label: "QR code",

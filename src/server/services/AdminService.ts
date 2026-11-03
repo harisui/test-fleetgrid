@@ -231,6 +231,9 @@ export function matches(row: AdminDriverRow, query: AdminDriversQuery): boolean 
   if (query.area === "out" && row.inServiceArea !== false) return false;
   if (query.source && row.source.kind !== query.source) return false;
   if (query.qr && row.source.qrLinkId !== query.qr) return false;
+  if (query.cdl === "tx" && row.driver.cdlState !== "TX") return false;
+  if (query.cdl === "other" && (row.driver.cdlState === null || row.driver.cdlState === "TX")) return false;
+  if (query.cdl === "none" && row.driver.cdlState !== null) return false;
   if (query.selfReport === "yes" && row.driver.clearinghouseSelfReportedAt === null) return false;
   if (query.selfReport === "none" && row.driver.clearinghouseSelfReportedAt !== null) return false;
   if (query.q) {

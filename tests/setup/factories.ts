@@ -89,6 +89,7 @@ export function buildDriver(overrides: Partial<LocatedDriver> = {}): LocatedDriv
       fullName: "Pat Driver",
       operatorTypes: ["cdl_driver"],
       cdlClass: "A",
+      cdlState: "TX",
       endorsements: ["H", "T"],
       yearsExperience: 8,
       city: "Dallas",
@@ -135,6 +136,7 @@ export function buildPartialDriver(overrides: Partial<LocatedDriver> = {}): Loca
   return buildDriver({
     operatorTypes: ["cdl_driver"],
     cdlClass: "none",
+    cdlState: null,
     endorsements: [],
     yearsExperience: null,
     city: null,
@@ -165,7 +167,7 @@ export function buildPartialDriver(overrides: Partial<LocatedDriver> = {}): Loca
 
 /** Valid raw input for each onboarding screen, in flow order. */
 export const SCREEN_INPUTS = {
-  lead: { fullName: "Pat Driver", zip: "75201", cdlClass: "A", consent: false },
+  lead: { fullName: "Pat Driver", zip: "75201", cdlClass: "A", cdlState: "TX", consent: false },
   distance: { serviceRadiusMiles: 50 },
   experience: { yearsExperience: 8 },
   record: { mvrStatus: "clean" },
@@ -205,6 +207,7 @@ export const validBasics = (overrides: Record<string, unknown> = {}) => ({
 export const validLicenses = (overrides: Record<string, unknown> = {}) => ({
   employmentType: "w2",
   cdlClass: "A",
+  cdlState: "TX",
   endorsements: ["H", "T"],
   yearsExperience: 8,
   certifications: ["OSHA 10"],

@@ -62,6 +62,7 @@ describe("DriverRepository (local Supabase)", () => {
       onboardingStep: 2,
       operatorTypes: [],
       cdlClass: "none",
+      cdlState: null,
       endorsements: [],
       yearsExperience: null,
       availability: [],

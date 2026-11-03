@@ -1,5 +1,5 @@
 import { forbidden, redirect } from "next/navigation";
-import { CHOOSE_ROLE_PATH, LOGIN_PATH, ROLE_HOME } from "@/lib/auth/routes";
+import { CDL_STATE_PATH, CHOOSE_ROLE_PATH, LOGIN_PATH, ROLE_HOME } from "@/lib/auth/routes";
 import { getContainer } from "@/server/container";
 import {
   CARRIER_STAGE_PATHS,
@@ -51,6 +51,17 @@ export async function requireRole(
   if (profile.role !== role) redirect(ROLE_HOME[profile.role]);
 
   return { user, profile };
+}
+
+/**
+ * The signed-in driver, sent first to "Which state issued your CDL?" when their card was saved
+ * before the question existed (CR-5). Every driver page but that one calls this.
+ */
+export async function requireDriverWithCdlState(): Promise<{ user: SessionUser; profile: Profile }> {
+  const session = await requireRole("driver");
+  const { driverService } = await getContainer();
+  if (await driverService.needsCdlState(session.user.id)) redirect(CDL_STATE_PATH);
+  return session;
 }
 
 /**

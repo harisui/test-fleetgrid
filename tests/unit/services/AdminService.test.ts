@@ -158,6 +158,17 @@ describe("AdminService", () => {
   });
 
   describe("getDriversPage", () => {
+    it("filters by CDL state: Texas, another state, not answered (CR-5)", async () => {
+      admin.rows[1].driver = { ...admin.rows[1].driver, cdlState: "LA" };
+      admin.rows[2].driver = { ...admin.rows[2].driver, cdlState: null };
+      const ids = async (cdl: string) => (await service.getDriversPage(ADMIN_ID, { cdl })).rows.map((row) => row.driver.id);
+      expect(await ids("tx")).toEqual([D1]);
+      expect(await ids("other")).toEqual([D2]);
+      expect(await ids("none")).toEqual([D3]);
+      expect((await ids("")).sort()).toEqual([D1, D2, D3].sort());
+      expect((await service.getDriversPage(ADMIN_ID, { cdl: "nonsense" })).query.cdl).toBe("");
+    });
+
     it("counts the tiles over every driver, with today and this week in Houston time", async () => {
       const page = await service.getDriversPage(ADMIN_ID, {});
       expect(page.tiles).toEqual({
@@ -185,6 +196,7 @@ describe("AdminService", () => {
         area: "",
         source: "",
         selfReport: "",
+        cdl: "",
         qr: undefined,
         q: "",
         sort: "created",

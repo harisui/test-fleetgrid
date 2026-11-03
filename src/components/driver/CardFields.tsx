@@ -8,6 +8,7 @@ import {
   type Path,
   type UseFormRegister,
 } from "react-hook-form";
+import { CdlStateField } from "@/components/driver/CdlStateField";
 import { ZipField } from "@/components/driver/ZipField";
 import { ChoiceGroup, type ChoiceOption } from "@/components/shared/ChoiceGroup";
 import { FormField } from "@/components/shared/FormField";
@@ -153,6 +154,8 @@ export function LicensesFields<T extends FieldValues>({ control, errorOf, disabl
           />
         )}
       />
+
+      <CdlStateField control={control} name={field<T>("cdlState")} error={errorOf("cdlState")} disabled={disabled} />
 
       <Controller
         control={control}

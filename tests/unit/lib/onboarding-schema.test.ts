@@ -4,6 +4,7 @@ import type { z } from "zod";
 import { SAVABLE_STEP_IDS } from "@/lib/onboarding/steps";
 import {
   CDL_CLASS_MESSAGE,
+  CDL_STATE_MESSAGE,
   cdlClassScreenSchema,
   CONSENT_MESSAGE,
   clearinghouseScreenSchema,
@@ -48,14 +49,15 @@ describe("SCREEN_SCHEMAS", () => {
 });
 
 describe("lead: name, ZIP, class and the optional consent on one screen", () => {
-  it("takes the three answers and an unchecked box as no consent", () => {
-    expect(leadScreenSchema.parse({ fullName: " Pat Driver ", zip: "60601-1234", cdlClass: "B" })).toEqual({
+  it("takes the four answers and an unchecked box as no consent", () => {
+    expect(leadScreenSchema.parse({ fullName: " Pat Driver ", zip: "60601-1234", cdlClass: "B", cdlState: "TX" })).toEqual({
       fullName: "Pat Driver",
       zip: "60601",
       cdlClass: "B",
+      cdlState: "TX",
       consent: false,
     });
-    expect(leadScreenSchema.parse({ fullName: "Pat Driver", zip: "60601", cdlClass: "A", consent: true }).consent).toBe(true);
+    expect(leadScreenSchema.parse({ fullName: "Pat Driver", zip: "60601", cdlClass: "A", cdlState: "IL", consent: true }).consent).toBe(true);
   });
 
   it("reports every missing answer at once, in the screen's order", () => {
@@ -63,8 +65,12 @@ describe("lead: name, ZIP, class and the optional consent on one screen", () => 
       fullName: "Enter your name",
       zip: "Enter a 5-digit ZIP code, like 60601",
       cdlClass: CDL_CLASS_MESSAGE,
+      cdlState: CDL_STATE_MESSAGE,
     });
-    expect(errorsOf(leadScreenSchema, { fullName: "Pat Driver", zip: "60601", cdlClass: "A", consent: "yes" })).toEqual({
+    expect(errorsOf(leadScreenSchema, { fullName: "Pat Driver", zip: "60601", cdlClass: "A", cdlState: "ZZ" })).toEqual({
+      cdlState: CDL_STATE_MESSAGE,
+    });
+    expect(errorsOf(leadScreenSchema, { fullName: "Pat Driver", zip: "60601", cdlClass: "A", cdlState: "TX", consent: "yes" })).toEqual({
       consent: CONSENT_MESSAGE,
     });
   });

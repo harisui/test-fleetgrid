@@ -9,6 +9,7 @@ import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { DetailSheet } from "@/components/admin/DetailSheet";
 import { DriverOpsActions } from "@/components/admin/DriverOpsActions";
+import { NotTexasBadge } from "@/components/admin/NotTexasBadge";
 import { SelfReportBadge } from "@/components/admin/SelfReportBadge";
 import { areaLabel, smsLabel } from "@/components/admin/DriversTable";
 import { Badge } from "@/components/ui/badge";
@@ -188,6 +189,7 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
           ) : (
             <AdminStatusBadge status="incomplete" />
           )}
+          {driver.cdlState !== null && driver.cdlState !== "TX" && <NotTexasBadge />}
           <Badge variant="secondary" data-area={detail.inServiceArea === null ? "unknown" : detail.inServiceArea ? "inside" : "outside"}>
             {areaLabel(detail)}
           </Badge>
@@ -213,6 +215,7 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
               </dd>
             </div>
             <Row label="Location" value={driver.zip ? `${driver.city ?? ""}, ${driver.state ?? ""} ${driver.zip}`.replace(/^, /, "") : "Not yet"} />
+            <Row label="CDL state" value={driver.cdlState ?? "Not answered"} />
             <Row label="Shift texts" value={smsLabel(detail)} />
             <Row
               label="Reminder sent"

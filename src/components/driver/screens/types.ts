@@ -19,6 +19,7 @@ export interface OnboardingFormValues {
   state?: string;
   serviceRadiusMiles?: number;
   cdlClass?: CdlClass;
+  cdlState?: string;
   yearsExperience?: number | null;
   mvrStatus?: MvrStatus;
   twicActive?: boolean;
