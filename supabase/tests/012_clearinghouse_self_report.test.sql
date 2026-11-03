@@ -36,6 +36,16 @@ insert into public.drivers (id, profile_id, full_name, operator_types, cdl_class
   ('d3333333-3333-4333-8333-333333333333', 'b3333333-3333-4333-8333-333333333333', 'Other Driver', '{cdl_driver}', 'B', '{}',
    null, 'Houston', 'TX', '77002', 29.7594, -95.3594, null, '{}', null, null, null, 3, false);
 
+-- CR-5: only Shift-Ready drivers match and book, so the fixture drivers carry a Texas CDL
+-- and the three documents (the re-review trigger is off while the fixture is built).
+alter table public.driver_documents disable trigger driver_documents_rereview;
+update public.drivers set cdl_state = 'TX' where id in ('d2222222-2222-4222-8222-222222222222');
+insert into public.driver_documents (driver_id, type, storage_path, file_name, mime_type, size_bytes)
+select d.id, t::public.document_type, d.id || '/cr5-' || t || '.png', 'cr5-' || t || '.png', 'image/png', 100
+from public.drivers d cross join unnest(array['cdl_front', 'cdl_back', 'medical_card']) as t
+where d.id in ('d2222222-2222-4222-8222-222222222222');
+alter table public.driver_documents enable trigger driver_documents_rereview;
+
 insert into public.carriers (id, profile_id, company_name, contact_name, billing_email, city, state, zip, lat, lng, stripe_customer_id) values
   ('c4444444-4444-4444-a444-444444444444', 'b4444444-4444-4444-8444-444444444444', 'Watching Freight', 'Sam Owner', 'sam@watching.example',
    'Houston', 'TX', '77002', 29.7594, -95.3594, 'cus_watch');

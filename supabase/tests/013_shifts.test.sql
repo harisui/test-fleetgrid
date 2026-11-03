@@ -70,6 +70,16 @@ update public.drivers set service_radius_miles = 5, zip = '77506', lat = 29.7009
   where id = pg_temp.did('18');                                                            -- Pasadena, 5 miles
 update public.drivers set transmission = 'automatic_only', twic_active = false where id = pg_temp.did('19');
 
+-- CR-5: only Shift-Ready drivers match and book, so the fixture drivers carry a Texas CDL
+-- and the three documents (the re-review trigger is off while the fixture is built).
+alter table public.driver_documents disable trigger driver_documents_rereview;
+update public.drivers set cdl_state = 'TX' where id in (select pg_temp.did(n) from unnest(array['11', '12', '13', '14', '15', '16', '17', '18', '19']) as n);
+insert into public.driver_documents (driver_id, type, storage_path, file_name, mime_type, size_bytes)
+select d.id, t::public.document_type, d.id || '/cr5-' || t || '.png', 'cr5-' || t || '.png', 'image/png', 100
+from public.drivers d cross join unnest(array['cdl_front', 'cdl_back', 'medical_card']) as t
+where d.id in (select pg_temp.did(n) from unnest(array['11', '12', '13', '14', '15', '16', '17', '18', '19']) as n);
+alter table public.driver_documents enable trigger driver_documents_rereview;
+
 insert into public.carriers (id, profile_id, company_name, contact_name, billing_email, city, state, zip, lat, lng, stripe_customer_id) values
   ('c0000002-0000-4000-a000-000000000000', pg_temp.uid('02'), 'Posting Freight', 'Pat Owner', 'pat@posting.example',
    'Houston', 'TX', '77002', 29.7594, -95.3594, 'cus_post'),

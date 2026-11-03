@@ -23,6 +23,8 @@ import {
  */
 
 const TZ = "America/Chicago";
+/** A Registered driver (CR-5): complete, opted in, in Pasadena, no documents, so never texted. */
+const REGISTERED_PHONE = "+15555550109";
 /** The ZIP centre of Pasadena, TX, from src/data/us-zips.tsv: inside the launch areas. */
 const PASADENA = { city: "Pasadena", state: "TX", zip: "77506", lat: 29.7009, lng: -95.1989 } as const;
 const ONSITE = { name: "Lee Yard", phone: "+17135550142", display: "(713) 555-0142" };
@@ -84,17 +86,18 @@ test.describe("Broadcast Shift", () => {
   let second: string;
 
   test.beforeEach(async () => {
-    for (const phone of [PHONES.carrier, PHONES.driver, PHONES.secondDriver]) await resetUser(phone);
+    for (const phone of [PHONES.carrier, PHONES.driver, PHONES.secondDriver, REGISTERED_PHONE]) await resetUser(phone);
     // The text log outlives accounts (it is kept by number), so this spec clears its own numbers.
-    const numbers = [PHONES.driver, PHONES.secondDriver].join(",");
+    const numbers = [PHONES.driver, PHONES.secondDriver, REGISTERED_PHONE].join(",");
     await adminClient().from("sms_messages").delete().or(`to_phone.in.(${numbers}),from_phone.in.(${numbers})`);
     await seedCarrier(PHONES.carrier, { terms: true, subscription: "active" });
     first = await seedListedDriver(PHONES.driver, "Pat Winner");
     second = await seedListedDriver(PHONES.secondDriver, "Sam Second");
+    await seedDriverAtStep(REGISTERED_PHONE, COMPLETE_STEP, { full_name: "Reggie Registered", ...PASADENA });
   });
 
   test.afterAll(async () => {
-    for (const phone of [PHONES.carrier, PHONES.driver, PHONES.secondDriver]) await resetUser(phone);
+    for (const phone of [PHONES.carrier, PHONES.driver, PHONES.secondDriver, REGISTERED_PHONE]) await resetUser(phone);
   });
 
   test("post, book, filled, release, rebook, cancel, STOP and START", async ({ page, browser }) => {
@@ -136,6 +139,8 @@ test.describe("Broadcast Shift", () => {
     const alert = offerText({ cdlClass: "A", city: "Pasadena", state: "TX", startsAt: posted.starts_at }, posted.short_code);
     expect(await textsTo(PHONES.driver, "offer")).toEqual([alert]);
     expect(await textsTo(PHONES.secondDriver, "offer")).toEqual([alert]);
+    // A Registered driver who fits the shift in every other way is never texted (CR-5).
+    expect(await textsTo(REGISTERED_PHONE, "offer")).toEqual([]);
     await expect(page.locator("[data-slot=recipient-counts]")).toContainText("texted");
     await expectNoAccessibilityViolations(page, "shift page, open");
 

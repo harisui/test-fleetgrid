@@ -114,6 +114,16 @@ alter table public.driver_documents disable trigger driver_documents_rereview;
 insert into public.driver_documents (id, driver_id, type, storage_path, file_name, mime_type, size_bytes) values
   ('a0000000-0000-4000-8000-000000000001', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'cdl_front', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/a1.jpg', 'a1.jpg', 'image/jpeg', 1000),
   ('c0000000-0000-4000-8000-000000000001', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'cdl_front', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc/c1.jpg', 'c1.jpg', 'image/jpeg', 1000);
+-- CR-5: only Shift-Ready drivers are listed, so the approved fixture drivers carry a Texas CDL
+-- and the three documents (named cr5-*, left out where a check counts papers).
+update public.drivers set cdl_state = 'TX'
+where id in ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+             'dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
+insert into public.driver_documents (driver_id, type, storage_path, file_name, mime_type, size_bytes)
+select d.id, t::public.document_type, d.id || '/cr5-' || t || '.png', 'cr5-' || t || '.png', 'image/png', 100
+from public.drivers d cross join unnest(array['cdl_front', 'cdl_back', 'medical_card']) as t
+where d.id in ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+               'dddddddd-dddd-4ddd-8ddd-dddddddddddd', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee');
 alter table public.driver_documents enable trigger driver_documents_rereview;
 
 insert into public.carriers (id, profile_id, company_name, contact_name, billing_email, city, state, zip, lat, lng, stripe_customer_id) values
@@ -242,7 +252,7 @@ select is_empty(
   $$update public.drivers set full_name = 'Hacked' returning 1$$,
   'a subscribed carrier cannot edit a card');
 select results_eq(
-  'select id from public.driver_documents',
+  $$select id from public.driver_documents where file_name not like 'cr5-%'$$,
   $$values ('a0000000-0000-4000-8000-000000000001'::uuid)$$,
   'a subscribed carrier sees the documents of listed drivers only');
 select is_empty(
