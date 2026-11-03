@@ -38,6 +38,14 @@ export class FakeAdminRepository implements IAdminRepository {
     return row.profile;
   }
 
+  readonly overrides: { driverId: string; reason: string | null }[] = [];
+
+  async setShiftReadyOverride(driverId: string, reason: string | null): Promise<void> {
+    this.overrides.push({ driverId, reason });
+    const row = this.rows.find((candidate) => candidate.driver.id === driverId);
+    if (row) row.driver = { ...row.driver, shiftReadyOverrideReason: reason };
+  }
+
   async writeAudit(entry: AuditEntryInput): Promise<AuditEntry> {
     this.sequence += 1;
     const written: AuditEntry = {

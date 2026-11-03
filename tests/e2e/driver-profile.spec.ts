@@ -80,7 +80,7 @@ test.describe("driver profile", () => {
     await startWithCompletedCard(page);
     const status = page.getByRole("region", { name: "Account status" });
 
-    await expect(status.getByText("Pending review")).toBeVisible();
+    await expect(status.getByText("Registered", { exact: true })).toBeVisible();
     await expect(status.getByText("Subscribed")).toBeVisible();
     await expect(status.getByText(displayPhone(PHONES.driver))).toBeVisible();
 
@@ -105,7 +105,7 @@ test.describe("driver profile", () => {
   test("a driver inside the launch area has no launch-area badge", async ({ page }) => {
     await startWithCompletedCard(page);
     const status = page.getByRole("region", { name: "Account status" });
-    await expect(status.getByText("Pending review")).toBeVisible();
+    await expect(status.getByText("Registered", { exact: true })).toBeVisible();
     await expect(status.getByText("Outside launch area")).toHaveCount(0);
     await expect(status.locator("[data-slot=launch-area-help]")).toHaveCount(0);
   });
@@ -119,13 +119,13 @@ test.describe("driver profile", () => {
     await expect(status.locator("[data-slot=launch-area-help]")).toHaveText(
       "FleetGrid isn't in your area yet. We've saved your profile and will let you know when we launch near you.",
     );
-    await expect(status.getByText("Pending review")).toBeVisible();
+    await expect(status.getByText("Registered", { exact: true })).toBeVisible();
   });
 
-  test("an approved driver sees the approved status", async ({ page }) => {
+  test("a Shift-Ready driver sees Shift-Ready", async ({ page }) => {
     await startWithCompletedCard(page, { status: "approved" });
     await expect(
-      page.getByRole("region", { name: "Account status" }).getByText("Approved", { exact: true }),
+      page.getByRole("region", { name: "Account status" }).getByText("Shift-Ready", { exact: true }),
     ).toBeVisible();
   });
 

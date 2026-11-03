@@ -68,6 +68,8 @@ const detail = (overrides: Partial<AdminDriverDetail> = {}): AdminDriverDetail =
   ...row(),
   documents: [],
   history: [],
+  missing: [],
+  photos: [],
   ...overrides,
 });
 
@@ -79,10 +81,10 @@ describe("DriverTiles", () => {
   it("shows the seven counts", () => {
     render(<DriverTiles tiles={page().tiles} />);
     const grid = screen.getByRole("region", { name: "Driver counts" });
-    for (const label of ["Total", "Pending", "Approved", "Blocked", "Incomplete", "Today", "This week"]) {
+    for (const label of ["Total", "Registered", "Shift-Ready", "Blocked", "Incomplete", "Today", "This week"]) {
       expect(within(grid).getByText(label)).toBeInTheDocument();
     }
-    // Pending, Approved, Incomplete and Today are each 1.
+    // Registered, Shift-Ready, Incomplete and Today are each 1.
     expect(within(grid).getAllByText("1")).toHaveLength(4);
   });
 });
@@ -127,7 +129,7 @@ describe("DriversTable", () => {
       "Endorsements",
       "Profile",
       "CDL state",
-      "Review",
+      "Status",
       "SMS",
       "Reminder sent",
       "Clearinghouse and SAP",
@@ -141,7 +143,7 @@ describe("DriversTable", () => {
     expect(within(firstRow).getByText("75201 Dallas")).toBeInTheDocument();
     expect(within(firstRow).getByText("In area")).toBeInTheDocument();
     expect(within(firstRow).getByText("Complete")).toBeInTheDocument();
-    expect(within(firstRow).getByText("Pending")).toHaveAttribute("data-status", "pending");
+    expect(within(firstRow).getByText("Registered")).toHaveAttribute("data-status", "pending");
     expect(within(firstRow).getByText("Yes")).toBeInTheDocument();
     expect(within(firstRow).getByText("Direct or unknown")).toBeInTheDocument();
     expect(within(firstRow).getByText("Oct 27, 2026")).toBeInTheDocument();
@@ -163,7 +165,7 @@ describe("DriversTable", () => {
       "href",
       "/admin/drivers?sort=created&dir=desc&status=pending",
     );
-    expect(screen.getByRole("link", { name: /^Review: Pending/ })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /^Status: Registered/ })).toHaveAttribute(
       "href",
       `/admin/drivers?sort=created&dir=desc&qr=${QR_ID}`,
     );
@@ -211,7 +213,7 @@ describe("DriversTable", () => {
     expect(within(name).getByRole("link")).toHaveAttribute("href", "/admin/drivers?q=pat&status=pending&sort=name");
     expect(screen.getByRole("link", { name: "Previous" })).toHaveAttribute("href", "/admin/drivers?q=pat&status=pending&sort=name&dir=asc");
     // The chip's name ends with the screen-reader "(remove)".
-    expect(screen.getByRole("link", { name: /^Review: Pending/ })).toHaveAttribute("href", "/admin/drivers?sort=name&dir=asc&q=pat");
+    expect(screen.getByRole("link", { name: /^Status: Registered/ })).toHaveAttribute("href", "/admin/drivers?sort=name&dir=asc&q=pat");
     const form = screen.getAllByRole("form", { name: "Filters" })[0];
     expect(form.querySelector("input[name=sort]")).toHaveAttribute("value", "name");
   });
@@ -274,11 +276,11 @@ describe("DriverDetailSheet", () => {
     expect(within(source).getByText("Driver said").nextElementSibling).toHaveTextContent("Skipped the question");
     expect(within(source).queryByText("Tags")).not.toBeInTheDocument();
     const history = within(sheet).getByRole("list", { name: "History" });
-    expect(within(history).getByRole("listitem")).toHaveTextContent(/Approved by \(555\) 555-0102, Oct 27, 2026/);
-    // A pending driver: Approve and Block, no Set pending.
-    expect(within(sheet).getByRole("button", { name: "Approve" })).toBeEnabled();
+    expect(within(history).getByRole("listitem")).toHaveTextContent(/Marked Shift-Ready by \(555\) 555-0102, Oct 27, 2026/);
+    // A Registered driver with nothing missing: Mark Shift-Ready and Block, no Move to Registered.
+    expect(within(sheet).getByRole("button", { name: "Mark Shift-Ready" })).toBeEnabled();
     expect(within(sheet).getByRole("button", { name: "Block" })).toBeInTheDocument();
-    expect(within(sheet).queryByRole("button", { name: "Set pending" })).not.toBeInTheDocument();
+    expect(within(sheet).queryByRole("button", { name: "Move to Registered" })).not.toBeInTheDocument();
   });
 
   it("shows the self-report with its date and the note, or Not answered, never as a check", () => {
@@ -338,19 +340,72 @@ describe("DriverDetailSheet", () => {
     }
   });
 
-  it("approves after the dialog, with the toast and a refresh", async () => {
+  it("marks Shift-Ready after the dialog, with the toast and a refresh", async () => {
     actions.approveDriverAction.mockResolvedValue(ok(buildProfile({ status: "approved" })));
     render(<DriverDetailSheet detail={detail()} closeHref="/admin/drivers" />);
-    await userEvent.click(screen.getByRole("button", { name: "Approve" }));
-    const dialog = await screen.findByRole("dialog", { name: "Approve Pat Driver?" });
-    expect(within(dialog).getByText("Subscribed carriers can find Pat Driver from now on.")).toBeInTheDocument();
-    await userEvent.click(within(dialog).getByRole("button", { name: "Approve" }));
+    await userEvent.click(screen.getByRole("button", { name: "Mark Shift-Ready" }));
+    const dialog = await screen.findByRole("dialog", { name: "Mark Pat Driver Shift-Ready?" });
+    expect(within(dialog).getByText(/Subscribed carriers can find Pat Driver from now on/)).toBeInTheDocument();
+    await userEvent.click(within(dialog).getByRole("button", { name: "Mark Shift-Ready" }));
     await waitFor(() =>
       expect(actions.approveDriverAction).toHaveBeenCalledWith({ driverId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" }),
     );
-    expect(toast.success).toHaveBeenCalledWith(expect.stringMatching(/^Approved\./));
+    expect(toast.success).toHaveBeenCalledWith(expect.stringMatching(/^Shift-Ready\./));
     expect(router.refresh).toHaveBeenCalled();
-    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Approve Pat Driver?" })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Mark Pat Driver Shift-Ready?" })).not.toBeInTheDocument());
+  });
+
+  it("holds Mark Shift-Ready with the checklist of what is missing, and shows the three photos with the note", () => {
+    render(
+      <DriverDetailSheet
+        detail={detail({
+          missing: ["cdl_back", "medical_card"],
+          photos: [
+            { type: "cdl_front", document: buildDocument({ mimeType: "image/jpeg" }), url: "https://storage.test/front.jpg" },
+            { type: "cdl_back", document: null, url: null },
+            { type: "medical_card", document: null, url: null },
+          ],
+        })}
+        closeHref="/admin/drivers"
+      />,
+    );
+    const mark = screen.getByRole("button", { name: "Mark Shift-Ready" });
+    expect(mark).toBeDisabled();
+    expect(mark).toHaveAccessibleDescription("Missing: CDL back photo, Medical card.");
+    const checklist = screen.getByRole("list", { name: "Shift-Ready checklist" });
+    expect(within(checklist).getByText("CDL front photo").closest("li")).toHaveAttribute("data-done", "true");
+    expect(within(checklist).getByText("CDL back photo").closest("li")).toHaveAttribute("data-done", "false");
+    expect(screen.getByRole("img", { name: "CDL front" })).toHaveAttribute("src", "https://storage.test/front.jpg");
+    expect(screen.getAllByText("Not uploaded")).toHaveLength(2);
+    expect(screen.getByText("Check the name, state and expiry match the profile.")).toBeInTheDocument();
+  });
+
+  it("a CDL from another state needs the typed reason before Mark Shift-Ready, which carries it", async () => {
+    actions.approveDriverAction.mockResolvedValue(ok(buildProfile({ status: "approved" })));
+    render(
+      <DriverDetailSheet
+        detail={detail({ missing: ["cdl_state"], driver: buildDriver({ cdlState: "LA" }) })}
+        closeHref="/admin/drivers"
+      />,
+    );
+    const mark = screen.getByRole("button", { name: "Mark Shift-Ready" });
+    expect(mark).toBeDisabled();
+    expect(mark).toHaveAccessibleDescription("Type why a CDL from outside Texas is accepted.");
+    await userEvent.type(screen.getByLabelText(/Shift-Ready with a LA CDL state/), "Moving to Houston soon");
+    expect(mark).toBeEnabled();
+    await userEvent.click(mark);
+    await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Mark Shift-Ready" }));
+    await waitFor(() =>
+      expect(actions.approveDriverAction).toHaveBeenCalledWith({
+        driverId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        overrideReason: "Moving to Houston soon",
+      }),
+    );
+  });
+
+  it("shows Re-review needed when a Shift-Ready driver changed a document", () => {
+    render(<DriverDetailSheet detail={detail({ driver: buildDriver({ rereviewNeeded: true }) })} closeHref="/admin/drivers" />);
+    expect(screen.getByText("Re-review needed")).toBeInTheDocument();
   });
 
   it("shows the no-shows, pauses shift texts after a dialog, and removes only after REMOVE is typed", async () => {
@@ -397,25 +452,32 @@ describe("DriverDetailSheet", () => {
     expect(router.refresh).not.toHaveBeenCalled();
   });
 
-  it("holds Approve for an unfinished card and says why; Block stays available", () => {
-    render(<DriverDetailSheet detail={detail({ complete: false, driver: buildDriver({ cardCompleted: false }) })} closeHref="/admin/drivers" />);
-    const approve = screen.getByRole("button", { name: "Approve" });
+  it("holds Mark Shift-Ready for an unfinished card and says why; Block stays available", () => {
+    render(
+      <DriverDetailSheet
+        detail={detail({ complete: false, missing: ["profile"], driver: buildDriver({ cardCompleted: false }) })}
+        closeHref="/admin/drivers"
+      />,
+    );
+    const approve = screen.getByRole("button", { name: "Mark Shift-Ready" });
     expect(approve).toBeDisabled();
-    expect(approve).toHaveAccessibleDescription("This driver has not finished their card, so they cannot be approved yet.");
+    expect(approve).toHaveAccessibleDescription("Missing: Profile not complete.");
     expect(screen.getByRole("button", { name: "Block" })).toBeEnabled();
     expect(screen.getByText("Incomplete")).toHaveAttribute("data-status", "incomplete");
   });
 
-  it("offers Set pending and Approve to a blocked driver, and closes back to the list", async () => {
+  it("offers Move to Registered and Mark Shift-Ready to a blocked driver, and closes back to the list", async () => {
     actions.reopenDriverAction.mockResolvedValue(ok(buildProfile({ status: "pending" })));
     render(
       <DriverDetailSheet detail={detail({ profile: buildProfile({ status: "blocked" }) })} closeHref="/admin/drivers?status=blocked" />,
     );
     expect(screen.queryByRole("button", { name: "Block" })).not.toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: "Set pending" }));
-    const dialog = await screen.findByRole("dialog", { name: "Put Pat Driver back in review?" });
-    await userEvent.click(within(dialog).getByRole("button", { name: "Set pending" }));
-    await waitFor(() => expect(toast.success).toHaveBeenCalledWith("Back in the review queue."));
+    await userEvent.click(screen.getByRole("button", { name: "Move to Registered" }));
+    const dialog = await screen.findByRole("dialog", { name: "Move Pat Driver to Registered?" });
+    await userEvent.click(within(dialog).getByRole("button", { name: "Move to Registered" }));
+    await waitFor(() =>
+      expect(toast.success).toHaveBeenCalledWith("Registered. The driver is out of carrier search and gets no shift offers."),
+    );
 
     await userEvent.click(screen.getByRole("button", { name: "Close" }));
     expect(router.push).toHaveBeenCalledWith("/admin/drivers?status=blocked");

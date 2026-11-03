@@ -52,8 +52,8 @@ describe("AccountStatusCard", () => {
   const card = () => screen.getByRole("region", { name: "Account status" });
 
   it.each([
-    ["pending", "Pending review", /reviewing your profile/],
-    ["approved", "Approved", /Carriers near you can see your card/],
+    ["pending", "Registered", /Upload your CDL and medical card/],
+    ["approved", "Shift-Ready", /Carriers near you can see your card/],
     ["blocked", "Blocked", /Contact support/],
   ] as const)("explains the %s status", (status, label, help) => {
     render(<AccountStatusCard profile={buildProfile({ status })} driver={buildDriver()} />);
@@ -100,7 +100,7 @@ describe("AccountStatusCard", () => {
       ),
     ).toHaveAttribute("data-slot", "launch-area-help");
     // The account status itself is unchanged.
-    expect(within(card()).getByText("Pending review")).toBeInTheDocument();
+    expect(within(card()).getByText("Registered")).toBeInTheDocument();
   });
 
   it.each([

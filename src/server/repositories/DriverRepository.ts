@@ -131,6 +131,8 @@ export function mapDriver(row: DriverRow & { driver_clearinghouse_self_reports?:
     shiftsPaused: row.shifts_paused,
     reminderSentAt: row.reminder_sent_at,
     approvalTextSentAt: row.approval_text_sent_at,
+    shiftReadyOverrideReason: row.shift_ready_override_reason,
+    rereviewNeeded: row.rereview_needed,
     heardFrom: row.heard_from,
     heardFromOther: row.heard_from_other,
     clearinghouseSelfReportedAt: selfReportedAt(row.driver_clearinghouse_self_reports),

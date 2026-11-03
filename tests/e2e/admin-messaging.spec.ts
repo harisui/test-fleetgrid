@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { formatInTimeZone } from "date-fns-tz";
 import { expect, test, type Page } from "@playwright/test";
-import { adminClient, COMPLETE_STEP, login, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
+import { adminClient, COMPLETE_STEP, login, makeShiftReady, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
 
 /**
  * Admin Messaging: Activity (Milestone 3 part 6) and Send notice (CR-3). Activity lists what
@@ -42,7 +42,7 @@ test.describe("admin messaging: activity", () => {
     await admin.from("sms_messages").delete().or(`to_phone.eq.${PHONES.driver},from_phone.eq.${PHONES.driver},from_phone.eq.+15555559999`);
     const seeded = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP, { full_name: "Ana Activity" });
     driverId = seeded.driverId!;
-    await admin.from("profiles").update({ status: "approved" }).eq("id", seeded.userId);
+    await makeShiftReady(seeded.userId);
     const { carrierId } = await seedCarrier(PHONES.carrier, { terms: true, subscription: "active" });
     const start = new Date(Date.now() + 30 * 3_600_000);
     const { data: shift } = await admin
@@ -147,7 +147,7 @@ test.describe("admin messaging: send notice", () => {
     await adminClient().from("notice_batches").delete().neq("id", "00000000-0000-4000-8000-000000000000");
     const seeded = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP, { full_name: "Nia Notice" });
     driverId = seeded.driverId!;
-    await adminClient().from("profiles").update({ status: "approved" }).eq("id", seeded.userId);
+    await makeShiftReady(seeded.userId);
   });
 
   test.afterAll(async () => {

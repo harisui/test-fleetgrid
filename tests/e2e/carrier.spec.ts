@@ -433,7 +433,8 @@ test.describe("driver search and a driver's page", () => {
       .from("driver_documents")
       .insert({
         driver_id: seedDriver!.id,
-        type: "cdl_front",
+        // A certification: a new CDL photo would send the Shift-Ready driver back to Registered (CR-5).
+        type: "certification",
         storage_path: path,
         file_name: "e2e-cdl.png",
         mime_type: "image/png",
@@ -452,7 +453,7 @@ test.describe("driver search and a driver's page", () => {
     await expect(page.getByText(/555-1001|\+1555555/)).toHaveCount(0);
     await expectNoDriverPhone(page);
 
-    const paper = page.getByRole("link", { name: /CDL \(front\)/ });
+    const paper = page.getByRole("link", { name: /Certification/ });
     await expect(paper).toHaveAttribute("href", `/api/documents/${document!.id}/url`);
     // The link answers with a redirect to a signed, short-lived storage URL.
     const response = await page.request.get(`/api/documents/${document!.id}/url`, {

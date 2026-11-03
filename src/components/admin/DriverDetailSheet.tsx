@@ -10,11 +10,13 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { DetailSheet } from "@/components/admin/DetailSheet";
 import { DriverOpsActions } from "@/components/admin/DriverOpsActions";
 import { NotTexasBadge } from "@/components/admin/NotTexasBadge";
+import { ShiftReadyReview } from "@/components/admin/ShiftReadyReview";
 import { SelfReportBadge } from "@/components/admin/SelfReportBadge";
 import { areaLabel, smsLabel } from "@/components/admin/DriversTable";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { APPROVE_INCOMPLETE_REASON, CONFIRMATIONS, STATUS_DONE } from "@/lib/admin/options";
+import { CONFIRMATIONS, STATUS_DONE } from "@/lib/admin/options";
+import { SHIFT_READY_ITEM_LABELS } from "@/lib/drivers/tiers";
 import { heardFromLabel, referrerLabel, tagsLabel } from "@/lib/admin/source";
 import { summarizeDriver } from "@/lib/carrier/driverSummary";
 import { formatFileSize } from "@/lib/image";
@@ -51,9 +53,10 @@ const ACTIONS: Record<AccountStatus, typeof approveDriverAction> = {
 };
 
 const HISTORY_LABELS: Partial<Record<AdminAction, string>> = {
-  driver_approved: "Approved",
+  driver_approved: "Marked Shift-Ready",
   driver_blocked: "Blocked",
-  driver_reopened: "Set pending",
+  driver_reopened: "Moved to Registered",
+  driver_rereview_needed: "Back to Registered for re-review",
 };
 
 const labelOf = <T extends string>(options: readonly { value: T; label: string }[], value: T) =>
@@ -89,6 +92,8 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
   const router = useRouter();
   const [confirming, setConfirming] = useState<AccountStatus>();
   const [pending, setPending] = useState(false);
+  const [override, setOverride] = useState("");
+  const [overrideError, setOverrideError] = useState<string>();
 
   if (!detail) return null;
   const { driver, profile } = detail;
@@ -122,11 +127,15 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
 
   async function run(status: AccountStatus) {
     setPending(true);
-    const result = await ACTIONS[status]({ driverId: driver.id });
+    const result =
+      status === "approved"
+        ? await ACTIONS.approved({ driverId: driver.id, ...(override.trim() ? { overrideReason: override } : {}) })
+        : await ACTIONS[status]({ driverId: driver.id });
     setPending(false);
     setConfirming(undefined);
     if (!result.ok) {
-      toast.error(result.error.message);
+      setOverrideError(result.error.fieldErrors?.overrideReason);
+      toast.error(result.error.fieldErrors?.overrideReason ?? result.error.message);
       return;
     }
     toast.success(STATUS_DONE[status]);
@@ -134,6 +143,14 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
   }
 
   const canApprove = profile.status !== "approved";
+  // Everything but the CDL state must be in; that one an admin may meet with a typed reason.
+  const blocking = detail.missing.filter((item) => item !== "cdl_state");
+  const needsReason = detail.missing.includes("cdl_state");
+  const ready = blocking.length === 0 && (!needsReason || override.trim().length >= 5);
+  const notReadyReason =
+    blocking.length > 0
+      ? `Missing: ${blocking.map((item) => SHIFT_READY_ITEM_LABELS[item]).join(", ")}.`
+      : "Type why a CDL from outside Texas is accepted.";
   const canBlock = profile.status !== "blocked";
   const canReopen = profile.status !== "pending";
   const confirmation = confirming ? CONFIRMATIONS[confirming] : null;
@@ -151,7 +168,7 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
           <>
             {canReopen && (
               <Button type="button" variant="secondary" size="md" onClick={() => setConfirming("pending")} disabled={pending}>
-                Set pending
+                Move to Registered
               </Button>
             )}
             {canBlock && (
@@ -165,14 +182,14 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
                   type="button"
                   size="md"
                   onClick={() => setConfirming("approved")}
-                  disabled={pending || !detail.complete}
-                  aria-describedby={detail.complete ? undefined : "approve-reason"}
+                  disabled={pending || !ready}
+                  aria-describedby={ready ? undefined : "approve-reason"}
                 >
-                  Approve
+                  Mark Shift-Ready
                 </Button>
-                {!detail.complete && (
+                {!ready && (
                   <span id="approve-reason" className="text-small leading-small text-muted-foreground" data-slot="approve-reason">
-                    {APPROVE_INCOMPLETE_REASON}
+                    {notReadyReason}
                   </span>
                 )}
               </div>
@@ -181,7 +198,7 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
         }
       >
         <div className="flex flex-wrap items-center gap-2" data-slot="detail-badges">
-          <AdminStatusBadge status={profile.status} />
+          <AdminStatusBadge kind="driver" status={profile.status} />
           {detail.complete ? (
             <Badge variant="outline" data-status="complete">
               Complete
@@ -194,6 +211,20 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
             {areaLabel(detail)}
           </Badge>
         </div>
+
+        <ShiftReadyReview
+          missing={detail.missing}
+          photos={detail.photos}
+          cdlState={driver.cdlState}
+          rereviewNeeded={driver.rereviewNeeded}
+          approved={profile.status === "approved"}
+          override={override}
+          onOverrideChange={(value) => {
+            setOverride(value);
+            setOverrideError(undefined);
+          }}
+          overrideError={overrideError}
+        />
 
         <DriverOpsActions
           driverId={driver.id}
@@ -313,8 +344,14 @@ export function DriverDetailSheet({ detail, closeHref }: DriverDetailSheetProps)
             <ol className="flex flex-col gap-2" aria-label="History">
               {detail.history.map((entry) => (
                 <li key={entry.id} className="text-helper leading-helper">
-                  <span className="font-semibold">{HISTORY_LABELS[entry.action] ?? entry.action}</span> by{" "}
-                  <span className="font-mono">{formatE164ForDisplay(entry.adminPhone)}</span>,{" "}
+                  <span className="font-semibold">{HISTORY_LABELS[entry.action] ?? entry.action}</span>
+                  {entry.detail.overrideReason ? ` (override: ${String(entry.detail.overrideReason)})` : ""} by{" "}
+                  {entry.adminPhone === "system" ? (
+                    <span>the system</span>
+                  ) : (
+                    <span className="font-mono">{formatE164ForDisplay(entry.adminPhone)}</span>
+                  )}
+                  ,{" "}
                   {format(new Date(entry.createdAt), "MMM d, yyyy h:mm a")}
                 </li>
               ))}

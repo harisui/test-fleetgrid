@@ -31,6 +31,31 @@ async function expectNoAccessibilityViolations(page: Page, label: string) {
   ).toEqual([]);
 }
 
+/** A 1 by 1 PNG, as a real file in storage so the signed links work. */
+const PNG = Buffer.from(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+  "base64",
+);
+
+/** The CDL front, the CDL back and the medical card, uploaded as a driver would (CR-5). */
+async function uploadRequiredDocuments(driverId: string) {
+  const admin = adminClient();
+  for (const type of ["cdl_front", "cdl_back", "medical_card"] as const) {
+    const path = `${driverId}/${type}-${Date.now()}.png`;
+    const upload = await admin.storage.from("driver-documents").upload(path, PNG, { contentType: "image/png" });
+    if (upload.error) throw upload.error;
+    const { error } = await admin.from("driver_documents").insert({
+      driver_id: driverId,
+      type,
+      storage_path: path,
+      file_name: `${type}.png`,
+      mime_type: "image/png",
+      size_bytes: PNG.length,
+    });
+    if (error) throw error;
+  }
+}
+
 const auditFor = async (driverId: string) => {
   const { data } = await adminClient()
     .from("admin_audit_log")
@@ -53,7 +78,7 @@ test.describe("admin drivers", () => {
     await resetUser(PHONES.carrier);
   });
 
-  test("approve lists a driver to carriers, block hides and signs them out, every step in the audit log", async ({
+  test("Mark Shift-Ready waits for the documents, then lists the driver; block hides them; every step in the audit log", async ({
     page,
     browser,
   }) => {
@@ -62,7 +87,8 @@ test.describe("admin drivers", () => {
     await expect(page).toHaveURL(/\/admin\/drivers$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Drivers");
     const tiles = page.getByRole("region", { name: "Driver counts" });
-    await expect(tiles.getByText("Pending")).toBeVisible();
+    await expect(tiles.getByText("Registered", { exact: true })).toBeVisible();
+    await expect(tiles.getByText("Shift-Ready", { exact: true })).toBeVisible();
 
     // Search narrows the list and lives in the URL.
     await page.getByRole("searchbox", { name: "Search" }).fill("Pat Driver");
@@ -81,13 +107,27 @@ test.describe("admin drivers", () => {
     await page.waitForTimeout(300);
     await expectNoAccessibilityViolations(page, "driver sheet");
 
-    await sheet.getByRole("button", { name: "Approve" }).click();
-    const approveDialog = page.getByRole("dialog", { name: "Approve Pat Driver?" });
-    await expect(approveDialog).toContainText("Subscribed carriers can find Pat Driver from now on.");
-    await approveDialog.getByRole("button", { name: "Approve" }).click();
-    await expect(page.getByText(/^Approved\./)).toBeVisible();
-    await expect(sheet.locator("[data-slot=detail-badges] [data-status=approved]")).toBeVisible();
-    await expect(sheet.getByRole("list", { name: "History" })).toContainText("Approved by");
+    // No documents yet: Mark Shift-Ready waits, with the checklist saying what is missing.
+    const mark = sheet.getByRole("button", { name: "Mark Shift-Ready" });
+    await expect(mark).toBeDisabled();
+    await expect(sheet.locator("[data-slot=approve-reason]")).toHaveText("Missing: CDL front photo, CDL back photo, Medical card.");
+    await expect(sheet.locator("[data-slot=detail-badges] [data-status=pending]")).toHaveText("Registered");
+
+    // The driver uploads the three; the admin sees them side by side with the note.
+    await uploadRequiredDocuments(driverId!);
+    await page.reload();
+    await expect(sheet.locator("[data-slot=shift-ready-photos] img")).toHaveCount(3);
+    await expect(sheet.locator("[data-slot=shift-ready-note]")).toHaveText("Check the name, state and expiry match the profile.");
+    await page.waitForTimeout(300);
+    await expectNoAccessibilityViolations(page, "driver sheet with the Shift-Ready review");
+    await expect(mark).toBeEnabled();
+    await mark.click();
+    const approveDialog = page.getByRole("dialog", { name: "Mark Pat Driver Shift-Ready?" });
+    await expect(approveDialog).toContainText("Subscribed carriers can find Pat Driver from now on");
+    await approveDialog.getByRole("button", { name: "Mark Shift-Ready" }).click();
+    await expect(page.getByText(/^Shift-Ready\./)).toBeVisible();
+    await expect(sheet.locator("[data-slot=detail-badges] [data-status=approved]")).toHaveText("Shift-Ready");
+    await expect(sheet.getByRole("list", { name: "History" })).toContainText("Marked Shift-Ready by");
 
     const admin = adminClient();
     const { data: approved } = await admin.from("profiles").select("status").eq("phone", PHONES.driver).single();
@@ -118,10 +158,10 @@ test.describe("admin drivers", () => {
 
     // Back to the queue, from the Blocked filter.
     await page.goto(`/admin/drivers?status=blocked&open=${driverId}`);
-    await expect(page.getByRole("link", { name: /^Review: Blocked/ })).toBeVisible();
-    await page.getByRole("dialog", { name: "Pat Driver" }).getByRole("button", { name: "Set pending" }).click();
-    await page.getByRole("dialog", { name: "Put Pat Driver back in review?" }).getByRole("button", { name: "Set pending" }).click();
-    await expect(page.getByText("Back in the review queue.")).toBeVisible();
+    await expect(page.getByRole("link", { name: /^Status: Blocked/ })).toBeVisible();
+    await page.getByRole("dialog", { name: "Pat Driver" }).getByRole("button", { name: "Move to Registered" }).click();
+    await page.getByRole("dialog", { name: "Move Pat Driver to Registered?" }).getByRole("button", { name: "Move to Registered" }).click();
+    await expect(page.getByText(/^Registered\. The driver is out of carrier search/)).toBeVisible();
     expect((await auditFor(driverId!)).map((entry) => entry.action)).toEqual(["driver_approved", "driver_blocked", "driver_reopened"]);
 
     // Closing the sheet keeps the filter.
@@ -129,7 +169,7 @@ test.describe("admin drivers", () => {
     await expect(page).toHaveURL(/\/admin\/drivers\?status=blocked$/);
   });
 
-  test("an unfinished card cannot be approved, and the filters single it out", async ({ page }) => {
+  test("an unfinished card cannot be marked Shift-Ready, and the filters single it out", async ({ page }) => {
     await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
     const { driverId } = await seedDriverAtStep(PHONES.secondDriver, 3);
     await login(page, PHONES.admin);
@@ -142,10 +182,10 @@ test.describe("admin drivers", () => {
 
     await page.goto(`/admin/drivers?open=${driverId}`);
     const sheet = page.getByRole("dialog", { name: "Pat Driver" });
-    const approve = sheet.getByRole("button", { name: "Approve" });
+    const approve = sheet.getByRole("button", { name: "Mark Shift-Ready" });
     await expect(approve).toBeDisabled();
     await expect(sheet.locator("[data-slot=approve-reason]")).toHaveText(
-      "This driver has not finished their card, so they cannot be approved yet.",
+      "Missing: CDL front photo, CDL back photo, Medical card, Profile not complete.",
     );
     await expect(sheet.getByRole("button", { name: "Block" })).toBeEnabled();
     await page.waitForTimeout(300);
@@ -165,5 +205,40 @@ test.describe("admin drivers", () => {
     const response = await page.goto("/admin/drivers");
     expect(response?.status()).toBe(403);
     await expect(page.getByRole("heading", { level: 1, name: "403" })).toBeVisible();
+  });
+
+  test("a CDL from outside Texas needs a typed reason, which the history keeps", async ({ page }) => {
+    const { driverId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP, { cdl_state: "LA" });
+    await uploadRequiredDocuments(driverId!);
+    await login(page, PHONES.admin);
+    await page.goto(`/admin/drivers?open=${driverId}`);
+    const sheet = page.getByRole("dialog", { name: "Pat Driver" });
+    const mark = sheet.getByRole("button", { name: "Mark Shift-Ready" });
+    await expect(mark).toBeDisabled();
+    await expect(sheet.locator("[data-slot=approve-reason]")).toHaveText("Type why a CDL from outside Texas is accepted.");
+    await sheet.getByLabel(/Shift-Ready with a LA CDL state/).fill("Moving to Houston, Texas CDL booked for next week");
+    await mark.click();
+    await page.getByRole("dialog", { name: "Mark Pat Driver Shift-Ready?" }).getByRole("button", { name: "Mark Shift-Ready" }).click();
+    await expect(page.getByText(/^Shift-Ready\./)).toBeVisible();
+    await expect(sheet.getByRole("list", { name: "History" })).toContainText("override: Moving to Houston");
+    const [entry] = (await auditFor(driverId!)).slice(-1);
+    expect(entry).toMatchObject({ action: "driver_approved", detail: { cdlState: "LA", overrideReason: "Moving to Houston, Texas CDL booked for next week" } });
+  });
+
+  test("a new CDL photo from a Shift-Ready driver sends them back to Registered with Re-review needed", async ({ page }) => {
+    const { driverId, userId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
+    await uploadRequiredDocuments(driverId!);
+    await adminClient().from("profiles").update({ status: "approved" }).eq("id", userId);
+    // The driver replaces the CDL front from the Documents page.
+    await uploadRequiredDocuments(driverId!);
+    await login(page, PHONES.admin);
+    await page.goto("/admin/drivers?q=Pat+Driver");
+    const list = adminList(page, "Drivers");
+    await expect(list.getByText("Re-review needed").first()).toBeVisible();
+    await expect(list.locator("[data-status=pending]").first()).toHaveText("Registered");
+    await page.goto(`/admin/drivers?open=${driverId}`);
+    const sheet = page.getByRole("dialog", { name: "Pat Driver" });
+    await expect(sheet.locator("[data-slot=rereview]")).toBeVisible();
+    await expect(sheet.getByRole("list", { name: "History" })).toContainText("Back to Registered for re-review by the system");
   });
 });

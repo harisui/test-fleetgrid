@@ -1,12 +1,19 @@
 import { startOfDay, startOfWeek } from "date-fns";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { ADMIN_PAGE_SIZE, DEFAULT_TIMEZONE, SIGNED_URL_TTL_SECONDS } from "@/lib/constants";
+import {
+  REQUIRED_DOCUMENTS,
+  SHIFT_READY_ITEM_LABELS,
+  shiftReadyMissing,
+  type ShiftReadyItem,
+} from "@/lib/drivers/tiers";
 import { isInsideAnyArea } from "@/lib/geo";
-import { APPROVE_INCOMPLETE_REASON } from "@/lib/admin/options";
 import { describeSource, type DriverSource } from "@/lib/admin/source";
 import {
   adminDriversQuerySchema,
   driverIdSchema,
+  markShiftReadySchema,
+  OVERRIDE_REASON_MESSAGE,
   type AdminDriversQuery,
 } from "@/lib/validation/admin.schema";
 import { documentIdSchema } from "@/lib/validation/document.schema";
@@ -58,10 +65,21 @@ export interface AdminDriversPage {
   qrLink: QrLink | null;
 }
 
+/** One of the three documents Shift-Ready needs, with a short-lived link to view it. */
+export interface ShiftReadyPhoto {
+  type: (typeof REQUIRED_DOCUMENTS)[number];
+  document: DriverDocument | null;
+  url: string | null;
+}
+
 /** One driver with their papers and what the admin did to them. */
 export interface AdminDriverDetail extends AdminDriverRow {
   documents: DriverDocument[];
   history: AuditEntry[];
+  /** What keeps the driver from Shift-Ready (CR-5); empty when nothing does. */
+  missing: ShiftReadyItem[];
+  /** The CDL front, the CDL back and the medical card, the latest of each, for the review. */
+  photos: ShiftReadyPhoto[];
 }
 
 const STATUS_ORDER: Record<AccountStatus, number> = { pending: 0, approved: 1, blocked: 2 };
@@ -125,12 +143,73 @@ export class AdminService {
       this.documents.listByDriverId(driverId),
       this.admin.listAudit("driver", driverId),
     ]);
-    return { ...located, documents, history };
+    const photos = await Promise.all(
+      REQUIRED_DOCUMENTS.map(async (type): Promise<ShiftReadyPhoto> => {
+        const document =
+          documents.filter((item) => item.type === type).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
+        const url = document
+          ? await this.documents.createSignedUrl(document.storagePath, SIGNED_URL_TTL_SECONDS).catch(() => null)
+          : null;
+        return { type, document, url };
+      }),
+    );
+    const missing = shiftReadyMissing(row.driver, documents.map((document) => document.type));
+    return { ...located, documents, history, missing, photos };
   }
 
-  /** Lists the driver to subscribed carriers. Refused while the card is not finished. */
+  /**
+   * Mark Shift-Ready (CR-5): only when the CDL front, the CDL back and the medical card are in,
+   * the name has two words and the card is complete. A CDL from another state needs a typed
+   * reason, kept on the card and in the audit log. The database checks the same rule again.
+   */
   async approveDriver(adminId: string, input: unknown): Promise<Profile> {
-    return this.changeStatus(adminId, input, "approved");
+    const admin = await this.requireAdmin(adminId);
+    const { driverId, overrideReason } = parseInput(markShiftReadySchema, input);
+    const row = await this.admin.findDriver(driverId);
+    if (!row || row.profile.role !== "driver") throw AppError.notFound("Driver not found");
+    if (row.profile.status === "approved") return row.profile;
+    const previous = row.profile.status;
+
+    const documents = await this.documents.listByDriverId(driverId);
+    const needsOverride = row.driver.cdlState !== "TX";
+    const missing = shiftReadyMissing(
+      { ...row.driver, shiftReadyOverrideReason: needsOverride ? (overrideReason ?? null) : null },
+      documents.map((document) => document.type),
+    );
+    if (needsOverride && !overrideReason) {
+      throw AppError.validation(undefined, { overrideReason: OVERRIDE_REASON_MESSAGE });
+    }
+    if (missing.length > 0) {
+      throw AppError.validation(
+        `Not Shift-Ready yet: ${missing.map((item) => SHIFT_READY_ITEM_LABELS[item]).join(", ")}.`,
+      );
+    }
+    await this.admin.setShiftReadyOverride(driverId, needsOverride ? (overrideReason as string) : null);
+    let updated: Profile;
+    try {
+      updated = await this.admin.setProfileStatus(row.profile.id, "approved");
+    } catch (error) {
+      // The database's own check (0028) disagrees: the card changed a moment ago.
+      if (error instanceof AppError && error.code === "VALIDATION") {
+        throw AppError.validation("The driver's documents or card changed. Reload and check again.");
+      }
+      throw error;
+    }
+    await this.admin.writeAudit({
+      adminId: admin.id,
+      adminPhone: admin.phone,
+      action: "driver_approved",
+      targetType: "driver",
+      targetId: driverId,
+      detail: {
+        from: previous,
+        to: "approved",
+        name: row.driver.fullName,
+        ...(needsOverride ? { cdlState: row.driver.cdlState, overrideReason } : {}),
+      },
+    });
+    await this.onDriverApproved({ driverId, smsOptIn: row.driver.smsOptIn }).catch(() => undefined);
+    return updated;
   }
 
   /** Hides the driver from carriers and signs them out at their next request. */
@@ -152,14 +231,11 @@ export class AdminService {
     return this.documents.createSignedUrl(document.storagePath, SIGNED_URL_TTL_SECONDS);
   }
 
-  private async changeStatus(adminId: string, input: unknown, status: AccountStatus): Promise<Profile> {
+  private async changeStatus(adminId: string, input: unknown, status: Exclude<AccountStatus, "approved">): Promise<Profile> {
     const admin = await this.requireAdmin(adminId);
     const { driverId } = parseInput(driverIdSchema, input);
     const row = await this.admin.findDriver(driverId);
     if (!row || row.profile.role !== "driver") throw AppError.notFound("Driver not found");
-    if (status === "approved" && !row.driver.cardCompleted) {
-      throw AppError.validation(APPROVE_INCOMPLETE_REASON);
-    }
     const previous = row.profile.status;
     if (previous === status) return row.profile;
 
@@ -172,9 +248,6 @@ export class AdminService {
       targetId: driverId,
       detail: { from: previous, to: status, name: row.driver.fullName },
     });
-    if (status === "approved") {
-      await this.onDriverApproved({ driverId, smsOptIn: row.driver.smsOptIn }).catch(() => undefined);
-    }
     return updated;
   }
 

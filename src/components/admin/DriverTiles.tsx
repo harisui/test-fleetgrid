@@ -6,8 +6,8 @@ export function DriverTiles({ tiles }: { tiles: Tiles }) {
   return (
     <StatTileGrid label="Driver counts" columns={4}>
       <StatTile label="Total" value={tiles.total} caption="every sign-up" />
-      <StatTile label="Pending" value={tiles.pending} caption="waiting for review" />
-      <StatTile label="Approved" value={tiles.approved} caption="listed to carriers" />
+      <StatTile label="Registered" value={tiles.pending} caption="signed up, not Shift-Ready" />
+      <StatTile label="Shift-Ready" value={tiles.approved} caption="listed to carriers" />
       <StatTile label="Blocked" value={tiles.blocked} />
       <StatTile label="Incomplete" value={tiles.incomplete} caption="card not finished" />
       <StatTile label="Today" value={tiles.today} caption="sign-ups since midnight" />

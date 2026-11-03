@@ -18,6 +18,8 @@ test.describe("admin page-load bar", () => {
     await page.goto("/admin/drivers");
     const bar = page.locator("[data-slot=admin-progress] > div");
     await expect(bar).toHaveAttribute("data-state", "idle");
+    // Clicks before hydration are plain page loads the bar cannot see.
+    await expect(bar).toHaveAttribute("data-ready", "true");
     await page.getByRole("navigation", { name: "Admin" }).getByRole("link", { name: "Carriers" }).click();
     await expect(bar).toHaveAttribute("data-state", "loading");
     const [barColor, primary] = await bar.evaluate((el) => [

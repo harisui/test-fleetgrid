@@ -108,9 +108,13 @@ select pg_temp.card('dddddddd-dddd-4ddd-8ddd-dddddddddddd', '77777777-7777-4777-
   'B', '{}', 1, false, true, 'automatic_only', '{dry_van}', 'major_3_plus', false, false);
 select pg_temp.card('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '88888888-8888-4888-8888-888888888888', 'Dallas', 32.7904, -96.8044);
 
+-- The fixture describes a state, not an upload: CR-5's re-review on a new document is off
+-- while it is built.
+alter table public.driver_documents disable trigger driver_documents_rereview;
 insert into public.driver_documents (id, driver_id, type, storage_path, file_name, mime_type, size_bytes) values
   ('a0000000-0000-4000-8000-000000000001', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'cdl_front', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/a1.jpg', 'a1.jpg', 'image/jpeg', 1000),
   ('c0000000-0000-4000-8000-000000000001', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'cdl_front', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc/c1.jpg', 'c1.jpg', 'image/jpeg', 1000);
+alter table public.driver_documents enable trigger driver_documents_rereview;
 
 insert into public.carriers (id, profile_id, company_name, contact_name, billing_email, city, state, zip, lat, lng, stripe_customer_id) values
   ('c0000000-0000-4000-a000-000000000011', '44444444-4444-4444-8444-444444444444', 'Subscribed Freight', 'Sam Owner', 'sam@subscribed.example', 'Houston', 'TX', '77002', 29.7594, -95.3594, 'cus_sub'),

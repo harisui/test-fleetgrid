@@ -1,6 +1,7 @@
 ﻿// @vitest-environment node
 import { beforeEach, describe, expect, it } from "vitest";
 import { ADMIN_PAGE_SIZE } from "@/lib/constants";
+import type { DocumentType as DriverDocumentType } from "@/types/domain";
 import { AppError } from "@/server/errors/AppError";
 import type { DriverReviewRow } from "@/server/repositories/AdminRepository";
 import { AdminService } from "@/server/services/AdminService";
@@ -69,6 +70,24 @@ async function expectAppError(promise: Promise<unknown>): Promise<AppError> {
   );
   expect(error).toBeInstanceOf(AppError);
   return error as AppError;
+}
+
+/** The three documents Shift-Ready needs (CR-5), as rows and stored files. */
+function giveDocuments(
+  documents: FakeDocumentRepository,
+  driverId: string,
+  types: readonly DriverDocumentType[] = ["cdl_front", "cdl_back", "medical_card"],
+) {
+  for (const type of types) {
+    const document = buildDocument({
+      id: `${driverId.slice(0, 8)}-${type}`,
+      driverId,
+      type,
+      storagePath: `${driverId}/${type}.jpg`,
+    });
+    documents.rows.set(document.id, document);
+    documents.files.set(document.storagePath, { size: 1000, mimeType: "image/jpeg" } as never);
+  }
 }
 
 describe("AdminService", () => {
@@ -296,9 +315,8 @@ describe("AdminService", () => {
   });
 
   describe("getDriver", () => {
-    it("returns the driver with the area, the papers and the history", async () => {
-      const document = buildDocument({ driverId: D1 });
-      documents.rows.set(document.id, document);
+    it("returns the driver with the area, the papers, the Shift-Ready review and the history", async () => {
+      giveDocuments(documents, D1);
       await service.approveDriver(ADMIN_ID, { driverId: D1 });
 
       const detail = await service.getDriver(ADMIN_ID, { driverId: D1 });
@@ -306,7 +324,13 @@ describe("AdminService", () => {
       expect(detail.inServiceArea).toBe(true);
       expect(detail.complete).toBe(true);
       expect(detail.source).toEqual({ kind: "qr", label: "QR: Love's, Hwy 225", qrLinkId: QR_ID });
-      expect(detail.documents).toEqual([document]);
+      expect(detail.documents.map((document) => document.type).sort()).toEqual(["cdl_back", "cdl_front", "medical_card"]);
+      expect(detail.missing).toEqual([]);
+      expect(detail.photos.map((photo) => [photo.type, photo.url])).toEqual([
+        ["cdl_front", `https://storage.test/${D1}/cdl_front.jpg?expires=60`],
+        ["cdl_back", `https://storage.test/${D1}/cdl_back.jpg?expires=60`],
+        ["medical_card", `https://storage.test/${D1}/medical_card.jpg?expires=60`],
+      ]);
       expect(detail.history).toHaveLength(1);
       expect(detail.history[0]).toMatchObject({
         action: "driver_approved",
@@ -326,7 +350,8 @@ describe("AdminService", () => {
   });
 
   describe("status changes", () => {
-    it("approves, blocks and reopens, writing the audit log each time", async () => {
+    it("marks Shift-Ready, blocks and moves to Registered, writing the audit log each time", async () => {
+      giveDocuments(documents, D1);
       expect((await service.approveDriver(ADMIN_ID, { driverId: D1 })).status).toBe("approved");
       expect((await service.blockDriver(ADMIN_ID, { driverId: D1 })).status).toBe("blocked");
       expect((await service.reopenDriver(ADMIN_ID, { driverId: D1 })).status).toBe("pending");
@@ -353,6 +378,7 @@ describe("AdminService", () => {
           throw new Error("a failed text never fails the approval");
         },
       );
+      giveDocuments(documents, D1);
       expect((await notifying.approveDriver(ADMIN_ID, { driverId: D1 })).status).toBe("approved");
       await notifying.blockDriver(ADMIN_ID, { driverId: D1 });
       await notifying.approveDriver(ADMIN_ID, { driverId: D2 });
@@ -366,13 +392,70 @@ describe("AdminService", () => {
       expect(admin.audit).toEqual([]);
     });
 
-    it("refuses to approve a driver whose card is not finished, with the reason", async () => {
+    it("refuses to mark a driver whose card is not finished, with the checklist", async () => {
+      giveDocuments(documents, D3);
       const error = await expectAppError(service.approveDriver(ADMIN_ID, { driverId: D3 }));
       expect(error.code).toBe("VALIDATION");
-      expect(error.message).toBe("This driver has not finished their card, so they cannot be approved yet.");
+      expect(error.message).toBe("Not Shift-Ready yet: Profile not complete.");
       expect(admin.statusChanges).toEqual([]);
       // Blocking an unfinished card is allowed: a bot can be stopped at once.
       expect((await service.blockDriver(ADMIN_ID, { driverId: D3 })).status).toBe("blocked");
+    });
+
+    it("each requirement alone keeps a driver from Shift-Ready (CR-5)", async () => {
+      const cases: [string, () => void, string][] = [
+        ["CDL front", () => giveDocuments(documents, D1, ["cdl_back", "medical_card"]), "CDL front photo"],
+        ["CDL back", () => giveDocuments(documents, D1, ["cdl_front", "medical_card"]), "CDL back photo"],
+        ["medical card", () => giveDocuments(documents, D1, ["cdl_front", "cdl_back"]), "Medical card"],
+        [
+          "last name",
+          () => {
+            giveDocuments(documents, D1);
+            admin.rows[0].driver = { ...admin.rows[0].driver, fullName: "Pat" };
+          },
+          "Last name missing",
+        ],
+      ];
+      for (const [label, arrange, item] of cases) {
+        documents.rows.clear();
+        admin.rows[0].driver = { ...admin.rows[0].driver, fullName: "Pat Driver" };
+        arrange();
+        const error = await expectAppError(service.approveDriver(ADMIN_ID, { driverId: D1 }));
+        expect(error.message, label).toBe(`Not Shift-Ready yet: ${item}.`);
+      }
+      expect(admin.statusChanges).toEqual([]);
+    });
+
+    it("a CDL from another state needs a typed reason, kept on the card and in the audit log", async () => {
+      giveDocuments(documents, D1);
+      admin.rows[0].driver = { ...admin.rows[0].driver, cdlState: "LA" };
+      const missing = await expectAppError(service.approveDriver(ADMIN_ID, { driverId: D1 }));
+      expect(missing.fieldErrors).toEqual({ overrideReason: expect.stringMatching(/at least 5 characters/) });
+      const short = await expectAppError(service.approveDriver(ADMIN_ID, { driverId: D1, overrideReason: "ok" }));
+      expect(short.fieldErrors).toEqual({ overrideReason: expect.any(String) });
+      expect(admin.statusChanges).toEqual([]);
+
+      await service.approveDriver(ADMIN_ID, { driverId: D1, overrideReason: "Moving to Houston, Texas CDL in progress" });
+      expect(admin.overrides).toEqual([{ driverId: D1, reason: "Moving to Houston, Texas CDL in progress" }]);
+      expect(admin.audit.at(-1)).toMatchObject({
+        action: "driver_approved",
+        detail: { cdlState: "LA", overrideReason: "Moving to Houston, Texas CDL in progress" },
+      });
+    });
+
+    it("a Texas driver needs no reason, and any old override is cleared", async () => {
+      giveDocuments(documents, D1);
+      await service.approveDriver(ADMIN_ID, { driverId: D1, overrideReason: "Not needed here at all" });
+      expect(admin.overrides).toEqual([{ driverId: D1, reason: null }]);
+      expect(admin.audit.at(-1)?.detail).not.toHaveProperty("overrideReason");
+    });
+
+    it("lists what is missing in the detail, for the checklist", async () => {
+      giveDocuments(documents, D1, ["cdl_front"]);
+      admin.rows[0].driver = { ...admin.rows[0].driver, cdlState: null };
+      const detail = await service.getDriver(ADMIN_ID, { driverId: D1 });
+      expect(detail.missing).toEqual(["cdl_back", "medical_card", "cdl_state"]);
+      expect(detail.photos.map((photo) => photo.url === null)).toEqual([false, true, true]);
     });
 
     it("refuses an unknown driver and a bad id", async () => {

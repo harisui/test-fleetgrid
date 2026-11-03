@@ -34,6 +34,8 @@ export interface IAdminRepository {
   findDriver(driverId: string): Promise<DriverReviewRow | null>;
   /** Approves, blocks or reopens a profile. Only admins and the service role may (trigger). */
   setProfileStatus(profileId: string, status: AccountStatus): Promise<Profile>;
+  /** The reason a driver without a Texas CDL may be Shift-Ready, or null to clear it (CR-5). */
+  setShiftReadyOverride(driverId: string, reason: string | null): Promise<void>;
   /** Records what the admin did. Admins write in their own name (RLS). */
   writeAudit(entry: AuditEntryInput): Promise<AuditEntry>;
   /** The history of one record, newest first. */
@@ -86,6 +88,11 @@ export class AdminRepository extends BaseRepository implements IAdminRepository 
       .select("*")
       .single();
     return mapProfile(this.unwrap(result));
+  }
+
+  async setShiftReadyOverride(driverId: string, reason: string | null): Promise<void> {
+    const { error } = await this.supabase.from("drivers").update({ shift_ready_override_reason: reason }).eq("id", driverId);
+    if (error) throw this.toAppError(error);
   }
 
   async writeAudit(entry: AuditEntryInput): Promise<AuditEntry> {

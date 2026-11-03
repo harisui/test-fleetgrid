@@ -9,6 +9,32 @@
 -- +15555550100 (driver) and +15555550101 (carrier) are left unseeded so the
 -- sign-up flow can be exercised by hand and by e2e tests.
 
+create function pg_temp.seed_shift_ready_documents() returns void language plpgsql as $$
+declare
+  v_driver record;
+  v_type text;
+  v_path text;
+begin
+  for v_driver in
+    select d.id, d.profile_id, d.cdl_state from public.drivers d
+    join public.profiles p on p.id = d.profile_id
+    where p.role = 'driver' and p.status = 'approved' and p.phone ~ '^\+155555510[0-2][0-9]$'
+  loop
+    if v_driver.cdl_state <> 'TX' then
+      update public.drivers set shift_ready_override_reason = 'Seed data: out-of-state CDL, moving to Texas'
+      where id = v_driver.id;
+    end if;
+    foreach v_type in array array['cdl_front', 'cdl_back', 'medical_card'] loop
+      v_path := v_driver.id || '/seed-' || v_type || '.png';
+      insert into storage.objects (bucket_id, name, owner, metadata)
+      values ('driver-documents', v_path, v_driver.profile_id, jsonb_build_object('mimetype', 'image/png', 'size', 1024));
+      insert into public.driver_documents (driver_id, type, storage_path, file_name, mime_type, size_bytes)
+      values (v_driver.id, v_type::public.document_type, v_path, v_type || '.png', 'image/png', 1024);
+    end loop;
+  end loop;
+end;
+$$;
+
 create function pg_temp.seed_user(p_id uuid, p_phone text)
 returns void
 language plpgsql
@@ -150,6 +176,14 @@ begin
   end loop;
 end;
 $$;
+
+-- ---------------------------------------------------------------------------
+-- Shift-Ready (CR-5): the approved drivers carry the CDL front, the CDL back and the medical
+-- card (rows and storage entries, no real files), and driver 5, licensed in Louisiana, an
+-- admin's override. Registered drivers have none, as after a quick sign-up.
+-- ---------------------------------------------------------------------------
+select pg_temp.seed_shift_ready_documents();
+
 
 -- ---------------------------------------------------------------------------
 -- 2 carriers (Milestone 2): one in the launch area with an active subscription, one

@@ -44,7 +44,8 @@ select columns_are('public', 'drivers', array[
   'sms_opted_out_at', 'onboarding_step', 'card_completed', 'created_at', 'updated_at',
   'employment_type', 'driving_styles', 'transmission', 'equipment_types', 'twic_active',
   'medical_card_active', 'clearinghouse_registered', 'mvr_status', 'heard_from', 'heard_from_other',
-  'no_show_count', 'shifts_paused', 'reminder_sent_at', 'approval_text_due_at', 'approval_text_sent_at', 'cdl_state']);
+  'no_show_count', 'shifts_paused', 'reminder_sent_at', 'approval_text_due_at', 'approval_text_sent_at', 'cdl_state',
+  'shift_ready_override_reason', 'rereview_needed']);
 select columns_are('public', 'driver_documents', array[
   'id', 'driver_id', 'type', 'storage_path', 'file_name', 'mime_type', 'size_bytes',
   'created_at', 'updated_at']);
@@ -474,8 +475,13 @@ select pg_temp.sign_in('33333333-3333-4333-8333-333333333333');
 select is(public.auth_role(), 'admin'::public.user_role, 'auth_role() returns admin');
 select is(public.is_admin(), true, 'is_admin() is true for admins');
 select lives_ok(
-  $$update public.profiles set status = 'approved' where id = '11111111-1111-4111-8111-111111111111'$$,
+  $$update public.profiles set status = 'blocked' where id = '11111111-1111-4111-8111-111111111111'$$,
   'an admin can change status'
+);
+-- CR-5: a driver is Shift-Ready (approved) only with the documents, a Texas CDL and a full card.
+select throws_ok(
+  $$update public.profiles set status = 'approved' where id = '11111111-1111-4111-8111-111111111111'$$,
+  '23514', null, 'not even an admin can make a driver Shift-Ready without the requirements'
 );
 select lives_ok(
   $$update public.profiles set role = 'carrier' where id = '22222222-2222-4222-8222-222222222222'$$,

@@ -264,6 +264,10 @@ export interface Driver {
   reminderSentAt: string | null;
   /** When the one approval text went out; null until then (0025). */
   approvalTextSentAt: string | null;
+  /** Why an admin made this driver Shift-Ready without a Texas CDL (CR-5, 0028). */
+  shiftReadyOverrideReason: string | null;
+  /** A Shift-Ready driver changed a required document or the CDL state and is back to Registered (0028). */
+  rereviewNeeded: boolean;
   /** The optional "How did you hear about FleetGrid?" answer, with the free text for Other. */
   heardFrom: HeardFrom | null;
   heardFromOther: string | null;
@@ -373,6 +377,7 @@ export const ADMIN_ACTIONS = [
   "driver_approved",
   "driver_blocked",
   "driver_reopened",
+  "driver_rereview_needed",
   "driver_removed",
   "driver_paused",
   "driver_unpaused",

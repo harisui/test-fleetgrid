@@ -261,6 +261,30 @@ export async function addDriverCardAtStep(
   return data.id;
 }
 
+/**
+ * Makes a seeded driver Shift-Ready (CR-5): the CDL front, the CDL back and the medical card
+ * (rows only; no file is fetched in these flows), then approved through the database's own
+ * check, which refuses a driver who misses anything.
+ */
+export async function makeShiftReady(userId: string): Promise<void> {
+  const admin = adminClient();
+  const { data: driver, error } = await admin.from("drivers").select("id").eq("profile_id", userId).single();
+  if (error || !driver) throw new Error(`makeShiftReady: no card for ${userId}`);
+  const { error: documentError } = await admin.from("driver_documents").insert(
+    (["cdl_front", "cdl_back", "medical_card"] as const).map((type) => ({
+      driver_id: driver.id,
+      type,
+      storage_path: `${driver.id}/${type}-${Date.now()}.png`,
+      file_name: `${type}.png`,
+      mime_type: "image/png",
+      size_bytes: 68,
+    })),
+  );
+  if (documentError) throw new Error(`makeShiftReady documents failed: ${documentError.message}`);
+  const { error: statusError } = await admin.from("profiles").update({ status: "approved" }).eq("id", userId);
+  if (statusError) throw new Error(`makeShiftReady failed: ${statusError.message}`);
+}
+
 /** Moves an existing driver (seeded at step 2 or later) to another screen without a new login. */
 export async function moveDriverToStep(
   phone: string,

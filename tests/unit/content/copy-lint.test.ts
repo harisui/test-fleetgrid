@@ -31,15 +31,18 @@ const RULES: { name: string; pattern: RegExp }[] = [
   { name: "banned word: seamless", pattern: /seamless/i },
   { name: "banned word: game-changer", pattern: /game-?changer/i },
   // Twilio toll-free review, rejection 30468 (2026-10-29): first-party words only.
-  { name: "banned word (Twilio 30468): connects", pattern: /connect(s|ed|ing)?/i },
-  { name: "banned word (Twilio 30468): match drivers with", pattern: /match(es|ing)? drivers with/i },
-  { name: "banned word (Twilio 30468): leads", pattern: /leads?/i },
-  { name: "banned word (Twilio 30468): access drivers", pattern: /access drivers/i },
-  { name: "banned word (Twilio 30468): earn", pattern: /earn(s|ed|ing)?/i },
-  { name: "banned word (Twilio 30468): opportunity", pattern: /opportunit(y|ies)/i },
-  { name: "banned word (Twilio 30468): recruit", pattern: /recruit(s|ed|ing|er|ers)?/i },
+  { name: "banned word (Twilio 30468): connects", pattern: /\bconnect(s|ed|ing)?\b/i },
+  { name: "banned word (Twilio 30468): match drivers with", pattern: /\bmatch(es|ing)? drivers with\b/i },
+  { name: "banned word (Twilio 30468): leads", pattern: /\bleads?\b/i },
+  { name: "banned word (Twilio 30468): access drivers", pattern: /\baccess drivers\b/i },
+  { name: "banned word (Twilio 30468): earn", pattern: /\bearn(s|ed|ing)?\b/i },
+  { name: "banned word (Twilio 30468): opportunity", pattern: /\bopportunit(y|ies)\b/i },
+  { name: "banned word (Twilio 30468): recruit", pattern: /\brecruit(s|ed|ing|er|ers)?\b/i },
   { name: "banned phrase (Twilio 30468): first to reply", pattern: /first to reply/i },
-  { name: "banned word (Twilio 30468): claim, say book", pattern: /claim(s|ed|ing)?/i },
+  { name: "banned word (Twilio 30468): claim, say book", pattern: /\bclaim(s|ed|ing)?\b/i },
+  // CR-5 (2026-11-03): "Verified" implies a background check FleetGrid does not run. Say
+  // Registered or Shift-Ready.
+  { name: "banned word (CR-5): verified", pattern: /\bverified\b/i },
 ];
 
 /** The strings a content file carries: every quoted or template literal, with code left out. */
@@ -85,6 +88,10 @@ describe("marketing copy", () => {
       "(555) 555-0100",
       "We hire drivers",
       "a seamless, game-changing app",
+      "Verified drivers",
+      "every driver is verified",
+      "Claim this shift",
+      "Text leads",
     ];
     for (const text of sample) {
       expect(RULES.some((rule) => rule.pattern.test(text)), text).toBe(true);
@@ -92,5 +99,25 @@ describe("marketing copy", () => {
     for (const text of ["FleetGrid is not an employer, staffing agency or freight broker.", "employment"]) {
       expect(RULES.some((rule) => rule.pattern.test(text)), text).toBe(false);
     }
+  });
+});
+
+/** Every .ts and .tsx file under a folder. */
+function sourceFiles(dir: string): string[] {
+  return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+    const path = join(dir, entry.name);
+    if (entry.isDirectory()) return sourceFiles(path);
+    return /\.tsx?$/.test(entry.name) ? [path] : [];
+  });
+}
+
+describe("no Verified anywhere a person reads (CR-5)", () => {
+  it.each(["src/app", "src/components", "src/content", "src/lib"])("the strings of %s never say Verified", (dir) => {
+    const hits = sourceFiles(dir).flatMap((file) =>
+      stringsOf(readFileSync(file, "utf8"))
+        .filter((text) => /\bverified\b/i.test(text))
+        .map((text) => `${file}: "${text}"`),
+    );
+    expect(hits).toEqual([]);
   });
 });

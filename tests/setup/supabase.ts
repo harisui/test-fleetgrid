@@ -138,12 +138,23 @@ export async function createListedDriver(
   options: { fullName?: string; place?: Place; status?: Status } & Partial<DriverInsert> = {},
 ): Promise<TestDriver> {
   const { fullName, place = TEST_PLACES.houston, status = "approved", ...columns } = options;
-  const user = await createTestUser({ role: "driver", status });
+  const name = fullName ?? "Listed Driver";
+  // Shift-Ready (CR-5): a card that can be is built Registered, given the three documents and
+  // a Texas CDL, then approved through the database's own check. A card that cannot (an
+  // unfinished one, say) and is still asked for as approved is written that way directly,
+  // the state only a raw insert could make, so the search's second guard has something to catch.
+  const canBeShiftReady =
+    status === "approved" &&
+    columns.card_completed !== false &&
+    (columns.cdl_state ?? "TX") === "TX" &&
+    name.trim().split(/\s+/).length >= 2;
+  const user = await createTestUser({ role: "driver", status: canBeShiftReady ? "pending" : status });
   const { data, error } = await serviceClient()
     .from("drivers")
     .insert({
       profile_id: user.id,
-      full_name: fullName ?? "Listed Driver",
+      full_name: name,
+      cdl_state: "TX",
       operator_types: ["cdl_driver"],
       cdl_class: "A",
       endorsements: ["H", "N", "T", "X"],
@@ -168,8 +179,27 @@ export async function createListedDriver(
     .select("id")
     .single();
   if (error || !data) throw new Error(`listed driver insert failed: ${error?.message}`);
+  if (canBeShiftReady) {
+    const admin = serviceClient();
+    const { error: documentError } = await admin.from("driver_documents").insert(
+      REQUIRED_DOCUMENT_TYPES.map((type) => ({
+        driver_id: data.id,
+        type,
+        storage_path: `${data.id}/${type}.png`,
+        file_name: `${type}.png`,
+        mime_type: "image/png",
+        size_bytes: 68,
+      })),
+    );
+    if (documentError) throw new Error(`listed driver documents failed: ${documentError.message}`);
+    const { error: statusError } = await admin.from("profiles").update({ status: "approved" }).eq("id", user.id);
+    if (statusError) throw new Error(`listed driver Shift-Ready failed: ${statusError.message}`);
+  }
   return { ...user, driverId: data.id };
 }
+
+/** The documents a Shift-Ready driver needs (CR-5). */
+export const REQUIRED_DOCUMENT_TYPES = ["cdl_front", "cdl_back", "medical_card"] as const;
 
 export interface TestCarrier extends TestUser {
   carrierId: string;

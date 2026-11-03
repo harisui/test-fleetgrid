@@ -60,5 +60,16 @@ export const driverIdSchema = z.object({
   driverId: z.uuid({ error: "Driver not found" }),
 });
 
+export const OVERRIDE_REASON_MESSAGE = "Say why this driver may be Shift-Ready without a Texas CDL, in at least 5 characters";
+
+/** Mark Shift-Ready (CR-5): the driver, and the reason when their CDL is not from Texas. */
+export const markShiftReadySchema = z.object({
+  driverId: z.uuid({ error: "Driver not found" }),
+  overrideReason: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? undefined : value),
+    z.string().trim().min(5, OVERRIDE_REASON_MESSAGE).max(300, "Keep the reason to 300 characters").optional(),
+  ),
+});
+
 export type AdminDriversQuery = z.infer<typeof adminDriversQuerySchema>;
 export type DriverIdInput = z.infer<typeof driverIdSchema>;

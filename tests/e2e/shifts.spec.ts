@@ -10,6 +10,7 @@ import {
   resetUser,
   seedCarrier,
   seedDriverAtStep,
+  makeShiftReady,
 } from "./helpers";
 
 /**
@@ -43,7 +44,7 @@ async function seedListedDriver(phone: string, name: string): Promise<string> {
     full_name: name,
     ...PASADENA,
   });
-  await adminClient().from("profiles").update({ status: "approved" }).eq("id", userId);
+  await makeShiftReady(userId);
   return driverId!;
 }
 

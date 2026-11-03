@@ -54,6 +54,8 @@ function Bar() {
     };
     document.addEventListener("click", onClick, true);
     document.addEventListener("submit", onSubmit, true);
+    // Marks the bar as listening, so a test (or a curious reader) knows clicks are caught now.
+    if (bar.current) bar.current.dataset.ready = "true";
     return () => {
       document.removeEventListener("click", onClick, true);
       document.removeEventListener("submit", onSubmit, true);

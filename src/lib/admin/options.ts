@@ -5,10 +5,11 @@ import type { AccountStatus } from "@/types/domain";
 
 export const ADMIN_DRIVERS_PATH = "/admin/drivers";
 
+/** The driver's tier (CR-5): Registered, Shift-Ready, Blocked. */
 export const REVIEW_STATUS_OPTIONS = [
-  { value: "", label: "Any review status" },
-  { value: "pending", label: "Pending" },
-  { value: "approved", label: "Approved" },
+  { value: "", label: "Any status" },
+  { value: "pending", label: "Registered" },
+  { value: "approved", label: "Shift-Ready" },
   { value: "blocked", label: "Blocked" },
 ] as const;
 
@@ -38,15 +39,11 @@ export const CDL_STATE_FILTER_OPTIONS = [
   { value: "none", label: "Not answered" },
 ] as const;
 
-/** Why Approve is off for a card that is not finished. */
-export const APPROVE_INCOMPLETE_REASON =
-  "This driver has not finished their card, so they cannot be approved yet.";
-
 /** The toast after each action. */
 export const STATUS_DONE: Record<AccountStatus, string> = {
-  approved: "Approved. Subscribed carriers can find this driver now.",
+  approved: "Shift-Ready. Subscribed carriers can find this driver, and matching shifts reach them.",
   blocked: "Blocked. The driver is signed out and hidden from carriers.",
-  pending: "Back in the review queue.",
+  pending: "Registered. The driver is out of carrier search and gets no shift offers.",
 };
 
 /** What the detail sheet says before each action, with the driver's name filled in. */
@@ -55,10 +52,11 @@ export const CONFIRMATIONS: Record<
   { title: (name: string) => string; description: (name: string) => string; label: string; pending: string }
 > = {
   approved: {
-    title: (name) => `Approve ${name}?`,
-    description: (name) => `Subscribed carriers can find ${name} from now on.`,
-    label: "Approve",
-    pending: "Approving...",
+    title: (name) => `Mark ${name} Shift-Ready?`,
+    description: (name) =>
+      `Subscribed carriers can find ${name} from now on, and matching shifts are texted to them.`,
+    label: "Mark Shift-Ready",
+    pending: "Saving...",
   },
   blocked: {
     title: (name) => `Block ${name}?`,
@@ -67,9 +65,9 @@ export const CONFIRMATIONS: Record<
     pending: "Blocking...",
   },
   pending: {
-    title: (name) => `Put ${name} back in review?`,
-    description: (name) => `${name} leaves carrier search until approved again.`,
-    label: "Set pending",
+    title: (name) => `Move ${name} to Registered?`,
+    description: (name) => `${name} leaves carrier search and gets no shift offers until marked Shift-Ready again.`,
+    label: "Move to Registered",
     pending: "Saving...",
   },
 };

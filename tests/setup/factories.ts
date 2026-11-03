@@ -118,6 +118,8 @@ export function buildDriver(overrides: Partial<LocatedDriver> = {}): LocatedDriv
       shiftsPaused: false,
       reminderSentAt: null,
       approvalTextSentAt: null,
+      shiftReadyOverrideReason: null,
+      rereviewNeeded: false,
       heardFrom: null,
       heardFromOther: null,
       clearinghouseSelfReportedAt: null,

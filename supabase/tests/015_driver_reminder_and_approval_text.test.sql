@@ -55,7 +55,11 @@ select isnt((select reminder_sent_at from public.drivers where id = pg_temp.did(
 select is_empty($$ select * from public.claim_profile_reminders() $$, 'a second run sends nothing: one reminder, ever');
 
 -- The approval text.
+-- The approval text is about the queue, not the Shift-Ready gate (CR-5), so the gate is off
+-- while the fixture approves an unfinished card.
+alter table public.profiles disable trigger profiles_shift_ready_gate;
 update public.profiles set status = 'approved' where id = 'e0000021-0000-4000-8000-000000000000';
+alter table public.profiles enable trigger profiles_shift_ready_gate;
 select ok(public.queue_approval_text(pg_temp.did('21'), now() + interval '8 hours'), 'a night approval is queued for later');
 select is_empty($$ select * from public.claim_approval_texts('d0000021-0000-4000-8000-000000000000') $$, 'nothing goes before it is due');
 select ok(not public.queue_approval_text(pg_temp.did('21'), null), 'a second approval queues nothing');

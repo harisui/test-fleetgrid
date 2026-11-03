@@ -49,9 +49,11 @@ describe("RLS through real clients: carriers, subscriptions and what carriers se
       driverOnly,
     ].map((driver) => driver.driverId);
 
+  // "Other papers": a new required document would send a Shift-Ready driver back to
+  // Registered (CR-5), which is not what these checks are about.
   const documentRow = (driverId: string, file: string) => ({
     driver_id: driverId,
-    type: "cdl_front" as const,
+    type: "other" as const,
     storage_path: `${driverId}/${file}`,
     file_name: file,
     mime_type: "image/png",
@@ -231,8 +233,17 @@ describe("RLS through real clients: carriers, subscriptions and what carriers se
     });
 
     it("sees the documents of listed drivers and can make a signed link to their files", async () => {
-      const { data } = await subscribed.client.from("driver_documents").select("id");
-      expect(data).toEqual([{ id: listedDoc }]);
+      const { data } = await subscribed.client.from("driver_documents").select("id, driver_id");
+      const ids = (data ?? []).map((row) => row.id);
+      expect(ids).toContain(listedDoc);
+      expect(ids).not.toContain(pendingDoc);
+      // Only the documents of listed (Shift-Ready, in-area) drivers.
+      const listedIds = new Set([listedHouston, listedPasadena, optedOut, declined].map((driver) => driver.driverId));
+      // Of this file's drivers, only the listed ones' papers (the local seed has its own).
+      const mine = new Set(testDriverIds());
+      const seen = (data ?? []).filter((row) => mine.has(row.driver_id));
+      expect(seen.every((row) => listedIds.has(row.driver_id))).toBe(true);
+      expect(new Set(seen.map((row) => row.driver_id))).toEqual(listedIds);
 
       const listed = await subscribed.client.storage
         .from(DOCUMENTS_BUCKET)

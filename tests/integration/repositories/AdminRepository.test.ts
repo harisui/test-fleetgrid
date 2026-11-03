@@ -46,8 +46,10 @@ describe("AdminRepository", () => {
 
   it("changes a profile's status as an admin, and a driver cannot", async () => {
     const repository = new AdminRepository(admin.client);
-    const approved = await repository.setProfileStatus(pendingDriver.id, "approved");
-    expect(approved.status).toBe("approved");
+    // CR-5: not even an admin makes a driver Shift-Ready without the documents and a Texas CDL.
+    const notReady = await repository.setProfileStatus(pendingDriver.id, "approved").catch((error) => error);
+    expect(notReady).toBeInstanceOf(AppError);
+    expect((notReady as AppError).code).toBe("VALIDATION");
     const blocked = await repository.setProfileStatus(pendingDriver.id, "blocked");
     expect(blocked.status).toBe("blocked");
     await repository.setProfileStatus(pendingDriver.id, "pending");

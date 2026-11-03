@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { adminClient, COMPLETE_STEP, login, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
+import { adminClient, COMPLETE_STEP, login, makeShiftReady, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
 
 /**
  * The rest of the admin panel (T3.11): carriers with block and their sheet, subscriptions
@@ -21,7 +21,7 @@ test.describe("admin operations", () => {
     ({ carrierId } = await seedCarrier(PHONES.carrier, { terms: true, subscription: "active" }));
     const seeded = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP, { full_name: "Pat Paused" });
     driverId = seeded.driverId!;
-    await adminClient().from("profiles").update({ status: "approved" }).eq("id", seeded.userId);
+    await makeShiftReady(seeded.userId);
   });
 
   test.afterAll(async () => {

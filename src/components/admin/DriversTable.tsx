@@ -6,6 +6,7 @@ import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { DataTable, type DataColumn } from "@/components/admin/DataTable";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { NotTexasBadge } from "@/components/admin/NotTexasBadge";
+import { RereviewBadge } from "@/components/admin/ShiftReadyReview";
 import { SelfReportBadge } from "@/components/admin/SelfReportBadge";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -68,7 +69,17 @@ const COLUMNS: DataColumn<AdminDriverRow>[] = [
       ),
   },
   { key: "cdlState", header: "CDL state", cell: cdlStateCell },
-  { key: "status", header: "Review", cell: (row) => <AdminStatusBadge status={row.profile.status} />, sortable: true },
+  {
+    key: "status",
+    header: "Status",
+    cell: (row) => (
+      <span className="flex flex-wrap items-center gap-1">
+        <AdminStatusBadge kind="driver" status={row.profile.status} />
+        {row.driver.rereviewNeeded && <RereviewBadge />}
+      </span>
+    ),
+    sortable: true,
+  },
   { key: "sms", header: "SMS", cell: smsLabel },
   { key: "reminder", header: "Reminder sent", cell: reminderLabel },
   {
@@ -99,7 +110,10 @@ function DriverCard({ row }: { row: AdminDriverRow }) {
     <div className="flex flex-col gap-2 rounded-card border border-border-strong bg-card p-4">
       <div className="flex items-start justify-between gap-3">
         <span className="text-label leading-label font-semibold">{row.driver.fullName}</span>
-        <AdminStatusBadge status={row.profile.status} />
+        <span className="flex flex-wrap justify-end gap-1">
+          <AdminStatusBadge kind="driver" status={row.profile.status} />
+          {row.driver.rereviewNeeded && <RereviewBadge />}
+        </span>
       </div>
       <span className="font-mono text-helper leading-helper text-muted-foreground">{formatE164ForDisplay(row.profile.phone)}</span>
       <span className="text-helper leading-helper text-muted-foreground">
@@ -129,7 +143,7 @@ export function DriversTable({ page }: { page: AdminDriversPage }) {
         action={ADMIN_DRIVERS_PATH}
         search={{ name: "q", label: "Search", placeholder: "Name, phone or ZIP", value: query.q }}
         filters={[
-          { name: "status", label: "Review", value: query.status, options: REVIEW_STATUS_OPTIONS },
+          { name: "status", label: "Status", value: query.status, options: REVIEW_STATUS_OPTIONS },
           { name: "complete", label: "Profile", value: query.complete, options: COMPLETE_OPTIONS },
           { name: "area", label: "Area", value: query.area, options: AREA_OPTIONS },
           { name: "source", label: "Source", value: query.source, options: SOURCE_OPTIONS },
