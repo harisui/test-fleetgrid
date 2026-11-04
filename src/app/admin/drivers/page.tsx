@@ -10,7 +10,7 @@ import { getContainer } from "@/server/container";
 import { AppError } from "@/server/errors/AppError";
 import type { AdminDriverDetail } from "@/server/services/AdminService";
 import type { DocReminderPreview } from "@/server/services/DocReminderService";
-import { REQUIRED_DOCUMENTS } from "@/lib/drivers/tiers";
+import { REQUIRED_DOCUMENTS, ROSTER_READY } from "@/lib/drivers/tiers";
 
 export const metadata: Metadata = { title: "Drivers" };
 
@@ -46,7 +46,7 @@ export default async function AdminDriversPage({ searchParams }: PageProps<"/adm
   return (
     <AdminPage
       title="Drivers"
-      subtitle="Everyone who signed up, newest first. Approve a driver to list them to subscribed carriers; block one to hide them and sign them out."
+      subtitle={`Everyone who signed up, newest first. Mark a driver ${ROSTER_READY} to list them to subscribed carriers; block one to hide them and sign them out.`}
       actions={<DocReminderButton initial={bulkReminder} />}
     >
       <DriverTiles tiles={page.tiles} />

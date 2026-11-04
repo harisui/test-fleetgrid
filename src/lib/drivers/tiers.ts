@@ -1,13 +1,24 @@
 import type { AccountStatus, DocumentType, Driver } from "@/types/domain";
 
 /**
- * Registered and Shift-Ready (change request CR-5). The database keeps pending, approved and
- * blocked; for drivers they read Registered, Shift-Ready and Blocked. Never the V-word (a test bans it):
+ * The labels (Annie, confirmed 2026-11-04), each in this one place. Internal names (shift_ready,
+ * ShiftReady..., approved) stay as they are; a test keeps these words out of every other file.
+ */
+/** A driver who meets every requirement, as drivers and admins read it. */
+export const ROSTER_READY = "Roster-Ready";
+/** The same driver as a carrier reads it. */
+export const DOCUMENTED_PROFILE = "Documented profile";
+/** An answer that is the driver's own word, not something FleetGrid checked. */
+export const SELF_REPORTED = "Self-reported";
+
+/**
+ * Registered and Roster-Ready (change request CR-5). The database keeps pending, approved and
+ * blocked; for drivers they read Registered, Roster-Ready and Blocked. Never the V-word (a test bans it):
  * FleetGrid runs no background check.
  */
 export const DRIVER_STATUS_LABELS: Record<AccountStatus, string> = {
   pending: "Registered",
-  approved: "Shift-Ready",
+  approved: ROSTER_READY,
   blocked: "Blocked",
 };
 

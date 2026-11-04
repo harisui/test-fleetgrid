@@ -9,7 +9,7 @@ export type AdminBadgeStatus = AccountStatus | "incomplete";
 
 const REVIEW_LABELS: Record<AccountStatus, string> = {
   pending: "Pending",
-  approved: "Approved",
+  approved: "Active",
   blocked: "Blocked",
 };
 

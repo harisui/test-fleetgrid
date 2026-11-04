@@ -62,7 +62,7 @@ export const HOME = {
     carrier: {
       eyebrow: "For carriers",
       items: [
-        "Search approved drivers by distance, CDL class and endorsements.",
+        "Search local drivers by distance, CDL class and endorsements.",
         "Post open shifts. FleetGrid notifies qualified drivers on our platform.",
         "Pay drivers directly. No markup on wages.",
       ],
@@ -173,7 +173,7 @@ export const CARRIERS = {
   hero: {
     eyebrow: "For carriers · Houston area",
     title: "Fill open shifts with local drivers who already said yes to texts.",
-    text: "Search approved Class A and B CDL drivers near your yard. Post open shifts. FleetGrid notifies qualified drivers on our platform.",
+    text: "Search local Class A and B CDL drivers near your yard. Post open shifts. FleetGrid notifies qualified drivers on our platform.",
     primary: { href: "#service-area", label: "Check your yard's ZIP" },
     secondary: { href: "#pricing", label: "See pricing" },
   },
@@ -258,7 +258,7 @@ export const CARRIERS = {
     is: {
       title: "FleetGrid is",
       items: [
-        "a directory of approved local CDL drivers",
+        "a directory of local CDL drivers",
         "a shift-text tool",
         "a monthly subscription",
       ],
@@ -423,7 +423,7 @@ export const CONTACT = {
 export const FOOTER = {
   status: "draft" as CopyStatus,
   description:
-    "Houston-area carriers post open shifts on FleetGrid, and approved CDL drivers book them by text.",
+    "Houston-area carriers post open shifts on FleetGrid, and local CDL drivers book them by text.",
   launchLine: LAUNCH_LINE,
   columns: [
     {

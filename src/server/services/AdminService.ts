@@ -32,6 +32,7 @@ import type {
   QrLink,
   ServiceArea,
 } from "@/types/domain";
+import { ROSTER_READY } from "@/lib/drivers/tiers";
 
 /** A driver as the admin's list shows them: the card, the profile, the area, the source and whether the card is finished. */
 export interface AdminDriverRow extends DriverReviewRow {
@@ -181,7 +182,7 @@ export class AdminService {
     }
     if (missing.length > 0) {
       throw AppError.validation(
-        `Not Shift-Ready yet: ${missing.map((item) => SHIFT_READY_ITEM_LABELS[item]).join(", ")}.`,
+        `Not ${ROSTER_READY} yet: ${missing.map((item) => SHIFT_READY_ITEM_LABELS[item]).join(", ")}.`,
       );
     }
     await this.admin.setShiftReadyOverride(driverId, needsOverride ? (overrideReason as string) : null);

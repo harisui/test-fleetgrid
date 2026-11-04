@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ROSTER_READY } from "@/lib/drivers/tiers";
 
 /**
  * The admin's Drivers page: the list's query (every filter is a URL parameter, so an
@@ -60,7 +61,7 @@ export const driverIdSchema = z.object({
   driverId: z.uuid({ error: "Driver not found" }),
 });
 
-export const OVERRIDE_REASON_MESSAGE = "Say why this driver may be Shift-Ready without a Texas CDL, in at least 5 characters";
+export const OVERRIDE_REASON_MESSAGE = `Say why this driver may be ${ROSTER_READY} without a Texas CDL, in at least 5 characters`;
 
 /** Mark Shift-Ready (CR-5): the driver, and the reason when their CDL is not from Texas. */
 export const markShiftReadySchema = z.object({

@@ -1,3 +1,4 @@
+import { ROSTER_READY } from "@/lib/drivers/tiers";
 /**
  * Words about the launch area. FleetGrid goes live in the Houston area first; drivers
  * anywhere can sign up and are told when the launch has not reached them yet. The done
@@ -16,7 +17,7 @@ export const OUT_OF_AREA_NOTE =
 /** The done screen for a driver inside the launch area: the title, then the review line. */
 export const DONE_TITLE = "You're in!";
 export const DONE_TEXT =
-  "Your profile is being reviewed for the Houston FleetGrid Network. Once approved, carriers can find you daily.";
+  `Your profile is being reviewed for the Houston FleetGrid Network. Once you're ${ROSTER_READY}, carriers can find you daily.`;
 /** Added to the review line only for drivers who said yes to shift texts. */
 export const DONE_TEXT_SMS = "Keep an eye out for SMS shift alerts on your phone.";
 

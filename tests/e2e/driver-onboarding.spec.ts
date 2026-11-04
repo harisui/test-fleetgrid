@@ -159,7 +159,7 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(page.getByText("Profile complete", { exact: true })).toBeVisible();
     // The client's words (2026-10-25), with the SMS line because texts are on.
     await expect(page.locator("[data-slot=done-text]")).toHaveText(
-      "Your profile is being reviewed for the Houston FleetGrid Network. Once approved, carriers can find you daily. Keep an eye out for SMS shift alerts on your phone.",
+      "Your profile is being reviewed for the Houston FleetGrid Network. Once you're Roster-Ready, carriers can find you daily. Keep an eye out for SMS shift alerts on your phone.",
     );
     await expect(page.getByText(/New shifts arrive by text/)).toBeVisible();
     expect(Date.now() - started).toBeLessThan(FIVE_MINUTES_MS);
@@ -575,7 +575,7 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(formAlert(page)).toHaveCount(0);
     // Without the SMS line: this driver declined texts (client wording of 2026-10-25).
     await expect(page.locator("[data-slot=done-text]")).toHaveText(
-      "Your profile is being reviewed for the Houston FleetGrid Network. Once approved, carriers can find you daily.",
+      "Your profile is being reviewed for the Houston FleetGrid Network. Once you're Roster-Ready, carriers can find you daily.",
     );
     await expect(page.getByText(/You chose not to receive shift texts/)).toBeVisible();
     await expect(page.getByText(/New shifts arrive by text/)).toHaveCount(0);

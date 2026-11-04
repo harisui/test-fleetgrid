@@ -8,7 +8,7 @@ export function subscriptionLabel(row: { subscription: Pick<Subscription, "statu
 
 /** How the audit log's Milestone 3 actions read in a history list. */
 const AUDIT_LABELS: Partial<Record<AdminAction, string>> = {
-  carrier_approved: "Approved",
+  carrier_approved: "Activated",
   carrier_blocked: "Blocked",
   carrier_reopened: "Set pending",
   carrier_removed: "Removed",

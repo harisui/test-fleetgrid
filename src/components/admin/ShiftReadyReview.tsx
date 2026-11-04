@@ -9,6 +9,7 @@ import {
   type ShiftReadyItem,
 } from "@/lib/drivers/tiers";
 import type { ShiftReadyPhoto } from "@/server/services/AdminService";
+import { ROSTER_READY } from "@/lib/drivers/tiers";
 
 const PHOTO_LABELS = { cdl_front: "CDL front", cdl_back: "CDL back", medical_card: "Medical card" } as const;
 
@@ -50,11 +51,11 @@ export function ShiftReadyReview({
     <section className="flex flex-col gap-3" aria-labelledby="shift-ready-review" data-slot="shift-ready-review">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 id="shift-ready-review" className="text-eyebrow leading-eyebrow font-semibold tracking-wide text-muted-foreground uppercase">
-          Shift-Ready review
+          {ROSTER_READY} review
         </h3>
         {rereviewNeeded && <RereviewBadge />}
       </div>
-      <ul className="grid gap-1 sm:grid-cols-2" aria-label="Shift-Ready checklist" id="shift-ready-checklist">
+      <ul className="grid gap-1 sm:grid-cols-2" aria-label={`${ROSTER_READY} checklist`} id="shift-ready-checklist">
         {SHIFT_READY_ITEMS.map((item) => {
           // The CDL state can be met by the reason typed below.
           const open = missing.includes(item) && !(item === "cdl_state" && override.trim().length >= 5);
@@ -113,7 +114,7 @@ export function ShiftReadyReview({
       </p>
       {needsOverride && !approved && (
         <FormField
-          label={`Why may this driver be Shift-Ready with a ${cdlState ?? "missing"} CDL state?`}
+          label={`Why may this driver be ${ROSTER_READY} with a ${cdlState ?? "missing"} CDL state?`}
           description="Needed for a CDL from outside Texas. Kept with the card and in the history."
           error={overrideError}
           errorIcon={false}

@@ -1,5 +1,7 @@
-import { ExternalLink, FileText, MapPin, MessageSquareOff } from "lucide-react";
+import { ExternalLink, FileCheck, FileText, MapPin, MessageSquareOff } from "lucide-react";
+import { SelfReportedTag } from "@/components/shared/SelfReportedTag";
 import { Badge } from "@/components/ui/badge";
+import { DOCUMENTED_PROFILE } from "@/lib/drivers/tiers";
 import {
   formatMiles,
   NO_SHIFT_TEXTS_LABEL,
@@ -20,11 +22,14 @@ const labelOf = <T extends string>(options: readonly { value: T; label: string }
   options.find((option) => option.value === value)?.label ?? value;
 
 /** A row of the card. */
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, selfReported = false }: { label: string; value: string; selfReported?: boolean }) {
   return (
     <div className="flex min-h-14 items-center gap-3 px-4 py-3">
       <dt className="w-32 shrink-0 text-helper leading-helper text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 flex-1 text-label leading-label font-semibold">{value}</dd>
+      <dd className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-label leading-label font-semibold">
+        {value}
+        {selfReported && <SelfReportedTag />}
+      </dd>
     </div>
   );
 }
@@ -32,6 +37,7 @@ function Row({ label, value }: { label: string; value: string }) {
 /**
  * One listed driver as a carrier sees them: the sign-up answers, the optional profile
  * answers when given, and the papers as links that open in a new tab. No phone number.
+ * Only a Roster-Ready driver reaches this page (RLS), so each carries the carrier's badge.
  */
 export function DriverCardView({ driver, distanceMiles, documents }: DriverCardViewProps) {
   const summary = summarizeDriver(driver);
@@ -47,6 +53,7 @@ export function DriverCardView({ driver, distanceMiles, documents }: DriverCardV
     driver.clearinghouseRegistered !== null && {
       label: "Clearinghouse",
       value: driver.clearinghouseRegistered ? "Registered" : "Not registered",
+      selfReported: true,
     },
     driver.availability.length > 0 && {
       label: "Availability",
@@ -56,12 +63,18 @@ export function DriverCardView({ driver, distanceMiles, documents }: DriverCardV
       label: "Certifications",
       value: driver.certifications.join(", "),
     },
-  ].filter((row): row is { label: string; value: string } => Boolean(row));
+  ].filter((row): row is { label: string; value: string; selfReported?: boolean } => Boolean(row));
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <h1 className="font-heading text-h1 leading-h1 font-semibold">{driver.fullName}</h1>
+        <span className="flex">
+          <Badge variant="secondary" data-slot="documented-profile">
+            <FileCheck aria-hidden="true" />
+            {DOCUMENTED_PROFILE}
+          </Badge>
+        </span>
         <p className="flex items-center gap-2 text-helper leading-helper text-muted-foreground">
           <MapPin aria-hidden="true" className="size-5" />
           <span>
@@ -102,14 +115,14 @@ export function DriverCardView({ driver, distanceMiles, documents }: DriverCardV
           data-slot="driver-card"
         >
           <Row label="CDL class" value={summary.cdlClass} />
-          <Row label="Experience" value={summary.experience} />
+          <Row label="Experience" value={summary.experience} selfReported />
           <Row label="Record" value={summary.record} />
-          <Row label="Cards" value={summary.cards} />
+          <Row label="Cards" value={summary.cards} selfReported />
           <Row label="Endorsements" value={summary.endorsements} />
           <Row label="Transmission" value={summary.transmission} />
           <Row label="Equipment" value={summary.equipment} />
           {optional.map((row) => (
-            <Row key={row.label} label={row.label} value={row.value} />
+            <Row key={row.label} label={row.label} value={row.value} selfReported={row.selfReported} />
           ))}
         </dl>
         {driver.bio && (

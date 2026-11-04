@@ -27,7 +27,7 @@ export const SEO_PAGES: readonly SeoPage[] = [
     path: "/",
     title: "FleetGrid: Local CDL Drivers for Open Shifts in Houston",
     description:
-      "Houston-area carriers find approved Class A and B CDL drivers within 50 miles of the yard and fill shifts by text. Free for drivers.",
+      "Houston-area carriers find local Class A and B CDL drivers within 50 miles of the yard and fill shifts by text. Free for drivers.",
     name: "Home",
     og: { eyebrow: "Houston · Pasadena · Port of Houston", headline: "Local CDL drivers. Shifts filled by text." },
     changeFrequency: "weekly",
@@ -37,7 +37,7 @@ export const SEO_PAGES: readonly SeoPage[] = [
     path: "/carriers",
     title: "Find CDL Drivers in Houston for Open Shifts",
     description:
-      "Search approved local drivers near your Houston or Pasadena yard and broadcast shifts by text. $399 a month, no contract, cancel anytime.",
+      "Search local drivers near your Houston or Pasadena yard and broadcast shifts by text. $399 a month, no contract, cancel anytime.",
     name: "For Carriers",
     og: { eyebrow: "For carriers · Houston area", headline: "Fill open shifts with local CDL drivers." },
     changeFrequency: "monthly",

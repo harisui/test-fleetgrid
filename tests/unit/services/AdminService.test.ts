@@ -72,7 +72,7 @@ async function expectAppError(promise: Promise<unknown>): Promise<AppError> {
   return error as AppError;
 }
 
-/** The three documents Shift-Ready needs (CR-5), as rows and stored files. */
+/** The three documents Roster-Ready needs (CR-5), as rows and stored files. */
 function giveDocuments(
   documents: FakeDocumentRepository,
   driverId: string,
@@ -315,7 +315,7 @@ describe("AdminService", () => {
   });
 
   describe("getDriver", () => {
-    it("returns the driver with the area, the papers, the Shift-Ready review and the history", async () => {
+    it("returns the driver with the area, the papers, the Roster-Ready review and the history", async () => {
       giveDocuments(documents, D1);
       await service.approveDriver(ADMIN_ID, { driverId: D1 });
 
@@ -350,7 +350,7 @@ describe("AdminService", () => {
   });
 
   describe("status changes", () => {
-    it("marks Shift-Ready, blocks and moves to Registered, writing the audit log each time", async () => {
+    it("marks Roster-Ready, blocks and moves to Registered, writing the audit log each time", async () => {
       giveDocuments(documents, D1);
       expect((await service.approveDriver(ADMIN_ID, { driverId: D1 })).status).toBe("approved");
       expect((await service.blockDriver(ADMIN_ID, { driverId: D1 })).status).toBe("blocked");
@@ -396,13 +396,13 @@ describe("AdminService", () => {
       giveDocuments(documents, D3);
       const error = await expectAppError(service.approveDriver(ADMIN_ID, { driverId: D3 }));
       expect(error.code).toBe("VALIDATION");
-      expect(error.message).toBe("Not Shift-Ready yet: Profile not complete.");
+      expect(error.message).toBe("Not Roster-Ready yet: Profile not complete.");
       expect(admin.statusChanges).toEqual([]);
       // Blocking an unfinished card is allowed: a bot can be stopped at once.
       expect((await service.blockDriver(ADMIN_ID, { driverId: D3 })).status).toBe("blocked");
     });
 
-    it("each requirement alone keeps a driver from Shift-Ready (CR-5)", async () => {
+    it("each requirement alone keeps a driver from Roster-Ready (CR-5)", async () => {
       const cases: [string, () => void, string][] = [
         ["CDL front", () => giveDocuments(documents, D1, ["cdl_back", "medical_card"]), "CDL front photo"],
         ["CDL back", () => giveDocuments(documents, D1, ["cdl_front", "medical_card"]), "CDL back photo"],
@@ -421,7 +421,7 @@ describe("AdminService", () => {
         admin.rows[0].driver = { ...admin.rows[0].driver, fullName: "Pat Driver" };
         arrange();
         const error = await expectAppError(service.approveDriver(ADMIN_ID, { driverId: D1 }));
-        expect(error.message, label).toBe(`Not Shift-Ready yet: ${item}.`);
+        expect(error.message, label).toBe(`Not Roster-Ready yet: ${item}.`);
       }
       expect(admin.statusChanges).toEqual([]);
     });

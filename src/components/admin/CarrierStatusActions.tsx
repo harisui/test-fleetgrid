@@ -10,7 +10,7 @@ import type { AccountStatus } from "@/types/domain";
 
 const ACTIONS = { approved: approveCarrierAction, blocked: blockCarrierAction, pending: reopenCarrierAction } as const;
 const COPY: Record<AccountStatus, { title: string; description: string; label: string; done: string }> = {
-  approved: { title: "Approve", description: "They keep their access while subscribed.", label: "Approve", done: "Carrier approved" },
+  approved: { title: "Activate", description: "They keep their access while subscribed.", label: "Activate", done: "Carrier activated" },
   blocked: {
     title: "Block",
     description: "They are signed out and cannot post shifts or search drivers. Their billing is not changed.",

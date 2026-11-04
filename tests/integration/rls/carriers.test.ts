@@ -49,7 +49,7 @@ describe("RLS through real clients: carriers, subscriptions and what carriers se
       driverOnly,
     ].map((driver) => driver.driverId);
 
-  // "Other papers": a new required document would send a Shift-Ready driver back to
+  // "Other papers": a new required document would send a Roster-Ready driver back to
   // Registered (CR-5), which is not what these checks are about.
   const documentRow = (driverId: string, file: string) => ({
     driver_id: driverId,
@@ -237,7 +237,7 @@ describe("RLS through real clients: carriers, subscriptions and what carriers se
       const ids = (data ?? []).map((row) => row.id);
       expect(ids).toContain(listedDoc);
       expect(ids).not.toContain(pendingDoc);
-      // Only the documents of listed (Shift-Ready, in-area) drivers.
+      // Only the documents of listed (Roster-Ready, in-area) drivers.
       const listedIds = new Set([listedHouston, listedPasadena, optedOut, declined].map((driver) => driver.driverId));
       // Of this file's drivers, only the listed ones' papers (the local seed has its own).
       const mine = new Set(testDriverIds());

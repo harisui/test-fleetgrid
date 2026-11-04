@@ -139,7 +139,7 @@ export async function createListedDriver(
 ): Promise<TestDriver> {
   const { fullName, place = TEST_PLACES.houston, status = "approved", ...columns } = options;
   const name = fullName ?? "Listed Driver";
-  // Shift-Ready (CR-5): a card that can be is built Registered, given the three documents and
+  // Roster-Ready (CR-5): a card that can be is built Registered, given the three documents and
   // a Texas CDL, then approved through the database's own check. A card that cannot (an
   // unfinished one, say) and is still asked for as approved is written that way directly,
   // the state only a raw insert could make, so the search's second guard has something to catch.
@@ -193,12 +193,12 @@ export async function createListedDriver(
     );
     if (documentError) throw new Error(`listed driver documents failed: ${documentError.message}`);
     const { error: statusError } = await admin.from("profiles").update({ status: "approved" }).eq("id", user.id);
-    if (statusError) throw new Error(`listed driver Shift-Ready failed: ${statusError.message}`);
+    if (statusError) throw new Error(`listed driver Roster-Ready failed: ${statusError.message}`);
   }
   return { ...user, driverId: data.id };
 }
 
-/** The documents a Shift-Ready driver needs (CR-5). */
+/** The documents a Roster-Ready driver needs (CR-5). */
 export const REQUIRED_DOCUMENT_TYPES = ["cdl_front", "cdl_back", "medical_card"] as const;
 
 export interface TestCarrier extends TestUser {

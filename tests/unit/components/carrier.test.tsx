@@ -653,6 +653,15 @@ describe("DriverCardView", () => {
       expect(within(card).getByText(label).nextElementSibling).toHaveTextContent(value);
     }
     expect(document.querySelector("[data-slot=bio]")).toHaveTextContent("Reliable and on time.");
+    // Annie's labels (2026-11-04): the carrier's word for a Roster-Ready driver, and the driver's own answers marked.
+    expect(document.querySelector("[data-slot=documented-profile]")).toHaveTextContent("Documented profile");
+    expect(screen.queryByText("Roster-Ready")).not.toBeInTheDocument();
+    for (const label of ["Experience", "Cards", "Clearinghouse"]) {
+      expect(within(within(card).getByText(label).nextElementSibling as HTMLElement).getByText("Self-reported")).toBeInTheDocument();
+    }
+    for (const label of ["CDL class", "Record", "Equipment"]) {
+      expect(within(within(card).getByText(label).nextElementSibling as HTMLElement).queryByText("Self-reported")).toBeNull();
+    }
     const paper = screen.getByRole("link", { name: /CDL \(front\)/ });
     expect(paper).toHaveAttribute("href", `/api/documents/${document_.id}/url`);
     expect(paper).toHaveAttribute("target", "_blank");

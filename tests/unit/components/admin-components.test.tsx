@@ -50,7 +50,7 @@ describe("StatTile", () => {
 describe("AdminStatusBadge", () => {
   it.each([
     ["pending", "Pending"],
-    ["approved", "Approved"],
+    ["approved", "Active"],
     ["blocked", "Blocked"],
     ["incomplete", "Incomplete"],
   ] as const)("shows %s as an icon and the word", (status, label) => {

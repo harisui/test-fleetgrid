@@ -3,7 +3,7 @@ import { SmsConsentControl } from "@/components/driver/SmsConsentControl";
 import { InlineNote } from "@/components/shared/InlineNote";
 import { StatusBadge } from "@/components/shared/StatusBadge";
 import { Badge } from "@/components/ui/badge";
-import { DRIVER_STATUS_LABELS } from "@/lib/drivers/tiers";
+import { DRIVER_STATUS_LABELS, ROSTER_READY } from "@/lib/drivers/tiers";
 import { OUT_OF_AREA_BADGE, OUT_OF_AREA_PROFILE_TEXT } from "@/lib/launch";
 import { formatE164ForDisplay } from "@/lib/phone";
 import type { AccountStatus, LocatedDriver, Profile } from "@/types/domain";
@@ -11,8 +11,8 @@ import type { AccountStatus, LocatedDriver, Profile } from "@/types/domain";
 /** Registered and Shift-Ready (CR-5), in plain words. */
 const STATUS_HELP: Record<AccountStatus, string> = {
   pending:
-    "You're Registered. Upload your CDL and medical card, and once we review them you become Shift-Ready and start getting shift offers.",
-  approved: "You're Shift-Ready. Carriers near you can see your card.",
+    `You're Registered. Upload your CDL and medical card, and once we review them you become ${ROSTER_READY} and start getting shift offers.`,
+  approved: `You're ${ROSTER_READY}. Carriers near you can see your card.`,
   blocked: "Your account is blocked and will not receive shift offers. Contact support for help.",
 };
 

@@ -17,6 +17,7 @@ import type { IProfileRepository } from "@/server/repositories/ProfileRepository
 import type { ITextingDriverRepository, TextingDriver } from "@/server/repositories/TextingDriverRepository";
 import type { TextService } from "@/server/services/TextService";
 import type { BroadcastRecipient, NoticeBatch, Profile, Shift, SmsMessage } from "@/types/domain";
+import { ROSTER_READY } from "@/lib/drivers/tiers";
 
 /** Twilio errors a retry can fix (user decision of 2026-11-01); a send that never reached Twilio has no code. */
 export const RETRYABLE_ERROR_CODES = ["30001", "30003", "30008"] as const;
@@ -32,7 +33,7 @@ const NEVER_RETRY: Record<string, string> = {
 };
 
 export const ACCOUNT_KIND_LABELS: Record<AccountKind, string> = {
-  approved: "Approval",
+  approved: `${ROSTER_READY} text`,
   reminder: "Profile reminder",
   welcome: "Welcome",
   doc_reminder: "Documents reminder",

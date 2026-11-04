@@ -531,6 +531,6 @@ describe("CheckBadge, InlineNote, Badge, StatusBadge", () => {
 
   it("StatusBadge offers a large size", () => {
     render(<StatusBadge status="approved" size="lg" />);
-    expect(screen.getByText("Approved")).toHaveClass("h-10", "bg-success-subtle");
+    expect(screen.getByText("Active")).toHaveClass("h-10", "bg-success-subtle");
   });
 });

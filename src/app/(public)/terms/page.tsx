@@ -167,7 +167,7 @@ export default function TermsPage() {
 
       <LegalHeading>7. Review, suspension and removal</LegalHeading>
       <p>
-        New driver profiles are reviewed by FleetGrid before carriers can see them. We may approve,
+        New driver profiles are reviewed by FleetGrid before carriers can see them. We may list,
         hold, suspend or remove any account or profile at any time, for example for a false answer,
         a complaint from a carrier or driver, or a breach of these terms. We will notify you when
         we become aware.

@@ -14,10 +14,11 @@ import { NotTexasBadge } from "@/components/admin/NotTexasBadge";
 import { ShiftReadyReview } from "@/components/admin/ShiftReadyReview";
 import { SelfReportBadge } from "@/components/admin/SelfReportBadge";
 import { areaLabel, smsLabel } from "@/components/admin/DriversTable";
+import { SelfReportedTag } from "@/components/shared/SelfReportedTag";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CONFIRMATIONS, STATUS_DONE } from "@/lib/admin/options";
-import { SHIFT_READY_ITEM_LABELS } from "@/lib/drivers/tiers";
+import { ROSTER_READY, SHIFT_READY_ITEM_LABELS } from "@/lib/drivers/tiers";
 import { heardFromLabel, referrerLabel, tagsLabel } from "@/lib/admin/source";
 import { summarizeDriver } from "@/lib/carrier/driverSummary";
 import { formatFileSize } from "@/lib/image";
@@ -57,7 +58,7 @@ const ACTIONS: Record<AccountStatus, typeof approveDriverAction> = {
 };
 
 const HISTORY_LABELS: Partial<Record<AdminAction, string>> = {
-  driver_approved: "Marked Shift-Ready",
+  driver_approved: `Marked ${ROSTER_READY}`,
   driver_blocked: "Blocked",
   driver_reopened: "Moved to Registered",
   driver_rereview_needed: "Back to Registered for re-review",
@@ -66,11 +67,14 @@ const HISTORY_LABELS: Partial<Record<AdminAction, string>> = {
 const labelOf = <T extends string>(options: readonly { value: T; label: string }[], value: T) =>
   options.find((option) => option.value === value)?.label ?? value;
 
-function Row({ label, value }: { label: string; value: string }) {
+function Row({ label, value, selfReported = false }: { label: string; value: string; selfReported?: boolean }) {
   return (
     <div className="flex min-h-12 items-center gap-3 px-3 py-2">
       <dt className="w-32 shrink-0 text-helper leading-helper text-muted-foreground">{label}</dt>
-      <dd className="min-w-0 flex-1 text-label leading-label font-semibold">{value}</dd>
+      <dd className="flex min-w-0 flex-1 flex-wrap items-center gap-2 text-label leading-label font-semibold">
+        {value}
+        {selfReported && <SelfReportedTag />}
+      </dd>
     </div>
   );
 }
@@ -112,13 +116,14 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
     driver.clearinghouseRegistered !== null && {
       label: "Clearinghouse account",
       value: driver.clearinghouseRegistered ? "Registered" : "Not registered",
+      selfReported: true,
     },
     driver.availability.length > 0 && {
       label: "Availability",
       value: driver.availability.map((slot) => AVAILABILITY_LABELS[slot]).join(", "),
     },
     driver.certifications.length > 0 && { label: "Certifications", value: driver.certifications.join(", ") },
-  ].filter((row): row is { label: string; value: string } => Boolean(row));
+  ].filter((row): row is { label: string; value: string; selfReported?: boolean } => Boolean(row));
   const { source } = profile;
   const sourceRows = [
     { label: "Came by", value: detail.source.label },
@@ -189,7 +194,7 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
                   disabled={pending || !ready}
                   aria-describedby={ready ? undefined : "approve-reason"}
                 >
-                  Mark Shift-Ready
+                  {CONFIRMATIONS.approved.label}
                 </Button>
                 {!ready && (
                   <span id="approve-reason" className="text-small leading-small text-muted-foreground" data-slot="approve-reason">
@@ -259,7 +264,7 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
               value={driver.reminderSentAt ? format(new Date(driver.reminderSentAt), "MMMM d, yyyy h:mm a") : "Not sent"}
             />
             <Row
-              label="Approval text"
+              label={`${ROSTER_READY} text`}
               value={driver.approvalTextSentAt ? format(new Date(driver.approvalTextSentAt), "MMMM d, yyyy h:mm a") : "Not sent"}
             />
           </dl>
@@ -268,15 +273,15 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
         <Section title="Qualification card">
           <dl className="divide-y divide-border rounded-card border border-border bg-card" data-slot="driver-card">
             <Row label="CDL class" value={summary.cdlClass} />
-            <Row label="Experience" value={summary.experience} />
+            <Row label="Experience" value={summary.experience} selfReported />
             <Row label="Record" value={summary.record} />
-            <Row label="Cards" value={summary.cards} />
+            <Row label="Cards" value={summary.cards} selfReported />
             <Row label="Endorsements" value={summary.endorsements} />
             <Row label="Transmission" value={summary.transmission} />
             <Row label="Equipment" value={summary.equipment} />
             <Row label="Travels" value={`Up to ${driver.serviceRadiusMiles} miles`} />
             {optional.map((row) => (
-              <Row key={row.label} label={row.label} value={row.value} />
+              <Row key={row.label} label={row.label} value={row.value} selfReported={row.selfReported} />
             ))}
           </dl>
           {driver.bio && (

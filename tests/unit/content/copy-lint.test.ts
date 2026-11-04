@@ -1,6 +1,7 @@
 // @vitest-environment node
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import ts from "typescript";
 import { describe, expect, it } from "vitest";
 
 /**
@@ -41,7 +42,7 @@ const RULES: { name: string; pattern: RegExp }[] = [
   { name: "banned phrase (Twilio 30468): first to reply", pattern: /first to reply/i },
   { name: "banned word (Twilio 30468): claim, say book", pattern: /\bclaim(s|ed|ing)?\b/i },
   // CR-5 (2026-11-03): "Verified" implies a background check FleetGrid does not run. Say
-  // Registered or Shift-Ready.
+  // Registered or Roster-Ready.
   { name: "banned word (CR-5): verified", pattern: /\bverified\b/i },
 ];
 
@@ -111,13 +112,82 @@ function sourceFiles(dir: string): string[] {
   });
 }
 
-describe("no Verified anywhere a person reads (CR-5)", () => {
-  it.each(["src/app", "src/components", "src/content", "src/lib"])("the strings of %s never say Verified", (dir) => {
+/**
+ * What a person can read in a source file: string and template literals and JSX text, from
+ * the syntax tree. Comments, imports and code are not read, and neither is a lone lowercase
+ * word such as "approved" or "driver-approved": those are internal names and database values.
+ */
+function readableCopy(source: string, fileName = "copy.tsx"): string[] {
+  const file = ts.createSourceFile(fileName, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const found: string[] = [];
+  const visit = (node: ts.Node) => {
+    if (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) return;
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) found.push(node.text);
+    else if (ts.isTemplateExpression(node)) {
+      found.push(node.head.text, ...node.templateSpans.map((span) => span.literal.text));
+    } else if (ts.isJsxText(node) && node.text.trim()) found.push(node.text.replace(/\s+/g, " ").trim());
+    ts.forEachChild(node, visit);
+  };
+  visit(file);
+  return found.filter((text) => !/^[a-z][a-z0-9_-]*$/.test(text));
+}
+
+/** Annie's list (2026-11-04). */
+const REVIEW_WORDS = /\b(verified|vetted|approved?|approves|approving|approval|screened|candidates?)\b/i;
+
+/**
+ * Texts Twilio or the client signed off word for word, which only the user may change. Each is
+ * waiting on the user's OK for new wording; delete the line when the text changes.
+ */
+const WORDING_ON_HOLD = new Set([
+  "FleetGrid: Your profile is approved. You'll get texts when matching shifts open. Reply STOP to opt out.",
+]);
+
+const COPY_DIRS = ["src/app", "src/components", "src/content", "src/lib", "src/server"];
+const LABELS_FILE = join("src", "lib", "drivers", "tiers.ts");
+
+describe("the review words (Annie, 2026-11-04)", () => {
+  it.each(COPY_DIRS)("nothing a person reads in %s says verified, vetted, approved, screened or candidate", (dir) => {
     const hits = sourceFiles(dir).flatMap((file) =>
-      stringsOf(readFileSync(file, "utf8"))
-        .filter((text) => /\bverified\b/i.test(text))
+      readableCopy(readFileSync(file, "utf8"))
+        .filter((text) => REVIEW_WORDS.test(text) && !WORDING_ON_HOLD.has(text))
         .map((text) => `${file}: "${text}"`),
     );
     expect(hits).toEqual([]);
+  });
+
+  it.each(COPY_DIRS)("%s never says the retired Shift-Ready", (dir) => {
+    const hits = sourceFiles(dir).flatMap((file) =>
+      readableCopy(readFileSync(file, "utf8"))
+        .filter((text) => /shift[- ]ready/i.test(text))
+        .map((text) => `${file}: "${text}"`),
+    );
+    expect(hits).toEqual([]);
+  });
+
+  it.each(COPY_DIRS)("%s takes Roster-Ready and Documented profile from the one constant", (dir) => {
+    const hits = sourceFiles(dir)
+      .filter((file) => file !== LABELS_FILE)
+      .flatMap((file) =>
+        readableCopy(readFileSync(file, "utf8"))
+          .filter((text) => /Roster-Ready|Documented profile/.test(text))
+          .map((text) => `${file}: "${text}"`),
+      );
+    expect(hits).toEqual([]);
+  });
+
+  it("the detector reads JSX text and strings, and leaves comments and internal names alone", () => {
+    const flagged = (source: string) => readableCopy(source).filter((text) => REVIEW_WORDS.test(text));
+    expect(flagged(`const a = <p>Every driver here is approved</p>;`)).toHaveLength(1);
+    expect(flagged(`const a = "Approved drivers";`)).toHaveLength(1);
+    expect(flagged("const a = `Once approved, ${name}`;")).toHaveLength(1);
+    expect(flagged(`const a = <Button>Approve</Button>;`)).toHaveLength(1);
+    expect(flagged(`const a = "Approve";`)).toHaveLength(1);
+    for (const words of ["vetted drivers", "a screened driver", "Candidates", "Verified", "Approval text"]) {
+      expect(flagged(`const a = ${JSON.stringify(words)};`), words).toHaveLength(1);
+    }
+    expect(flagged(`// approved by Annie\nconst a = 1;`)).toEqual([]);
+    expect(flagged(`const a = status === "approved" ? "driver_approved" : "approve-reason";`)).toEqual([]);
+    expect(flagged(`import { x } from "@/approved/thing";`)).toEqual([]);
   });
 });

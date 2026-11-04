@@ -10,7 +10,7 @@ interface StatusStyle {
 
 const STATUS_STYLES: Record<AccountStatus, StatusStyle> = {
   pending: { label: "Pending review", icon: Clock, variant: "warning" },
-  approved: { label: "Approved", icon: CircleCheck, variant: "success" },
+  approved: { label: "Active", icon: CircleCheck, variant: "success" },
   blocked: { label: "Blocked", icon: Ban, variant: "destructive" },
 };
 

@@ -60,7 +60,7 @@ describe("the one-time driver texts (change request of 2026-11-01, approved by A
   });
 });
 
-describe("the Shift-Ready texts (change request CR-5, approved by Annie 2026-11-03)", () => {
+describe("the Roster-Ready texts (change request CR-5, approved by Annie 2026-11-03)", () => {
   it("are word for word", () => {
     expect(welcomeText("Maria")).toBe(
       "FleetGrid: Thanks for signing up, Maria. Upload your CDL and medical card at fleetgridus.com/driver to start getting shift offers. Reply STOP to opt out.",

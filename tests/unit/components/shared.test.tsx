@@ -182,7 +182,7 @@ describe("EmptyState", () => {
 describe("StatusBadge", () => {
   it.each([
     ["pending", "Pending review", "bg-warning-subtle"],
-    ["approved", "Approved", "bg-success-subtle"],
+    ["approved", "Active", "bg-success-subtle"],
     ["blocked", "Blocked", "bg-destructive-subtle"],
   ] as const)("renders %s with its label and color", (status, label, className) => {
     render(<StatusBadge status={status} />);
@@ -192,9 +192,9 @@ describe("StatusBadge", () => {
   });
 
   it("accepts a custom label and className", () => {
-    render(<StatusBadge status="approved" label="Active" className="ml-2" />);
-    const badge = screen.getByText("Active");
+    render(<StatusBadge status="approved" label="Listed" className="ml-2" />);
+    const badge = screen.getByText("Listed");
     expect(badge).toHaveClass("ml-2");
-    expect(screen.queryByText("Approved")).not.toBeInTheDocument();
+    expect(screen.queryByText("Active")).not.toBeInTheDocument();
   });
 });

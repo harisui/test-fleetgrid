@@ -24,9 +24,9 @@ const REQUIREMENTS = {
 /**
  * CR-5 part 3 through real clients: a Registered driver, with or without documents, never
  * appears in a carrier's search, never counts in the match preview and is never offered a
- * shift; a Shift-Ready driver is.
+ * shift; a Roster-Ready driver is.
  */
-describe("only Shift-Ready drivers reach carriers", () => {
+describe("only Roster-Ready drivers reach carriers", () => {
   let carrier: TestCarrier;
   let ready: TestDriver;
   let registered: TestDriver;
@@ -58,7 +58,7 @@ describe("only Shift-Ready drivers reach carriers", () => {
 
   const mine = () => [ready, registered, registeredWithDocuments].map((driver) => driver.driverId);
 
-  it("the carrier's search lists the Shift-Ready driver only", async () => {
+  it("the carrier's search lists the Roster-Ready driver only", async () => {
     const { data, error } = await carrier.client.rpc("search_drivers", {
       p_lat: TEST_PLACES.pasadena.lat,
       p_lng: TEST_PLACES.pasadena.lng,
@@ -70,7 +70,7 @@ describe("only Shift-Ready drivers reach carriers", () => {
     expect(found).toEqual([ready.driverId]);
   });
 
-  it("the match preview and the broadcast count the Shift-Ready driver only", async () => {
+  it("the match preview and the broadcast count the Roster-Ready driver only", async () => {
     const matches = await new ShiftRepository(serviceClient()).matchingDrivers(TEST_PLACES.pasadena, REQUIREMENTS);
     const found = matches.map((match) => match.driverId).filter((id) => mine().includes(id));
     expect(found).toEqual([ready.driverId]);

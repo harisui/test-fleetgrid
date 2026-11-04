@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     template: "%s | FleetGrid",
   },
   description:
-    "Houston-area carriers post open shifts on FleetGrid, and approved local Class A and B CDL drivers book them by text.",
+    "Houston-area carriers post open shifts on FleetGrid, and local Class A and B CDL drivers book them by text.",
   applicationName: "FleetGrid",
   openGraph: { type: "website", siteName: "FleetGrid", locale: "en_US" },
   twitter: { card: "summary_large_image" },

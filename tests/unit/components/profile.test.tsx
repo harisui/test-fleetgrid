@@ -53,7 +53,7 @@ describe("AccountStatusCard", () => {
 
   it.each([
     ["pending", "Registered", /Upload your CDL and medical card/],
-    ["approved", "Shift-Ready", /Carriers near you can see your card/],
+    ["approved", "Roster-Ready", /Carriers near you can see your card/],
     ["blocked", "Blocked", /Contact support/],
   ] as const)("explains the %s status", (status, label, help) => {
     render(<AccountStatusCard profile={buildProfile({ status })} driver={buildDriver()} />);

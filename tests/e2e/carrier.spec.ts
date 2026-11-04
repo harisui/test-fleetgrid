@@ -433,7 +433,7 @@ test.describe("driver search and a driver's page", () => {
       .from("driver_documents")
       .insert({
         driver_id: seedDriver!.id,
-        // A certification: a new CDL photo would send the Shift-Ready driver back to Registered (CR-5).
+        // A certification: a new CDL photo would send the Roster-Ready driver back to Registered (CR-5).
         type: "certification",
         storage_path: path,
         file_name: "e2e-cdl.png",

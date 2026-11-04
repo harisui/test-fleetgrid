@@ -81,7 +81,7 @@ export function DriverResults({ page, query }: DriverResultsProps) {
       <EmptyState
         icon={Users}
         title="No drivers match"
-        description="Widen the distance or drop a filter. New drivers are listed as they are approved."
+        description="Widen the distance or drop a filter. New drivers are listed once their profiles are reviewed."
       />
     );
   }

@@ -58,7 +58,7 @@ export default async function CarrierSearchPage({ searchParams }: PageProps<"/ca
         <h1 className="font-heading text-h1 leading-h1 font-semibold">Find drivers</h1>
         <p className="text-helper leading-helper text-muted-foreground">
           Listed drivers near your yard at {carrier.city}, {carrier.state} {carrier.zip}, nearest
-          first. Every driver here is approved, has a complete card and takes shift offers by text.
+          first. Every driver here has a documented profile, a complete card and takes shift offers by text.
         </p>
       </div>
       {error && (

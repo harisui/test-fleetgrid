@@ -14,7 +14,7 @@ const doneScreen = () => document.querySelector("[data-slot=done-screen]");
 
 /** The client's words of 2026-10-25, with the SMS line for drivers who said yes to texts. */
 const REVIEW_TEXT =
-  "Your profile is being reviewed for the Houston FleetGrid Network. Once approved, carriers can find you daily.";
+  "Your profile is being reviewed for the Houston FleetGrid Network. Once you're Roster-Ready, carriers can find you daily.";
 const SMS_LINE = "Keep an eye out for SMS shift alerts on your phone.";
 const DOCUMENTS_STEP = "You can add your CDL and medical card any time from Documents.";
 

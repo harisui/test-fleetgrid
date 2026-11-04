@@ -1,5 +1,6 @@
 import type { AdminDriversQuery } from "@/lib/validation/admin.schema";
 import type { AccountStatus } from "@/types/domain";
+import { ROSTER_READY } from "@/lib/drivers/tiers";
 
 /** Words and links of the admin's Drivers page. */
 
@@ -9,7 +10,7 @@ export const ADMIN_DRIVERS_PATH = "/admin/drivers";
 export const REVIEW_STATUS_OPTIONS = [
   { value: "", label: "Any status" },
   { value: "pending", label: "Registered" },
-  { value: "approved", label: "Shift-Ready" },
+  { value: "approved", label: ROSTER_READY },
   { value: "blocked", label: "Blocked" },
 ] as const;
 
@@ -41,7 +42,7 @@ export const CDL_STATE_FILTER_OPTIONS = [
 
 /** The toast after each action. */
 export const STATUS_DONE: Record<AccountStatus, string> = {
-  approved: "Shift-Ready. Subscribed carriers can find this driver, and matching shifts reach them.",
+  approved: `${ROSTER_READY}. Subscribed carriers can find this driver, and matching shifts reach them.`,
   blocked: "Blocked. The driver is signed out and hidden from carriers.",
   pending: "Registered. The driver is out of carrier search and gets no shift offers.",
 };
@@ -52,10 +53,10 @@ export const CONFIRMATIONS: Record<
   { title: (name: string) => string; description: (name: string) => string; label: string; pending: string }
 > = {
   approved: {
-    title: (name) => `Mark ${name} Shift-Ready?`,
+    title: (name) => `Mark ${name} ${ROSTER_READY}?`,
     description: (name) =>
       `Subscribed carriers can find ${name} from now on, and matching shifts are texted to them.`,
-    label: "Mark Shift-Ready",
+    label: `Mark ${ROSTER_READY}`,
     pending: "Saving...",
   },
   blocked: {
@@ -66,7 +67,7 @@ export const CONFIRMATIONS: Record<
   },
   pending: {
     title: (name) => `Move ${name} to Registered?`,
-    description: (name) => `${name} leaves carrier search and gets no shift offers until marked Shift-Ready again.`,
+    description: (name) => `${name} leaves carrier search and gets no shift offers until marked ${ROSTER_READY} again.`,
     label: "Move to Registered",
     pending: "Saving...",
   },

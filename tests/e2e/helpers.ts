@@ -262,7 +262,7 @@ export async function addDriverCardAtStep(
 }
 
 /**
- * Makes a seeded driver Shift-Ready (CR-5): the CDL front, the CDL back and the medical card
+ * Makes a seeded driver Roster-Ready (CR-5): the CDL front, the CDL back and the medical card
  * (rows only; no file is fetched in these flows), then approved through the database's own
  * check, which refuses a driver who misses anything.
  */

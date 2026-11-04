@@ -1,6 +1,7 @@
 import { CANCELLED_SHIFT_DRIVER, QUIET_HOURS_CARRIER, QUIET_HOURS_DRIVER } from "@/content/quiet-hours";
 import { SUBSCRIPTION_PRICE_LABEL } from "@/lib/constants";
 import type { CopyStatus } from "@/content/marketing";
+import { ROSTER_READY } from "@/lib/drivers/tiers";
 
 /**
  * Every question and answer on /faq, in one place. The carriers and drivers pages show five
@@ -52,9 +53,9 @@ export const FAQ_CARRIERS: FaqGroup = {
     },
     {
       id: "carrier-approval",
-      question: "How are drivers approved?",
+      question: "How are drivers reviewed?",
       answer:
-        "FleetGrid staff review every new card before carriers can see it: the answers are checked for completeness and plausibility. Approved cards are listed; the rest are held.",
+        "FleetGrid staff review every new card before carriers can see it: the answers are checked for completeness and plausibility. Cards that pass and have their documents on file are listed as documented profiles; the rest are held.",
     },
     {
       // LEGAL REVIEW
@@ -137,9 +138,9 @@ export const FAQ_DRIVERS: FaqGroup = {
     {
       // CLIENT INPUT: the turnaround. No promise until the client gives one.
       id: "driver-approval-time",
-      question: "How long does approval take?",
+      question: "How long does review take?",
       answer:
-        "FleetGrid staff review cards as they come in. Your profile page shows your status, and carriers can find you once it reads Approved.",
+        `FleetGrid staff review cards as they come in. Your profile page shows your status, and carriers can find you once it reads ${ROSTER_READY}.`,
     },
     {
       id: "driver-texts",

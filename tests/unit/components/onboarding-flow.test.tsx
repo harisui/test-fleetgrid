@@ -647,7 +647,7 @@ describe("Finish page: consent and done", () => {
     expect(screen.queryByText(/New shifts arrive by text/)).not.toBeInTheDocument();
     // The client's words (2026-10-25) without the SMS line: this driver declined texts.
     expect(document.querySelector("[data-slot=done-text]")).toHaveTextContent(
-      "Your profile is being reviewed for the Houston FleetGrid Network. Once approved, carriers can find you daily.",
+      "Your profile is being reviewed for the Houston FleetGrid Network. Once you're Roster-Ready, carriers can find you daily.",
     );
     expect(document.body.textContent).not.toMatch(/SMS shift alerts|We will text you/);
   });
@@ -672,7 +672,7 @@ describe("Finish page: consent and done", () => {
     expect(router.refresh).toHaveBeenCalledOnce();
     // Drivers start as pending: the done screen says so, in the client's words (2026-10-25).
     expect(document.querySelector("[data-slot=done-text]")).toHaveTextContent(
-      "Your profile is being reviewed for the Houston FleetGrid Network. Once approved, carriers can find you daily. Keep an eye out for SMS shift alerts on your phone.",
+      "Your profile is being reviewed for the Houston FleetGrid Network. Once you're Roster-Ready, carriers can find you daily. Keep an eye out for SMS shift alerts on your phone.",
     );
     expect(document.body.textContent).not.toMatch(/now active|can now find you|business day|within \d/);
     expect(screen.getByRole("link", { name: "Go to my profile" })).toHaveAttribute(

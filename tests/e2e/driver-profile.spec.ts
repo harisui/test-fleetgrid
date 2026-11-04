@@ -122,10 +122,10 @@ test.describe("driver profile", () => {
     await expect(status.getByText("Registered", { exact: true })).toBeVisible();
   });
 
-  test("a Shift-Ready driver sees Shift-Ready", async ({ page }) => {
+  test("a Roster-Ready driver sees Roster-Ready", async ({ page }) => {
     await startWithCompletedCard(page, { status: "approved" });
     await expect(
-      page.getByRole("region", { name: "Account status" }).getByText("Shift-Ready", { exact: true }),
+      page.getByRole("region", { name: "Account status" }).getByText("Roster-Ready", { exact: true }),
     ).toBeVisible();
   });
 
