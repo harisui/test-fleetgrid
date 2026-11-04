@@ -33,6 +33,18 @@ export const SOURCE_OPTIONS = [
   { value: "direct", label: "Direct or unknown" },
 ] as const;
 
+export const MISSING_DOCUMENT_OPTIONS = [
+  { value: "", label: "Any documents" },
+  { value: "any", label: "Missing documents" },
+  { value: "cdl", label: "Missing: CDL" },
+  { value: "medical", label: "Missing: medical card" },
+] as const;
+
+export const REREVIEW_OPTIONS = [
+  { value: "", label: "Any review" },
+  { value: "yes", label: "Re-review needed" },
+] as const;
+
 export const CDL_STATE_FILTER_OPTIONS = [
   { value: "", label: "Any CDL state" },
   { value: "tx", label: "Texas CDL" },
@@ -88,6 +100,8 @@ const QUERY_DEFAULTS: Partial<Record<keyof AdminDriversQuery, string>> = {
   source: "",
   selfReport: "",
   cdl: "",
+  docs: "",
+  rereview: "",
   q: "",
   sort: "created",
   dir: "desc",
@@ -104,6 +118,8 @@ export function driversFilters(query: AdminDriversQuery) {
     source: query.source,
     selfReport: query.selfReport,
     cdl: query.cdl,
+    docs: query.docs,
+    rereview: query.rereview,
     qr: query.qr,
     sort: query.sort,
     dir: query.dir,
@@ -113,7 +129,7 @@ export function driversFilters(query: AdminDriversQuery) {
 /** The Drivers page for a query, leaving out every parameter at its default. */
 export function driversHref(query: Partial<Record<keyof AdminDriversQuery, string | number | undefined>>): string {
   const params = new URLSearchParams();
-  for (const key of ["q", "status", "complete", "area", "source", "selfReport", "cdl", "qr", "sort", "dir", "page", "open"] as const) {
+  for (const key of ["q", "status", "complete", "area", "source", "selfReport", "cdl", "docs", "rereview", "qr", "sort", "dir", "page", "open"] as const) {
     const value = query[key];
     if (value === undefined || value === "" || String(value) === QUERY_DEFAULTS[key]) continue;
     params.set(key, String(value));

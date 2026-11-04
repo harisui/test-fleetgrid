@@ -49,13 +49,16 @@ beforeEach(() => {
 });
 
 describe("SignupTiles", () => {
-  it("shows the five counts with percentages", () => {
-    render(<SignupTiles tiles={{ today: 3, thisWeek: 12, thisMonth: 40, completePercent: 64, smsPercent: null }} />);
+  it("shows the counts with percentages, and the Roster-Ready count (CR-5)", () => {
+    render(<SignupTiles tiles={{ today: 3, thisWeek: 12, thisMonth: 40, completePercent: 64, smsPercent: null, rosterReady: 17 }} />);
     const grid = screen.getByRole("region", { name: "Sign-ups" });
     expect(within(grid).getByText("40")).toBeInTheDocument();
     expect(within(grid).getByText("64%")).toBeInTheDocument();
     expect(within(grid).getByText("0%")).toBeInTheDocument();
     expect(within(grid).getByText("SMS opt-in")).toBeInTheDocument();
+    expect(within(grid).getByText("Complete")).toBeInTheDocument();
+    expect(within(grid).getByText("Roster-Ready")).toBeInTheDocument();
+    expect(within(grid).getByText("17")).toBeInTheDocument();
   });
 });
 

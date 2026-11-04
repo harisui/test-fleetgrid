@@ -2,6 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DriverDetailSheet } from "@/components/admin/DriverDetailSheet";
+import { MissingDocumentsBadge } from "@/components/admin/MissingDocumentsBadge";
 import { DriversTable } from "@/components/admin/DriversTable";
 import { DriverTiles } from "@/components/admin/DriverTiles";
 import { adminDriversQuerySchema } from "@/lib/validation/admin.schema";
@@ -55,11 +56,12 @@ const row = (overrides: Partial<AdminDriverRow> = {}): AdminDriverRow => ({
   inServiceArea: true,
   complete: true,
   source: { kind: "direct", label: "Direct or unknown", qrLinkId: null },
+  missingDocuments: [],
   ...overrides,
 });
 
 const page = (overrides: Partial<AdminDriversPage> = {}): AdminDriversPage => ({
-  tiles: { total: 2, pending: 1, approved: 1, blocked: 0, incomplete: 1, today: 1, thisWeek: 2 },
+  tiles: { total: 2, pending: 1, approved: 1, blocked: 0, incomplete: 1, missingDocuments: 5, remindersSent: 6, today: 1, thisWeek: 2 },
   rows: [],
   total: 0,
   page: 1,
@@ -91,6 +93,36 @@ describe("DriverTiles", () => {
     }
     // Registered, Roster-Ready, Incomplete and Today are each 1.
     expect(within(grid).getAllByText("1")).toHaveLength(4);
+    expect(within(grid).getByText("Missing documents").parentElement).toHaveTextContent("5");
+    expect(within(grid).getByText("Reminders sent").parentElement).toHaveTextContent("6");
+  });
+});
+
+describe("MissingDocumentsBadge (CR-5)", () => {
+  it.each([
+    [["cdl_front"], "Missing: CDL"],
+    [["cdl_front", "cdl_back"], "Missing: CDL"],
+    [["medical_card"], "Missing: medical card"],
+    [["cdl_back", "medical_card"], "Missing: CDL / medical card"],
+  ] as const)("%j reads %s, with an icon as well as the word", (missing, label) => {
+    render(<MissingDocumentsBadge status="pending" missing={missing} />);
+    const badge = document.querySelector("[data-slot=missing-documents]");
+    expect(badge).toHaveTextContent(label);
+    expect(badge?.querySelector("svg")).not.toBeNull();
+  });
+
+  it("shows nothing when all are in, or for a driver who is not Registered", () => {
+    const { rerender } = render(<MissingDocumentsBadge status="pending" missing={[]} />);
+    expect(document.querySelector("[data-slot=missing-documents]")).toBeNull();
+    rerender(<MissingDocumentsBadge status="blocked" missing={["cdl_front"]} />);
+    expect(document.querySelector("[data-slot=missing-documents]")).toBeNull();
+    rerender(<MissingDocumentsBadge status="approved" missing={["cdl_front"]} />);
+    expect(document.querySelector("[data-slot=missing-documents]")).toBeNull();
+  });
+
+  it("appears on the list beside the status", () => {
+    render(<DriversTable page={page({ rows: [row({ missingDocuments: ["medical_card"] })], total: 1 })} />);
+    expect(screen.getAllByText("Missing: medical card").length).toBeGreaterThan(0);
   });
 });
 

@@ -100,8 +100,11 @@ describe("AnalyticsService", () => {
   });
 
   it("counts the tiles in Houston time", async () => {
+    admin.rows.forEach((item, index) => {
+      item.profile = { ...item.profile, status: index === 0 ? "approved" : "pending" };
+    });
     const { tiles } = await service.getOverview(ADMIN_ID, {});
-    expect(tiles).toEqual({ today: 1, thisWeek: 2, thisMonth: 3, completePercent: 75, smsPercent: 75 });
+    expect(tiles).toEqual({ today: 1, thisWeek: 2, thisMonth: 3, completePercent: 75, smsPercent: 75, rosterReady: 1 });
   });
 
   it("lists the sources for the period, sorted by sign-ups, with visits for the codes only", async () => {

@@ -1,4 +1,5 @@
 import { StatTile, StatTileGrid } from "@/components/admin/StatTile";
+import { ROSTER_READY } from "@/lib/drivers/tiers";
 import type { SignupTiles as Tiles } from "@/server/services/AnalyticsService";
 
 const pct = (value: number | null) => (value === null ? "0%" : `${value}%`);
@@ -12,6 +13,7 @@ export function SignupTiles({ tiles }: { tiles: Tiles }) {
       <StatTile label="This month" value={tiles.thisMonth} caption="since the 1st" />
       <StatTile label="Complete" value={pct(tiles.completePercent)} caption="of profiles finished" />
       <StatTile label="SMS opt-in" value={pct(tiles.smsPercent)} caption="said yes to shift texts" />
+      <StatTile label={ROSTER_READY} value={tiles.rosterReady} caption="drivers listed to carriers" />
     </StatTileGrid>
   );
 }

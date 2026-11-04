@@ -23,6 +23,10 @@ export const SOURCE_FILTERS = ["", "qr", "campaign", "direct"] as const;
 export const SELF_REPORT_FILTERS = ["", "yes", "none"] as const;
 /** The state that issued the CDL (CR-5): Texas, another state, or not answered yet. */
 export const CDL_STATE_FILTERS = ["", "tx", "other", "none"] as const;
+/** What a Registered driver still has to upload (CR-5). */
+export const MISSING_DOCUMENT_FILTERS = ["", "any", "cdl", "medical"] as const;
+/** A driver sent back to Registered because a required document or the CDL state changed. */
+export const REREVIEW_FILTERS = ["", "yes"] as const;
 export const DRIVER_SORTS = ["created", "name", "status"] as const;
 export const SORT_DIRECTIONS = ["asc", "desc"] as const;
 
@@ -40,6 +44,8 @@ export const adminDriversQuerySchema = z.object({
   source: oneOf(SOURCE_FILTERS, ""),
   selfReport: oneOf(SELF_REPORT_FILTERS, ""),
   cdl: oneOf(CDL_STATE_FILTERS, ""),
+  docs: oneOf(MISSING_DOCUMENT_FILTERS, ""),
+  rereview: oneOf(REREVIEW_FILTERS, ""),
   /** One QR code's sign-ups only (linked from the Analytics page). */
   qr: optionalId,
   /** Name, phone or ZIP. */

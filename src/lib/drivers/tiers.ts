@@ -38,6 +38,18 @@ export const SHIFT_READY_ITEM_LABELS: Record<ShiftReadyItem, string> = {
   profile: "Profile not complete",
 };
 
+/** The documents a driver lacks, in the checklist's order. */
+export function missingDocuments(documentTypes: readonly DocumentType[]): DocumentType[] {
+  return REQUIRED_DOCUMENTS.filter((type) => !documentTypes.includes(type));
+}
+
+/** "Missing: CDL", "Missing: medical card" or "Missing: CDL / medical card" on the admin's list. */
+export function missingDocumentsLabel(missing: readonly DocumentType[]): string {
+  const cdl = missing.includes("cdl_front") || missing.includes("cdl_back");
+  const parts = [cdl && "CDL", missing.includes("medical_card") && "medical card"].filter(Boolean);
+  return `Missing: ${parts.join(" / ")}`;
+}
+
 /** What the driver reads for each missing item, and where it is put right. */
 export const DRIVER_MISSING_ITEMS: Record<ShiftReadyItem, { label: string; href: string }> = {
   cdl_front: { label: "CDL front photo", href: "/driver/documents?type=cdl_front" },

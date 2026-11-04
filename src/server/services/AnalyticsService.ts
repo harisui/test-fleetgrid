@@ -16,6 +16,8 @@ export interface SignupTiles {
   completePercent: number | null;
   /** Of every driver, the share who said yes to shift texts, 0 to 100. Null with no drivers. */
   smsPercent: number | null;
+  /** Drivers marked Roster-Ready (CR-5). */
+  rosterReady: number;
 }
 
 export type SourceKind = "qr" | "campaign" | "heard_from" | "direct";
@@ -116,6 +118,7 @@ export class AnalyticsService {
       thisMonth: since(month),
       completePercent: percent(drivers.filter((row) => row.driver.cardCompleted).length, drivers.length),
       smsPercent: percent(drivers.filter((row) => row.driver.smsOptIn && !row.driver.smsOptedOut).length, drivers.length),
+      rosterReady: drivers.filter((row) => row.profile.status === "approved").length,
     };
   }
 

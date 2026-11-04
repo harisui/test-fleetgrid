@@ -4,6 +4,7 @@ import { ADMIN_PAGE_SIZE, DEFAULT_TIMEZONE, SIGNED_URL_TTL_SECONDS } from "@/lib
 import {
   REQUIRED_DOCUMENTS,
   SHIFT_READY_ITEM_LABELS,
+  missingDocuments,
   shiftReadyMissing,
   type ShiftReadyItem,
 } from "@/lib/drivers/tiers";
@@ -31,6 +32,7 @@ import type {
   Profile,
   QrLink,
   ServiceArea,
+  DocumentType,
 } from "@/types/domain";
 import { ROSTER_READY } from "@/lib/drivers/tiers";
 
@@ -40,6 +42,8 @@ export interface AdminDriverRow extends DriverReviewRow {
   inServiceArea: boolean | null;
   complete: boolean;
   source: DriverSource;
+  /** The required documents this driver has not uploaded (CR-5). */
+  missingDocuments: DocumentType[];
 }
 
 export interface DriverTiles {
@@ -48,6 +52,10 @@ export interface DriverTiles {
   approved: number;
   blocked: number;
   incomplete: number;
+  /** Registered drivers still missing a required document (CR-5). */
+  missingDocuments: number;
+  /** Missing-documents reminders sent in the last 7 days (CR-5). */
+  remindersSent: number;
   /** Sign-ups since midnight in the business time zone. */
   today: number;
   /** Sign-ups since Monday midnight in the business time zone. */
@@ -117,13 +125,18 @@ export class AdminService {
     await this.requireAdmin(adminId);
     const query = parseInput(adminDriversQuerySchema, input);
     const links = await this.qrLinks.list();
-    const all = await this.locate(await this.admin.listDrivers(), links);
+    const [drivers, held, remindersSent] = await Promise.all([
+      this.admin.listDrivers(),
+      this.admin.listRequiredDocuments(),
+      this.admin.countDocRemindersSince(new Date(this.now().getTime() - 7 * 24 * 60 * 60 * 1000).toISOString()),
+    ]);
+    const all = await this.locate(drivers, links, held);
     const matching = sortRows(all.filter((row) => matches(row, query)), query);
     const pageCount = Math.max(1, Math.ceil(matching.length / ADMIN_PAGE_SIZE));
     const page = Math.min(query.page, pageCount);
     const start = (page - 1) * ADMIN_PAGE_SIZE;
     return {
-      tiles: this.tiles(all),
+      tiles: this.tiles(all, remindersSent),
       rows: matching.slice(start, start + ADMIN_PAGE_SIZE),
       total: matching.length,
       page,
@@ -139,11 +152,15 @@ export class AdminService {
     const row = await this.admin.findDriver(driverId);
     if (!row) throw AppError.notFound("Driver not found");
     const link = row.profile.source.qrLinkId ? await this.qrLinks.findById(row.profile.source.qrLinkId) : null;
-    const [located] = await this.locate([row], link ? [link] : []);
     const [documents, history] = await Promise.all([
       this.documents.listByDriverId(driverId),
       this.admin.listAudit("driver", driverId),
     ]);
+    const [located] = await this.locate(
+      [row],
+      link ? [link] : [],
+      documents.map((document) => ({ driverId, type: document.type })),
+    );
     const photos = await Promise.all(
       REQUIRED_DOCUMENTS.map(async (type): Promise<ShiftReadyPhoto> => {
         const document =
@@ -253,7 +270,13 @@ export class AdminService {
   }
 
   /** The area answer and the source for each row; `links` are the codes the rows may name. */
-  private async locate(rows: DriverReviewRow[], links: QrLink[]): Promise<AdminDriverRow[]> {
+  private async locate(
+    rows: DriverReviewRow[],
+    links: QrLink[],
+    held: readonly { driverId: string; type: DocumentType }[],
+  ): Promise<AdminDriverRow[]> {
+    const heldBy = new Map<string, DocumentType[]>();
+    for (const { driverId, type } of held) heldBy.set(driverId, [...(heldBy.get(driverId) ?? []), type]);
     const areas: ServiceArea[] = rows.some((row) => row.driver.lat !== null && row.driver.lng !== null)
       ? await this.serviceAreas.listActive()
       : [];
@@ -265,11 +288,12 @@ export class AdminService {
           ? null
           : isInsideAnyArea(row.driver.lat, row.driver.lng, areas),
       complete: row.driver.cardCompleted,
+      missingDocuments: missingDocuments(heldBy.get(row.driver.id) ?? []),
       source: describeSource(row.profile.source, byId.get(row.profile.source.qrLinkId ?? "") ?? null),
     }));
   }
 
-  private tiles(rows: AdminDriverRow[]): DriverTiles {
+  private tiles(rows: AdminDriverRow[], remindersSent: number): DriverTiles {
     const local = toZonedTime(this.now(), DEFAULT_TIMEZONE);
     const today = fromZonedTime(startOfDay(local), DEFAULT_TIMEZONE).getTime();
     const week = fromZonedTime(startOfWeek(local, { weekStartsOn: 1 }), DEFAULT_TIMEZONE).getTime();
@@ -280,6 +304,8 @@ export class AdminService {
       approved: count((row) => row.profile.status === "approved"),
       blocked: count((row) => row.profile.status === "blocked"),
       incomplete: count((row) => !row.complete),
+      missingDocuments: count((row) => row.profile.status === "pending" && row.missingDocuments.length > 0),
+      remindersSent,
       today: count((row) => Date.parse(row.driver.createdAt) >= today),
       thisWeek: count((row) => Date.parse(row.driver.createdAt) >= week),
     };
@@ -308,6 +334,13 @@ export function matches(row: AdminDriverRow, query: AdminDriversQuery): boolean 
   if (query.cdl === "tx" && row.driver.cdlState !== "TX") return false;
   if (query.cdl === "other" && (row.driver.cdlState === null || row.driver.cdlState === "TX")) return false;
   if (query.cdl === "none" && row.driver.cdlState !== null) return false;
+  if (query.docs) {
+    const lacks = row.profile.status === "pending" ? row.missingDocuments : [];
+    if (query.docs === "any" && lacks.length === 0) return false;
+    if (query.docs === "cdl" && !lacks.includes("cdl_front") && !lacks.includes("cdl_back")) return false;
+    if (query.docs === "medical" && !lacks.includes("medical_card")) return false;
+  }
+  if (query.rereview === "yes" && !row.driver.rereviewNeeded) return false;
   if (query.selfReport === "yes" && row.driver.clearinghouseSelfReportedAt === null) return false;
   if (query.selfReport === "none" && row.driver.clearinghouseSelfReportedAt !== null) return false;
   if (query.q) {

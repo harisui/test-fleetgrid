@@ -196,8 +196,56 @@ describe("AdminService", () => {
         approved: 1,
         blocked: 0,
         incomplete: 1,
+        missingDocuments: 2,
+        remindersSent: 0,
         today: 1,
         thisWeek: 2,
+      });
+    });
+
+    describe("documents (CR-5)", () => {
+      const allThree = (driverId: string) =>
+        (["cdl_front", "cdl_back", "medical_card"] as const).map((type) => ({ driverId, type }));
+
+      it("counts Registered drivers missing a document, not an approved row or one with them all", async () => {
+        admin.requiredDocuments = allThree(D1);
+        const { tiles, rows: listed } = await service.getDriversPage(ADMIN_ID, {});
+        expect(tiles.missingDocuments).toBe(1);
+        expect(listed.find((row) => row.driver.id === D1)?.missingDocuments).toEqual([]);
+        expect(listed.find((row) => row.driver.id === D3)?.missingDocuments).toEqual(["cdl_front", "cdl_back", "medical_card"]);
+      });
+
+      it("counts the reminders of the last 7 days only", async () => {
+        const at = (days: number) => new Date(NOW.getTime() - days * 24 * 60 * 60 * 1000).toISOString();
+        admin.reminderTimes = [at(1), at(6.9), at(7.1), at(30)];
+        expect((await service.getDriversPage(ADMIN_ID, {})).tiles.remindersSent).toBe(2);
+      });
+
+      it("filters by what is missing, among Registered drivers only", async () => {
+        admin.requiredDocuments = [
+          { driverId: D1, type: "cdl_front" },
+          { driverId: D1, type: "cdl_back" },
+          { driverId: D3, type: "medical_card" },
+        ];
+        const names = async (query: Record<string, string>) =>
+          (await service.getDriversPage(ADMIN_ID, query)).rows.map((row) => row.driver.fullName).sort();
+        expect(await names({ docs: "any" })).toEqual(["Lee Lead", "Pat Driver"]);
+        expect(await names({ docs: "cdl" })).toEqual(["Lee Lead"]);
+        expect(await names({ docs: "medical" })).toEqual(["Pat Driver"]);
+        // Dallas Driver has none on file but is not Registered, so never in these lists.
+        expect(await names({ docs: "nonsense" })).toEqual(["Dallas Driver", "Lee Lead", "Pat Driver"]);
+      });
+
+      it("filters by re-review needed", async () => {
+        admin.rows[0]!.driver = { ...admin.rows[0]!.driver, rereviewNeeded: true };
+        const page = await service.getDriversPage(ADMIN_ID, { rereview: "yes" });
+        expect(page.rows.map((row) => row.driver.id)).toEqual([admin.rows[0]!.driver.id]);
+      });
+
+      it("the detail carries the driver's own missing documents", async () => {
+        await documents.create({ driverId: D1, type: "cdl_front", storagePath: `${D1}/a.png`, fileName: "a.png", mimeType: "image/png", sizeBytes: 10 });
+        const detail = await service.getDriver(ADMIN_ID, { driverId: D1 });
+        expect(detail.missingDocuments).toEqual(["cdl_back", "medical_card"]);
       });
     });
 
@@ -216,6 +264,8 @@ describe("AdminService", () => {
         source: "",
         selfReport: "",
         cdl: "",
+        docs: "",
+        rereview: "",
         qr: undefined,
         q: "",
         sort: "created",

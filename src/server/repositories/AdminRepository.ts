@@ -1,3 +1,4 @@
+import { REQUIRED_DOCUMENTS } from "@/lib/drivers/tiers";
 import { BaseRepository } from "@/server/repositories/BaseRepository";
 import { mapDriver } from "@/server/repositories/DriverRepository";
 import { mapProfile } from "@/server/repositories/ProfileRepository";
@@ -9,6 +10,7 @@ import type {
   AuditTargetType,
   Driver,
   Profile,
+  DocumentType,
 } from "@/types/domain";
 
 type AuditRow = Database["public"]["Tables"]["admin_audit_log"]["Row"];
@@ -32,6 +34,10 @@ export interface IAdminRepository {
   /** Every driver card with its profile, newest first. The admin filters and pages in memory. */
   listDrivers(): Promise<DriverReviewRow[]>;
   findDriver(driverId: string): Promise<DriverReviewRow | null>;
+  /** Which driver holds which required document (CR-5), for the list's "Missing" badges. */
+  listRequiredDocuments(): Promise<{ driverId: string; type: DocumentType }[]>;
+  /** How many missing-documents reminders were sent since this time (CR-5). */
+  countDocRemindersSince(since: string): Promise<number>;
   /** Approves, blocks or reopens a profile. Only admins and the service role may (trigger). */
   setProfileStatus(profileId: string, status: AccountStatus): Promise<Profile>;
   /** The reason a driver without a Texas CDL may be Shift-Ready, or null to clear it (CR-5). */
@@ -69,6 +75,24 @@ export class AdminRepository extends BaseRepository implements IAdminRepository 
         .order("created_at", { ascending: false }),
     );
     return rows.map((row) => ({ driver: mapDriver(row), profile: mapProfile(row.profiles) }));
+  }
+
+  async listRequiredDocuments(): Promise<{ driverId: string; type: DocumentType }[]> {
+    const rows = this.unwrap(
+      await this.supabase.from("driver_documents").select("driver_id, type").in("type", [...REQUIRED_DOCUMENTS]),
+    );
+    return rows.map((row) => ({ driverId: row.driver_id, type: row.type }));
+  }
+
+  async countDocRemindersSince(since: string): Promise<number> {
+    const { count, error } = await this.supabase
+      .from("sms_messages")
+      .select("id", { count: "exact", head: true })
+      .eq("kind", "doc_reminder")
+      .eq("direction", "outbound")
+      .gte("created_at", since);
+    if (error) throw this.toAppError(error);
+    return count ?? 0;
   }
 
   async findDriver(driverId: string): Promise<DriverReviewRow | null> {

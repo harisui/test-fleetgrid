@@ -4,7 +4,7 @@ import type {
   DriverReviewRow,
   IAdminRepository,
 } from "@/server/repositories/AdminRepository";
-import type { AccountStatus, AuditEntry, AuditTargetType, Profile } from "@/types/domain";
+import type { AccountStatus, AuditEntry, AuditTargetType, DocumentType, Profile } from "@/types/domain";
 
 /** In-memory stand-in for AdminRepository over a list of driver cards with their profiles. */
 export class FakeAdminRepository implements IAdminRepository {
@@ -23,6 +23,19 @@ export class FakeAdminRepository implements IAdminRepository {
 
   async listDrivers(): Promise<DriverReviewRow[]> {
     return [...this.rows].sort((a, b) => b.driver.createdAt.localeCompare(a.driver.createdAt));
+  }
+
+  /** Required documents on file, by driver. */
+  requiredDocuments: { driverId: string; type: DocumentType }[] = [];
+  /** The times reminders went out; countDocRemindersSince() counts from these. */
+  reminderTimes: string[] = [];
+
+  async listRequiredDocuments() {
+    return this.requiredDocuments;
+  }
+
+  async countDocRemindersSince(since: string) {
+    return this.reminderTimes.filter((time) => time >= since).length;
   }
 
   async findDriver(driverId: string): Promise<DriverReviewRow | null> {

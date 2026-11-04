@@ -5,6 +5,7 @@ import { Users } from "lucide-react";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { DataTable, type DataColumn } from "@/components/admin/DataTable";
 import { FilterBar } from "@/components/admin/FilterBar";
+import { MissingDocumentsBadge } from "@/components/admin/MissingDocumentsBadge";
 import { NotTexasBadge } from "@/components/admin/NotTexasBadge";
 import { RereviewBadge } from "@/components/admin/ShiftReadyReview";
 import { SelfReportBadge } from "@/components/admin/SelfReportBadge";
@@ -16,6 +17,8 @@ import {
   COMPLETE_OPTIONS,
   driversFilters,
   driversHref,
+  MISSING_DOCUMENT_OPTIONS,
+  REREVIEW_OPTIONS,
   REVIEW_STATUS_OPTIONS,
   SELF_REPORT_OPTIONS,
   SOURCE_OPTIONS,
@@ -76,6 +79,7 @@ const COLUMNS: DataColumn<AdminDriverRow>[] = [
       <span className="flex flex-wrap items-center gap-1">
         <AdminStatusBadge kind="driver" status={row.profile.status} />
         {row.driver.rereviewNeeded && <RereviewBadge />}
+        <MissingDocumentsBadge status={row.profile.status} missing={row.missingDocuments} />
       </span>
     ),
     sortable: true,
@@ -126,6 +130,7 @@ function DriverCard({ row }: { row: AdminDriverRow }) {
       <span className="text-helper leading-helper text-muted-foreground">{row.source.label}</span>
       {row.driver.clearinghouseSelfReportedAt && <SelfReportBadge className="self-start" />}
       {row.driver.cdlState !== null && row.driver.cdlState !== "TX" && <NotTexasBadge className="self-start" />}
+      <MissingDocumentsBadge status={row.profile.status} missing={row.missingDocuments} className="self-start" />
     </div>
   );
 }
@@ -135,7 +140,7 @@ export function DriversTable({ page }: { page: AdminDriversPage }) {
   const { query } = page;
   const base = driversFilters(query);
   const filtered = Boolean(
-    query.q || query.status || query.complete || query.area || query.source || query.selfReport || query.cdl || query.qr,
+    query.q || query.status || query.complete || query.area || query.source || query.selfReport || query.cdl || query.docs || query.rereview || query.qr,
   );
   return (
     <section aria-label="Drivers list" className="flex flex-col gap-4">
@@ -149,6 +154,8 @@ export function DriversTable({ page }: { page: AdminDriversPage }) {
           { name: "source", label: "Source", value: query.source, options: SOURCE_OPTIONS },
           { name: "selfReport", label: "Clearinghouse and SAP", value: query.selfReport, options: SELF_REPORT_OPTIONS },
           { name: "cdl", label: "CDL state", value: query.cdl, options: CDL_STATE_FILTER_OPTIONS },
+          { name: "docs", label: "Documents", value: query.docs, options: MISSING_DOCUMENT_OPTIONS },
+          { name: "rereview", label: "Review", value: query.rereview, options: REREVIEW_OPTIONS },
           {
             name: "qr",
             label: "QR code",

@@ -10,6 +10,7 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { DetailSheet } from "@/components/admin/DetailSheet";
 import { DocReminderButton } from "@/components/admin/DocReminderButton";
 import { DriverOpsActions } from "@/components/admin/DriverOpsActions";
+import { MissingDocumentsBadge } from "@/components/admin/MissingDocumentsBadge";
 import { NotTexasBadge } from "@/components/admin/NotTexasBadge";
 import { ShiftReadyReview } from "@/components/admin/ShiftReadyReview";
 import { SelfReportBadge } from "@/components/admin/SelfReportBadge";
@@ -216,6 +217,7 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
             <AdminStatusBadge status="incomplete" />
           )}
           {driver.cdlState !== null && driver.cdlState !== "TX" && <NotTexasBadge />}
+          <MissingDocumentsBadge status={profile.status} missing={detail.missingDocuments} />
           <Badge variant="secondary" data-area={detail.inServiceArea === null ? "unknown" : detail.inServiceArea ? "inside" : "outside"}>
             {areaLabel(detail)}
           </Badge>
