@@ -87,6 +87,18 @@ test.describe("driver documents", () => {
     expect(response.status()).toBe(200);
   });
 
+  test("an image uploads with the CDN blocked: nothing comes from a third party", async ({ page }) => {
+    const external: string[] = [];
+    page.on("request", (request) => {
+      if (request.url().includes("jsdelivr")) external.push(request.url());
+    });
+    await page.route("**/cdn.jsdelivr.net/**", (route) => route.abort());
+    await startWithCard(page);
+    await fileChooser(page).setInputFiles({ name: "cdl.png", mimeType: "image/png", buffer: PNG });
+    await expect(documentList(page).getByRole("listitem")).toHaveCount(1);
+    expect(external).toEqual([]);
+  });
+
   test("uploads a PDF as it is", async ({ page }) => {
     const driverId = await startWithCard(page);
     await page.getByRole("combobox", { name: "Document type" }).click();

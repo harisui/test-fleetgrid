@@ -4,6 +4,7 @@ import {
   isCompressibleImage,
   isWithinImageTarget,
   prepareFileForUpload,
+  IMAGE_WORKER_LIB_PATH,
 } from "@/lib/image";
 
 const MB = 1024 * 1024;
@@ -55,6 +56,7 @@ describe("prepareFileForUpload", () => {
       maxSizeMB: 1,
       maxWidthOrHeight: 2000,
       useWebWorker: true,
+      libURL: `${window.location.origin}${IMAGE_WORKER_LIB_PATH}`,
       fileType: "image/jpeg",
     });
     expect(result).toBeInstanceOf(File);
