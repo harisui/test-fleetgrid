@@ -38,6 +38,16 @@ export const SHIFT_READY_ITEM_LABELS: Record<ShiftReadyItem, string> = {
   profile: "Profile not complete",
 };
 
+/** What the driver reads for each missing item, and where it is put right. */
+export const DRIVER_MISSING_ITEMS: Record<ShiftReadyItem, { label: string; href: string }> = {
+  cdl_front: { label: "CDL front photo", href: "/driver/documents?type=cdl_front" },
+  cdl_back: { label: "CDL back photo", href: "/driver/documents?type=cdl_back" },
+  medical_card: { label: "Medical card", href: "/driver/documents?type=medical_card" },
+  cdl_state: { label: "A Texas CDL", href: "/driver/profile" },
+  last_name: { label: "Your last name", href: "/driver/profile" },
+  profile: { label: "The rest of your profile", href: "/driver/onboarding" },
+};
+
 /** Under the three photos in the admin's Shift-Ready review. */
 export const SHIFT_READY_PHOTO_NOTE = "Check the name, state and expiry match the profile.";
 

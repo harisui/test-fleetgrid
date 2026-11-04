@@ -136,6 +136,12 @@ export const FAQ_DRIVERS: FaqGroup = {
         "You do not have to add them to sign up. Photos of your CDL and medical card can be added from your profile when you are ready, and a carrier reviewing you for a shift can see them.",
     },
     {
+      id: "driver-roster-ready",
+      question: `What do Registered and ${ROSTER_READY} mean?`,
+      answer:
+        `Registered means you signed up. ${ROSTER_READY} means your CDL photos and medical card are on file, your CDL is from Texas, and FleetGrid staff have reviewed your profile. Only ${ROSTER_READY} drivers appear to carriers and get shift offers by text. It is not a background check.`,
+    },
+    {
       // CLIENT INPUT: the turnaround. No promise until the client gives one.
       id: "driver-approval-time",
       question: "How long does review take?",

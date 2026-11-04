@@ -4,7 +4,9 @@ import { redirect } from "next/navigation";
 import { ShiftStatusBadge } from "@/components/shifts/ShiftStatusBadge";
 import { ShiftSummary } from "@/components/shifts/ShiftSummary";
 import { EmptyState } from "@/components/shared/EmptyState";
+import { RosterStatusBanner } from "@/components/driver/RosterStatusBanner";
 import { requireDriverWithCdlState } from "@/lib/auth/guards";
+import { shiftReadyMissing } from "@/lib/drivers/tiers";
 import { formatE164ForDisplay } from "@/lib/phone";
 import { getContainer } from "@/server/container";
 import type { Shift } from "@/types/domain";
@@ -48,12 +50,15 @@ function ShiftCard({ shift }: { shift: Shift }) {
  * here instead of carrying the contact).
  */
 export default async function MyShiftsPage() {
-  const { user } = await requireDriverWithCdlState();
-  const { driverService, shiftService } = await getContainer();
+  const { user, profile } = await requireDriverWithCdlState();
+  const { driverService, shiftService, documentService } = await getContainer();
   const state = await driverService.getOnboardingState(user.id);
   if (!state.completed || !state.driver) redirect("/driver/onboarding");
 
-  const { upcoming, past } = await shiftService.listDriverShifts(state.driver.id);
+  const [{ upcoming, past }, documents] = await Promise.all([
+    shiftService.listDriverShifts(state.driver.id),
+    documentService.list(user.id),
+  ]);
 
   return (
     <div className="flex flex-col gap-6">
@@ -63,6 +68,11 @@ export default async function MyShiftsPage() {
           Shifts you booked by replying YES. Reply STOP to any text to stop shift texts.
         </p>
       </div>
+      <RosterStatusBanner
+        status={profile.status}
+        missing={shiftReadyMissing(state.driver, documents.map((document) => document.type))}
+        textsOn={state.driver.smsOptIn && !state.driver.smsOptedOut}
+      />
       {upcoming.length === 0 ? (
         <EmptyState
           icon={CalendarCheck}

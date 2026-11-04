@@ -40,6 +40,8 @@ const UPLOAD_FAILED = "Upload failed. Please try again.";
 
 interface DocumentUploaderProps {
   initialDocuments: DriverDocument[];
+  /** The document type to start on; the CDL front when not given. */
+  initialType?: DocumentType;
 }
 
 interface Preview {
@@ -51,9 +53,9 @@ interface Preview {
  * Upload, list, preview and delete the driver's own documents.
  * Images are compressed in the browser before upload. PDFs are sent as they are.
  */
-export function DocumentUploader({ initialDocuments }: DocumentUploaderProps) {
+export function DocumentUploader({ initialDocuments, initialType = "cdl_front" }: DocumentUploaderProps) {
   const [documents, setDocuments] = useState(initialDocuments);
-  const [type, setType] = useState<DocumentType>("cdl_front");
+  const [type, setType] = useState<DocumentType>(initialType);
   const [status, setStatus] = useState<string>();
   const [error, setError] = useState<string>();
   const [busyId, setBusyId] = useState<string>();

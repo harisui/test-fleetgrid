@@ -1,12 +1,16 @@
 import type { Metadata } from "next";
 import { DocumentUploader } from "@/components/driver/DocumentUploader";
 import { requireDriverWithCdlState } from "@/lib/auth/guards";
+import { REQUIRED_DOCUMENTS } from "@/lib/drivers/tiers";
 import { getContainer } from "@/server/container";
 
 export const metadata: Metadata = { title: "My documents" };
 
-export default async function DriverDocumentsPage() {
+/** With ?type= (from the Roster-Ready banner's links), the uploader starts on that document. */
+export default async function DriverDocumentsPage({ searchParams }: PageProps<"/driver/documents">) {
   const { user } = await requireDriverWithCdlState();
+  const { type } = await searchParams;
+  const initialType = REQUIRED_DOCUMENTS.find((required) => required === type);
   const { documentService } = await getContainer();
   const documents = await documentService.list(user.id);
 
@@ -18,7 +22,7 @@ export default async function DriverDocumentsPage() {
           Only you and FleetGrid staff can see these files.
         </p>
       </div>
-      <DocumentUploader initialDocuments={documents} />
+      <DocumentUploader initialDocuments={documents} initialType={initialType} />
     </div>
   );
 }
