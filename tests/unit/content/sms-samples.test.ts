@@ -1,4 +1,5 @@
 // @vitest-environment node
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   SMS_ALREADY_BOOKED,
@@ -12,12 +13,24 @@ import {
   SMS_SAMPLE_OFFER,
   SMS_SAMPLE_REPLY,
   SMS_WELCOME_NO_NAME,
+  SMS_ACCOUNT_SECURITY,
+  SMS_TWIC_DATE,
   cdlStateNoticeText,
   DOC_REMINDER_ITEMS,
   docReminderText,
+  NOTICE_POLICIES,
+  NOTICE_SERVICES,
+  NOTICE_STATES,
+  policyChangeText,
+  serviceNoticeText,
+  serviceRestoredText,
   threadWithCode,
   welcomeText,
+  type NoticePolicy,
+  type NoticeService,
+  type NoticeState,
 } from "@/content/sms-samples";
+import { ALREADY_BOOKED_TEXT, APPROVED_TEXT, bookedText, cancelledText, CLOSED_TEXT, FILLED_TEXT, FORMAT_HELP_TEXT, NO_OFFER_TEXT, NOT_ELIGIBLE_TEXT, offerText, OVERLAP_TEXT, PAUSED_TEXT, REMINDER_TEXT } from "@/lib/shifts/texts";
 import { docReminderItems, WELCOME_NAME_MAX, welcomeFirstName } from "@/lib/sms/driverTexts";
 import { smsSegments } from "@/lib/sms/segments";
 
@@ -25,6 +38,54 @@ import { smsSegments } from "@/lib/sms/segments";
  * The three shift texts, word for word as revised for Twilio's toll-free review (rejection
  * 30468, 2026-10-29). Milestone 3 sends these; change them only together with Twilio.
  */
+/** Every text the app can send, each wording filled with the longest values it can take. */
+function everyTemplate(): Record<string, string> {
+  const longest = { cdlClass: "A" as const, city: "Pasadena", state: "TX", startsAt: "2026-09-30T17:00:00.000Z" };
+  const templates: Record<string, string> = {
+    offer: offerText(longest, "4821"),
+    booked: bookedText(longest),
+    bookedLongCity: bookedText({ ...longest, city: "South Houston" }),
+    cancelled: cancelledText(longest),
+    filled: FILLED_TEXT,
+    closed: CLOSED_TEXT,
+    formatHelp: FORMAT_HELP_TEXT,
+    noOffer: NO_OFFER_TEXT,
+    overlap: OVERLAP_TEXT,
+    paused: PAUSED_TEXT,
+    notEligible: NOT_ELIGIBLE_TEXT,
+    alreadyBooked: ALREADY_BOOKED_TEXT,
+    approved: APPROVED_TEXT,
+    reminder: REMINDER_TEXT,
+    twicDate: SMS_TWIC_DATE,
+    security: SMS_ACCOUNT_SECURITY,
+    welcome: welcomeText("Christopher"),
+    welcomeNoName: SMS_WELCOME_NO_NAME,
+    cdlStateOnly: cdlStateNoticeText("Sep 30", null),
+  };
+  for (const items of DOC_REMINDER_ITEMS) {
+    templates[`docReminder ${items}`] = docReminderText(items);
+    templates[`cdlState ${items}`] = cdlStateNoticeText("Sep 30", items);
+  }
+  for (const policy of Object.keys(NOTICE_POLICIES) as NoticePolicy[]) templates[`policy ${policy}`] = policyChangeText(policy, "Sep 30, 2026");
+  for (const service of Object.keys(NOTICE_SERVICES) as NoticeService[]) {
+    templates[`restored ${service}`] = serviceRestoredText(service);
+    for (const state of Object.keys(NOTICE_STATES) as NoticeState[]) templates[`notice ${service} ${state}`] = serviceNoticeText(service, state, "12:00 PM");
+  }
+  return templates;
+}
+
+describe("every text is plain GSM-7 (user, 2026-11-05)", () => {
+  it.each(Object.entries(everyTemplate()))("%s stays GSM-7 and one segment", (_name, text) => {
+    expect(smsSegments(text)).toMatchObject({ encoding: "GSM-7", segments: 1 });
+  });
+
+  it.each(["src/content/sms-samples.ts", "src/lib/shifts/texts.ts"])("%s has no curly quote or other typographic character", (file) => {
+    // A curly apostrophe switches the whole text to Unicode and halves its length.
+    const source = readFileSync(file, "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
+    expect(source.match(/[\u2018\u2019\u201C\u201D\u2013\u2014\u2026\u00A0]/g)).toBeNull();
+  });
+});
+
 describe("the SMS templates (Twilio 30468)", () => {
   it("are the exact first-party texts", () => {
     expect(SMS_SAMPLE_OFFER).toBe(

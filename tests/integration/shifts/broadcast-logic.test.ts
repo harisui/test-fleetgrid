@@ -204,14 +204,14 @@ describe("broadcast logic on the real database", () => {
     const sms = new RecordingSmsProvider();
     const { broadcast } = services(sms);
     const shift = await postShift(carrier.carrierId);
-    const old = new Date(Date.now() - 5 * 60_000).toISOString();
+    // Noon Houston for the quiet hours, and the rows stale against it whatever the hour now.
+    const now = new Date();
+    const noon = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 18));
+    const old = new Date(Math.min(now.getTime(), noon.getTime()) - 5 * 60_000).toISOString();
     const { error } = await serviceClient()
       .from("broadcast_recipients")
       .insert(drivers.map((driver, index) => ({ shift_id: shift.id, driver_id: driver.driverId, round: 1, position: index + 1, code: shift.code, created_at: old })));
     if (error) throw error;
-    // Noon Houston: stale_queued_recipients() reads the database clock, quiet hours this one.
-    const now = new Date();
-    const noon = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 18));
     const first = await broadcast.resumeQueued(noon);
     expect(first).toBe(4);
     expect(new Set(sms.sent.map((text) => text.to)).size).toBe(4);

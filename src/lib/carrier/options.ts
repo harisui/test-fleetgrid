@@ -13,7 +13,7 @@ export const PLAN = {
   includes: [
     "Search local CDL drivers near your yard",
     "See driver CDL class, endorsements, experience, and availability",
-    "Broadcast shifts by text (coming in the next release)",
+    "Broadcast shifts by text",
   ],
 } as const;
 

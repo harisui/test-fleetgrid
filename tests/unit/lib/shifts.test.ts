@@ -13,6 +13,7 @@ import {
   FILLED_TEXT,
   formatShiftWhen,
   FORMAT_HELP_TEXT,
+  NO_OFFER_TEXT,
   offerText,
 } from "@/lib/shifts/texts";
 import { shiftPostSchema } from "@/lib/validation/shift.schema";
@@ -119,6 +120,7 @@ describe("the shift texts", () => {
       cancelledText(SAMPLE),
       APPROVED_TEXT,
       FORMAT_HELP_TEXT,
+      NO_OFFER_TEXT,
       CLOSED_TEXT,
     ]) {
       expect(text.startsWith("FleetGrid: ")).toBe(true);

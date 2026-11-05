@@ -3,7 +3,7 @@ import { SMS_ALREADY_BOOKED, SMS_NOT_ELIGIBLE, SMS_OVERLAP, SMS_PAUSED } from "@
 import { SmsSendError } from "@/server/providers/SmsProvider";
 import { beforeEach, describe, expect, it } from "vitest";
 import { SMS_SAMPLE_FILLED } from "@/content/sms-samples";
-import { bookedText, CLOSED_TEXT, FORMAT_HELP_TEXT, NOT_ELIGIBLE_TEXT, offerText } from "@/lib/shifts/texts";
+import { bookedText, CLOSED_TEXT, FORMAT_HELP_TEXT, NO_OFFER_TEXT, NOT_ELIGIBLE_TEXT, offerText } from "@/lib/shifts/texts";
 import { BroadcastService } from "@/server/services/BroadcastService";
 import { InboundService } from "@/server/services/InboundService";
 import { TextService } from "@/server/services/TextService";
@@ -339,7 +339,17 @@ describe("broadcasting and replies", () => {
     expect(world.shifts.get(shift.id)?.status).toBe("open");
   });
 
-  it("a code never sent and a message it cannot read get the how-to-book reply", async () => {
+  it("with no offer open, a state, a bare YES and a made-up code all get the no-offer reply, and nothing is booked", async () => {
+    for (const body of ["Texas", "YES", "YES 9999"]) {
+      sms.sent = [];
+      expect(await reply(drivers[0].phone, body)).toMatchObject({ replied: "format_help" });
+      expect(sms.sent).toEqual([{ to: drivers[0].phone, body: NO_OFFER_TEXT }]);
+    }
+    expect(NO_OFFER_TEXT).not.toContain("YES");
+    expect(world.shifts.get(shift.id)?.status).toBe("open");
+  });
+
+  it("a code never sent and a message it cannot read get the how-to-book reply, with an offer open", async () => {
     await broadcasts.broadcast(shift.id, world.now());
     sms.sent = [];
     expect(await reply(drivers[0].phone, "YES 9999")).toMatchObject({ outcome: "not_found", replied: "format_help" });

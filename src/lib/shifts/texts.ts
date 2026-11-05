@@ -17,9 +17,9 @@ import type { CdlClass } from "@/types/domain";
  * and the code change. A unit test fills each with the sample's values and compares it to
  * the sample, so the wording cannot drift.
  *
- * The others are FleetGrid's replies and notices that Twilio has not seen. The cancellation
- * notice is approved by the client (2026-11-01); the rest wait for her yes on their wording
- * (PENDING_APPROVAL). None is marketing.
+ * The others are FleetGrid's replies and notices that Twilio has not seen. The user decided
+ * on 2026-11-05 to ship the how-to-book and closed wordings and show the client; any change
+ * goes in a later deploy. None is marketing.
  */
 
 /** Shifts are in the Houston area; every time in a text and on a page is Houston time. */
@@ -77,9 +77,6 @@ export const PAUSED_TEXT = SMS_PAUSED;
 export const NOT_ELIGIBLE_TEXT = SMS_NOT_ELIGIBLE;
 export const ALREADY_BOOKED_TEXT = SMS_ALREADY_BOOKED;
 
-/** The texts whose words still wait for the client (decisions of 2026-11-01). */
-export const PENDING_APPROVAL = ["format_help", "closed"] as const;
-
 /** To the booked driver when the carrier cancels (decision 2; the client approved it 2026-11-01). */
 export function cancelledText(shift: ShiftTextFields): string {
   return `FleetGrid: Your booked shift on ${formatShiftWhen(shift.startsAt)} in ${formatShiftPlace(shift)} was cancelled by the company that posted it. Reply HELP for help.`;
@@ -91,11 +88,14 @@ export const APPROVED_TEXT = SMS_APPROVED;
 /** To a driver with texts on whose card is unfinished and idle for 24 hours, once (Annie approved 2026-11-01). */
 export const REMINDER_TEXT = SMS_REMINDER;
 
-/** A reply FleetGrid cannot read: how to book (pending the client's yes). */
-export const FORMAT_HELP_TEXT =
-  "FleetGrid: To book a shift, reply YES and the 4-digit code from the shift text, like YES 4821. Reply HELP for help.";
+/** A reply FleetGrid cannot read from a driver with a shift offer open: how to book (user, 2026-11-05). */
+export const FORMAT_HELP_TEXT = "FleetGrid: To book a shift, reply YES and the 4-digit code from the shift text. Reply HELP for help.";
 
-/** A YES for a shift that was cancelled or has started (pending the client's yes). */
+/** A reply FleetGrid cannot read from a driver with no shift offer open (user, 2026-11-05). */
+export const NO_OFFER_TEXT =
+  "FleetGrid: We couldn't read that reply, and you have no shift offer open right now. Manage your profile at fleetgridus.com/driver. Reply HELP for help.";
+
+/** A YES for a shift that was cancelled or has started. */
 export const CLOSED_TEXT =
   "FleetGrid: This shift is no longer open. We'll text you about the next matching shift. Reply STOP to opt out.";
 

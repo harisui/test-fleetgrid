@@ -17,7 +17,7 @@ import {
 } from "@/content/sms-samples";
 import { POST as inboundRoute } from "@/app/api/twilio/inbound/route";
 import { resetEnvCache } from "@/lib/env";
-import { bookedText, cancelledText, FORMAT_HELP_TEXT, offerText, SHIFT_TIME_ZONE } from "@/lib/shifts/texts";
+import { bookedText, cancelledText, FORMAT_HELP_TEXT, NO_OFFER_TEXT, offerText, SHIFT_TIME_ZONE } from "@/lib/shifts/texts";
 import { smsSegments } from "@/lib/sms/segments";
 import { buildTextingServices } from "@/server/container";
 import { FakeSmsProvider, FAKE_FAILING_NUMBER } from "@/server/providers/SmsProvider";
@@ -388,13 +388,22 @@ describe("simulated phones", () => {
     await reply(removed.phone, `YES ${shift.shortCode}`);
     expect(phone(removed.phone)).toEqual([SMS_NOT_ELIGIBLE]);
 
-    // Never offered it: the same answer. A code that is no shift at all gets how to book.
+    // Never offered it: the same answer. With no offer open, a state or a code that is no shift
+    // gets the no-offer text; with one open, a reply it cannot read gets how to book.
     await reply(never.phone, `YES ${shift.shortCode}`);
     expect(phone(never.phone)).toEqual([SMS_NOT_ELIGIBLE]);
     expect((await admin.from("shifts").select("status").eq("id", shift.id).single()).data?.status).toBe("open");
+    for (const body of ["Texas", "YES", shift.shortCode === "0000" ? "YES 0001" : "YES 0000"]) {
+      outbox().length = 0;
+      await reply(never.phone, body);
+      expect(phone(never.phone)).toEqual([NO_OFFER_TEXT]);
+    }
+    const holding = await pasadena("Hal Holding");
+    const open = await services().shiftsFor(carrier.carrierId).postShift(carrier.id, form(inDays(4)));
+    expect(open.shift.status).toBe("open");
     outbox().length = 0;
-    await reply(never.phone, shift.shortCode === "0000" ? "YES 0001" : "YES 0000");
-    expect(phone(never.phone)).toEqual([FORMAT_HELP_TEXT]);
+    await reply(holding.phone, "what time?");
+    expect(phone(holding.phone)).toEqual([FORMAT_HELP_TEXT]);
 
     await reply(repeat.phone, `YES ${shift.shortCode}`);
     await reply(repeat.phone, `YES ${shift.shortCode}`);
@@ -543,7 +552,8 @@ describe("simulated phones", () => {
       .select("id, short_code")
       .single();
     if (error) throw error;
-    const old = new Date(Date.now() - 5 * 60_000).toISOString();
+    // Stale against the fixed noon clock, whatever the hour now.
+    const old = new Date(Math.min(Date.now(), noon.getTime()) - 5 * 60_000).toISOString();
     const { error: rowsError } = await admin.from("broadcast_recipients").insert(
       drivers.map((driver, index) => ({ shift_id: shift.id, driver_id: driver.driverId, round: 1, position: index + 1, code: shift.short_code, created_at: old, status: index === 0 ? ("sent" as const) : ("queued" as const) })),
     );

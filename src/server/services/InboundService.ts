@@ -6,6 +6,7 @@ import {
   CLOSED_TEXT,
   FILLED_TEXT,
   FORMAT_HELP_TEXT,
+  NO_OFFER_TEXT,
   NOT_ELIGIBLE_TEXT,
   OVERLAP_TEXT,
   PAUSED_TEXT,
@@ -116,7 +117,7 @@ export class InboundService {
         return this.book(driver, intent.code, message.sid, result);
       case "other":
         await this.smsLog.setContext(message.sid, { inboundOutcome: "no_code" });
-        result.replied = await this.reply(driver, "format_help", FORMAT_HELP_TEXT, null);
+        result.replied = await this.replyUnclear(driver);
         return result;
     }
   }
@@ -153,7 +154,7 @@ export class InboundService {
       const offers = await this.recipients.openOffersForDriver(driver.driverId);
       if (offers.length !== 1) {
         await this.smsLog.setContext(sid, { inboundOutcome: "no_code" });
-        result.replied = await this.reply(driver, "format_help", FORMAT_HELP_TEXT, null);
+        result.replied = await this.reply(driver, "format_help", offers.length === 0 ? NO_OFFER_TEXT : FORMAT_HELP_TEXT, null);
         return result;
       }
       shiftCode = offers[0].code;
@@ -186,7 +187,7 @@ export class InboundService {
         result.replied = await this.reply(driver, "closed", CLOSED_TEXT, shiftId);
         break;
       case "not_found":
-        result.replied = await this.reply(driver, "format_help", FORMAT_HELP_TEXT, null);
+        result.replied = await this.replyUnclear(driver);
         break;
       case "overlap":
         result.replied = await this.reply(driver, "overlap", OVERLAP_TEXT, shiftId);
@@ -201,6 +202,12 @@ export class InboundService {
         break;
     }
     return result;
+  }
+
+  /** How to book only means something to a driver who holds an offer. */
+  private async replyUnclear(driver: TextingDriver): Promise<SmsKind | null> {
+    const offers = await this.recipients.openOffersForDriver(driver.driverId);
+    return this.reply(driver, "format_help", offers.length === 0 ? NO_OFFER_TEXT : FORMAT_HELP_TEXT, null);
   }
 
   private async reply(driver: TextingDriver, kind: SmsKind, body: string, shiftId: string | null): Promise<SmsKind | null> {
