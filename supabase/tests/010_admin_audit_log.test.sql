@@ -63,8 +63,7 @@ select throws_ok(
 -- ---------------------------------------------------------------------------
 select pg_temp.sign_in('a1111111-1111-4111-8111-111111111111', '+15555559101');
 select lives_ok(
-  $$insert into public.admin_audit_log (admin_id, admin_phone, action, target_type, target_id, detail)
-    values ('a1111111-1111-4111-8111-111111111111', '+15555559101', 'driver_approved', 'driver', 'a3333333-3333-4333-8333-333333333333', '{"from": "pending", "to": "approved"}')$$,
+  $$select public.write_admin_audit('driver_approved', 'driver', 'a3333333-3333-4333-8333-333333333333', '{"from": "pending", "to": "approved"}'::jsonb)$$,
   'an admin writes an entry in their own name');
 select throws_ok(
   $$insert into public.admin_audit_log (admin_id, admin_phone, action, target_type, target_id)

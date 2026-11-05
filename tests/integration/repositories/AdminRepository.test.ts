@@ -92,11 +92,12 @@ describe("AdminRepository", () => {
     expect(history.map((entry) => entry.action)).toEqual(["driver_blocked", "driver_approved"]);
     expect(await repository.listAudit("driver", approvedDriver.driverId)).toEqual([]);
 
-    // Not in another admin's name, and not as a driver at all.
+    // Never in another's name: the database takes the admin from the session, not the caller (0035).
     const forged = await repository
-      .writeAudit({ adminId: pendingDriver.id, adminPhone: pendingDriver.phone, action: "driver_approved", targetType: "driver", targetId: pendingDriver.driverId })
-      .catch((error) => error);
-    expect((forged as AppError).code).toBe("FORBIDDEN");
+      .writeAudit({ adminId: pendingDriver.id, adminPhone: pendingDriver.phone, action: "driver_approved", targetType: "driver", targetId: pendingDriver.driverId });
+    expect(forged.adminId).toBe(admin.id);
+    expect(forged.adminPhone).toBe(admin.phone);
+    // And not as a driver at all.
     const asDriver = new AdminRepository(approvedDriver.client);
     expect(await asDriver.listAudit("driver", pendingDriver.driverId)).toEqual([]);
     const refused = await asDriver

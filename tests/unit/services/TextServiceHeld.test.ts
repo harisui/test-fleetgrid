@@ -52,7 +52,7 @@ describe("texts in production without a real sender", () => {
 
     expect(await service.drainHeld(consenting, DAY)).toBe(1);
     expect(sms.sent).toEqual([{ to: ME.phone, body: "FleetGrid: hello" }]);
-    expect(log.outbound()[0]).toMatchObject({ status: "queued", fromPhone: "fake" });
+    expect(log.outbound()[0]).toMatchObject({ status: "queued" });
     expect(log.outbound()[0]?.providerSid).toBeTruthy();
 
     expect(await service.drainHeld(consenting, DAY)).toBe(0);

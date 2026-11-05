@@ -127,7 +127,7 @@ select col_not_null('driver_documents', 'size_bytes');
 
 -- tos_acceptances
 select col_is_pk('tos_acceptances', 'id');
-select col_not_null('tos_acceptances', 'profile_id');
+select col_is_null('tos_acceptances', 'profile_id');
 select fk_ok('public', 'tos_acceptances', 'profile_id', 'public', 'profiles', 'id');
 select col_not_null('tos_acceptances', 'version');
 select col_type_is('tos_acceptances', 'accepted_at', 'timestamp with time zone');
@@ -162,7 +162,7 @@ select has_index('public', 'driver_documents', 'driver_documents_driver_id_idx',
 select has_trigger('profiles', 'profiles_set_updated_at');
 select has_trigger('drivers', 'drivers_set_updated_at');
 select has_trigger('driver_documents', 'driver_documents_set_updated_at');
-select has_trigger('tos_acceptances', 'tos_acceptances_set_updated_at');
+select has_trigger('tos_acceptances', 'tos_acceptances_append_only');
 select has_trigger('profiles', 'profiles_protect_columns');
 select has_trigger('drivers', 'drivers_protect_columns');
 
@@ -415,8 +415,6 @@ select is(
 );
 update public.driver_documents set file_name = 'renamed.jpg', updated_at = '2000-01-01';
 select is((select min(updated_at) from public.driver_documents), now(), 'driver_documents.updated_at is maintained');
-update public.tos_acceptances set ip = '127.0.0.1', updated_at = '2000-01-01';
-select is((select min(updated_at) from public.tos_acceptances), now(), 'tos_acceptances.updated_at is maintained');
 
 -- ---------------------------------------------------------------------------
 -- Helper functions and protection triggers, as real signed-in users

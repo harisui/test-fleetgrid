@@ -3,6 +3,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { expect, test, type Page } from "@playwright/test";
 import { bookedText, cancelledText, FILLED_TEXT, offerText } from "@/lib/shifts/texts";
 import {
+  clearLog,
   adminClient,
   COMPLETE_STEP,
   login,
@@ -88,8 +89,9 @@ test.describe("Broadcast Shift", () => {
   test.beforeEach(async () => {
     for (const phone of [PHONES.carrier, PHONES.driver, PHONES.secondDriver, REGISTERED_PHONE]) await resetUser(phone);
     // The text log outlives accounts (it is kept by number), so this spec clears its own numbers.
-    const numbers = [PHONES.driver, PHONES.secondDriver, REGISTERED_PHONE].join(",");
-    await adminClient().from("sms_messages").delete().or(`to_phone.in.(${numbers}),from_phone.in.(${numbers})`);
+    const numbers = [PHONES.driver, PHONES.secondDriver, REGISTERED_PHONE];
+    await clearLog("sms_messages", "to_phone", numbers);
+    await clearLog("sms_messages", "from_phone", numbers);
     await seedCarrier(PHONES.carrier, { terms: true, subscription: "active" });
     first = await seedListedDriver(PHONES.driver, "Pat Winner");
     second = await seedListedDriver(PHONES.secondDriver, "Sam Second");

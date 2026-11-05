@@ -3,8 +3,11 @@ import type { Database } from "@/types/database.types";
 import { INBOUND_OUTCOMES, type InboundOutcome, type SmsDirection, type SmsMessage } from "@/types/domain";
 
 type SmsRow = Database["public"]["Tables"]["sms_messages"]["Row"];
+type SmsViewRow = Database["public"]["Views"]["sms_messages_current"]["Row"];
 
-export function mapSmsMessage(row: SmsRow): SmsMessage {
+/** A row of sms_messages_current: a view's columns read as nullable, the table's are not. */
+export function mapSmsMessage(view: SmsViewRow): SmsMessage {
+  const row = view as SmsRow;
   return {
     id: row.id,
     direction: row.direction,
@@ -63,7 +66,7 @@ export interface ISmsLogRepository {
   /** Held texts that may still go, oldest first. Never shift alerts: they would be out of date. */
   listHeld(limit?: number): Promise<SmsMessage[]>;
   /** Takes a held text to send it; false when another run took it first. */
-  claimHeld(id: string, sender: string): Promise<boolean>;
+  claimHeld(id: string): Promise<boolean>;
   setContext(sid: string, context: SmsContext): Promise<void>;
   listByShift(shiftId: string): Promise<SmsMessage[]>;
   listRecent(limit?: number): Promise<SmsMessage[]>;
@@ -72,33 +75,47 @@ export interface ISmsLogRepository {
 /** Every text in and out (0023). Written by the service role, read by admins. */
 export class SmsLogRepository extends BaseRepository implements ISmsLogRepository {
   async record(entry: SmsLogEntry): Promise<string | null> {
-    const { data, error } = await this.supabase.from("sms_messages").insert({
-      direction: entry.direction,
-      kind: entry.kind,
-      from_phone: entry.fromPhone,
-      to_phone: entry.toPhone,
-      body: entry.body,
-      provider_sid: entry.providerSid,
-      status: entry.status,
-      error_code: entry.errorCode ?? null,
-      shift_id: entry.shiftId ?? null,
-      driver_id: entry.driverId ?? null,
-      notice_batch_id: entry.noticeBatchId ?? null,
-      resend_of: entry.resendOf ?? null,
-    }).select("id").single();
-    if (error?.code === "23505") return null;
-    if (error) throw this.toAppError(error);
-    return data.id;
+    const result = await this.supabase.rpc("log_sms_message", {
+      p_direction: entry.direction,
+      p_kind: entry.kind,
+      p_from: entry.fromPhone,
+      p_to: entry.toPhone,
+      p_body: entry.body,
+      ...(entry.providerSid ? { p_provider_sid: entry.providerSid } : {}),
+      ...(entry.status ? { p_status: entry.status } : {}),
+      ...(entry.errorCode ? { p_error_code: entry.errorCode } : {}),
+      ...(entry.shiftId ? { p_shift_id: entry.shiftId } : {}),
+      ...(entry.driverId ? { p_driver_id: entry.driverId } : {}),
+      ...(entry.noticeBatchId ? { p_notice_batch_id: entry.noticeBatchId } : {}),
+      ...(entry.resendOf ? { p_resend_of: entry.resendOf } : {}),
+    });
+    return this.unwrapMaybe(result) ?? null;
   }
 
   async updateById(
     id: string,
     update: { providerSid: string | null; status: string; errorCode: string | null },
   ): Promise<void> {
-    const { error } = await this.supabase
-      .from("sms_messages")
-      .update({ provider_sid: update.providerSid, status: update.status, error_code: update.errorCode })
-      .eq("id", id);
+    const { error } = await this.supabase.rpc("sms_record_result", {
+      p_id: id,
+      p_provider_sid: update.providerSid as string,
+      p_status: update.status,
+      p_error_code: update.errorCode as string,
+    });
+    if (error) throw this.toAppError(error);
+  }
+
+  async updateStatus(sid: string, status: string, errorCode: string | null): Promise<void> {
+    const { error } = await this.supabase.rpc("sms_record_status", { p_provider_sid: sid, p_status: status, p_error_code: errorCode as string });
+    if (error) throw this.toAppError(error);
+  }
+
+  async setContext(sid: string, context: SmsContext): Promise<void> {
+    const { error } = await this.supabase.rpc("sms_record_outcome", {
+      p_provider_sid: sid,
+      ...(context.inboundOutcome !== undefined ? { p_inbound_outcome: context.inboundOutcome } : {}),
+      ...(context.shiftId ? { p_shift_id: context.shiftId } : {}),
+    });
     if (error) throw this.toAppError(error);
   }
 
@@ -117,13 +134,13 @@ export class SmsLogRepository extends BaseRepository implements ISmsLogRepositor
   }
 
   async findBySid(sid: string): Promise<SmsMessage | null> {
-    const rows = this.unwrap(await this.supabase.from("sms_messages").select("*").eq("provider_sid", sid).limit(1));
+    const rows = this.unwrap(await this.supabase.from("sms_messages_current").select("*").eq("provider_sid", sid).limit(1));
     return rows[0] ? mapSmsMessage(rows[0]) : null;
   }
 
   async listHeld(limit = 500): Promise<SmsMessage[]> {
     const result = await this.supabase
-      .from("sms_messages")
+      .from("sms_messages_current")
       .select("*")
       .eq("direction", "outbound")
       .eq("status", "held")
@@ -133,37 +150,13 @@ export class SmsLogRepository extends BaseRepository implements ISmsLogRepositor
     return this.unwrap(result).map(mapSmsMessage);
   }
 
-  async claimHeld(id: string, sender: string): Promise<boolean> {
-    const rows = this.unwrap(
-      await this.supabase.from("sms_messages").update({ status: "sending", from_phone: sender }).eq("id", id).eq("status", "held").select("id"),
-    );
-    return rows.length > 0;
-  }
-
-  async updateStatus(sid: string, status: string, errorCode: string | null): Promise<void> {
-    const { error } = await this.supabase
-      .from("sms_messages")
-      .update({ status, error_code: errorCode })
-      .eq("provider_sid", sid);
-    if (error) throw this.toAppError(error);
-  }
-
-  async setContext(sid: string, context: SmsContext): Promise<void> {
-    const { error } = await this.supabase
-      .from("sms_messages")
-      .update({
-        ...(context.kind ? { kind: context.kind } : {}),
-        ...(context.shiftId !== undefined ? { shift_id: context.shiftId } : {}),
-        ...(context.driverId !== undefined ? { driver_id: context.driverId } : {}),
-        ...(context.inboundOutcome !== undefined ? { inbound_outcome: context.inboundOutcome } : {}),
-      })
-      .eq("provider_sid", sid);
-    if (error) throw this.toAppError(error);
+  async claimHeld(id: string): Promise<boolean> {
+    return this.unwrap(await this.supabase.rpc("sms_claim_held", { p_id: id })) === true;
   }
 
   async listByShift(shiftId: string): Promise<SmsMessage[]> {
     const result = await this.supabase
-      .from("sms_messages")
+      .from("sms_messages_current")
       .select("*")
       .eq("shift_id", shiftId)
       .order("created_at", { ascending: true });
@@ -172,7 +165,7 @@ export class SmsLogRepository extends BaseRepository implements ISmsLogRepositor
 
   async listRecent(limit = 100): Promise<SmsMessage[]> {
     const result = await this.supabase
-      .from("sms_messages")
+      .from("sms_messages_current")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(limit);

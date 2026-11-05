@@ -54,6 +54,18 @@ async function findUserId(phone: string): Promise<string | null> {
 }
 
 /** Deletes the auth user for a phone with their profile, card, documents and files. */
+/** The logs are append-only (0035): tests clear and fill them through the seed's test functions. */
+export async function clearLog(table: string, column: string, values: string[]): Promise<void> {
+  const { error } = await adminClient().rpc("test_log_delete", { p_table: table, p_column: column, p_values: values });
+  if (error) throw new Error(`clearLog failed: ${error.message}`);
+}
+
+export async function fillLog(table: string, rows: object[]): Promise<string[]> {
+  const { data, error } = await adminClient().rpc("test_log_insert", { p_table: table, p_rows: rows as never });
+  if (error) throw new Error(`fillLog failed: ${error.message}`);
+  return data ?? [];
+}
+
 export async function resetUser(phone: string): Promise<void> {
   const admin = adminClient();
   const id = await findUserId(phone);
@@ -69,9 +81,9 @@ export async function resetUser(phone: string): Promise<void> {
     const { data: files } = await bucket.list(driver.id);
     if (files?.length) await bucket.remove(files.map((file) => `${driver.id}/${file.name}`));
     // The audit log outlives accounts on purpose; the tests clear their own entries.
-    await admin.from("admin_audit_log").delete().eq("target_id", driver.id);
+    await clearLog("admin_audit_log", "target_id", [driver.id]);
   }
-  await admin.from("admin_audit_log").delete().eq("admin_id", id);
+  await clearLog("admin_audit_log", "admin_id", [id]);
   await admin.auth.admin.deleteUser(id);
 }
 
@@ -385,10 +397,7 @@ export async function seedCarrier(
     .single();
   if (error) throw new Error(`seedCarrier failed: ${error.message}`);
   if (options.terms) {
-    const { error: tosError } = await admin
-      .from("tos_acceptances")
-      .insert({ profile_id: userId, version: TOS_VERSION });
-    if (tosError) throw new Error(`seedCarrier terms failed: ${tosError.message}`);
+    await fillLog("tos_acceptances", [{ profile_id: userId, version: TOS_VERSION }]);
   }
   if (options.subscription) {
     const { error: subscriptionError } = await admin.from("subscriptions").insert({

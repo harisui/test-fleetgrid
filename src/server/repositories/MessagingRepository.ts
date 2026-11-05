@@ -64,7 +64,7 @@ export interface IMessagingRepository {
 export class MessagingRepository extends BaseRepository implements IMessagingRepository {
   async listMessages(filter: MessageFilter): Promise<SmsMessage[]> {
     let query = this.supabase
-      .from("sms_messages")
+      .from("sms_messages_current")
       .select("*")
       .gte("created_at", filter.from)
       .lt("created_at", filter.to);
@@ -79,12 +79,12 @@ export class MessagingRepository extends BaseRepository implements IMessagingRep
   }
 
   async findMessage(id: string): Promise<SmsMessage | null> {
-    const rows = this.unwrap(await this.supabase.from("sms_messages").select("*").eq("id", id).limit(1));
+    const rows = this.unwrap(await this.supabase.from("sms_messages_current").select("*").eq("id", id).limit(1));
     return rows[0] ? mapSmsMessage(rows[0]) : null;
   }
 
   async hasResend(id: string): Promise<boolean> {
-    const rows = this.unwrap(await this.supabase.from("sms_messages").select("id").eq("resend_of", id).limit(1));
+    const rows = this.unwrap(await this.supabase.from("sms_messages_current").select("id").eq("resend_of", id).limit(1));
     return rows.length > 0;
   }
 

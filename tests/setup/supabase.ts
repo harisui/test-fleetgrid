@@ -268,8 +268,8 @@ export async function cleanupTestUsers(): Promise<void> {
   // The audit log has no foreign key (it outlives accounts on purpose): clear what these
   // users wrote or were the target of, so nothing piles up between runs.
   const driverIds = (drivers ?? []).map((driver) => driver.id);
-  await admin.from("admin_audit_log").delete().in("admin_id", ids);
-  if (driverIds.length > 0) await admin.from("admin_audit_log").delete().in("target_id", driverIds);
+  await admin.rpc("test_log_delete", { p_table: "admin_audit_log", p_column: "admin_id", p_values: ids });
+  if (driverIds.length > 0) await admin.rpc("test_log_delete", { p_table: "admin_audit_log", p_column: "target_id", p_values: driverIds });
 
   for (const id of ids) {
     const { error } = await admin.auth.admin.deleteUser(id);

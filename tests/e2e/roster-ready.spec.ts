@@ -4,6 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { docReminderText, welcomeText } from "../../src/content/sms-samples";
 import { phoneHash } from "../../src/lib/sms/driverTexts";
 import {
+  clearLog,
   adminClient,
   adminList,
   COMPLETE_STEP,
@@ -61,7 +62,7 @@ async function textsTo(phone: string, kind: string): Promise<string[]> {
 /** Reminders stamp every driver a bulk send reaches, seed drivers too (local test data only). */
 async function clearReminders() {
   const admin = adminClient();
-  await admin.from("sms_messages").delete().eq("kind", "doc_reminder");
+  await clearLog("sms_messages", "kind", ["doc_reminder"]);
   await admin.from("notice_batches").delete().eq("category", "doc_reminder");
   await admin.from("drivers").update({ last_doc_reminder_at: null }).not("last_doc_reminder_at", "is", null);
 }
@@ -171,7 +172,7 @@ test.describe("the welcome text", () => {
 
   const clear = async () => {
     await adminClient().from("welcome_texts").delete().eq("phone_hash", hash);
-    await adminClient().from("sms_messages").delete().eq("kind", "welcome").eq("to_phone", PHONES.driver);
+    await clearLog("sms_messages", "to_phone", [PHONES.driver]);
   };
 
   /** Signs up through the page as far as the first screen, with or without the texts box. */

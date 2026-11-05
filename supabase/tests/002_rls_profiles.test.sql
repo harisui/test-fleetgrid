@@ -69,7 +69,7 @@ select throws_ok(
 select throws_ok($$update public.profiles set status = 'approved'$$, '42501', null, 'anon cannot update profiles');
 select throws_ok('delete from public.profiles', '42501', null, 'anon cannot delete profiles');
 select throws_ok(
-  $$insert into public.tos_acceptances (profile_id, version) values ('11111111-1111-4111-8111-111111111111', 'v2')$$,
+  $$select public.record_tos_acceptance('v2')$$,
   '42501', null, 'anon cannot insert tos_acceptances'
 );
 reset role;
@@ -124,7 +124,7 @@ select results_eq(
   'a driver sees only their own terms acceptances'
 );
 select lives_ok(
-  $$insert into public.tos_acceptances (profile_id, version) values ('11111111-1111-4111-8111-111111111111', 'v2')$$,
+  $$select public.record_tos_acceptance('v2')$$,
   'a driver can accept terms for themselves'
 );
 select throws_ok(
@@ -164,7 +164,7 @@ select results_eq(
   'a carrier sees only their own terms acceptances'
 );
 select lives_ok(
-  $$insert into public.tos_acceptances (profile_id, version) values ('44444444-4444-4444-8444-444444444444', 'v2')$$,
+  $$select public.record_tos_acceptance('v2')$$,
   'a carrier can accept terms for themselves'
 );
 select pg_temp.sign_out();

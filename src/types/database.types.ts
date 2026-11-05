@@ -101,13 +101,13 @@ isOneToOne: true
                   ]
                 },"document_views": {
                   Row: {
-                    "document_id": string,"document_type": Database["public"]['Enums']["document_type"],"driver_id": string,"id": string,"shift_id": string | null,"viewed_at": string,"viewer_id": string,"viewer_role": string
+                    "document_id": string,"document_type": Database["public"]['Enums']["document_type"],"driver_id": string | null,"id": string,"shift_id": string | null,"viewed_at": string,"viewer_id": string,"viewer_role": string
                   }
                   Insert: {
-                    "document_id": string,"document_type": Database["public"]['Enums']["document_type"],"driver_id": string,"id"?: string,"shift_id"?: string | null,"viewed_at"?: string,"viewer_id": string,"viewer_role": string
+                    "document_id": string,"document_type": Database["public"]['Enums']["document_type"],"driver_id"?: string | null,"id"?: string,"shift_id"?: string | null,"viewed_at"?: string,"viewer_id": string,"viewer_role": string
                   }
                   Update: {
-                    "document_id"?: string,"document_type"?: Database["public"]['Enums']["document_type"],"driver_id"?: string,"id"?: string,"shift_id"?: string | null,"viewed_at"?: string,"viewer_id"?: string,"viewer_role"?: string
+                    "document_id"?: string,"document_type"?: Database["public"]['Enums']["document_type"],"driver_id"?: string | null,"id"?: string,"shift_id"?: string | null,"viewed_at"?: string,"viewer_id"?: string,"viewer_role"?: string
                   }
                   Relationships: [
                     
@@ -364,7 +364,44 @@ isOneToOne: true
       referencedRelation: "sms_messages"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "sms_messages_resend_of_fkey"
+      columns: ["resend_of"]
+isOneToOne: true
+      referencedRelation: "sms_messages_current"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "sms_messages_shift_id_fkey"
+      columns: ["shift_id"]
+isOneToOne: false
+      referencedRelation: "shifts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"sms_status_events": {
+                  Row: {
+                    "created_at": string,"error_code": string | null,"id": string,"inbound_outcome": string | null,"message_id": string,"shift_id": string | null,"status": string | null
+                  }
+                  Insert: {
+                    "created_at"?: string,"error_code"?: string | null,"id"?: string,"inbound_outcome"?: string | null,"message_id": string,"shift_id"?: string | null,"status"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"error_code"?: string | null,"id"?: string,"inbound_outcome"?: string | null,"message_id"?: string,"shift_id"?: string | null,"status"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "sms_status_events_message_id_fkey"
+      columns: ["message_id"]
+isOneToOne: false
+      referencedRelation: "sms_messages"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "sms_status_events_message_id_fkey"
+      columns: ["message_id"]
+isOneToOne: false
+      referencedRelation: "sms_messages_current"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "sms_status_events_shift_id_fkey"
       columns: ["shift_id"]
 isOneToOne: false
       referencedRelation: "shifts"
@@ -392,13 +429,13 @@ isOneToOne: false
                   ]
                 },"tos_acceptances": {
                   Row: {
-                    "accepted_at": string,"created_at": string,"id": string,"ip": string | null,"profile_id": string,"updated_at": string,"user_agent": string | null,"version": string
+                    "accepted_at": string,"created_at": string,"id": string,"ip": string | null,"profile_id": string | null,"updated_at": string,"user_agent": string | null,"version": string
                   }
                   Insert: {
-                    "accepted_at"?: string,"created_at"?: string,"id"?: string,"ip"?: string | null,"profile_id": string,"updated_at"?: string,"user_agent"?: string | null,"version": string
+                    "accepted_at"?: string,"created_at"?: string,"id"?: string,"ip"?: string | null,"profile_id"?: string | null,"updated_at"?: string,"user_agent"?: string | null,"version": string
                   }
                   Update: {
-                    "accepted_at"?: string,"created_at"?: string,"id"?: string,"ip"?: string | null,"profile_id"?: string,"updated_at"?: string,"user_agent"?: string | null,"version"?: string
+                    "accepted_at"?: string,"created_at"?: string,"id"?: string,"ip"?: string | null,"profile_id"?: string | null,"updated_at"?: string,"user_agent"?: string | null,"version"?: string
                   }
                   Relationships: [
                     {
@@ -444,10 +481,44 @@ isOneToOne: false
                 }
           }
           Views: {
-            [_ in never]: never
+            "sms_messages_current": {
+                  Row: {
+                    "body": string | null,"created_at": string | null,"direction": Database["public"]['Enums']["sms_direction"] | null,"driver_id": string | null,"error_code": string | null,"from_phone": string | null,"id": string | null,"inbound_outcome": string | null,"kind": string | null,"notice_batch_id": string | null,"provider_sid": string | null,"resend_of": string | null,"shift_id": string | null,"status": string | null,"to_phone": string | null,"updated_at": string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "sms_messages_driver_id_fkey"
+      columns: ["driver_id"]
+isOneToOne: false
+      referencedRelation: "drivers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "sms_messages_notice_batch_id_fkey"
+      columns: ["notice_batch_id"]
+isOneToOne: false
+      referencedRelation: "notice_batches"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "sms_messages_resend_of_fkey"
+      columns: ["resend_of"]
+isOneToOne: true
+      referencedRelation: "sms_messages"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "sms_messages_resend_of_fkey"
+      columns: ["resend_of"]
+isOneToOne: true
+      referencedRelation: "sms_messages_current"
+      referencedColumns: ["id"]
+    }
+                  ]
+                }
           }
           Functions: {
-            "auth_role":
+            "anonymize_driver_logs":
+{ Args: { "p_profile_id": string }; Returns: undefined
+                           },
+"auth_role":
 { Args: Record<PropertyKey, never>; Returns: Database["public"]['Enums']["user_role"]
                            },
 "begin_inbound":
@@ -548,6 +619,9 @@ isOneToOne: false
 "is_shift_ready":
 { Args: { "p_driver_id": string }; Returns: boolean
                            },
+"log_sms_message":
+{ Args: { "p_body": string,"p_direction": Database["public"]['Enums']["sms_direction"],"p_driver_id"?: string,"p_error_code"?: string,"p_from": string,"p_kind": string,"p_notice_batch_id"?: string,"p_provider_sid"?: string,"p_resend_of"?: string,"p_shift_id"?: string,"p_status"?: string,"p_to": string }; Returns: string
+                           },
 "matching_drivers":
 { Args: { "p_cdl_class": Database["public"]['Enums']["cdl_class"],"p_endorsements"?: (Database["public"]['Enums']["endorsement"])[],"p_ends_at"?: string,"p_equipment"?: (Database["public"]['Enums']["equipment_type"])[],"p_exclude"?: (string)[],"p_lat": number,"p_lng": number,"p_manual"?: boolean,"p_medical"?: boolean,"p_min_years"?: number,"p_starts_at"?: string,"p_twic"?: boolean }; Returns: {
               "driver_id": string,"phone": string
@@ -585,6 +659,23 @@ isOneToOne: false
 "record_ended_shifts":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"record_tos_acceptance":
+{ Args: { "p_ip"?: string,"p_user_agent"?: string,"p_version": string }; Returns: {
+              "accepted_at": string,
+"created_at": string,
+"id": string,
+"ip": string | null,
+"profile_id": string | null,
+"updated_at": string,
+"user_agent": string | null,
+"version": string
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "tos_acceptances"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "release_shift":
 { Args: { "p_pause_threshold"?: number,"p_reason"?: string,"p_shift_id": string }; Returns: string
                            },
@@ -596,10 +687,28 @@ isOneToOne: false
 "shift_ready_missing":
 { Args: { "p_driver_id": string }; Returns: (string)[]
                            },
+"sms_claim_held":
+{ Args: { "p_id": string }; Returns: boolean
+                           },
+"sms_record_outcome":
+{ Args: { "p_inbound_outcome"?: string,"p_provider_sid": string,"p_shift_id"?: string }; Returns: undefined
+                           },
+"sms_record_result":
+{ Args: { "p_error_code"?: string,"p_id": string,"p_provider_sid": string,"p_status": string }; Returns: undefined
+                           },
+"sms_record_status":
+{ Args: { "p_error_code"?: string,"p_provider_sid": string,"p_status": string }; Returns: undefined
+                           },
 "stale_queued_recipients":
 { Args: { "p_before": string }; Returns: {
               "driver_id": string,"phone": string,"recipient_id": string,"shift_id": string
             }[]
+                           },
+"test_log_delete":
+{ Args: { "p_column": string,"p_table": string,"p_values": (string)[] }; Returns: undefined
+                           },
+"test_log_insert":
+{ Args: { "p_rows": Json,"p_table": string }; Returns: string[]
                            },
 "twic_valid":
 { Args: { "p_active": boolean,"p_expires": string,"p_on": string }; Returns: boolean
@@ -608,7 +717,24 @@ isOneToOne: false
 { Args: { "p_before": string }; Returns: {
               "body": string,"from_phone": string,"provider_sid": string,"to_phone": string
             }[]
-                           }
+                           },
+"write_admin_audit":
+{ Args: { "p_action": string,"p_detail"?: Json,"p_target_id": string,"p_target_type": string }; Returns: {
+              "action": string,
+"admin_id": string,
+"admin_phone": string,
+"created_at": string,
+"detail": NonNullable<Json>,
+"id": string,
+"target_id": string,
+"target_type": string
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "admin_audit_log"
+        isOneToOne: false
+        isSetofReturn: true
+      } }
           }
           Enums: {
             "account_status": "pending"|"approved"|"blocked","availability_type": "full_time"|"part_time"|"on_call"|"weekends","cdl_class": "A"|"B"|"none","document_type": "cdl_front"|"cdl_back"|"medical_card"|"certification"|"other"|"twic","driving_style": "local_day_cab"|"regional","employment_type": "w2"|"contractor_1099"|"either","endorsement": "H"|"N"|"T"|"X","equipment_type": "container_drayage"|"dry_van"|"flatbed"|"reefer","heard_from": "flyer"|"facebook_instagram"|"google_search"|"friend_coworker"|"other","mvr_status": "clean"|"minor_1_2"|"major_3_plus","notice_category": "policy_change"|"service_notice"|"service_restored"|"account_security"|"doc_reminder","notice_status": "queued"|"sending"|"sent","operator_type": "cdl_driver"|"yard_spotter"|"mechanic","recipient_status": "queued"|"sent"|"delivered"|"failed"|"booked"|"too_late"|"no_show"|"skipped_cap"|"turned_away","shift_status": "open"|"booked"|"cancelled"|"expired","sms_consent_event": "opt_in"|"opt_out"|"opt_in_again","sms_consent_source": "onboarding"|"sms_stop"|"sms_start"|"profile","sms_direction": "inbound"|"outbound","subscription_status": "trialing"|"active"|"past_due"|"canceled"|"unpaid"|"incomplete"|"incomplete_expired"|"paused","transmission_type": "automatic_only"|"manual_ok","user_role": "driver"|"carrier"|"admin"

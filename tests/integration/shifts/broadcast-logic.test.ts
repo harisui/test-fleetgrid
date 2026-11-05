@@ -187,9 +187,10 @@ describe("broadcast logic on the real database", () => {
     const sms = new RecordingSmsProvider();
     const { broadcast } = services(sms);
     const capped = drivers[0]!;
-    const { error } = await serviceClient().from("sms_messages").insert(
-      [1, 2, 3].map(() => ({ direction: "outbound", kind: "offer", from_phone: "fake", to_phone: capped.phone, body: "FleetGrid: earlier", status: "sent", driver_id: capped.driverId })),
-    );
+    const { error } = await serviceClient().rpc("test_log_insert", {
+      p_table: "sms_messages",
+      p_rows: [1, 2, 3].map(() => ({ direction: "outbound", kind: "offer", from_phone: "fake", to_phone: capped.phone, body: "FleetGrid: earlier", status: "sent", driver_id: capped.driverId })),
+    });
     if (error) throw error;
     const shift = await postShift(carrier.carrierId);
     expect(await broadcast.broadcast(shift.id)).toMatchObject({ matched: 3, offered: 2, sent: 2, failed: 0, skippedCap: 1 });
@@ -262,11 +263,11 @@ describe("broadcast logic on the real database", () => {
     expect(runs[0]! + runs[1]!).toBe(1);
     expect(sms.sent).toEqual([{ to: wants!.phone, body: "FleetGrid: held welcome" }]);
     const statusOf = async (driverId: string, kind: string) =>
-      (await admin.from("sms_messages").select("status").eq("driver_id", driverId).eq("kind", kind).single()).data?.status;
+      (await admin.from("sms_messages_current").select("status").eq("driver_id", driverId).eq("kind", kind).single()).data?.status;
     expect(await statusOf(wants!.driverId, "welcome")).toBe("queued");
     expect(await statusOf(stopped!.driverId, "welcome")).toBe("skipped_opted_out");
     expect(await statusOf(wants!.driverId, "offer")).toBe("held");
-    await admin.from("sms_messages").delete().eq("status", "held");
+    await admin.rpc("test_log_delete", { p_table: "sms_messages", p_column: "to_phone", p_values: [wants!.phone, stopped!.phone] });
   }, 60_000);
 
   it("210 drivers: 200 texted once each, in about the time Vercel allows", async () => {

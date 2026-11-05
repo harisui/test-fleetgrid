@@ -271,11 +271,10 @@ export class FakeSmsLog implements ISmsLogRepository {
       .filter((e) => e.direction === "outbound" && e.status === "held" && e.kind !== "offer")
       .map((e) => ({ id: e.id, kind: e.kind, toPhone: e.toPhone, body: e.body, driverId: e.driverId ?? null }) as SmsMessage);
   }
-  async claimHeld(id: string, sender: string) {
+  async claimHeld(id: string) {
     const entry = this.entries.find((e) => e.id === id && e.status === "held");
     if (!entry) return false;
     entry.status = "sending";
-    entry.fromPhone = sender;
     return true;
   }
   async updateById(id: string, update: { providerSid: string | null; status: string; errorCode: string | null }): Promise<void> {

@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { formatInTimeZone } from "date-fns-tz";
 import { expect, test, type Page } from "@playwright/test";
-import { adminClient, COMPLETE_STEP, login, makeShiftReady, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
+import { clearLog, fillLog, adminClient, COMPLETE_STEP, login, makeShiftReady, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
 
 /**
  * Admin Messaging: Activity (Milestone 3 part 6) and Send notice (CR-3). Activity lists what
@@ -39,7 +39,8 @@ test.describe("admin messaging: activity", () => {
     await resetUser(PHONES.driver);
     await resetUser(PHONES.carrier);
     const admin = adminClient();
-    await admin.from("sms_messages").delete().or(`to_phone.eq.${PHONES.driver},from_phone.eq.${PHONES.driver},from_phone.eq.+15555559999`);
+    await clearLog("sms_messages", "to_phone", [PHONES.driver]);
+    await clearLog("sms_messages", "from_phone", [PHONES.driver, "+15555559999"]);
     const seeded = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP, { full_name: "Ana Activity" });
     driverId = seeded.driverId!;
     await makeShiftReady(seeded.userId);
@@ -65,17 +66,14 @@ test.describe("admin messaging: activity", () => {
       .single();
     await admin.from("shifts").update({ broadcast_round: 1, broadcast_at: new Date().toISOString() }).eq("id", shift!.id);
     await admin.from("broadcast_recipients").insert({ shift_id: shift!.id, driver_id: driverId, round: 1, position: 1, code: shift!.short_code, status: "delivered" });
-    const { data: texts } = await admin
-      .from("sms_messages")
-      .insert([
+    const texts = await fillLog("sms_messages", [
         { direction: "outbound", kind: "approved", from_phone: "fake", to_phone: PHONES.driver, body: APPROVED, status: "failed", error_code: "30003", driver_id: driverId },
         { direction: "outbound", kind: "approved", from_phone: "fake", to_phone: PHONES.driver, body: APPROVED, status: "failed", error_code: "21610", driver_id: driverId },
         { direction: "inbound", kind: "inbound", from_phone: PHONES.driver, to_phone: "fake", body: `YES ${shift!.short_code}`, status: "received", driver_id: driverId, shift_id: shift!.id, inbound_outcome: "booked" },
         { direction: "inbound", kind: "inbound", from_phone: "+15555559999", to_phone: "fake", body: "who is this", status: "received", inbound_outcome: "unknown_sender" },
-      ])
-      .select("id");
-    failedId = texts![0].id;
-    stoppedId = texts![1].id;
+    ]);
+    failedId = texts[0]!;
+    stoppedId = texts[1]!;
   });
 
   test.afterAll(async () => {

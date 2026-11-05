@@ -1,4 +1,3 @@
-import { AppError } from "@/server/errors/AppError";
 import { BaseRepository } from "@/server/repositories/BaseRepository";
 import type { Database } from "@/types/database.types";
 import type { TosAcceptance } from "@/types/domain";
@@ -21,7 +20,7 @@ export interface ITosRepository {
 export function mapTosAcceptance(row: TosRow): TosAcceptance {
   return {
     id: row.id,
-    profileId: row.profile_id,
+    profileId: row.profile_id ?? "",
     version: row.version,
     acceptedAt: row.accepted_at,
     ip: row.ip,
@@ -43,23 +42,12 @@ export class TosRepository extends BaseRepository implements ITosRepository {
 
   async record(input: TosAcceptanceInput): Promise<TosAcceptance> {
     const result = await this.supabase
-      .from("tos_acceptances")
-      .insert({
-        profile_id: input.profileId,
-        version: input.version,
-        ip: input.ip,
-        user_agent: input.userAgent,
+      .rpc("record_tos_acceptance", {
+        p_version: input.version,
+        ...(input.ip ? { p_ip: input.ip } : {}),
+        ...(input.userAgent ? { p_user_agent: input.userAgent } : {}),
       })
-      .select("*")
       .single();
-    try {
-      return mapTosAcceptance(this.unwrap(result));
-    } catch (error) {
-      if (error instanceof AppError && error.code === "CONFLICT") {
-        const existing = await this.findAcceptance(input.profileId, input.version);
-        if (existing) return existing;
-      }
-      throw error;
-    }
+    return mapTosAcceptance(this.unwrap(result));
   }
 }

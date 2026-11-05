@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import { adminClient, adminList, COMPLETE_STEP, login, makeShiftReady, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
+import { fillLog, adminClient, adminList, COMPLETE_STEP, login, makeShiftReady, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
 
 /**
  * The rest of the admin panel (T3.11): carriers with block and their sheet, subscriptions
@@ -170,7 +170,7 @@ test.describe("admin operations", () => {
       .select("id")
       .single();
     if (error) throw new Error(error.message);
-    await adminClient().from("sms_messages").insert({
+    await fillLog("sms_messages", [{
       direction: "inbound",
       kind: "inbound",
       from_phone: PHONES.driver,
@@ -178,7 +178,7 @@ test.describe("admin operations", () => {
       body: "YES 1234",
       shift_id: shift.id,
       provider_sid: `SMadmin${shift.id.slice(0, 8)}`,
-    });
+    }]);
     await login(page, PHONES.admin);
     await page.goto("/admin/shifts");
     const listRow = page.locator("[data-slot=admin-shift-row]").filter({ hasText: "Bayou Freight LLC" }).first();

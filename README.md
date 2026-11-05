@@ -346,3 +346,11 @@ src/lib               env, constants, phone, image, validation, auth, supabase c
 src/styles/themes.css the only place colors are defined
 tests                 unit, integration, e2e, fakes, setup
 ```
+
+## Append-only logs
+
+`sms_messages`, `sms_status_events`, `admin_audit_log`, `document_views`, `shift_events` and `tos_acceptances` can be read and added to, never edited or removed (migration 0035). No role but the owner holds INSERT, UPDATE, DELETE or TRUNCATE; writes go through SECURITY DEFINER functions; a trigger raises on any UPDATE or DELETE.
+
+- A text's row is fixed once written. Later status is a row in `sms_status_events`, and `sms_messages_current` shows the latest. The Twilio SID is the one exception: it is set once, because a text is logged before it is sent.
+- Deleting a driver: `anonymize_driver_logs()` sets the driver link to null, and foreign keys do the same on delete. Nothing else on the row may change. The records stay; they stop pointing at a person. `tos_acceptances` keeps the version, time, IP and user agent with the profile link null.
+- Tests clear and fill the logs through `test_log_delete` and `test_log_insert`, which live only in `supabase/seed.sql`. `supabase db push` never runs the seed, so they do not exist in production.

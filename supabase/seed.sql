@@ -217,3 +217,51 @@ insert into public.carrier_waitlist (carrier_id, zip, lat, lng) values
 insert into public.tos_acceptances (profile_id, version) values
   ('00000000-0000-4000-a000-000000001101', '2026-10-v2'),
   ('00000000-0000-4000-a000-000000001102', '2026-10-v2');
+
+
+-- ---------------------------------------------------------------------------
+-- Test-only cleanup and fixtures for the append-only logs (0035). This file runs on a local
+-- `db reset` and never on `db push`, so these cannot reach production. Service role only.
+-- ---------------------------------------------------------------------------
+create function public.test_log_delete(p_table text, p_column text, p_values text[])
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if p_table not in ('sms_messages', 'admin_audit_log', 'document_views', 'shift_events', 'tos_acceptances') then
+    raise exception 'Not a log table';
+  end if;
+  if p_table = 'sms_messages' then
+    alter table public.sms_status_events disable trigger sms_status_events_append_only;
+    execute format('delete from public.sms_status_events where message_id in (select id from public.sms_messages where %I::text = any ($1))', p_column) using p_values;
+    alter table public.sms_status_events enable trigger sms_status_events_append_only;
+  end if;
+  execute format('alter table public.%I disable trigger %I', p_table, p_table || '_append_only');
+  execute format('delete from public.%I where %I::text = any ($1)', p_table, p_column) using p_values;
+  execute format('alter table public.%I enable trigger %I', p_table, p_table || '_append_only');
+end;
+$$;
+
+create function public.test_log_insert(p_table text, p_rows jsonb)
+returns setof uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_columns text;
+begin
+  if p_table not in ('sms_messages', 'admin_audit_log', 'document_views', 'shift_events', 'tos_acceptances') then
+    raise exception 'Not a log table';
+  end if;
+  select string_agg(distinct quote_ident(key), ', ') into v_columns from jsonb_array_elements(p_rows) as r, jsonb_object_keys(r) as key;
+  return query execute format('insert into public.%I (%s) select %s from jsonb_populate_recordset(null::public.%I, $1) returning id', p_table, v_columns, v_columns, p_table) using p_rows;
+end;
+$$;
+
+revoke execute on function public.test_log_delete(text, text, text[]) from public, anon, authenticated;
+revoke execute on function public.test_log_insert(text, jsonb) from public, anon, authenticated;
+grant execute on function public.test_log_delete(text, text, text[]) to service_role;
+grant execute on function public.test_log_insert(text, jsonb) to service_role;

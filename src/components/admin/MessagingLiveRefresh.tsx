@@ -19,6 +19,7 @@ export function MessagingLiveRefresh() {
     };
     const channel = supabase
       .channel("admin-messaging")
+      .on("postgres_changes", { event: "*", schema: "public", table: "sms_status_events" }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "sms_messages" }, refresh)
       .on("postgres_changes", { event: "*", schema: "public", table: "broadcast_recipients" }, refresh)
       .subscribe();

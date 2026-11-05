@@ -1,6 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import {
+  clearLog,
   adminClient,
   COMPLETE_STEP,
   makeShiftReady,
@@ -458,7 +459,7 @@ test.describe("driver search and a driver's page", () => {
       .eq("driver_id", seedDriver!.id)
       .eq("type", "cdl_front")
       .single();
-    await admin.from("document_views").delete().eq("document_id", frontDoc!.id);
+    await clearLog("document_views", "document_id", [frontDoc!.id]);
     const start = new Date(Date.now() + 30 * 3_600_000);
     const { data: shift } = await admin
       .from("shifts")
@@ -505,7 +506,7 @@ test.describe("driver search and a driver's page", () => {
     expect(refused.status()).toBe(404);
     await page.goto(`/carrier/shifts/${shift!.id}`);
     await expect(section).toHaveCount(0);
-    await admin.from("document_views").delete().eq("document_id", frontDoc!.id);
+    await clearLog("document_views", "document_id", [frontDoc!.id]);
   });
 
   test("a release as Turned away at gate: TWIC flags the driver, not as a no-show", async ({ page }) => {

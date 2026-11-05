@@ -86,7 +86,7 @@ export class AdminRepository extends BaseRepository implements IAdminRepository 
 
   async countDocRemindersSince(since: string): Promise<number> {
     const { count, error } = await this.supabase
-      .from("sms_messages")
+      .from("sms_messages_current")
       .select("id", { count: "exact", head: true })
       .eq("kind", "doc_reminder")
       .eq("direction", "outbound")
@@ -120,17 +120,14 @@ export class AdminRepository extends BaseRepository implements IAdminRepository 
   }
 
   async writeAudit(entry: AuditEntryInput): Promise<AuditEntry> {
+    // The database takes the name and number from who is signed in (0035).
     const result = await this.supabase
-      .from("admin_audit_log")
-      .insert({
-        admin_id: entry.adminId,
-        admin_phone: entry.adminPhone,
-        action: entry.action,
-        target_type: entry.targetType,
-        target_id: entry.targetId,
-        detail: (entry.detail ?? {}) as NonNullable<Json>,
+      .rpc("write_admin_audit", {
+        p_action: entry.action,
+        p_target_type: entry.targetType,
+        p_target_id: entry.targetId,
+        p_detail: (entry.detail ?? {}) as NonNullable<Json>,
       })
-      .select("*")
       .single();
     return mapAudit(this.unwrap(result));
   }

@@ -72,7 +72,7 @@ select throws_ok($$ insert into public.document_views (viewer_id, viewer_role, d
   '42501', null, 'a carrier cannot write the log directly');
 reset role;
 select results_eq(
-  $$ select viewer_id, viewer_role, driver_id, document_type::text, shift_id from public.document_views $$,
+  $$ select viewer_id, viewer_role, driver_id, document_type::text, shift_id from public.document_views where driver_id = 'd0000081-0000-4000-8000-000000000000' $$,
   $$ values ('e0000082-0000-4000-8000-000000000000'::uuid, 'carrier'::text, 'd0000081-0000-4000-8000-000000000000'::uuid, 'cdl_front'::text, '50000081-0000-4000-8000-000000000000'::uuid) $$,
   'the log says who, which driver, which document, which shift'
 );

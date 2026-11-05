@@ -23,12 +23,13 @@ describe("RLS through real clients: profiles and tos_acceptances", () => {
       createTestUser({ role: "admin", status: "approved" }),
       createTestUser(),
     ]);
-    await serviceClient()
-      .from("tos_acceptances")
-      .insert([
+    await serviceClient().rpc("test_log_insert", {
+      p_table: "tos_acceptances",
+      p_rows: [
         { profile_id: driverB.id, version: "v1" },
         { profile_id: carrier.id, version: "v1" },
-      ]);
+      ],
+    });
   });
 
   afterAll(cleanupTestUsers);
@@ -104,9 +105,7 @@ describe("RLS through real clients: profiles and tos_acceptances", () => {
     });
 
     it("records and reads only their own terms acceptance", async () => {
-      const own = await driverA.client
-        .from("tos_acceptances")
-        .insert({ profile_id: driverA.id, version: "v1" });
+      const own = await driverA.client.rpc("record_tos_acceptance", { p_version: "v1" });
       expect(own.error).toBeNull();
 
       const other = await driverA.client

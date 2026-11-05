@@ -118,7 +118,7 @@ export class TextService {
         await log.updateById(message.id, { providerSid: null, status: "skipped_opted_out", errorCode: null });
         return;
       }
-      if (!(await log.claimHeld(message.id, this.sms.sender))) return;
+      if (!(await log.claimHeld(message.id))) return;
       try {
         const answer = await this.sms.send({ to: message.toPhone, body: message.body });
         await log.updateById(message.id, { providerSid: answer.sid, status: answer.status, errorCode: null });

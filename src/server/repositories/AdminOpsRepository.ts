@@ -108,7 +108,7 @@ export class AdminOpsRepository extends BaseRepository implements IAdminOpsRepos
 
   async listSms(shiftId: string): Promise<SmsMessage[]> {
     const rows = this.unwrap(
-      await this.supabase.from("sms_messages").select("*").eq("shift_id", shiftId).order("created_at", { ascending: true }),
+      await this.supabase.from("sms_messages_current").select("*").eq("shift_id", shiftId).order("created_at", { ascending: true }),
     );
     return rows.map(mapSmsMessage);
   }
