@@ -1,4 +1,5 @@
 import { afterAll, describe, expect, it } from "vitest";
+import { HeldSmsProvider } from "@/server/providers/SmsProvider";
 import { BroadcastRepository } from "@/server/repositories/BroadcastRepository";
 import { ConsentLogRepository } from "@/server/repositories/ConsentLogRepository";
 import { ShiftRepository } from "@/server/repositories/ShiftRepository";
@@ -165,9 +166,35 @@ describe("broadcast logic on the real database", () => {
     expect(data).toEqual({ status: "failed", error_code: "30003" });
   }, 60_000);
 
+  it("texts held in production go out once a sender is set: once only, never to a STOP, never an alert", async () => {
+    const [wants, stopped] = await makeDrivers(2, "Held Driver");
+    const admin = serviceClient();
+    const logs = () => new SmsLogRepository(admin);
+    const holding = new TextService(new HeldSmsProvider(), logs);
+    expect((await holding.send({ ...wants!, smsOptedOut: false }, "welcome", "FleetGrid: held welcome")).status).toBe("held");
+    await holding.send({ ...stopped!, smsOptedOut: false }, "welcome", "FleetGrid: held welcome");
+    await holding.send({ ...wants!, smsOptedOut: false }, "offer", "FleetGrid: held alert");
+    await admin.from("drivers").update({ sms_opted_out: true, sms_opted_out_at: new Date().toISOString() }).eq("id", stopped!.driverId);
+
+    const sms = new RecordingSmsProvider();
+    const texting = new TextService(sms, logs);
+    const drivers = new TextingDriverRepository(admin);
+    const daytime = new Date(Date.UTC(2026, 10, 5, 17));
+    const runs = await Promise.all([texting.drainHeld(drivers, daytime), texting.drainHeld(drivers, daytime)]);
+
+    expect(runs[0]! + runs[1]!).toBe(1);
+    expect(sms.sent).toEqual([{ to: wants!.phone, body: "FleetGrid: held welcome" }]);
+    const statusOf = async (driverId: string, kind: string) =>
+      (await admin.from("sms_messages").select("status").eq("driver_id", driverId).eq("kind", kind).single()).data?.status;
+    expect(await statusOf(wants!.driverId, "welcome")).toBe("queued");
+    expect(await statusOf(stopped!.driverId, "welcome")).toBe("skipped_opted_out");
+    expect(await statusOf(wants!.driverId, "offer")).toBe("held");
+    await admin.from("sms_messages").delete().eq("status", "held");
+  }, 60_000);
+
   it("210 drivers: 200 texted once each, in about the time Vercel allows", async () => {
     const carrier = await createTestCarrier({ subscription: "active" });
-    const drivers = await makeDrivers(210, "Scale Driver");
+    await makeDrivers(210, "Scale Driver");
     await pauseOthers("Scale Driver");
     const sms = new RecordingSmsProvider();
     // Twilio answers a send in about a quarter of a second.

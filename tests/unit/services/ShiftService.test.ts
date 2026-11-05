@@ -27,6 +27,7 @@ const FORM = {
 };
 
 describe("ShiftService", () => {
+  let carriersOff = false;
   let world: FakeShiftWorld;
   let sms: RecordingSmsProvider;
   let stage: CarrierStage;
@@ -35,6 +36,7 @@ describe("ShiftService", () => {
   const drivers = [1, 2, 3].map((n) => buildTextingDriver(n));
 
   beforeEach(() => {
+    carriersOff = false;
     world = new FakeShiftWorld();
     for (const driver of drivers) world.addDriver(driver);
     world.matching = drivers.map((d) => d.driverId);
@@ -70,7 +72,17 @@ describe("ShiftService", () => {
       () => broadcasts,
       texts,
       () => now,
+      () => carriersOff,
     );
+  });
+
+  it("with CARRIER_DISABLED on, nobody posts or releases, even by calling the action directly", async () => {
+    const { shift } = await service.postShift(USER_ID, FORM);
+    const textsBefore = sms.sent.length;
+    carriersOff = true;
+    await expect(service.postShift(USER_ID, FORM)).rejects.toMatchObject({ code: "FORBIDDEN" });
+    await expect(service.releaseShift(USER_ID, { shiftId: shift.id })).rejects.toMatchObject({ code: "FORBIDDEN" });
+    expect(sms.sent).toHaveLength(textsBefore);
   });
 
   it("posts a shift and texts the matches at once during the day", async () => {

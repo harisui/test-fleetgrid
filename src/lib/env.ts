@@ -74,6 +74,9 @@ export const serverEnvSchema = clientEnvSchema
     // "true" keeps the fake text sender (src/server/providers/FakeSmsProvider.ts) even when
     // the three Twilio keys are set, so tests and demos never text a real phone.
     SMS_TEST_MODE: flag,
+    // Vercel sets this. In "production" the fake sender is never used: without Twilio, texts are
+    // held, not marked sent (src/server/providers/SmsProvider.ts).
+    VERCEL_ENV: optionalString,
     // "true" hides the carrier side: /carrier/* and the carrier sign-up go to a "coming soon"
     // page (src/lib/carrier/availability.ts). Off unless set to exactly "true".
     CARRIER_DISABLED: flag,

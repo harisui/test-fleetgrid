@@ -64,10 +64,13 @@ export class ShiftService {
     private readonly broadcasts: () => BroadcastService,
     private readonly texts: TextService,
     private readonly now: () => Date = () => new Date(),
+    /** CARRIER_DISABLED: nobody posts or releases a shift, whichever way the request arrives. */
+    private readonly carrierDisabled: () => boolean = () => false,
   ) {}
 
   /** Posts the shift, then broadcasts it at once or holds it for 7 AM (quiet hours). */
   async postShift(userId: string, input: unknown): Promise<PostedShift> {
+    this.refuseWhileCarriersOff();
     const carrier = await this.requireReadyCarrier(userId);
     const values = parseInput(shiftPostSchema, input);
     const now = this.now();
@@ -145,6 +148,7 @@ export class ShiftService {
    * reopens with a fresh code, and it goes out again without them.
    */
   async releaseShift(userId: string, input: unknown): Promise<PostedShift> {
+    this.refuseWhileCarriersOff();
     const shift = await this.requireOwnShift(userId, input);
     if (shift.status !== "booked") throw AppError.conflict("Only a booked shift can be released");
     const released = await this.admin.shifts().release(shift.id);
@@ -174,6 +178,10 @@ export class ShiftService {
     const shift = await this.shifts.findById(shiftId);
     if (!shift || shift.carrierId !== carrier.id) throw AppError.notFound("Shift not found");
     return shift;
+  }
+
+  private refuseWhileCarriersOff(): void {
+    if (this.carrierDisabled()) throw AppError.forbidden("The carrier side is switched off");
   }
 
   private async requireReadyCarrier(userId: string): Promise<LocatedCarrier> {

@@ -33,7 +33,7 @@ const TAB_LABELS = {
   notices: "Notices",
   unmatched: "Unmatched inbound",
 } as const;
-const STATUS_LABELS = { "": "Any status", sent: "Sent", delivered: "Delivered", failed: "Failed" } as const;
+const STATUS_LABELS = { "": "Any status", sent: "Sent", delivered: "Delivered", failed: "Failed", held: "Held" } as const;
 const CATEGORY_LABELS = {
   policy_change: "Policy change",
   service_notice: "Service notice",
@@ -67,7 +67,7 @@ function hrefOf(query: MessagingQuery, change: Link): string {
 }
 
 const when = (iso: string | null) => (iso ? formatInTimeZone(new Date(iso), SHIFT_TIME_ZONE, "MMM d, h:mm a") : "Not yet");
-const stateVariant = { sent: "secondary", delivered: "success", failed: "destructive" } as const;
+const stateVariant = { sent: "secondary", delivered: "success", failed: "destructive", held: "warning" } as const;
 
 function MessageList({ rows, query, label }: { rows: MessageRow[]; query: MessagingQuery; label: string }) {
   if (rows.length === 0) return <p className="text-body leading-body text-muted-foreground">No texts here.</p>;

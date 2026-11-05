@@ -23,8 +23,9 @@ async function expectNoAccessibilityViolations(page: Page, label: string) {
 const PNG_MAGIC = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
 
 test.describe("admin analytics", () => {
-  const location = `Love's, Hwy 225 e2e ${Date.now()}`;
-  const slug = `loves-hwy-225-e2e-${Date.now()}`;
+  const stamp = Date.now();
+  const location = `Love's, Hwy 225 e2e ${stamp}`;
+  const slug = `loves-hwy-225-e2e-${stamp}`;
 
   test.beforeEach(async () => {
     await seedUser(PHONES.admin, "admin", "approved");

@@ -31,6 +31,8 @@ export class BroadcastService {
     private readonly recipients: IBroadcastRepository,
     private readonly texts: TextService,
     private readonly random: () => number = Math.random,
+    /** CARRIER_DISABLED: no shift alert goes by any path; held shifts wait, untouched. */
+    private readonly carrierDisabled: () => boolean = () => false,
   ) {}
 
   /** How many drivers a shift with these requirements would reach now. */
@@ -39,6 +41,7 @@ export class BroadcastService {
   }
 
   async broadcast(shiftId: string, now: Date = new Date()): Promise<BroadcastResult> {
+    if (this.carrierDisabled()) return NOTHING;
     const shift = await this.shifts.findById(shiftId);
     if (!shift || shift.status !== "open" || !isBookable(shift, now)) return NOTHING;
 
@@ -100,6 +103,7 @@ export class BroadcastService {
 
   /** The broadcasts held for quiet hours whose time has come. */
   async dispatchDue(now: Date = new Date()): Promise<number> {
+    if (this.carrierDisabled()) return 0;
     const due = await this.shifts.listDueBroadcasts(now.toISOString());
     for (const shift of due) await this.broadcast(shift.id, now);
     return due.length;

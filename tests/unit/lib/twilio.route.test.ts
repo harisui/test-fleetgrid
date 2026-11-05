@@ -13,6 +13,8 @@ const services = vi.hoisted(() => ({
   shifts: { expire: vi.fn() },
   notificationService: { sendDueApprovalTexts: vi.fn(), sendDueReminders: vi.fn(), sendDueWelcomeTexts: vi.fn() },
   noticeService: { dispatchDue: vi.fn() },
+  textService: { drainHeld: vi.fn() },
+  drivers: {},
   docReminderService: { dispatchDue: vi.fn(), expireGrace: vi.fn(), sendCdlStateNotices: vi.fn() },
 }));
 
@@ -115,11 +117,12 @@ describe("GET /api/cron/shifts", () => {
     services.noticeService.dispatchDue.mockResolvedValue(5);
     services.notificationService.sendDueWelcomeTexts.mockResolvedValue(6);
     services.docReminderService.dispatchDue.mockResolvedValue(7);
+    services.textService.drainHeld.mockResolvedValue(8);
     expect((await shiftsCron(new Request("http://localhost/api/cron/shifts"))).status).toBe(401);
     const response = await shiftsCron(
       new Request("http://localhost/api/cron/shifts", { headers: { authorization: "Bearer s3cret" } }),
     );
-    expect(await response.json()).toEqual({ ok: true, expired: 2, dispatched: 1, approvals: 3, notices: 5, welcomes: 6, docReminders: 7 });
+    expect(await response.json()).toEqual({ ok: true, expired: 2, dispatched: 1, approvals: 3, notices: 5, welcomes: 6, docReminders: 7, held: 8 });
   });
 });
 
@@ -128,10 +131,11 @@ describe("GET /api/cron/reminders", () => {
     services.notificationService.sendDueReminders.mockResolvedValue(4);
     services.docReminderService.expireGrace.mockResolvedValue(2);
     services.docReminderService.sendCdlStateNotices.mockResolvedValue(3);
+    services.textService.drainHeld.mockResolvedValue(1);
     expect((await remindersCron(new Request("http://localhost/api/cron/reminders"))).status).toBe(401);
     const response = await remindersCron(
       new Request("http://localhost/api/cron/reminders", { headers: { authorization: "Bearer s3cret" } }),
     );
-    expect(await response.json()).toEqual({ ok: true, reminders: 4, graceExpired: 2, cdlStateNotices: 3 });
+    expect(await response.json()).toEqual({ ok: true, reminders: 4, graceExpired: 2, cdlStateNotices: 3, held: 1 });
   });
 });

@@ -76,7 +76,7 @@ export function buildTextingServices() {
   const shifts = new ShiftRepository(admin);
   const recipients = new BroadcastRepository(admin);
   const textService = new TextService(getSmsProvider(), () => new SmsLogRepository(admin), reportError);
-  const broadcastService = new BroadcastService(shifts, recipients, textService);
+  const broadcastService = new BroadcastService(shifts, recipients, textService, undefined, () => getServerEnv().CARRIER_DISABLED);
   const inboundService = new InboundService(
     new TextingDriverRepository(admin),
     shifts,
@@ -175,6 +175,8 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     serviceAreas,
     () => buildTextingServices().broadcastService,
     new TextService(getSmsProvider(), () => new SmsLogRepository(createAdminClient()), reportError),
+    undefined,
+    () => env.CARRIER_DISABLED,
   );
 
   const adminOpsService = new AdminOpsService(

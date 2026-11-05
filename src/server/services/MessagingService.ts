@@ -47,11 +47,12 @@ const DELIVERED_RECIPIENT = new Set(["delivered", "booked", "too_late", "no_show
 const YES_OUTCOMES = new Set(["booked", "already_yours", "filled", "closed", "not_eligible"]);
 const UNMATCHED = ["unknown_sender", "no_code"];
 
-export type MessageState = "sent" | "delivered" | "failed";
+export type MessageState = "sent" | "delivered" | "failed" | "held";
 
 export function messageState(message: Pick<SmsMessage, "status">): MessageState {
   if (message.status && FAILED.has(message.status)) return "failed";
   if (message.status === "delivered") return "delivered";
+  if (message.status === "held") return "held";
   return "sent";
 }
 

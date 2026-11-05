@@ -55,6 +55,10 @@ export interface ISmsLogRepository {
   /** The provider's answer onto a text recorded before it was sent. */
   updateById(id: string, update: { providerSid: string | null; status: string; errorCode: string | null }): Promise<void>;
   updateStatus(sid: string, status: string, errorCode: string | null): Promise<void>;
+  /** Held texts that may still go, oldest first. Never shift alerts: they would be out of date. */
+  listHeld(limit?: number): Promise<SmsMessage[]>;
+  /** Takes a held text to send it; false when another run took it first. */
+  claimHeld(id: string, sender: string): Promise<boolean>;
   setContext(sid: string, context: SmsContext): Promise<void>;
   listByShift(shiftId: string): Promise<SmsMessage[]>;
   listRecent(limit?: number): Promise<SmsMessage[]>;
@@ -91,6 +95,25 @@ export class SmsLogRepository extends BaseRepository implements ISmsLogRepositor
       .update({ provider_sid: update.providerSid, status: update.status, error_code: update.errorCode })
       .eq("id", id);
     if (error) throw this.toAppError(error);
+  }
+
+  async listHeld(limit = 500): Promise<SmsMessage[]> {
+    const result = await this.supabase
+      .from("sms_messages")
+      .select("*")
+      .eq("direction", "outbound")
+      .eq("status", "held")
+      .neq("kind", "offer")
+      .order("created_at")
+      .limit(limit);
+    return this.unwrap(result).map(mapSmsMessage);
+  }
+
+  async claimHeld(id: string, sender: string): Promise<boolean> {
+    const rows = this.unwrap(
+      await this.supabase.from("sms_messages").update({ status: "sending", from_phone: sender }).eq("id", id).eq("status", "held").select("id"),
+    );
+    return rows.length > 0;
   }
 
   async updateStatus(sid: string, status: string, errorCode: string | null): Promise<void> {

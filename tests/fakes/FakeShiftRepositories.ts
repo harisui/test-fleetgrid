@@ -16,6 +16,7 @@ import type {
   ShiftListFilter,
   ShiftPatch,
 } from "@/server/repositories/ShiftRepository";
+import type { SmsMessage } from "@/types/domain";
 import type { ISmsLogRepository, SmsContext, SmsLogEntry } from "@/server/repositories/SmsLogRepository";
 import type { ITextingDriverRepository, TextingDriver } from "@/server/repositories/TextingDriverRepository";
 import type { BookedDriverContact, BroadcastRecipient, ClaimOutcome, Shift } from "@/types/domain";
@@ -223,6 +224,18 @@ export class FakeSmsLog implements ISmsLogRepository {
     const id = `m${++this.seq}`;
     this.entries.push({ ...entry, id });
     return id;
+  }
+  async listHeld() {
+    return this.entries
+      .filter((e) => e.direction === "outbound" && e.status === "held" && e.kind !== "offer")
+      .map((e) => ({ id: e.id, kind: e.kind, toPhone: e.toPhone, body: e.body, driverId: e.driverId ?? null }) as SmsMessage);
+  }
+  async claimHeld(id: string, sender: string) {
+    const entry = this.entries.find((e) => e.id === id && e.status === "held");
+    if (!entry) return false;
+    entry.status = "sending";
+    entry.fromPhone = sender;
+    return true;
   }
   async updateById(id: string, update: { providerSid: string | null; status: string; errorCode: string | null }): Promise<void> {
     const entry = this.entries.find((e) => e.id === id);

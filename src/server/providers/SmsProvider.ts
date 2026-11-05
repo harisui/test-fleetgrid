@@ -17,7 +17,7 @@ export interface SentSms {
 
 /** Sends shift texts. Twilio in production; the fake everywhere else (T3.2). */
 export interface ISmsProvider {
-  readonly kind: "twilio" | "fake";
+  readonly kind: "twilio" | "fake" | "held";
   /** What the log records as the sender: the Messaging Service id, or "fake". */
   readonly sender: string;
   /** Sends one text. Throws SmsSendError when the provider refuses it. */
@@ -115,6 +115,20 @@ export class FakeSmsProvider implements ISmsProvider {
 }
 
 /** Twilio when all three keys are set and SMS_TEST_MODE is off; otherwise the fake. */
+/**
+ * Production without a real sender (no Twilio keys, or test mode left on): nothing goes out and
+ * nothing is marked sent. TextService logs each text as held; drainHeld() sends it once Twilio
+ * is in place. Never reaches a network.
+ */
+export class HeldSmsProvider implements ISmsProvider {
+  readonly kind = "held" as const;
+  readonly sender = "held";
+
+  async send(): Promise<SentSms> {
+    throw new SmsSendError("No text sender is set up, so this text is held", null);
+  }
+}
+
 export function createSmsProvider(env: ServerEnv): ISmsProvider {
   if (
     !env.SMS_TEST_MODE &&
@@ -124,5 +138,6 @@ export function createSmsProvider(env: ServerEnv): ISmsProvider {
   ) {
     return new TwilioSmsProvider(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN, env.TWILIO_MESSAGING_SERVICE_SID);
   }
+  if (env.VERCEL_ENV === "production") return new HeldSmsProvider();
   return new FakeSmsProvider();
 }

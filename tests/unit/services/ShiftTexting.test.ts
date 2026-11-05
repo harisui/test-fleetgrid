@@ -60,6 +60,28 @@ describe("broadcasting and replies", () => {
     expect(smsLog.outbound()).toHaveLength(4);
   });
 
+  describe("with CARRIER_DISABLED on", () => {
+    const off = () => new BroadcastService(world.shiftRepository, world.broadcastRepository, new TextService(sms, () => smsLog), () => 0.5, () => true);
+
+    it("no broadcast sends anything or moves the shift on", async () => {
+      expect((await off().broadcast(shift.id, world.now())).offered).toBe(0);
+      expect(sms.sent).toEqual([]);
+      expect(world.recipients).toEqual([]);
+      expect(world.shifts.get(shift.id)).toMatchObject({ broadcastRound: shift.broadcastRound });
+    });
+
+    it("the 7 AM run sends nothing, and the held shift waits", async () => {
+      const held = { ...shift, sendAfter: "2026-10-01T12:00:00.000Z" };
+      world.shifts.set(shift.id, held);
+      expect(await off().dispatchDue(world.now())).toBe(0);
+      expect(sms.sent).toEqual([]);
+      expect(world.shifts.get(shift.id)?.sendAfter).toBe(held.sendAfter);
+      // Switched back on, it goes.
+      expect(await broadcasts.dispatchDue(world.now())).toBe(1);
+      expect(sms.sent.length).toBeGreaterThan(0);
+    });
+  });
+
   it("a refused send is recorded and the rest still go", async () => {
     sms.failing.add(drivers[1].phone);
     const result = await broadcasts.broadcast(shift.id, world.now());
