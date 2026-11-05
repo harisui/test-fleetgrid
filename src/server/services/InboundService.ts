@@ -1,6 +1,16 @@
-import { SMS_CONSENT_VERSION } from "@/lib/constants";
+import { BOOKED_RETRY_DELAYS_MS, RESUME_AFTER_MS, SMS_CONSENT_VERSION } from "@/lib/constants";
 import { readInbound, type InboundIntent } from "@/lib/shifts/inbound";
-import { bookedText, CLOSED_TEXT, FILLED_TEXT, FORMAT_HELP_TEXT, type SmsKind } from "@/lib/shifts/texts";
+import {
+  ALREADY_BOOKED_TEXT,
+  bookedText,
+  CLOSED_TEXT,
+  FILLED_TEXT,
+  FORMAT_HELP_TEXT,
+  NOT_ELIGIBLE_TEXT,
+  OVERLAP_TEXT,
+  PAUSED_TEXT,
+  type SmsKind,
+} from "@/lib/shifts/texts";
 import type { IBroadcastRepository } from "@/server/repositories/BroadcastRepository";
 import type { IConsentLogRepository } from "@/server/repositories/ConsentLogRepository";
 import type { IShiftRepository } from "@/server/repositories/ShiftRepository";
@@ -37,7 +47,8 @@ export interface DeliveryUpdate {
  * The replies drivers text back (T3.6, T3.8). Every message is logged once by its id.
  * STOP, START and HELP (and YES from a number that opted out) are Twilio's: logged and
  * synced, never answered here, so nobody gets two replies (decision B, 2026-11-01).
- * "YES 4821" books that shift; a bare YES books the one open offer the driver holds.
+ * "YES 4821" books that shift; a bare YES books the one open offer the driver holds. Every
+ * YES gets an answer. A reply counts as handled only when all of this has finished.
  */
 export class InboundService {
   constructor(
@@ -52,7 +63,7 @@ export class InboundService {
 
   async handle(message: InboundSms): Promise<InboundResult> {
     const driver = await this.drivers.findByPhone(message.from);
-    const fresh = await this.smsLog.record({
+    await this.smsLog.record({
       direction: "inbound",
       kind: "inbound",
       fromPhone: message.from,
@@ -62,8 +73,26 @@ export class InboundService {
       status: "received",
       driverId: driver?.driverId ?? null,
     });
-    if (!fresh) return { duplicate: true, intent: null, outcome: null, replied: null };
+    // Finished only when the handling below finished: a retry of an unfinished reply is handled.
+    if (!(await this.smsLog.beginInbound(message.sid))) {
+      return { duplicate: true, intent: null, outcome: null, replied: null };
+    }
+    const result = await this.process(message, driver);
+    await this.smsLog.finishInbound(message.sid);
+    return result;
+  }
 
+  /** The job: replies whose handling never finished (the server stopped part way). */
+  async reprocessUnfinished(now: Date = this.now()): Promise<number> {
+    const unfinished = await this.smsLog.listUnfinishedInbound(new Date(now.getTime() - RESUME_AFTER_MS).toISOString());
+    let handled = 0;
+    for (const message of unfinished) {
+      if (!(await this.handle(message)).duplicate) handled += 1;
+    }
+    return handled;
+  }
+
+  private async process(message: InboundSms, driver: TextingDriver | null): Promise<InboundResult> {
     const intent = readInbound(message.body, driver?.smsOptedOut ?? false, message.optOutType);
     const result: InboundResult = { duplicate: false, intent: intent.type, outcome: null, replied: null };
     if (!driver) {
@@ -95,12 +124,22 @@ export class InboundService {
   /** Twilio's delivery report onto the log and the offer. */
   async handleStatus(update: DeliveryUpdate): Promise<void> {
     await this.smsLog.updateStatus(update.sid, update.status, update.errorCode);
+    await this.noteBookedText(update);
     const at = this.now().toISOString();
     if (update.status === "delivered") {
       await this.recipients.updateByMessageSid(update.sid, { status: "delivered", deliveredAt: at });
     } else if (update.status === "failed" || update.status === "undelivered") {
       await this.recipients.updateByMessageSid(update.sid, { status: "failed", errorCode: update.errorCode });
     }
+  }
+
+  /** A booked text that did not arrive tells the admin; one that did clears it. */
+  private async noteBookedText(update: DeliveryUpdate): Promise<void> {
+    const failed = update.status === "failed" || update.status === "undelivered";
+    if (!failed && update.status !== "delivered") return;
+    const message = await this.smsLog.findBySid(update.sid);
+    if (message?.kind !== "booked" || !message.shiftId) return;
+    await this.shifts.update(message.shiftId, { bookedNoticeFailedAt: failed ? this.now().toISOString() : null });
   }
 
   private async book(
@@ -130,7 +169,11 @@ export class InboundService {
     switch (outcome) {
       case "won": {
         const shift = shiftId ? await this.shifts.findById(shiftId) : null;
-        if (shift) result.replied = await this.reply(driver, "booked", bookedText(shift), shift.id);
+        if (shift) {
+          const sent = await this.texts.send(driver, "booked", bookedText(shift), shift.id, BOOKED_RETRY_DELAYS_MS);
+          if (sent.sent) result.replied = "booked";
+          else await this.shifts.update(shift.id, { bookedNoticeFailedAt: this.now().toISOString() });
+        }
         break;
       }
       case "filled":
@@ -142,8 +185,16 @@ export class InboundService {
       case "not_found":
         result.replied = await this.reply(driver, "format_help", FORMAT_HELP_TEXT, null);
         break;
+      case "overlap":
+        result.replied = await this.reply(driver, "overlap", OVERLAP_TEXT, shiftId);
+        break;
       case "already_yours":
+        result.replied = await this.reply(driver, "already_booked", ALREADY_BOOKED_TEXT, shiftId);
+        break;
       case "not_eligible":
+        result.replied = driver.shiftsPaused
+          ? await this.reply(driver, "paused", PAUSED_TEXT, shiftId)
+          : await this.reply(driver, "not_eligible", NOT_ELIGIBLE_TEXT, shiftId);
         break;
     }
     return result;

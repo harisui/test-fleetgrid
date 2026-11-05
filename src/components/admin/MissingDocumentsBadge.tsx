@@ -1,5 +1,5 @@
 import { formatInTimeZone } from "date-fns-tz";
-import { CalendarClock, FileWarning } from "lucide-react";
+import { CalendarClock, FileWarning, PauseCircle, PhoneOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { missingDocumentsLabel, SHIFT_READY_ITEM_LABELS, type ShiftReadyItem } from "@/lib/drivers/tiers";
@@ -43,6 +43,26 @@ export function NeedsUpdateBadge({
     <Badge variant="warning" data-slot="needs-update" className={cn("h-auto min-w-40 py-1 whitespace-normal", className)}>
       <CalendarClock aria-hidden="true" />
       Needs update by {date}: {missing.map((item) => SHIFT_READY_ITEM_LABELS[item]).join(", ")}
+    </Badge>
+  );
+}
+
+/** The system paused this driver's shift texts: repeated no-shows in the last 90 days. */
+export function PausedNoShowsBadge({ className }: { className?: string }) {
+  return (
+    <Badge variant="destructive" data-slot="paused-no-shows" className={className}>
+      <PauseCircle aria-hidden="true" />
+      Paused: no-shows
+    </Badge>
+  );
+}
+
+/** The booked text never arrived, even after retries: someone should call the driver. */
+export function BookedNotNotifiedBadge({ className }: { className?: string }) {
+  return (
+    <Badge variant="destructive" data-slot="booked-not-notified" className={className}>
+      <PhoneOff aria-hidden="true" />
+      Booked, not notified
     </Badge>
   );
 }

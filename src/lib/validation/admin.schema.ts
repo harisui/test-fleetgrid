@@ -79,4 +79,11 @@ export const markShiftReadySchema = z.object({
 });
 
 export type AdminDriversQuery = z.infer<typeof adminDriversQuerySchema>;
+/** Resuming shift texts needs a reason (M3 additions, 2026-11-03). */
+export const RESUME_REASON_MESSAGE = "Say why this driver may get shift texts again, in at least 5 characters";
+export const resumeDriverSchema = z.object({
+  driverId: driverIdSchema.shape.driverId,
+  reason: z.string({ error: RESUME_REASON_MESSAGE }).trim().min(5, RESUME_REASON_MESSAGE).max(200),
+});
+
 export type DriverIdInput = z.infer<typeof driverIdSchema>;

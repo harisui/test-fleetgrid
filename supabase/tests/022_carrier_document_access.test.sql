@@ -49,7 +49,7 @@ returns void language sql as $$
 $$;
 
 select pg_temp.make_shift('50000081-0000-4000-8000-000000000000', 'c0000082-0000-4000-a000-000000000000', '8101', 'booked', 'd0000081-0000-4000-8000-000000000000', now() + interval '1 day');
-select pg_temp.make_shift('50000084-0000-4000-8000-000000000000', 'c0000084-0000-4000-a000-000000000000', '8104', 'booked', 'd0000081-0000-4000-8000-000000000000', now() + interval '1 day');
+select pg_temp.make_shift('50000084-0000-4000-8000-000000000000', 'c0000084-0000-4000-a000-000000000000', '8104', 'booked', 'd0000081-0000-4000-8000-000000000000', now() + interval '3 days');
 
 create function pg_temp.as_user(id text) returns void language sql as $$
   select set_config('request.jwt.claims', json_build_object('sub', id, 'role', 'authenticated')::text, true);

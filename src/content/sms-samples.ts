@@ -45,6 +45,17 @@ export const SMS_APPROVED =
   `FleetGrid: Your profile is ${ROSTER_READY}. You'll get texts when matching shifts open. Reply STOP to opt out.`;
 
 /**
+ * The answers to a YES that books nothing (wording agreed 2026-11-05), word for word, so no
+ * reply is ever met with silence.
+ */
+export const SMS_OVERLAP =
+  "FleetGrid: You already have a shift booked at that time, so this one wasn't booked. Reply HELP for help.";
+export const SMS_PAUSED =
+  "FleetGrid: Your shift offers are paused, so this shift wasn't booked. Reply HELP or email support@fleetgridus.com.";
+export const SMS_NOT_ELIGIBLE = "FleetGrid: This shift isn't open to you, so it wasn't booked. Reply HELP for help.";
+export const SMS_ALREADY_BOOKED = "FleetGrid: You're already booked for this shift. Details at fleetgridus.com/driver.";
+
+/**
  * The Shift-Ready texts (change request CR-5, approved by Annie 2026-11-03), word for word.
  */
 /** Welcome: once per phone number ever, right after the first screen, with consent. */

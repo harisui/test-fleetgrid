@@ -1,5 +1,13 @@
 import { formatInTimeZone } from "date-fns-tz";
-import { SMS_APPROVED, SMS_REMINDER, SMS_SAMPLE_FILLED } from "@/content/sms-samples";
+import {
+  SMS_ALREADY_BOOKED,
+  SMS_APPROVED,
+  SMS_NOT_ELIGIBLE,
+  SMS_OVERLAP,
+  SMS_PAUSED,
+  SMS_REMINDER,
+  SMS_SAMPLE_FILLED,
+} from "@/content/sms-samples";
 import type { CdlClass } from "@/types/domain";
 
 /**
@@ -46,6 +54,12 @@ export function bookedText(shift: ShiftTextFields): string {
 /** Filled, to a YES after the shift was booked (approved). */
 export const FILLED_TEXT = SMS_SAMPLE_FILLED;
 
+/** The answers to a YES that books nothing (agreed 2026-11-05). */
+export const OVERLAP_TEXT = SMS_OVERLAP;
+export const PAUSED_TEXT = SMS_PAUSED;
+export const NOT_ELIGIBLE_TEXT = SMS_NOT_ELIGIBLE;
+export const ALREADY_BOOKED_TEXT = SMS_ALREADY_BOOKED;
+
 /** The texts whose words still wait for the client (decisions of 2026-11-01). */
 export const PENDING_APPROVAL = ["format_help", "closed"] as const;
 
@@ -80,6 +94,10 @@ export type SmsKind =
   | "welcome"
   | "doc_reminder"
   | "cdl_state_notice"
+  | "overlap"
+  | "paused"
+  | "not_eligible"
+  | "already_booked"
   | "notice"
   | "security"
   | "format_help"

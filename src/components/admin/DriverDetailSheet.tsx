@@ -64,6 +64,8 @@ const HISTORY_LABELS: Partial<Record<AdminAction, string>> = {
   driver_reopened: "Moved to Registered",
   driver_rereview_needed: "Back to Registered for re-review",
   driver_grace_expired: "Back to Registered: update not made in time",
+  driver_auto_paused: "Paused: no-shows",
+  driver_unpaused: "Shift texts resumed",
 };
 
 const labelOf = <T extends string>(options: readonly { value: T; label: string }[], value: T) =>
@@ -247,6 +249,7 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
           name={name}
           noShowCount={driver.noShowCount}
           paused={driver.shiftsPaused}
+          pausedReason={driver.shiftsPausedReason}
           afterRemoveHref={closeHref}
         />
 

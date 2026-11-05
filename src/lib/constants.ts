@@ -134,3 +134,12 @@ export const US_STATES = [
 export const US_STATE_CODES = US_STATES.map(([code]) => code);
 /** The states as dropdown options, value = code, label = name. */
 export const US_STATE_OPTIONS = US_STATES.map(([code, name]) => ({ value: code, label: name }));
+
+/** A release that brings a driver's no-shows in the last 90 days to this pauses them (the client may choose 3). */
+export const NO_SHOW_PAUSE_THRESHOLD = 2;
+/** The most shift alerts a driver gets in a rolling 24 hours. Replies and reminders do not count. */
+export const SHIFT_ALERT_CAP = 3;
+/** Waits before each retry of a booked text that failed: three retries, then the admin is told. */
+export const BOOKED_RETRY_DELAYS_MS = [500, 1500, 3000] as const;
+/** A queued alert or an unfinished reply older than this is picked up by the job. */
+export const RESUME_AFTER_MS = 2 * 60 * 1000;

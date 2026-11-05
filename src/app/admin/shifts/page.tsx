@@ -5,6 +5,7 @@ import { AdminFilterLinks } from "@/components/admin/AdminFilterLinks";
 import { AdminPage } from "@/components/admin/AdminPage";
 import { RoutedDetailSheet, SheetRow, SheetSection } from "@/components/admin/RoutedDetailSheet";
 import { StatTile, StatTileGrid } from "@/components/admin/StatTile";
+import { BookedNotNotifiedBadge } from "@/components/admin/MissingDocumentsBadge";
 import { ShiftStatusBadge } from "@/components/shifts/ShiftStatusBadge";
 import { ShiftSummary } from "@/components/shifts/ShiftSummary";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -79,7 +80,10 @@ export default async function AdminShiftsPage({ searchParams }: PageProps<"/admi
                   <span className="font-semibold">
                     {row.companyName}, CDL-{row.shift.cdlClass}
                   </span>
-                  <ShiftStatusBadge status={row.status} scheduled={row.shift.sendAfter !== null} />
+                  <span className="flex flex-wrap items-center gap-2">
+                    {row.status === "booked" && row.shift.bookedNoticeFailedAt && <BookedNotNotifiedBadge />}
+                    <ShiftStatusBadge status={row.status} scheduled={row.shift.sendAfter !== null} />
+                  </span>
                 </span>
                 <ShiftSummary shift={row.shift} />
               </Link>
@@ -94,6 +98,7 @@ export default async function AdminShiftsPage({ searchParams }: PageProps<"/admi
           description={`Posted ${format(new Date(detail.shift.createdAt), "MMM d, yyyy h:mm a")}`}
         >
           <ShiftStatusBadge status={detail.status} scheduled={detail.shift.sendAfter !== null} />
+          {detail.status === "booked" && detail.shift.bookedNoticeFailedAt && <BookedNotNotifiedBadge className="self-start" />}
           <ShiftSummary shift={detail.shift} />
           {detail.status === "open" && detail.shift.sendAfter && <p>{scheduledLine(detail.shift.sendAfter)}</p>}
           <SheetSection title="Shift">

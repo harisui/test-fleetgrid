@@ -12,7 +12,7 @@ select has_table('public', 'sms_messages', 'sms_messages exists');
 select has_column('public', 'drivers', 'no_show_count', 'drivers carry a no-show count');
 select has_column('public', 'drivers', 'shifts_paused', 'drivers carry the admin pause');
 select has_function('public', 'claim_shift', array['uuid', 'text'], 'claim_shift exists');
-select has_function('public', 'release_shift', array['uuid'], 'release_shift exists');
+select has_function('public', 'release_shift', array['uuid', 'integer'], 'release_shift exists');
 select has_function('public', 'expire_shifts', 'expire_shifts exists');
 select has_function('public', 'booked_driver_contact', array['uuid'], 'booked_driver_contact exists');
 select ok(
@@ -21,7 +21,7 @@ select ok(
 );
 select ok(
   not has_function_privilege('authenticated',
-    'public.matching_drivers(double precision, double precision, public.cdl_class, public.endorsement[], integer, public.equipment_type[], boolean, boolean, boolean, uuid[])',
+    'public.matching_drivers(double precision, double precision, public.cdl_class, public.endorsement[], integer, public.equipment_type[], boolean, boolean, boolean, uuid[], timestamptz, timestamptz)',
     'execute'),
   'signed-in users cannot list matching drivers'
 );

@@ -1,7 +1,7 @@
 import { SUBSCRIPTION_PRICE_DOLLARS } from "@/lib/constants";
 import { isInsideAnyArea, milesBetween } from "@/lib/geo";
 import { displayStatus } from "@/lib/shifts/schedule";
-import { driverIdSchema } from "@/lib/validation/admin.schema";
+import { driverIdSchema, resumeDriverSchema } from "@/lib/validation/admin.schema";
 import {
   adminCarriersQuerySchema,
   adminShiftsQuerySchema,
@@ -226,7 +226,9 @@ export class AdminOpsService {
   /** Stops shift texts to a driver (the no-show rule of 2026-10-25), or starts them again. */
   async setDriverPaused(adminId: string, input: unknown, paused: boolean): Promise<void> {
     const admin = await this.requireAdmin(adminId);
-    const { driverId } = parseInput(driverIdSchema, input);
+    const { driverId, reason } = paused
+      ? { ...parseInput(driverIdSchema, input), reason: undefined }
+      : parseInput(resumeDriverSchema, input);
     const row = await this.admin.findDriver(driverId);
     if (!row) throw AppError.notFound("Driver not found");
     if (row.driver.shiftsPaused === paused) return;
@@ -237,7 +239,11 @@ export class AdminOpsService {
       action: paused ? "driver_paused" : "driver_unpaused",
       targetType: "driver",
       targetId: driverId,
-      detail: { name: row.driver.fullName, noShows: row.driver.noShowCount },
+      detail: {
+        name: row.driver.fullName,
+        noShows: row.driver.noShowCount,
+        ...(reason ? { reason, pausedFor: row.driver.shiftsPausedReason } : {}),
+      },
     });
   }
 

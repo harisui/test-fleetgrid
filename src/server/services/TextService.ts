@@ -1,6 +1,7 @@
 import type { SmsKind } from "@/lib/shifts/texts";
 import { inBatches, SEND_CONCURRENCY } from "@/server/services/BroadcastService";
 import { quietHoursSendAt } from "@/lib/shifts/schedule";
+import { RETRYABLE_ERROR_CODES } from "@/lib/sms/retryable";
 import { SmsSendError, type ISmsProvider } from "@/server/providers/SmsProvider";
 import type { ISmsLogRepository } from "@/server/repositories/SmsLogRepository";
 
@@ -38,6 +39,7 @@ export class TextService {
     private readonly sms: ISmsProvider,
     private readonly log: () => ISmsLogRepository,
     private readonly report: (message: string, detail?: unknown) => void = () => undefined,
+    private readonly sleep: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
   ) {}
 
   get sender(): string {
@@ -49,6 +51,8 @@ export class TextService {
     kind: SmsKind,
     body: string,
     links: string | null | TextLinks = null,
+    /** Waits before each retry of a failure a retry could fix. One log row either way. */
+    retryDelays: readonly number[] = [],
   ): Promise<TextOutcome> {
     const { shiftId = null, noticeBatchId = null, resendOf = null } =
       typeof links === "string" || links === null ? { shiftId: links } : links;
@@ -76,14 +80,20 @@ export class TextService {
 
     if (held) return { sent: false, sid: null, status: "held", errorCode: null, messageId };
 
-    let outcome: TextOutcome;
-    try {
-      const sent = await this.sms.send({ to: to.phone, body });
-      outcome = { sent: true, sid: sent.sid, status: sent.status, errorCode: null, messageId };
-    } catch (error) {
-      const code = error instanceof SmsSendError ? error.code : null;
-      this.report(`The ${kind} text was not sent`, error);
-      outcome = { sent: false, sid: null, status: "failed", errorCode: code, messageId };
+    let outcome: TextOutcome = { sent: false, sid: null, status: "failed", errorCode: null, messageId };
+    for (let attempt = 0; attempt <= retryDelays.length; attempt += 1) {
+      try {
+        const sent = await this.sms.send({ to: to.phone, body });
+        outcome = { sent: true, sid: sent.sid, status: sent.status, errorCode: null, messageId };
+        break;
+      } catch (error) {
+        const code = error instanceof SmsSendError ? error.code : null;
+        this.report(`The ${kind} text was not sent`, error);
+        outcome = { sent: false, sid: null, status: "failed", errorCode: code, messageId };
+        // A number that said STOP or does not exist will answer the same every time.
+        if (attempt === retryDelays.length || (code !== null && !RETRYABLE_ERROR_CODES.includes(code as (typeof RETRYABLE_ERROR_CODES)[number]))) break;
+        await this.sleep(retryDelays[attempt]!);
+      }
     }
     await log
       .updateById(messageId, { providerSid: outcome.sid, status: outcome.status, errorCode: outcome.errorCode })

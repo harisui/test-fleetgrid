@@ -1,4 +1,5 @@
 import { afterAll, describe, expect, it } from "vitest";
+import { SMS_OVERLAP } from "@/content/sms-samples";
 import { HeldSmsProvider } from "@/server/providers/SmsProvider";
 import { BroadcastRepository } from "@/server/repositories/BroadcastRepository";
 import { ConsentLogRepository } from "@/server/repositories/ConsentLogRepository";
@@ -139,6 +140,82 @@ describe("broadcast logic on the real database", () => {
     const again = await inbound.handle({ ...message, sid: seq() });
     expect(again.outcome).toBe("already_yours");
     expect(sms.sent.filter((text) => text.body.includes("Your shift is booked"))).toHaveLength(1);
+  }, 60_000);
+
+  it("one driver replies YES to two overlapping shifts at once: one books, the other is refused with the overlap text", async () => {
+    const carrier = await createTestCarrier({ subscription: "active" });
+    const [driver] = await makeDrivers(1, "Overlap Driver");
+    await pauseOthers("Overlap Driver");
+    const sms = new RecordingSmsProvider();
+    const { broadcast, inbound } = services(sms);
+    const first = await postShift(carrier.carrierId);
+    const second = await postShift(carrier.carrierId);
+    await broadcast.broadcast(first.id);
+    await broadcast.broadcast(second.id);
+
+    const replies = await Promise.all(
+      [first, second].map((shift) => inbound.handle({ sid: seq(), from: driver!.phone, to: SENDER, body: `YES ${shift.code}` })),
+    );
+    expect(replies.map((reply) => reply.outcome).sort()).toEqual(["overlap", "won"]);
+    expect(sms.sent.filter((text) => text.body === SMS_OVERLAP)).toHaveLength(1);
+    expect(sms.sent.filter((text) => text.body.includes("Your shift is booked"))).toHaveLength(1);
+    const { data } = await serviceClient().from("shifts").select("id").eq("booked_driver_id", driver!.driverId);
+    expect(data).toHaveLength(1);
+  }, 60_000);
+
+  it("the fourth alert in 24 hours is skipped and on record", async () => {
+    const carrier = await createTestCarrier({ subscription: "active" });
+    const [driver] = await makeDrivers(1, "Capped Driver");
+    await pauseOthers("Capped Driver");
+    const sms = new RecordingSmsProvider();
+    const { broadcast } = services(sms);
+    for (let n = 0; n < 3; n += 1) {
+      const shift = await postShift(carrier.carrierId);
+      expect(await broadcast.broadcast(shift.id)).toMatchObject({ sent: 1, skippedCap: 0 });
+    }
+    const fourth = await postShift(carrier.carrierId);
+    expect(await broadcast.broadcast(fourth.id)).toMatchObject({ matched: 1, offered: 0, sent: 0, skippedCap: 1 });
+    expect(sms.sent).toHaveLength(3);
+    const { data } = await serviceClient().from("broadcast_recipients").select("status").eq("shift_id", fourth.id).single();
+    expect(data?.status).toBe("skipped_cap");
+  }, 60_000);
+
+  it("a driver at the limit among others: the rest get the alert, and the shift still posts", async () => {
+    const carrier = await createTestCarrier({ subscription: "active" });
+    const drivers = await makeDrivers(3, "Mixed Driver");
+    await pauseOthers("Mixed Driver");
+    const sms = new RecordingSmsProvider();
+    const { broadcast } = services(sms);
+    const capped = drivers[0]!;
+    const { error } = await serviceClient().from("sms_messages").insert(
+      [1, 2, 3].map(() => ({ direction: "outbound", kind: "offer", from_phone: "fake", to_phone: capped.phone, body: "FleetGrid: earlier", status: "sent", driver_id: capped.driverId })),
+    );
+    if (error) throw error;
+    const shift = await postShift(carrier.carrierId);
+    expect(await broadcast.broadcast(shift.id)).toMatchObject({ matched: 3, offered: 2, sent: 2, failed: 0, skippedCap: 1 });
+    expect(sms.sent.map((text) => text.to)).not.toContain(capped.phone);
+  }, 60_000);
+
+  it("a broadcast cut off part way: the job finishes it, once each", async () => {
+    const carrier = await createTestCarrier({ subscription: "active" });
+    const drivers = await makeDrivers(4, "Resume Driver");
+    await pauseOthers("Resume Driver");
+    const sms = new RecordingSmsProvider();
+    const { broadcast } = services(sms);
+    const shift = await postShift(carrier.carrierId);
+    const old = new Date(Date.now() - 5 * 60_000).toISOString();
+    const { error } = await serviceClient()
+      .from("broadcast_recipients")
+      .insert(drivers.map((driver, index) => ({ shift_id: shift.id, driver_id: driver.driverId, round: 1, position: index + 1, code: shift.code, created_at: old })));
+    if (error) throw error;
+    // Noon Houston: stale_queued_recipients() reads the database clock, quiet hours this one.
+    const now = new Date();
+    const noon = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 18));
+    const first = await broadcast.resumeQueued(noon);
+    expect(first).toBe(4);
+    expect(new Set(sms.sent.map((text) => text.to)).size).toBe(4);
+    expect(await broadcast.resumeQueued(noon)).toBe(0);
+    expect(sms.sent).toHaveLength(4);
   }, 60_000);
 
   it("two broadcasts of one shift at once send each driver one text", async () => {

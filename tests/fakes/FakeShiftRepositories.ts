@@ -53,6 +53,7 @@ export function buildShift(overrides: Partial<Shift> = {}): Shift {
     releasedAt: null,
     bookedDriverId: null,
     bookedAt: null,
+    bookedNoticeFailedAt: null,
     cancelledAt: null,
     cancelReason: null,
     createdAt: T,
@@ -86,6 +87,11 @@ export class FakeShiftWorld {
   drivers = new Map<string, TextingDriver & { noShowCount: number }>();
   /** Drivers matchingDrivers returns, before exclusions. */
   matching: string[] = [];
+  /** Drivers at the alert limit, and those with an overlapping booking. */
+  atCap = new Set<string>();
+  overlapping = new Set<string>();
+  /** Claims taken, so an alert goes once. */
+  claimed = new Set<string>();
   bookedDocuments: DriverDocument[] = [];
   now = () => new Date(T);
   private seq = 0;
@@ -125,6 +131,7 @@ export class FakeShiftWorld {
       return driverId;
     },
     expire: async () => 0,
+    recordEnded: async () => 0,
     bookedDriverDocuments: async () => this.bookedDocuments,
     bookedDriverContact: async (id): Promise<BookedDriverContact | null> => {
       const shift = this.shifts.get(id);
@@ -149,7 +156,7 @@ export class FakeShiftWorld {
       const created = rows.map((row) => ({
         ...row,
         id: `r-${++this.seq}`,
-        status: "queued" as const,
+        status: row.status ?? ("queued" as const),
         messageSid: null,
         errorCode: null,
         sentAt: null,
@@ -170,6 +177,16 @@ export class FakeShiftWorld {
       }
     },
     listByShift: async (shiftId) => this.recipients.filter((r) => r.shiftId === shiftId),
+    driversAtAlertCap: async (ids) => ids.filter((id) => this.atCap.has(id)),
+    claimSend: async (id) => {
+      if (this.claimed.has(id)) return false;
+      this.claimed.add(id);
+      return true;
+    },
+    staleQueued: async () =>
+      this.recipients
+        .filter((r) => r.status === "queued" && !this.claimed.has(r.id))
+        .map((r) => ({ recipientId: r.id, shiftId: r.shiftId, driverId: r.driverId, phone: this.drivers.get(r.driverId)?.phone ?? "" })),
     noShowDriverIds: async (shiftId) => this.recipients.filter((r) => r.shiftId === shiftId && r.status === "no_show").map((r) => r.driverId),
     openOffersForDriver: async (driverId): Promise<OpenOffer[]> => {
       const offers = this.recipients.filter((r) => {
@@ -206,6 +223,7 @@ export class FakeShiftWorld {
     }
     const shift = this.shifts.get(offer.shiftId)!;
     if (shift.status === "open" && shift.shortCode === code && isBookable(shift, this.now())) {
+      if (this.overlapping.has(driverId)) return { outcome: "overlap", shiftId: shift.id };
       this.shifts.set(shift.id, { ...shift, status: "booked", bookedDriverId: driverId, bookedAt: this.now().toISOString() });
       offer.status = "booked";
       return { outcome: "won", shiftId: shift.id };
@@ -226,6 +244,27 @@ export class FakeSmsLog implements ISmsLogRepository {
     const id = `m${++this.seq}`;
     this.entries.push({ ...entry, id });
     return id;
+  }
+  processing = new Map<string, boolean>();
+  async beginInbound(sid: string) {
+    if (this.processing.has(sid) && !this.staleInbound.has(sid)) return false;
+    this.staleInbound.delete(sid);
+    this.processing.set(sid, false);
+    return true;
+  }
+  async finishInbound(sid: string) {
+    this.processing.set(sid, true);
+  }
+  /** Replies whose first handling stopped and whose 60 seconds are up. */
+  staleInbound = new Set<string>();
+  async listUnfinishedInbound() {
+    return this.entries
+      .filter((e) => e.direction === "inbound" && e.providerSid && this.staleInbound.has(e.providerSid))
+      .map((e) => ({ sid: e.providerSid!, from: e.fromPhone, to: e.toPhone, body: e.body }));
+  }
+  async findBySid(sid: string) {
+    const entry = this.entries.find((e) => e.providerSid === sid);
+    return entry ? ({ id: entry.id, kind: entry.kind, shiftId: entry.shiftId ?? null } as SmsMessage) : null;
   }
   async listHeld() {
     return this.entries

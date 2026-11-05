@@ -1,3 +1,4 @@
+import { InlineNote } from "@/components/shared/InlineNote";
 import { formatInTimeZone } from "date-fns-tz";
 import { MessagesSquare } from "lucide-react";
 import type { Metadata } from "next";
@@ -130,6 +131,14 @@ export default async function MessagingActivityPage({ searchParams }: PageProps<
   return (
     <AdminPage title="Messaging" subtitle="Every text FleetGrid sent and received: shift broadcasts, account texts, notices and replies.">
       <MessagingLiveRefresh />
+      {page.bookedNotNotified > 0 && (
+        <InlineNote variant="error" role="alert" data-slot="booked-not-notified-note">
+          <Link href="/admin/shifts?status=booked" className="font-semibold underline underline-offset-4">
+            Booked, not notified: {page.bookedNotNotified}
+          </Link>
+          . The booked text did not arrive. Call the driver.
+        </InlineNote>
+      )}
       <AdminFilterLinks
         label="Period"
         current={query.from || query.to ? "" : query.period}

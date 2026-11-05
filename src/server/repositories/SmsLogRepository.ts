@@ -55,6 +55,11 @@ export interface ISmsLogRepository {
   /** The provider's answer onto a text recorded before it was sent. */
   updateById(id: string, update: { providerSid: string | null; status: string; errorCode: string | null }): Promise<void>;
   updateStatus(sid: string, status: string, errorCode: string | null): Promise<void>;
+  /** True when this call should handle the reply: new, or left unfinished for 60 seconds. */
+  beginInbound(sid: string): Promise<boolean>;
+  finishInbound(sid: string): Promise<void>;
+  listUnfinishedInbound(before: string): Promise<{ sid: string; from: string; to: string; body: string }[]>;
+  findBySid(sid: string): Promise<SmsMessage | null>;
   /** Held texts that may still go, oldest first. Never shift alerts: they would be out of date. */
   listHeld(limit?: number): Promise<SmsMessage[]>;
   /** Takes a held text to send it; false when another run took it first. */
@@ -95,6 +100,25 @@ export class SmsLogRepository extends BaseRepository implements ISmsLogRepositor
       .update({ provider_sid: update.providerSid, status: update.status, error_code: update.errorCode })
       .eq("id", id);
     if (error) throw this.toAppError(error);
+  }
+
+  async beginInbound(sid: string): Promise<boolean> {
+    return this.unwrap(await this.supabase.rpc("begin_inbound", { p_sid: sid })) === true;
+  }
+
+  async finishInbound(sid: string): Promise<void> {
+    const { error } = await this.supabase.rpc("finish_inbound", { p_sid: sid });
+    if (error) throw this.toAppError(error);
+  }
+
+  async listUnfinishedInbound(before: string) {
+    const rows = this.unwrap(await this.supabase.rpc("unfinished_inbound", { p_before: before }));
+    return rows.map((row) => ({ sid: row.provider_sid, from: row.from_phone, to: row.to_phone, body: row.body }));
+  }
+
+  async findBySid(sid: string): Promise<SmsMessage | null> {
+    const rows = this.unwrap(await this.supabase.from("sms_messages").select("*").eq("provider_sid", sid).limit(1));
+    return rows[0] ? mapSmsMessage(rows[0]) : null;
   }
 
   async listHeld(limit = 500): Promise<SmsMessage[]> {

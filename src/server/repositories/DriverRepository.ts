@@ -129,6 +129,7 @@ export function mapDriver(row: DriverRow & { driver_clearinghouse_self_reports?:
     smsOptedOutAt: row.sms_opted_out_at,
     noShowCount: row.no_show_count,
     shiftsPaused: row.shifts_paused,
+    shiftsPausedReason: row.shifts_paused_reason,
     reminderSentAt: row.reminder_sent_at,
     approvalTextSentAt: row.approval_text_sent_at,
     shiftReadyOverrideReason: row.shift_ready_override_reason,

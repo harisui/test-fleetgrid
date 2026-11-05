@@ -164,7 +164,7 @@ export class AdminOpsRepository extends BaseRepository implements IAdminOpsRepos
   }
 
   async setShiftsPaused(driverId: string, paused: boolean): Promise<void> {
-    const { error } = await this.supabase.from("drivers").update({ shifts_paused: paused }).eq("id", driverId);
+    const { error } = await this.supabase.from("drivers").update({ shifts_paused: paused, shifts_paused_reason: null }).eq("id", driverId);
     if (error) throw this.toAppError(error);
   }
 

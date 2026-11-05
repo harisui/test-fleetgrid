@@ -1,3 +1,4 @@
+import { NO_SHOW_PAUSE_THRESHOLD } from "@/lib/constants";
 import { mapDocument } from "@/server/repositories/DocumentRepository";
 import { AppError } from "@/server/errors/AppError";
 import { BaseRepository } from "@/server/repositories/BaseRepository";
@@ -45,6 +46,7 @@ export function mapShift(row: ShiftRow): Shift {
     releasedAt: row.released_at,
     bookedDriverId: row.booked_driver_id,
     bookedAt: row.booked_at,
+    bookedNoticeFailedAt: row.booked_notice_failed_at,
     cancelledAt: row.cancelled_at,
     cancelReason: row.cancel_reason,
     createdAt: row.created_at,
@@ -76,6 +78,7 @@ export interface ShiftPatch {
   sendAfter?: string | null;
   cancelledAt?: string | null;
   cancelReason?: string | null;
+  bookedNoticeFailedAt?: string | null;
 }
 
 export interface ShiftListFilter {
@@ -107,7 +110,11 @@ export interface IShiftRepository {
     place: { lat: number; lng: number },
     requirements: ShiftRequirements,
     exclude?: string[],
+    /** The shift's times: a driver with an overlapping booking gets no alert. */
+    window?: { startsAt: string; endsAt: string },
   ): Promise<MatchedDriver[]>;
+  /** Marks booked shifts whose end has passed, once. */
+  recordEnded(): Promise<number>;
   /** Open shifts whose quiet-hours wait is over and whose first round has not gone out. */
   listDueBroadcasts(now: string): Promise<Shift[]>;
 }
@@ -180,6 +187,7 @@ export class ShiftRepository extends BaseRepository implements IShiftRepository 
     if (patch.sendAfter !== undefined) update.send_after = patch.sendAfter;
     if (patch.cancelledAt !== undefined) update.cancelled_at = patch.cancelledAt;
     if (patch.cancelReason !== undefined) update.cancel_reason = patch.cancelReason;
+    if (patch.bookedNoticeFailedAt !== undefined) update.booked_notice_failed_at = patch.bookedNoticeFailedAt;
     const result = await this.supabase.from("shifts").update(update).eq("id", id).select("*").single();
     return mapShift(this.unwrap(result));
   }
@@ -193,8 +201,12 @@ export class ShiftRepository extends BaseRepository implements IShiftRepository 
   }
 
   async release(id: string): Promise<string | null> {
-    const result = await this.supabase.rpc("release_shift", { p_shift_id: id });
+    const result = await this.supabase.rpc("release_shift", { p_shift_id: id, p_pause_threshold: NO_SHOW_PAUSE_THRESHOLD });
     return this.unwrapMaybe(result) ?? null;
+  }
+
+  async recordEnded(): Promise<number> {
+    return this.unwrapMaybe(await this.supabase.rpc("record_ended_shifts")) ?? 0;
   }
 
   async expire(): Promise<number> {
@@ -222,6 +234,7 @@ export class ShiftRepository extends BaseRepository implements IShiftRepository 
     place: { lat: number; lng: number },
     requirements: ShiftRequirements,
     exclude: string[] = [],
+    window?: { startsAt: string; endsAt: string },
   ): Promise<MatchedDriver[]> {
     const result = await this.supabase.rpc("matching_drivers", {
       p_lat: place.lat,
@@ -234,6 +247,7 @@ export class ShiftRepository extends BaseRepository implements IShiftRepository 
       p_medical: requirements.medicalRequired,
       p_manual: requirements.manualRequired,
       p_exclude: exclude,
+      ...(window ? { p_starts_at: window.startsAt, p_ends_at: window.endsAt } : {}),
     });
     return this.unwrap(result).map((row) => ({ driverId: row.driver_id, phone: row.phone }));
   }

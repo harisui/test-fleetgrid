@@ -116,6 +116,7 @@ export function buildDriver(overrides: Partial<LocatedDriver> = {}): LocatedDriv
       smsOptedOutAt: null,
       noShowCount: 0,
       shiftsPaused: false,
+      shiftsPausedReason: null,
       reminderSentAt: null,
       approvalTextSentAt: null,
       shiftReadyOverrideReason: null,

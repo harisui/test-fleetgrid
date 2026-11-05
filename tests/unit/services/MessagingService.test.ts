@@ -128,6 +128,9 @@ class FakeMessaging implements IMessagingRepository {
   async listRecipients(ids: string[]) {
     return this.recipients.filter((r) => ids.includes(r.shiftId));
   }
+  async countBookedNotNotified() {
+    return 0;
+  }
   async countBookedShifts() {
     return this.shifts.filter((s) => s.shift.status === "booked").length;
   }

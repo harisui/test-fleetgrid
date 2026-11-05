@@ -22,7 +22,11 @@ interface ConfirmDialogProps {
   pendingLabel?: string;
   variant?: "primary" | "destructive";
   pending?: boolean;
+  /** Turned off until what the dialog asks for is given. */
+  confirmDisabled?: boolean;
   onConfirm: () => void | Promise<void>;
+  /** Something to fill in before confirming. */
+  children?: React.ReactNode;
 }
 
 /** Approve, block, deactivate: the dialog that names the record and the effect before anything changes. */
@@ -35,7 +39,9 @@ export function ConfirmDialog({
   pendingLabel = "Saving...",
   variant = "primary",
   pending = false,
+  confirmDisabled = false,
   onConfirm,
+  children,
 }: ConfirmDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -44,6 +50,7 @@ export function ConfirmDialog({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
+        {children}
         <DialogFooter>
           <Button type="button" variant="secondary" size="md" onClick={() => onOpenChange(false)} disabled={pending}>
             Cancel
@@ -54,6 +61,7 @@ export function ConfirmDialog({
             size="md"
             loading={pending}
             loadingText={pendingLabel}
+            disabled={confirmDisabled}
             onClick={() => void onConfirm()}
           >
             {confirmLabel}

@@ -260,6 +260,8 @@ export interface Driver {
   noShowCount: number;
   /** An admin's pause: no shift texts while true. */
   shiftsPaused: boolean;
+  /** "no_shows" when the system paused them; null otherwise. */
+  shiftsPausedReason: string | null;
   /** When the one profile reminder text went out; null until then (0025). */
   reminderSentAt: string | null;
   /** When the one approval text went out; null until then (0025). */
@@ -383,6 +385,7 @@ export const ADMIN_ACTIONS = [
   "driver_grace_expired",
   "driver_removed",
   "driver_paused",
+  "driver_auto_paused",
   "driver_unpaused",
   "carrier_approved",
   "carrier_blocked",
@@ -459,6 +462,8 @@ export interface Shift extends ShiftRequirements {
   releasedAt: string | null;
   bookedDriverId: string | null;
   bookedAt: string | null;
+  /** The booked text could not be delivered: someone should call the driver. */
+  bookedNoticeFailedAt: string | null;
   cancelledAt: string | null;
   cancelReason: string | null;
   createdAt: string;
@@ -537,6 +542,7 @@ export const INBOUND_OUTCOMES = [
   "no_code",
   "keyword",
   "unknown_sender",
+  "overlap",
 ] as const;
 export type InboundOutcome = (typeof INBOUND_OUTCOMES)[number];
 
@@ -548,7 +554,7 @@ export interface BookedDriverContact {
 }
 
 /** What a YES with a code did (claim_shift in 0023). */
-export const CLAIM_OUTCOMES = ["won", "already_yours", "filled", "closed", "not_eligible", "not_found"] as const;
+export const CLAIM_OUTCOMES = ["won", "overlap", "already_yours", "filled", "closed", "not_eligible", "not_found"] as const;
 export type ClaimOutcome = (typeof CLAIM_OUTCOMES)[number];
 
 /** A listed driver as a search result: the card and how far it is from the yard. */

@@ -1,5 +1,6 @@
+import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import { adminClient, COMPLETE_STEP, login, makeShiftReady, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
+import { adminClient, adminList, COMPLETE_STEP, login, makeShiftReady, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
 
 /**
  * The rest of the admin panel (T3.11): carriers with block and their sheet, subscriptions
@@ -98,6 +99,54 @@ test.describe("admin operations", () => {
       return data?.shifts_paused;
     }).toBe(true);
     await expect(sheet.getByRole("button", { name: "Resume shift texts" })).toBeVisible();
+
+    // Resuming needs a reason, and it goes in the audit log.
+    await sheet.getByRole("button", { name: "Resume shift texts" }).click();
+    const resume = page.getByRole("dialog", { name: "Resume shift texts for Pat Paused?" });
+    const confirm = resume.getByRole("button", { name: "Resume" });
+    await expect(confirm).toBeDisabled();
+    await resume.getByLabel(/Why may they get shift texts again/).fill("Called them, a family emergency");
+    await confirm.click();
+    await expect.poll(async () => {
+      const { data } = await adminClient().from("drivers").select("shifts_paused").eq("id", driverId).single();
+      return data?.shifts_paused;
+    }).toBe(false);
+    const { data: audit } = await adminClient().from("admin_audit_log").select("detail").eq("target_id", driverId).eq("action", "driver_unpaused").single();
+    expect(audit?.detail).toMatchObject({ reason: "Called them, a family emergency" });
+  });
+
+  test("Paused: no-shows and Booked, not notified show in the admin, with no accessibility issue", async ({ page }) => {
+    await adminClient().from("drivers").update({ shifts_paused: true, shifts_paused_reason: "no_shows" }).eq("id", driverId);
+    const start = new Date(Date.now() + 26 * 3_600_000);
+    const { error } = await adminClient().from("shifts").insert({
+      carrier_id: carrierId,
+      short_code: "",
+      status: "booked",
+      booked_driver_id: driverId,
+      booked_at: new Date().toISOString(),
+      booked_notice_failed_at: new Date().toISOString(),
+      starts_at: start.toISOString(),
+      ends_at: new Date(start.getTime() + 8 * 3_600_000).toISOString(),
+      zip: "77002",
+      city: "Houston",
+      state: "TX",
+      lat: 29.7594,
+      lng: -95.3594,
+      work_description: "Yard moves for the admin spec.",
+      onsite_contact_name: "Lee Yard",
+      onsite_contact_phone: "+17135550142",
+    });
+    if (error) throw error;
+
+    await login(page, PHONES.admin);
+    await page.goto("/admin/drivers?q=Pat+Paused");
+    await expect(adminList(page, "Drivers")).toContainText("Paused: no-shows");
+    await page.goto("/admin/shifts?status=booked");
+    await expect(page.locator("[data-slot=booked-not-notified]").first()).toBeVisible();
+    const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).exclude("nextjs-portal").analyze();
+    expect(results.violations.map((v) => v.id)).toEqual([]);
+    await page.goto("/admin/messaging");
+    await expect(page.locator("[data-slot=booked-not-notified-note]")).toContainText("Booked, not notified: 1");
   });
 
   test("shifts: a posted shift with its text log, numbers only in the sheet", async ({ page }) => {

@@ -1,7 +1,11 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
 import {
+  SMS_ALREADY_BOOKED,
   SMS_APPROVED,
+  SMS_NOT_ELIGIBLE,
+  SMS_OVERLAP,
+  SMS_PAUSED,
   SMS_REMINDER,
   SMS_SAMPLE_CONFIRMATION,
   SMS_SAMPLE_FILLED,
@@ -88,6 +92,17 @@ describe("the Roster-Ready texts (change request CR-5, approved by Annie 2026-11
       expect(text.startsWith("FleetGrid: "), text).toBe(true);
       expect(text.endsWith("Reply STOP to opt out."), text).toBe(true);
       expect(text).not.toMatch(/verified/i);
+    }
+  });
+
+  it("the answers to a YES that books nothing are word for word, GSM-7 and under 160", () => {
+    expect(SMS_OVERLAP).toBe("FleetGrid: You already have a shift booked at that time, so this one wasn't booked. Reply HELP for help.");
+    expect(SMS_PAUSED).toBe("FleetGrid: Your shift offers are paused, so this shift wasn't booked. Reply HELP or email support@fleetgridus.com.");
+    expect(SMS_NOT_ELIGIBLE).toBe("FleetGrid: This shift isn't open to you, so it wasn't booked. Reply HELP for help.");
+    expect(SMS_ALREADY_BOOKED).toBe("FleetGrid: You're already booked for this shift. Details at fleetgridus.com/driver.");
+    for (const text of [SMS_OVERLAP, SMS_PAUSED, SMS_NOT_ELIGIBLE, SMS_ALREADY_BOOKED]) {
+      expect(smsSegments(text).encoding, text).toBe("GSM-7");
+      expect(smsSegments(text).characters, text).toBeLessThan(160);
     }
   });
 

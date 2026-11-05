@@ -5,6 +5,9 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { PausedNoShowsBadge } from "@/components/admin/MissingDocumentsBadge";
+import { FormField } from "@/components/shared/FormField";
+import { Input } from "@/components/ui/input";
 import { RemoveAccountButton } from "@/components/admin/RemoveAccountButton";
 import { Button } from "@/components/ui/button";
 import { pauseDriverAction, unpauseDriverAction } from "@/server/actions/admin-ops.actions";
@@ -19,6 +22,7 @@ export function DriverOpsActions({
   name,
   noShowCount,
   paused,
+  pausedReason,
   afterRemoveHref,
 }: {
   driverId: string;
@@ -26,11 +30,13 @@ export function DriverOpsActions({
   name: string;
   noShowCount: number;
   paused: boolean;
+  pausedReason: string | null;
   afterRemoveHref: string;
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
   const [pending, setPending] = useState(false);
+  const [reason, setReason] = useState("");
 
   return (
     <section className="flex flex-col gap-3" aria-labelledby="driver-shifts" data-slot="driver-ops">
@@ -41,6 +47,7 @@ export function DriverOpsActions({
         {noShowCount === 1 ? "1 no-show" : `${noShowCount} no-shows`}.{" "}
         {paused ? "Shift texts are paused." : "Shift texts are on when the driver has opted in."}
       </p>
+      {paused && pausedReason === "no_shows" && <PausedNoShowsBadge className="self-start" />}
       <div className="flex flex-wrap gap-3">
         <Button type="button" size="md" variant="secondary" onClick={() => setConfirming(true)}>
           {paused ? "Resume shift texts" : "Pause shift texts"}
@@ -61,9 +68,10 @@ export function DriverOpsActions({
         }
         confirmLabel={paused ? "Resume" : "Pause"}
         pending={pending}
+        confirmDisabled={paused && reason.trim().length < 5}
         onConfirm={async () => {
           setPending(true);
-          const result = paused ? await unpauseDriverAction({ driverId }) : await pauseDriverAction({ driverId });
+          const result = paused ? await unpauseDriverAction({ driverId, reason }) : await pauseDriverAction({ driverId });
           setPending(false);
           setConfirming(false);
           if (!result.ok) {
@@ -71,9 +79,16 @@ export function DriverOpsActions({
             return;
           }
           toast.success(paused ? "Shift texts resumed" : "Shift texts paused");
+          setReason("");
           router.refresh();
         }}
-      />
+      >
+        {paused && (
+          <FormField label="Why may they get shift texts again?" required>
+            <Input value={reason} onChange={(event) => setReason(event.target.value)} maxLength={200} autoComplete="off" />
+          </FormField>
+        )}
+      </ConfirmDialog>
     </section>
   );
 }

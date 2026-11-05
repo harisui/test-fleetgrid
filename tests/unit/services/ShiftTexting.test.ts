@@ -1,4 +1,6 @@
 // @vitest-environment node
+import { SMS_ALREADY_BOOKED, SMS_NOT_ELIGIBLE, SMS_OVERLAP, SMS_PAUSED } from "@/content/sms-samples";
+import { SmsSendError } from "@/server/providers/SmsProvider";
 import { beforeEach, describe, expect, it } from "vitest";
 import { SMS_SAMPLE_FILLED } from "@/content/sms-samples";
 import { bookedText, CLOSED_TEXT, FORMAT_HELP_TEXT, offerText } from "@/lib/shifts/texts";
@@ -79,6 +81,192 @@ describe("broadcasting and replies", () => {
       // Switched back on, it goes.
       expect(await broadcasts.dispatchDue(world.now())).toBe(1);
       expect(sms.sent.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("the alert cap", () => {
+    it("a driver at the limit gets nothing and is on record as skipped", async () => {
+      world.atCap.add(drivers[0].driverId);
+      const result = await broadcasts.broadcast(shift.id, world.now());
+      expect(result).toMatchObject({ matched: 4, offered: 3, sent: 3, skippedCap: 1 });
+      expect(sms.sent.map((m) => m.to)).not.toContain(drivers[0].phone);
+      expect(world.recipients.find((r) => r.driverId === drivers[0].driverId)?.status).toBe("skipped_cap");
+    });
+  });
+
+  describe("a cut-off broadcast", () => {
+    const daytime = new Date("2026-11-01T18:00:00.000Z"); // Noon Houston
+    const queueWithoutSending = () =>
+      world.broadcastRepository.insertMany(
+        drivers.map((driver, index) => ({ shiftId: shift.id, driverId: driver.driverId, round: 1, position: index + 1, code: shift.shortCode })),
+      );
+
+    it("the job sends what is still queued, once each", async () => {
+      const rows = await queueWithoutSending();
+      await world.broadcastRepository.claimSend(rows[0]!.id);
+      expect(await broadcasts.resumeQueued(daytime)).toBe(3);
+      expect(sms.sent.map((m) => m.to).sort()).toEqual(drivers.slice(1).map((d) => d.phone).sort());
+      expect(await broadcasts.resumeQueued(daytime)).toBe(0);
+      expect(sms.sent).toHaveLength(3);
+    });
+
+    it("respects the cap, and quiet hours", async () => {
+      await queueWithoutSending();
+      world.atCap.add(drivers[0].driverId);
+      // The shift starts Nov 3: more than 12 hours from 11 PM Houston, so it waits.
+      const night = new Date("2026-11-01T05:00:00.000Z");
+      expect(await broadcasts.resumeQueued(night)).toBe(0);
+      expect(sms.sent).toEqual([]);
+      expect(await broadcasts.resumeQueued(daytime)).toBe(3);
+      expect(world.recipients.find((r) => r.driverId === drivers[0].driverId)?.status).toBe("skipped_cap");
+    });
+
+    it("sends nothing with the carrier side off", async () => {
+      await queueWithoutSending();
+      const off = new BroadcastService(world.shiftRepository, world.broadcastRepository, new TextService(sms, () => smsLog), () => 0.5, () => true);
+      expect(await off.resumeQueued(daytime)).toBe(0);
+      expect(sms.sent).toEqual([]);
+    });
+  });
+
+  describe("every YES gets an answer", () => {
+    const yes = (driver: (typeof drivers)[number], sid: string) =>
+      inbound.handle({ sid, from: driver.phone, to: "+18888692040", body: `YES ${shift.shortCode}` });
+    const lastText = () => sms.sent.at(-1)?.body;
+
+    beforeEach(async () => {
+      await broadcasts.broadcast(shift.id, world.now());
+    });
+
+    it("overlap: told, not booked", async () => {
+      world.overlapping.add(drivers[0].driverId);
+      expect((await yes(drivers[0], "SMa1")).outcome).toBe("overlap");
+      expect(lastText()).toBe(SMS_OVERLAP);
+      expect(world.shifts.get(shift.id)?.status).toBe("open");
+      expect(smsLog.entries.find((e) => e.providerSid === "SMa1")?.inboundOutcome).toBe("overlap");
+    });
+
+    it("paused: told, not booked", async () => {
+      world.drivers.get(drivers[0].driverId)!.shiftsPaused = true;
+      expect((await yes(drivers[0], "SMa2")).outcome).toBe("not_eligible");
+      expect(lastText()).toBe(SMS_PAUSED);
+    });
+
+    it("no longer eligible: told, not booked", async () => {
+      world.drivers.get(drivers[0].driverId)!.status = "pending";
+      expect((await yes(drivers[0], "SMa3")).outcome).toBe("not_eligible");
+      expect(lastText()).toBe(SMS_NOT_ELIGIBLE);
+    });
+
+    it("repeat YES on a shift they hold: told, nothing new booked", async () => {
+      await yes(drivers[0], "SMa4");
+      expect(lastText()).toContain("Your shift is booked");
+      expect((await yes(drivers[0], "SMa5")).outcome).toBe("already_yours");
+      expect(lastText()).toBe(SMS_ALREADY_BOOKED);
+    });
+  });
+
+  describe("a booked text that fails", () => {
+    const yes = () => inbound.handle({ sid: "SMb1", from: drivers[0].phone, to: "+18888692040", body: `YES ${shift.shortCode}` });
+
+    beforeEach(async () => {
+      await broadcasts.broadcast(shift.id, world.now());
+    });
+
+    function retrying(failures: number, code: string | null = "30003") {
+      let left = failures;
+      const waits: number[] = [];
+      const provider = {
+        kind: "fake" as const,
+        sender: "fake",
+        send: async (message: { to: string; body: string }) => {
+          if (left-- > 0) throw new SmsSendError("refused", code);
+          return sms.send(message);
+        },
+      };
+      const texts = new TextService(provider, () => smsLog, undefined, async (ms) => {
+        waits.push(ms);
+      });
+      inbound = new InboundService(world.textingDrivers, world.shiftRepository, world.broadcastRepository, smsLog, consentLog, texts, world.now);
+      return waits;
+    }
+
+    it("retries three times with backoff, then sends: one log row, no alarm", async () => {
+      const waits = retrying(3);
+      const before = sms.sent.length;
+      expect((await yes()).replied).toBe("booked");
+      expect(waits).toEqual([500, 1500, 3000]);
+      expect(sms.sent.length).toBe(before + 1);
+      expect(smsLog.outbound().filter((e) => e.kind === "booked")).toHaveLength(1);
+      expect(world.shifts.get(shift.id)?.bookedNoticeFailedAt).toBeNull();
+    });
+
+    it("after three retries the admin is told: Booked, not notified", async () => {
+      retrying(4);
+      expect((await yes()).outcome).toBe("won");
+      expect(world.shifts.get(shift.id)?.status).toBe("booked");
+      expect(world.shifts.get(shift.id)?.bookedNoticeFailedAt).toBeTruthy();
+      expect(smsLog.outbound().find((e) => e.kind === "booked")?.status).toBe("failed");
+    });
+
+    it("does not retry a number that will answer the same every time", async () => {
+      const waits = retrying(4, "21610");
+      await yes();
+      expect(waits).toEqual([]);
+      expect(world.shifts.get(shift.id)?.bookedNoticeFailedAt).toBeTruthy();
+    });
+
+    it("a delivery report of failure raises it, and delivered clears it", async () => {
+      await yes();
+      const sid = smsLog.outbound().find((e) => e.kind === "booked")!.providerSid!;
+      await inbound.handleStatus({ sid, status: "undelivered", errorCode: "30005" });
+      expect(world.shifts.get(shift.id)?.bookedNoticeFailedAt).toBeTruthy();
+      await inbound.handleStatus({ sid, status: "delivered", errorCode: null });
+      expect(world.shifts.get(shift.id)?.bookedNoticeFailedAt).toBeNull();
+    });
+  });
+
+  describe("a lost YES", () => {
+    const message = () => ({ sid: "SMc1", from: drivers[0].phone, to: "+18888692040", body: `YES ${shift.shortCode}` });
+
+    beforeEach(async () => {
+      await broadcasts.broadcast(shift.id, world.now());
+    });
+
+    it("a reply that stopped part way is handled by the retry, not dropped", async () => {
+      const claim = world.shiftRepository.claim;
+      world.shiftRepository.claim = async () => {
+        throw new Error("the server stopped");
+      };
+      await expect(inbound.handle(message())).rejects.toThrow("the server stopped");
+      expect(world.shifts.get(shift.id)?.status).toBe("open");
+      world.shiftRepository.claim = claim;
+
+      // Inside the 60 seconds another delivery of it waits; after them it is handled.
+      expect((await inbound.handle(message())).duplicate).toBe(true);
+      smsLog.staleInbound.add("SMc1");
+      expect((await inbound.handle(message())).outcome).toBe("won");
+      expect(world.shifts.get(shift.id)?.bookedDriverId).toBe(drivers[0].driverId);
+    });
+
+    it("the job handles it when Twilio never retries", async () => {
+      const claim = world.shiftRepository.claim;
+      world.shiftRepository.claim = async () => {
+        throw new Error("the server stopped");
+      };
+      await expect(inbound.handle(message())).rejects.toThrow();
+      world.shiftRepository.claim = claim;
+      smsLog.staleInbound.add("SMc1");
+      expect(await inbound.reprocessUnfinished(world.now())).toBe(1);
+      expect(world.shifts.get(shift.id)?.bookedDriverId).toBe(drivers[0].driverId);
+      expect(await inbound.reprocessUnfinished(world.now())).toBe(0);
+    });
+
+    it("a finished reply delivered again is a duplicate", async () => {
+      await inbound.handle(message());
+      const texts = sms.sent.length;
+      expect((await inbound.handle(message())).duplicate).toBe(true);
+      expect(sms.sent).toHaveLength(texts);
     });
   });
 

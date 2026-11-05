@@ -1,4 +1,5 @@
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
+import { RETRYABLE_ERROR_CODES } from "@/lib/sms/retryable";
 import { displayStatus, isBookable, quietHoursSendAt } from "@/lib/shifts/schedule";
 import { SHIFT_TIME_ZONE, type SmsKind } from "@/lib/shifts/texts";
 import {
@@ -19,8 +20,7 @@ import type { TextService } from "@/server/services/TextService";
 import type { BroadcastRecipient, NoticeBatch, Profile, Shift, SmsMessage } from "@/types/domain";
 import { ROSTER_READY } from "@/lib/drivers/tiers";
 
-/** Twilio errors a retry can fix (user decision of 2026-11-01); a send that never reached Twilio has no code. */
-export const RETRYABLE_ERROR_CODES = ["30001", "30003", "30008"] as const;
+export { RETRYABLE_ERROR_CODES };
 
 const NEVER_RETRY: Record<string, string> = {
   "21610": "The number replied STOP (Twilio 21610).",
@@ -134,6 +134,8 @@ export interface NoticeRow {
 
 export interface ActivityPage {
   query: MessagingQuery;
+  /** Booked shifts whose driver never got the booked text: call them. */
+  bookedNotNotified: number;
   range: { from: string; to: string };
   tiles: ActivityTiles;
   broadcasts: BroadcastRow[];
@@ -196,7 +198,7 @@ export class MessagingService {
       noticesSent: outbound.filter((m) => m.noticeBatchId !== null && messageState(m) !== "failed").length,
     };
 
-    const page: ActivityPage = { query, range, tiles, broadcasts: [], accountGroups: [], notices: [], messages: [] };
+    const page: ActivityPage = { query, range, tiles, bookedNotNotified: await this.messaging.countBookedNotNotified(), broadcasts: [], accountGroups: [], notices: [], messages: [] };
     const byStatus = (m: SmsMessage) => !query.status || messageState(m) === query.status;
 
     if (query.tab === "broadcasts") {

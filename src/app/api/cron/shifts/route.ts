@@ -10,7 +10,8 @@ import { refuseUnlessCron } from "@/server/cron";
 export async function GET(request: Request): Promise<Response> {
   const refused = refuseUnlessCron(request);
   if (refused) return refused;
-  const { shifts, broadcastService, notificationService, noticeService, docReminderService, textService, drivers } = buildTextingServices();
+  const { shifts, broadcastService, notificationService, noticeService, docReminderService, textService, drivers, inboundService } = buildTextingServices();
+  const ended = await shifts.recordEnded();
   const expired = await shifts.expire();
   const dispatched = await broadcastService.dispatchDue();
   // Approval texts held overnight by quiet hours go at the same 7 AM run.
@@ -22,5 +23,8 @@ export async function GET(request: Request): Promise<Response> {
   const docReminders = await docReminderService.dispatchDue();
   // Texts held while no real sender was set up.
   const held = await textService.drainHeld(drivers);
-  return Response.json({ ok: true, expired, dispatched, approvals, notices, welcomes, docReminders, held });
+  // Anything a stopped server left behind.
+  const resumed = await broadcastService.resumeQueued();
+  const repliesHandled = await inboundService.reprocessUnfinished();
+  return Response.json({ ok: true, ended, resumed, repliesHandled, expired, dispatched, approvals, notices, welcomes, docReminders, held });
 }

@@ -8,9 +8,9 @@ import { twilioSignature } from "@/server/twilio/signature";
 
 const env = vi.hoisted(() => ({ TWILIO_AUTH_TOKEN: undefined as string | undefined, CRON_SECRET: "s3cret" }));
 const services = vi.hoisted(() => ({
-  inboundService: { handle: vi.fn(), handleStatus: vi.fn() },
-  broadcastService: { dispatchDue: vi.fn() },
-  shifts: { expire: vi.fn() },
+  inboundService: { handle: vi.fn(), handleStatus: vi.fn(), reprocessUnfinished: vi.fn() },
+  broadcastService: { dispatchDue: vi.fn(), resumeQueued: vi.fn() },
+  shifts: { expire: vi.fn(), recordEnded: vi.fn() },
   notificationService: { sendDueApprovalTexts: vi.fn(), sendDueReminders: vi.fn(), sendDueWelcomeTexts: vi.fn() },
   noticeService: { dispatchDue: vi.fn() },
   textService: { drainHeld: vi.fn() },
@@ -118,11 +118,14 @@ describe("GET /api/cron/shifts", () => {
     services.notificationService.sendDueWelcomeTexts.mockResolvedValue(6);
     services.docReminderService.dispatchDue.mockResolvedValue(7);
     services.textService.drainHeld.mockResolvedValue(8);
+    services.shifts.recordEnded.mockResolvedValue(9);
+    services.broadcastService.resumeQueued.mockResolvedValue(10);
+    services.inboundService.reprocessUnfinished.mockResolvedValue(11);
     expect((await shiftsCron(new Request("http://localhost/api/cron/shifts"))).status).toBe(401);
     const response = await shiftsCron(
       new Request("http://localhost/api/cron/shifts", { headers: { authorization: "Bearer s3cret" } }),
     );
-    expect(await response.json()).toEqual({ ok: true, expired: 2, dispatched: 1, approvals: 3, notices: 5, welcomes: 6, docReminders: 7, held: 8 });
+    expect(await response.json()).toEqual({ ok: true, ended: 9, resumed: 10, repliesHandled: 11, expired: 2, dispatched: 1, approvals: 3, notices: 5, welcomes: 6, docReminders: 7, held: 8 });
   });
 });
 

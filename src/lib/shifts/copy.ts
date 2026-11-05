@@ -38,4 +38,5 @@ export const RECIPIENT_STATUS_LABELS = {
   booked: "Booked",
   too_late: "Replied late",
   no_show: "No-show",
+  skipped_cap: "Alert limit reached",
 } as const;

@@ -210,8 +210,11 @@ describe("AdminOpsService", () => {
     driverRow = { ...driverRow, driver: { ...driverRow.driver, shiftsPaused: true } };
     await service.setDriverPaused(ADMIN_ID, { driverId: DRIVER_ID }, true);
     expect(audit).toHaveLength(1);
-    await service.setDriverPaused(ADMIN_ID, { driverId: DRIVER_ID }, false);
-    expect(audit.at(-1)?.action).toBe("driver_unpaused");
+    await expect(service.setDriverPaused(ADMIN_ID, { driverId: DRIVER_ID }, false)).rejects.toMatchObject({ code: "VALIDATION" });
+    await expect(service.setDriverPaused(ADMIN_ID, { driverId: DRIVER_ID, reason: "ok" }, false)).rejects.toMatchObject({ code: "VALIDATION" });
+    expect(ops.paused.get(DRIVER_ID)).toBe(true);
+    await service.setDriverPaused(ADMIN_ID, { driverId: DRIVER_ID, reason: "Called them, they had a family emergency" }, false);
+    expect(audit.at(-1)).toMatchObject({ action: "driver_unpaused", detail: { reason: "Called them, they had a family emergency" } });
   });
 
   it("counts active subscriptions and the monthly revenue", async () => {

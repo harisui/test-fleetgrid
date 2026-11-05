@@ -53,6 +53,8 @@ export interface IMessagingRepository {
   findShift(shiftId: string): Promise<{ shift: Shift; companyName: string } | null>;
   listRecipients(shiftIds: string[]): Promise<BroadcastRecipient[]>;
   countBookedShifts(from: string, to: string): Promise<number>;
+  /** Booked shifts whose driver never got the booked text. */
+  countBookedNotNotified(): Promise<number>;
   listBatches(from: string, to: string): Promise<NoticeBatch[]>;
   findBatch(id: string): Promise<NoticeBatch | null>;
   driverNames(ids: string[]): Promise<Map<string, string>>;
@@ -117,6 +119,16 @@ export class MessagingRepository extends BaseRepository implements IMessagingRep
         .order("position", { ascending: true }),
     );
     return rows.map(mapRecipient);
+  }
+
+  async countBookedNotNotified(): Promise<number> {
+    const { count, error } = await this.supabase
+      .from("shifts")
+      .select("id", { count: "exact", head: true })
+      .eq("status", "booked")
+      .not("booked_notice_failed_at", "is", null);
+    if (error) throw this.toAppError(error);
+    return count ?? 0;
   }
 
   async countBookedShifts(from: string, to: string): Promise<number> {
