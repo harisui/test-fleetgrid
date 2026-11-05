@@ -68,6 +68,16 @@ export function docReminderText(items: DocReminderItems): string {
 }
 
 /**
+ * One text to a driver in the grace period who has not said which state issued their CDL
+ * (wording agreed 2026-11-05). With documents missing too, one combined text.
+ */
+export function cdlStateNoticeText(date: string, items: DocReminderItems | null): string {
+  return items
+    ? `FleetGrid: Confirm your CDL state and upload your ${items} at fleetgridus.com/driver by ${date} to get shift offers. Reply STOP to opt out.`
+    : `FleetGrid: Please confirm the state that issued your CDL at fleetgridus.com/driver by ${date} to get shift offers. Reply STOP to opt out.`;
+}
+
+/**
  * Admin notices (change request CR-3, 2026-11-01). Account notifications under the approved
  * toll-free use case (TWO_FACTOR_AUTHENTICATION, ACCOUNT_NOTIFICATIONS), never marketing.
  * The admin only picks from these lists; nothing typed reaches a text. The verb agrees with

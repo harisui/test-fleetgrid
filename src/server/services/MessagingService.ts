@@ -37,6 +37,7 @@ export const ACCOUNT_KIND_LABELS: Record<AccountKind, string> = {
   reminder: "Profile reminder",
   welcome: "Welcome",
   doc_reminder: "Documents reminder",
+  cdl_state_notice: "CDL state",
   cancelled: "Cancellation",
   security: "Security",
 };

@@ -20,6 +20,8 @@ alter table public.notice_batches add column excluded_recent integer not null de
   constraint notice_batches_excluded_recent check (excluded_recent >= 0);
 
 alter table public.drivers add column last_doc_reminder_at timestamptz;
+alter table public.drivers add column cdl_state_notice_sent_at timestamptz;
+comment on column public.drivers.cdl_state_notice_sent_at is 'When the one CDL-state text went to a driver in the grace period of 0028 (user decision of 2026-11-05).';
 comment on column public.drivers.last_doc_reminder_at is 'When the last missing-documents reminder went out (CR-5). One per 3 days.';
 
 -- Drivers may not change the reminder stamp either.
@@ -47,7 +49,8 @@ begin
   if new.reminder_sent_at is distinct from old.reminder_sent_at
      or new.approval_text_due_at is distinct from old.approval_text_due_at
      or new.approval_text_sent_at is distinct from old.approval_text_sent_at
-     or new.last_doc_reminder_at is distinct from old.last_doc_reminder_at then
+     or new.last_doc_reminder_at is distinct from old.last_doc_reminder_at
+     or new.cdl_state_notice_sent_at is distinct from old.cdl_state_notice_sent_at then
     raise exception 'Changing the text stamps is not allowed' using errcode = '42501';
   end if;
   if new.shift_ready_override_reason is distinct from old.shift_ready_override_reason
@@ -185,6 +188,42 @@ as $$
     and cardinality(public.missing_documents(d.id)) > 0
   returning p.phone, public.missing_documents(d.id);
 $$;
+
+-- The one CDL-state text: stamps and returns the drivers in grace who have not answered, with
+-- consent and no STOP, each with the documents they also miss and the deadline. A driver told
+-- about documents here counts as reminded, so the two texts never arrive together.
+create function public.claim_cdl_state_notices()
+returns table (driver_id uuid, phone text, missing text[], grace_until timestamptz)
+language sql
+volatile
+security definer
+set search_path = public
+as $$
+  with due as (
+    select d.id, p.phone, public.missing_documents(d.id) as missing, d.roster_grace_until
+    from public.drivers d
+    join public.profiles p on p.id = d.profile_id
+    where p.role = 'driver'
+      and p.status = 'approved'
+      and d.roster_grace_until > now()
+      and d.cdl_state is null
+      and d.cdl_state_notice_sent_at is null
+      and d.sms_opt_in
+      and not d.sms_opted_out
+    for update of d
+  ), stamped as (
+    update public.drivers d
+    set cdl_state_notice_sent_at = now(),
+        last_doc_reminder_at = case when cardinality(due.missing) > 0 then now() else d.last_doc_reminder_at end
+    from due
+    where d.id = due.id
+    returning d.id
+  )
+  select due.id, due.phone, due.missing, due.roster_grace_until from due join stamped on stamped.id = due.id;
+$$;
+
+revoke execute on function public.claim_cdl_state_notices() from public, anon, authenticated;
+grant execute on function public.claim_cdl_state_notices() to service_role;
 
 revoke execute on function public.queue_welcome_text(text, uuid, timestamptz) from public, anon, authenticated;
 revoke execute on function public.claim_welcome_texts(uuid) from public, anon, authenticated;

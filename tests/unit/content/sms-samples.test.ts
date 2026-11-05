@@ -8,6 +8,7 @@ import {
   SMS_SAMPLE_OFFER,
   SMS_SAMPLE_REPLY,
   SMS_WELCOME_NO_NAME,
+  cdlStateNoticeText,
   DOC_REMINDER_ITEMS,
   docReminderText,
   threadWithCode,
@@ -87,6 +88,16 @@ describe("the Roster-Ready texts (change request CR-5, approved by Annie 2026-11
       expect(text.startsWith("FleetGrid: "), text).toBe(true);
       expect(text.endsWith("Reply STOP to opt out."), text).toBe(true);
       expect(text).not.toMatch(/verified/i);
+    }
+  });
+
+  it("the CDL-state text is GSM-7 and under 160 in every form, with the longest date", () => {
+    for (const items of [null, ...DOC_REMINDER_ITEMS]) {
+      const text = cdlStateNoticeText("Nov 30", items);
+      expect(smsSegments(text).encoding, text).toBe("GSM-7");
+      expect(smsSegments(text).characters, text).toBeLessThan(160);
+      expect(text.startsWith("FleetGrid: "), text).toBe(true);
+      expect(text.endsWith("Reply STOP to opt out."), text).toBe(true);
     }
   });
 

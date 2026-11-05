@@ -69,6 +69,12 @@ class FakeDocs implements IDriverNotificationRepository {
       }));
   }
   graceOver: string[] = [];
+  notices: { driverId: string; phone: string; missing: string[]; graceUntil: string }[] = [];
+  async claimCdlStateNotices() {
+    const due = this.notices;
+    this.notices = [];
+    return due;
+  }
   async expireRosterGrace() {
     const moved = this.graceOver;
     this.graceOver = [];
@@ -227,6 +233,29 @@ describe("DocReminderService (CR-5)", () => {
     // 2 consents; 3 said STOP; 4 never agreed.
     expect(sms.sent).toEqual([{ to: "+15555553002", body: docReminderText("medical card") }]);
     expect(log.outbound().map((entry) => entry.kind)).toEqual(["doc_reminder"]);
+  });
+
+  it("the CDL-state text: on its own, or one text with the documents, with the deadline, once", async () => {
+    docs.notices = [
+      { driverId: id(1), phone: "+15555553001", missing: [], graceUntil: "2026-11-19T18:00:00.000Z" },
+      { driverId: id(2), phone: "+15555553002", missing: ["cdl_front", "medical_card"], graceUntil: "2026-11-19T18:00:00.000Z" },
+    ];
+    expect(await service.sendCdlStateNotices()).toBe(2);
+    expect(sms.sent).toEqual([
+      { to: "+15555553001", body: "FleetGrid: Please confirm the state that issued your CDL at fleetgridus.com/driver by Nov 19 to get shift offers. Reply STOP to opt out." },
+      { to: "+15555553002", body: "FleetGrid: Confirm your CDL state and upload your CDL photos and medical card at fleetgridus.com/driver by Nov 19 to get shift offers. Reply STOP to opt out." },
+    ]);
+    expect(log.outbound().map((entry) => entry.kind)).toEqual(["cdl_state_notice", "cdl_state_notice"]);
+    expect(await service.sendCdlStateNotices()).toBe(0);
+    expect(sms.sent).toHaveLength(2);
+  });
+
+  it("the CDL-state text waits for daytime and uses nothing up at night", async () => {
+    docs.notices = [{ driverId: id(1), phone: "+15555553001", missing: [], graceUntil: "2026-11-19T18:00:00.000Z" }];
+    now = NIGHT;
+    expect(await service.sendCdlStateNotices()).toBe(0);
+    expect(docs.notices).toHaveLength(1);
+    expect(sms.sent).toEqual([]);
   });
 
   it("when the grace ends at night: they still move, and no text goes", async () => {

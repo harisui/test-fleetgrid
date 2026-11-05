@@ -13,7 +13,7 @@ const services = vi.hoisted(() => ({
   shifts: { expire: vi.fn() },
   notificationService: { sendDueApprovalTexts: vi.fn(), sendDueReminders: vi.fn(), sendDueWelcomeTexts: vi.fn() },
   noticeService: { dispatchDue: vi.fn() },
-  docReminderService: { dispatchDue: vi.fn(), expireGrace: vi.fn() },
+  docReminderService: { dispatchDue: vi.fn(), expireGrace: vi.fn(), sendCdlStateNotices: vi.fn() },
 }));
 
 vi.mock("@/lib/env", () => ({ getServerEnv: () => env }));
@@ -127,10 +127,11 @@ describe("GET /api/cron/reminders", () => {
   it("needs the cron token, then sends the due reminders", async () => {
     services.notificationService.sendDueReminders.mockResolvedValue(4);
     services.docReminderService.expireGrace.mockResolvedValue(2);
+    services.docReminderService.sendCdlStateNotices.mockResolvedValue(3);
     expect((await remindersCron(new Request("http://localhost/api/cron/reminders"))).status).toBe(401);
     const response = await remindersCron(
       new Request("http://localhost/api/cron/reminders", { headers: { authorization: "Bearer s3cret" } }),
     );
-    expect(await response.json()).toEqual({ ok: true, reminders: 4, graceExpired: 2 });
+    expect(await response.json()).toEqual({ ok: true, reminders: 4, graceExpired: 2, cdlStateNotices: 3 });
   });
 });

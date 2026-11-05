@@ -67,6 +67,17 @@ select ok((select rereview_needed from public.drivers where id = pg_temp.did('71
 select is((select exclusion from public.doc_reminder_candidates(pg_temp.did('71'))), null::text, 'a driver in grace can get the documents reminder');
 select is_empty($$ select * from public.doc_reminder_candidates(pg_temp.did('72')) $$, 'one with every document is not a candidate');
 
+-- The one CDL-state text: 71 has no CDL state and misses documents, 72 has one, 76 misses it too.
+select ok(not has_function_privilege('authenticated', 'public.claim_cdl_state_notices()', 'execute'), 'signed-in users cannot claim the CDL-state text');
+update public.drivers set sms_opt_in = false, sms_opt_in_at = null, sms_opt_in_text = null where id = pg_temp.did('76');
+select results_eq(
+  $$ select driver_id, missing from public.claim_cdl_state_notices() $$,
+  $$ values (pg_temp.did('71'), array['cdl_back', 'medical_card']) $$,
+  'it goes only to a driver in grace with no CDL state and texts on, naming the documents too'
+);
+select ok((select last_doc_reminder_at is not null from public.drivers where id = pg_temp.did('71')), 'and counts as the documents reminder');
+select is_empty($$ select * from public.claim_cdl_state_notices() $$, 'only once');
+
 -- A change of status ends the grace.
 update public.profiles set status = 'blocked' where id = 'e0000076-0000-4000-8000-000000000000';
 select is((select roster_grace_until from public.drivers where id = pg_temp.did('76')), null, 'blocking ends the grace');

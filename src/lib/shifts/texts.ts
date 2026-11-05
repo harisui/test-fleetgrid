@@ -79,6 +79,7 @@ export type SmsKind =
   | "reminder"
   | "welcome"
   | "doc_reminder"
+  | "cdl_state_notice"
   | "notice"
   | "security"
   | "format_help"

@@ -35,6 +35,8 @@ export interface IDriverNotificationRepository {
   docReminderCandidates(driverId?: string): Promise<DocReminderCandidate[]>;
   /** Stamps the documents reminder if one may go now; null when it may not. */
   claimDocReminder(driverId: string): Promise<{ phone: string; missing: string[] } | null>;
+  /** Stamps and returns the drivers due the one CDL-state text (0030). */
+  claimCdlStateNotices(): Promise<{ driverId: string; phone: string; missing: string[]; graceUntil: string }[]>;
   /** Ends the grace periods that are over; returns the drivers moved to Registered (0028). */
   expireRosterGrace(): Promise<string[]>;
 }
@@ -84,6 +86,11 @@ export class DriverNotificationRepository extends BaseRepository implements IDri
       exclusion: EXCLUSIONS.has(row.exclusion) ? (row.exclusion as DocReminderCandidate["exclusion"]) : null,
       lastDocReminderAt: row.last_doc_reminder_at,
     }));
+  }
+
+  async claimCdlStateNotices() {
+    const rows = this.unwrap(await this.supabase.rpc("claim_cdl_state_notices"));
+    return rows.map((row) => ({ driverId: row.driver_id, phone: row.phone, missing: row.missing, graceUntil: row.grace_until }));
   }
 
   async expireRosterGrace(): Promise<string[]> {

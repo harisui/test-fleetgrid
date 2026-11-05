@@ -220,6 +220,7 @@ describe("MessagingService", () => {
       ["reminder", 1, 1, 0],
       ["welcome", 0, 0, 0],
       ["doc_reminder", 0, 0, 0],
+      ["cdl_state_notice", 0, 0, 0],
       ["cancelled", 0, 0, 0],
       ["security", 0, 0, 0],
     ]);
