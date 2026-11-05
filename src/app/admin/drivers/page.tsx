@@ -45,6 +45,7 @@ export default async function AdminDriversPage({ searchParams }: PageProps<"/adm
 
   return (
     <AdminPage
+      fullWidth
       title="Drivers"
       subtitle={`Everyone who signed up, newest first. Mark a driver ${ROSTER_READY} to list them to subscribed carriers; block one to hide them and sign them out.`}
       actions={<DocReminderButton initial={bulkReminder} />}
