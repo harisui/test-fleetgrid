@@ -1,0 +1,191 @@
+import { afterAll, describe, expect, it } from "vitest";
+import { BroadcastRepository } from "@/server/repositories/BroadcastRepository";
+import { ConsentLogRepository } from "@/server/repositories/ConsentLogRepository";
+import { ShiftRepository } from "@/server/repositories/ShiftRepository";
+import { SmsLogRepository } from "@/server/repositories/SmsLogRepository";
+import { TextingDriverRepository } from "@/server/repositories/TextingDriverRepository";
+import { BroadcastService } from "@/server/services/BroadcastService";
+import { InboundService } from "@/server/services/InboundService";
+import { TextService } from "@/server/services/TextService";
+import { RecordingSmsProvider } from "../../fakes/FakeShiftRepositories";
+import {
+  cleanupTestUsers,
+  createListedDriver,
+  createTestCarrier,
+  serviceClient,
+  TEST_PLACES,
+  type TestDriver,
+} from "../../setup/supabase";
+
+const SENDER = "+15555559999";
+const seq = (() => {
+  let n = 0;
+  return () => `SMlogic${Date.now()}x${++n}`;
+})();
+
+function services(sms: RecordingSmsProvider) {
+  const admin = serviceClient();
+  const shifts = new ShiftRepository(admin);
+  const recipients = new BroadcastRepository(admin);
+  const texts = new TextService(sms, () => new SmsLogRepository(admin));
+  return {
+    shifts,
+    broadcast: new BroadcastService(shifts, recipients, texts),
+    inbound: new InboundService(
+      new TextingDriverRepository(admin),
+      shifts,
+      recipients,
+      new SmsLogRepository(admin),
+      new ConsentLogRepository(admin),
+      texts,
+    ),
+  };
+}
+
+async function postShift(carrierId: string): Promise<{ id: string; code: string }> {
+  const start = new Date(Date.now() + 30 * 3_600_000);
+  const { data, error } = await serviceClient()
+    .from("shifts")
+    .insert({
+      carrier_id: carrierId,
+      short_code: "",
+      starts_at: start.toISOString(),
+      ends_at: new Date(start.getTime() + 8 * 3_600_000).toISOString(),
+      zip: TEST_PLACES.pasadena.zip,
+      city: TEST_PLACES.pasadena.city,
+      state: TEST_PLACES.pasadena.state,
+      lat: TEST_PLACES.pasadena.lat,
+      lng: TEST_PLACES.pasadena.lng,
+      work_description: "Yard moves for the broadcast logic test.",
+      onsite_contact_name: "Lee Yard",
+      onsite_contact_phone: "+17135550142",
+    })
+    .select("id, short_code")
+    .single();
+  if (error) throw error;
+  return { id: data.id, code: data.short_code };
+}
+
+const makeDrivers = async (count: number, name: string): Promise<TestDriver[]> => {
+  const drivers: TestDriver[] = [];
+  for (let start = 0; start < count; start += 10) {
+    const batch = Array.from({ length: Math.min(10, count - start) }, (_, i) =>
+      createListedDriver({ fullName: `${name} ${start + i}`, place: TEST_PLACES.pasadena }),
+    );
+    drivers.push(...(await Promise.all(batch)));
+  }
+  return drivers;
+};
+
+/** Everyone else in the local database stays out of these counts. */
+const pauseOthers = async (name: string) => {
+  const { error } = await serviceClient().from("drivers").update({ shifts_paused: true }).not("full_name", "like", `${name}%`);
+  if (error) throw error;
+};
+const resumeEveryone = () => serviceClient().from("drivers").update({ shifts_paused: false }).eq("shifts_paused", true);
+
+/**
+ * Broadcasting against the real database: what fakes cannot prove. Ten drivers reply YES at the
+ * same moment and exactly one books; a text delivered twice is handled once; and 200 drivers
+ * get one text each, with realistic time for each send.
+ */
+describe("broadcast logic on the real database", () => {
+  afterAll(async () => {
+    await resumeEveryone();
+    await cleanupTestUsers();
+  });
+
+  it("ten drivers reply YES at the same moment: one books, nine are told it is booked", async () => {
+    const carrier = await createTestCarrier({ subscription: "active" });
+    const drivers = await makeDrivers(10, "Race Driver");
+    await pauseOthers("Race Driver");
+    const sms = new RecordingSmsProvider();
+    const { broadcast, inbound, shifts } = services(sms);
+    const shift = await postShift(carrier.carrierId);
+
+    const result = await broadcast.broadcast(shift.id);
+    expect(result).toMatchObject({ offered: 10, sent: 10, failed: 0 });
+    const replies = await Promise.all(
+      drivers.map((driver) => inbound.handle({ sid: seq(), from: driver.phone, to: SENDER, body: `YES ${shift.code}` })),
+    );
+
+    const outcomes = replies.map((reply) => reply.outcome);
+    expect(outcomes.filter((outcome) => outcome === "won")).toHaveLength(1);
+    expect(outcomes.filter((outcome) => outcome === "filled")).toHaveLength(9);
+    const winner = drivers[outcomes.indexOf("won")]!;
+    expect((await shifts.findById(shift.id))?.bookedDriverId).toBe(winner.driverId);
+    const answers = sms.sent.filter((text) => !text.body.includes("New shift"));
+    expect(answers).toHaveLength(10);
+    expect(answers.filter((text) => text.body.includes("Your shift is booked")).map((text) => text.to)).toEqual([winner.phone]);
+    expect(answers.filter((text) => text.body.includes("already booked"))).toHaveLength(9);
+  }, 120_000);
+
+  it("the same reply delivered twice at once is handled once; a second YES books nothing new", async () => {
+    const carrier = await createTestCarrier({ subscription: "active" });
+    const [driver] = await makeDrivers(1, "Twice Driver");
+    await pauseOthers("Twice Driver");
+    const sms = new RecordingSmsProvider();
+    const { broadcast, inbound } = services(sms);
+    const shift = await postShift(carrier.carrierId);
+    await broadcast.broadcast(shift.id);
+
+    const sid = seq();
+    const message = { sid, from: driver!.phone, to: SENDER, body: `YES ${shift.code}` };
+    const both = await Promise.all([inbound.handle(message), inbound.handle(message)]);
+    expect(both.filter((reply) => reply.duplicate)).toHaveLength(1);
+    expect(sms.sent.filter((text) => text.body.includes("Your shift is booked"))).toHaveLength(1);
+
+    const again = await inbound.handle({ ...message, sid: seq() });
+    expect(again.outcome).toBe("already_yours");
+    expect(sms.sent.filter((text) => text.body.includes("Your shift is booked"))).toHaveLength(1);
+  }, 60_000);
+
+  it("two broadcasts of one shift at once send each driver one text", async () => {
+    const carrier = await createTestCarrier({ subscription: "active" });
+    const drivers = await makeDrivers(5, "Double Driver");
+    await pauseOthers("Double Driver");
+    const sms = new RecordingSmsProvider();
+    const { broadcast } = services(sms);
+    const shift = await postShift(carrier.carrierId);
+    await Promise.all([broadcast.broadcast(shift.id), broadcast.broadcast(shift.id)]);
+    const counts = drivers.map((driver) => sms.sent.filter((text) => text.to === driver.phone).length);
+    expect(counts).toEqual([1, 1, 1, 1, 1]);
+  }, 60_000);
+
+  it("a failed send does not stop the rest, and the failure is on record", async () => {
+    const carrier = await createTestCarrier({ subscription: "active" });
+    const drivers = await makeDrivers(4, "Failing Driver");
+    await pauseOthers("Failing Driver");
+    const sms = new RecordingSmsProvider();
+    sms.failing.add(drivers[1]!.phone);
+    const { broadcast } = services(sms);
+    const shift = await postShift(carrier.carrierId);
+    expect(await broadcast.broadcast(shift.id)).toMatchObject({ offered: 4, sent: 3, failed: 1 });
+    const { data } = await serviceClient().from("broadcast_recipients").select("status, error_code").eq("driver_id", drivers[1]!.driverId).single();
+    expect(data).toEqual({ status: "failed", error_code: "30003" });
+  }, 60_000);
+
+  it("210 drivers: 200 texted once each, in about the time Vercel allows", async () => {
+    const carrier = await createTestCarrier({ subscription: "active" });
+    const drivers = await makeDrivers(210, "Scale Driver");
+    await pauseOthers("Scale Driver");
+    const sms = new RecordingSmsProvider();
+    // Twilio answers a send in about a quarter of a second.
+    const send = sms.send.bind(sms);
+    sms.send = async (message) => {
+      await new Promise((resolve) => setTimeout(resolve, 250));
+      return send(message);
+    };
+    const { broadcast } = services(sms);
+    const shift = await postShift(carrier.carrierId);
+
+    const started = Date.now();
+    const result = await broadcast.broadcast(shift.id);
+    const seconds = (Date.now() - started) / 1000;
+    console.log(`[broadcast timing] ${result.sent} texts in ${seconds.toFixed(1)}s`);
+
+    expect(result).toMatchObject({ matched: 210, offered: 200, sent: 200, failed: 0 });
+    expect(new Set(sms.sent.map((text) => text.to)).size).toBe(200);
+    expect(seconds).toBeLessThan(60);
+  }, 420_000);
+});
