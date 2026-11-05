@@ -159,7 +159,10 @@ export class InboundService {
       shiftCode = offers[0].code;
     }
 
-    const { outcome, shiftId } = await this.shifts.claim(driver.driverId, shiftCode);
+    const claim = await this.shifts.claim(driver.driverId, shiftCode);
+    // A real shift this driver was never offered (user decision of 2026-11-05); a mistyped code stays not_found.
+    const notOffered = claim.outcome === "not_found" ? await this.shifts.findLiveIdByCode(shiftCode) : null;
+    const { outcome, shiftId } = notOffered ? { outcome: "not_eligible" as const, shiftId: notOffered } : claim;
     result.outcome = outcome;
     await this.smsLog.setContext(sid, {
       ...(shiftId ? { shiftId } : {}),

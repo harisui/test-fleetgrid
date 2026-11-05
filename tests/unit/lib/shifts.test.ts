@@ -17,6 +17,7 @@ import {
 } from "@/lib/shifts/texts";
 import { shiftPostSchema } from "@/lib/validation/shift.schema";
 import { isValidTwilioSignature, twilioSignature } from "@/server/twilio/signature";
+import { smsSegments } from "@/lib/sms/segments";
 
 /** The sample's shift: Pasadena TX, Tuesday October 14 at 6:00 AM Houston time (CDT). */
 const SAMPLE = { cdlClass: "A" as const, city: "Pasadena", state: "TX", startsAt: "2025-10-14T11:00:00.000Z" };
@@ -35,6 +36,46 @@ describe("the shift texts", () => {
     expect(offerText(SAMPLE, "4821")).toBe(SMS_SAMPLE_OFFER);
     expect(bookedText(SAMPLE)).toBe(SMS_SAMPLE_CONFIRMATION);
     expect(FILLED_TEXT).toBe(SMS_SAMPLE_FILLED);
+  });
+
+  describe("the booked text stays one segment", () => {
+    const end = ". See details in your FleetGrid account: fleetgridus.com/driver. Reply HELP for help.";
+    // The longest date and time there is, for the 10 service-area cities that ran over.
+    const LONGEST = "2026-09-30T17:00:00.000Z"; // Wed Sep 30 12:00 PM Houston
+    const LONG_CITIES = ["Missouri City", "North Houston", "Plantersville", "South Houston", "West Columbia", "East Bernard", "Lake Jackson", "Mont Belvieu", "Port Bolivar", "Prairie View"];
+
+    for (const city of LONG_CITIES) {
+      it(`${city}: the class goes, every other word stays`, () => {
+        const text = bookedText({ cdlClass: "A", city, state: "TX", startsAt: LONGEST });
+        expect(text).toBe(`FleetGrid: Your shift is booked. ${city} TX, Wed Sep 30 12:00 PM${end}`);
+        expect(smsSegments(text)).toMatchObject({ segments: 1, encoding: "GSM-7" });
+      });
+    }
+
+    it("a shorter place keeps the class, as approved", () => {
+      expect(bookedText({ cdlClass: "A", city: "Pasadena", state: "TX", startsAt: LONGEST })).toBe(`FleetGrid: Your shift is booked. CDL-A, Pasadena TX, Wed Sep 30 12:00 PM${end}`);
+    });
+
+    it("the class goes only when it must: exactly 160 keeps it", () => {
+      const fits = bookedText({ cdlClass: "A", city: "League City", state: "TX", startsAt: LONGEST });
+      expect(fits).toContain("CDL-A, ");
+      expect(fits).toHaveLength(160);
+    });
+
+    it("longer still, the date shortens too, and a time with minutes keeps them", () => {
+      const city = "Saint Francis Heights";
+      expect(bookedText({ cdlClass: "A", city, state: "TX", startsAt: "2026-10-14T11:00:00.000Z" })).toBe(`FleetGrid: Your shift is booked. ${city} TX, Oct 14 6AM${end}`);
+      expect(bookedText({ cdlClass: "A", city, state: "TX", startsAt: "2026-10-14T11:30:00.000Z" })).toBe(`FleetGrid: Your shift is booked. ${city} TX, Oct 14 6:30AM${end}`);
+      expect(smsSegments(bookedText({ cdlClass: "A", city, state: "TX", startsAt: "2026-10-14T11:30:00.000Z" })).segments).toBe(1);
+    });
+
+    it("the alert and the cancellation need no fallback in these cities", () => {
+      for (const city of LONG_CITIES) {
+        const fields = { cdlClass: "A" as const, city, state: "TX", startsAt: LONGEST };
+        expect(smsSegments(offerText(fields, "4821")).segments).toBe(1);
+        expect(smsSegments(cancelledText(fields)).segments).toBe(1);
+      }
+    });
   });
 
   it("change only the place, the time, the class and the code", () => {

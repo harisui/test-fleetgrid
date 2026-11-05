@@ -388,13 +388,26 @@ describe("simulated phones", () => {
     await reply(removed.phone, `YES ${shift.shortCode}`);
     expect(phone(removed.phone)).toEqual([SMS_NOT_ELIGIBLE]);
 
-    // Today's rule, listed as a finding in the report: a driver never offered this shift is told how to book.
+    // Never offered it: the same answer. A code that is no shift at all gets how to book.
     await reply(never.phone, `YES ${shift.shortCode}`);
+    expect(phone(never.phone)).toEqual([SMS_NOT_ELIGIBLE]);
+    expect((await admin.from("shifts").select("status").eq("id", shift.id).single()).data?.status).toBe("open");
+    outbox().length = 0;
+    await reply(never.phone, shift.shortCode === "0000" ? "YES 0001" : "YES 0000");
     expect(phone(never.phone)).toEqual([FORMAT_HELP_TEXT]);
 
     await reply(repeat.phone, `YES ${shift.shortCode}`);
     await reply(repeat.phone, `YES ${shift.shortCode}`);
     expect(phone(repeat.phone)).toEqual([bookedText({ ...FIELDS, startsAt: shift.startsAt }), SMS_ALREADY_BOOKED]);
+  });
+
+  it("a long city: the booked text drops the class and stays one segment", async () => {
+    const carrier = await createTestCarrier({ subscription: "active" });
+    const driver = await pasadena("Lou Longcity");
+    const { shift } = await services().shiftsFor(carrier.carrierId).postShift(carrier.id, form(inDays(3), { zip: "77587" }));
+    await reply(driver.phone, `YES ${shift.shortCode}`);
+    const when = formatInTimeZone(new Date(shift.startsAt), SHIFT_TIME_ZONE, "EEE MMM d h:mm a");
+    expect(phone(driver.phone).at(-1)).toBe(`FleetGrid: Your shift is booked. South Houston TX, ${when}. See details in your FleetGrid account: fleetgridus.com/driver. Reply HELP for help.`);
   });
 
   it("h. the carrier cancels a booked shift: the driver gets the cancellation text", async () => {

@@ -3,7 +3,7 @@ import { SMS_ALREADY_BOOKED, SMS_NOT_ELIGIBLE, SMS_OVERLAP, SMS_PAUSED } from "@
 import { SmsSendError } from "@/server/providers/SmsProvider";
 import { beforeEach, describe, expect, it } from "vitest";
 import { SMS_SAMPLE_FILLED } from "@/content/sms-samples";
-import { bookedText, CLOSED_TEXT, FORMAT_HELP_TEXT, offerText } from "@/lib/shifts/texts";
+import { bookedText, CLOSED_TEXT, FORMAT_HELP_TEXT, NOT_ELIGIBLE_TEXT, offerText } from "@/lib/shifts/texts";
 import { BroadcastService } from "@/server/services/BroadcastService";
 import { InboundService } from "@/server/services/InboundService";
 import { TextService } from "@/server/services/TextService";
@@ -327,6 +327,16 @@ describe("broadcasting and replies", () => {
     sms.sent = [];
     expect(await reply(drivers[1].phone, "Yes")).toMatchObject({ outcome: null, replied: "format_help" });
     expect(sms.sent).toEqual([{ to: drivers[1].phone, body: FORMAT_HELP_TEXT }]);
+  });
+
+  it("a real shift's code from a driver never offered it: not open to you, nothing booked", async () => {
+    const stranger = buildTextingDriver(9);
+    world.addDriver(stranger);
+    await broadcasts.broadcast(shift.id, world.now());
+    sms.sent = [];
+    expect(await reply(stranger.phone, `YES ${shift.shortCode}`)).toMatchObject({ outcome: "not_eligible", replied: "not_eligible" });
+    expect(sms.sent).toEqual([{ to: stranger.phone, body: NOT_ELIGIBLE_TEXT }]);
+    expect(world.shifts.get(shift.id)?.status).toBe("open");
   });
 
   it("a code never sent and a message it cannot read get the how-to-book reply", async () => {

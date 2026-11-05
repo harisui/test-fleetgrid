@@ -108,6 +108,8 @@ export class FakeShiftWorld {
       return shift;
     },
     findById: async (id) => this.shifts.get(id) ?? null,
+    findLiveIdByCode: async (code) =>
+      [...this.shifts.values()].find((shift) => shift.shortCode === code && (shift.status === "open" || shift.status === "booked"))?.id ?? null,
     list: async (filter: ShiftListFilter = {}) =>
       [...this.shifts.values()].filter(
         (shift) => (!filter.carrierId || shift.carrierId === filter.carrierId) && (!filter.status || shift.status === filter.status),

@@ -97,6 +97,8 @@ export interface MatchedDriver {
 export interface IShiftRepository {
   create(carrierId: string, input: CreateShiftInput): Promise<Shift>;
   findById(id: string): Promise<Shift | null>;
+  /** The open or booked shift carrying this code, whoever it was offered to. */
+  findLiveIdByCode(code: string): Promise<string | null>;
   /** Newest start first. RLS decides what the caller sees. */
   list(filter?: ShiftListFilter): Promise<Shift[]>;
   listBookedByDriver(driverId: string): Promise<Shift[]>;
@@ -155,6 +157,13 @@ export class ShiftRepository extends BaseRepository implements IShiftRepository 
       .select("*")
       .single();
     return mapShift(this.unwrap(result));
+  }
+
+  async findLiveIdByCode(code: string): Promise<string | null> {
+    const rows = this.unwrap(
+      await this.supabase.from("shifts").select("id").eq("short_code", code).in("status", ["open", "booked"]).order("created_at", { ascending: false }).limit(1),
+    );
+    return rows[0]?.id ?? null;
   }
 
   async findById(id: string): Promise<Shift | null> {

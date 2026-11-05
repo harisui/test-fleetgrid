@@ -8,6 +8,7 @@ import {
   SMS_REMINDER,
   SMS_SAMPLE_FILLED,
 } from "@/content/sms-samples";
+import { smsSegments } from "@/lib/sms/segments";
 import type { CdlClass } from "@/types/domain";
 
 /**
@@ -36,6 +37,11 @@ export function formatShiftWhen(startsAt: string | Date): string {
   return formatInTimeZone(new Date(startsAt), SHIFT_TIME_ZONE, "EEE MMM d h:mm a");
 }
 
+/** "Oct 14 6AM", or "Oct 14 6:30AM", Houston time: the booked text's fallback when it runs long. */
+function formatShiftWhenShort(startsAt: string | Date): string {
+  return formatInTimeZone(new Date(startsAt), SHIFT_TIME_ZONE, "MMM d h:mma").replace(":00", "");
+}
+
 /** "Pasadena TX". */
 export function formatShiftPlace(shift: Pick<ShiftTextFields, "city" | "state">): string {
   return `${shift.city} ${shift.state}`;
@@ -46,9 +52,20 @@ export function offerText(shift: ShiftTextFields, code: string): string {
   return `FleetGrid: New shift on FleetGrid for CDL-${shift.cdlClass} drivers. ${formatShiftPlace(shift)}, ${formatShiftWhen(shift.startsAt)}. Reply YES ${code} to book it. Reply STOP to opt out.`;
 }
 
-/** Booked, to the driver whose YES won (approved). The on-site contact is on My shifts. */
+/**
+ * Booked, to the driver whose YES won (approved). The on-site contact is on My shifts. A long
+ * place name would take a second segment, so (user decision of 2026-11-05) the class goes first,
+ * then the date shortens. Every other word stays.
+ */
 export function bookedText(shift: ShiftTextFields): string {
-  return `FleetGrid: Your shift is booked. CDL-${shift.cdlClass}, ${formatShiftPlace(shift)}, ${formatShiftWhen(shift.startsAt)}. See details in your FleetGrid account: fleetgridus.com/driver. Reply HELP for help.`;
+  const place = formatShiftPlace(shift);
+  const body = (detail: string) =>
+    `FleetGrid: Your shift is booked. ${detail}. See details in your FleetGrid account: fleetgridus.com/driver. Reply HELP for help.`;
+  const full = body(`CDL-${shift.cdlClass}, ${place}, ${formatShiftWhen(shift.startsAt)}`);
+  if (smsSegments(full).segments === 1) return full;
+  const noClass = body(`${place}, ${formatShiftWhen(shift.startsAt)}`);
+  if (smsSegments(noClass).segments === 1) return noClass;
+  return body(`${place}, ${formatShiftWhenShort(shift.startsAt)}`);
 }
 
 /** Filled, to a YES after the shift was booked (approved). */
