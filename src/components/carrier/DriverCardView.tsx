@@ -1,4 +1,4 @@
-import { ExternalLink, FileCheck, FileText, MapPin, MessageSquareOff } from "lucide-react";
+import { FileCheck, MapPin, MessageSquareOff } from "lucide-react";
 import { SelfReportedTag } from "@/components/shared/SelfReportedTag";
 import { Badge } from "@/components/ui/badge";
 import { DOCUMENTED_PROFILE } from "@/lib/drivers/tiers";
@@ -8,14 +8,12 @@ import {
   receivesShiftTexts,
   summarizeDriver,
 } from "@/lib/carrier/driverSummary";
-import { formatFileSize } from "@/lib/image";
-import { AVAILABILITY_LABELS, DOCUMENT_TYPE_LABELS, type Driver, type DriverDocument } from "@/types/domain";
+import { AVAILABILITY_LABELS, type Driver } from "@/types/domain";
 import { DRIVING_STYLE_OPTIONS, EMPLOYMENT_TYPE_OPTIONS } from "@/lib/onboarding/options";
 
 interface DriverCardViewProps {
   driver: Driver;
   distanceMiles: number;
-  documents: DriverDocument[];
 }
 
 const labelOf = <T extends string>(options: readonly { value: T; label: string }[], value: T) =>
@@ -36,11 +34,11 @@ function Row({ label, value, selfReported = false }: { label: string; value: str
 
 /**
  * One listed driver as a carrier sees them: the sign-up answers, the optional profile
- * answers when given, and the papers as links that open in a new tab. No phone number.
+ * answers when given. No phone number and no documents: those belong to a booked shift.
  * Only a Roster-Ready driver reaches this page (RLS), so each carries the carrier's badge, except
  * one in the grace period, whose documents may not be on file yet.
  */
-export function DriverCardView({ driver, distanceMiles, documents }: DriverCardViewProps) {
+export function DriverCardView({ driver, distanceMiles }: DriverCardViewProps) {
   const summary = summarizeDriver(driver);
   const optional = [
     driver.employmentType && {
@@ -138,41 +136,6 @@ export function DriverCardView({ driver, distanceMiles, documents }: DriverCardV
         )}
       </section>
 
-      <section aria-labelledby="papers-title" className="flex flex-col gap-3">
-        <h2 id="papers-title" className="font-heading text-h2 leading-h2 font-semibold">
-          Papers
-        </h2>
-        {documents.length === 0 ? (
-          <p className="text-helper leading-helper text-muted-foreground" data-slot="no-papers">
-            No papers uploaded yet. Drivers are asked for their CDL photos when they take a shift.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-2" aria-label="Papers">
-            {documents.map((document) => (
-              <li key={document.id}>
-                <a
-                  href={`/api/documents/${document.id}/url`}
-                  target="_blank"
-                  rel="noopener"
-                  className="flex min-h-target items-center gap-3 rounded-card border border-border-strong bg-card px-4 py-2 hover:bg-muted"
-                >
-                  <FileText aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
-                  <span className="flex min-w-0 flex-1 flex-col">
-                    <span className="text-label leading-label font-semibold">
-                      {DOCUMENT_TYPE_LABELS[document.type]}
-                    </span>
-                    <span className="truncate text-helper leading-helper text-muted-foreground">
-                      {document.fileName}, {formatFileSize(document.sizeBytes)}
-                    </span>
-                  </span>
-                  <ExternalLink aria-hidden="true" className="size-5 shrink-0" />
-                  <span className="sr-only">(opens in a new tab)</span>
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
     </div>
   );
 }

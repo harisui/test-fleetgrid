@@ -251,10 +251,9 @@ select results_eq(
 select is_empty(
   $$update public.drivers set full_name = 'Hacked' returning 1$$,
   'a subscribed carrier cannot edit a card');
-select results_eq(
-  $$select id from public.driver_documents where file_name not like 'cr5-%'$$,
-  $$values ('a0000000-0000-4000-8000-000000000001'::uuid)$$,
-  'a subscribed carrier sees the documents of listed drivers only');
+select is_empty(
+  $$select id from public.driver_documents$$,
+  'a subscribed carrier sees no documents from search: only for a booked shift (0031, tested in 022)');
 select is_empty(
   $$delete from public.driver_documents returning 1$$,
   'a subscribed carrier cannot delete a document');

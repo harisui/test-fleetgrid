@@ -16,7 +16,7 @@ import type {
   ShiftListFilter,
   ShiftPatch,
 } from "@/server/repositories/ShiftRepository";
-import type { SmsMessage } from "@/types/domain";
+import type { DriverDocument, SmsMessage } from "@/types/domain";
 import type { ISmsLogRepository, SmsContext, SmsLogEntry } from "@/server/repositories/SmsLogRepository";
 import type { ITextingDriverRepository, TextingDriver } from "@/server/repositories/TextingDriverRepository";
 import type { BookedDriverContact, BroadcastRecipient, ClaimOutcome, Shift } from "@/types/domain";
@@ -86,6 +86,7 @@ export class FakeShiftWorld {
   drivers = new Map<string, TextingDriver & { noShowCount: number }>();
   /** Drivers matchingDrivers returns, before exclusions. */
   matching: string[] = [];
+  bookedDocuments: DriverDocument[] = [];
   now = () => new Date(T);
   private seq = 0;
 
@@ -124,6 +125,7 @@ export class FakeShiftWorld {
       return driverId;
     },
     expire: async () => 0,
+    bookedDriverDocuments: async () => this.bookedDocuments,
     bookedDriverContact: async (id): Promise<BookedDriverContact | null> => {
       const shift = this.shifts.get(id);
       const driver = shift?.bookedDriverId ? this.drivers.get(shift.bookedDriverId) : null;

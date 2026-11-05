@@ -133,7 +133,7 @@ export const FAQ_DRIVERS: FaqGroup = {
       id: "driver-papers",
       question: "Why do you ask for my CDL and medical card?",
       answer:
-        "You do not have to add them to sign up. Photos of your CDL and medical card can be added from your profile when you are ready, and a carrier reviewing you for a shift can see them.",
+        "You do not have to add them to sign up. Photos of your CDL and medical card can be added from your profile when you are ready, and a company you book a shift with can view your CDL and medical card for that shift.",
     },
     {
       id: "driver-roster-ready",
@@ -241,7 +241,7 @@ export const FAQ_TEXTS: FaqGroup = {
       id: "texts-documents",
       question: "Will carriers see my documents?",
       answer:
-        "Only a carrier with an active subscription who is reviewing you for a shift, and FleetGrid staff. Your phone number is shared only with the carrier whose shift you book, when you reply YES.",
+        "Only you and FleetGrid staff can see your documents. A company you book a shift with can view your CDL and medical card for that shift. Your phone number is shared only with the carrier whose shift you book, when you reply YES.",
     },
     {
       id: "texts-rates",

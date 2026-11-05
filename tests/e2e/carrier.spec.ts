@@ -410,37 +410,16 @@ test.describe("driver search and a driver's page", () => {
     await expect(page.getByRole("combobox", { name: "CDL class" })).toHaveText(/A or B/);
   });
 
-  test("a driver's page shows the card, the distance and the papers, never the phone", async ({
-    page,
-  }) => {
+  test("a driver's page shows the card and the distance, never the phone or a document", async ({ page }) => {
     await seedCarrier(PHONES.carrier, { terms: true, subscription: "active" });
     const admin = adminClient();
-    const { data: seedProfile } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("phone", SEED_DRIVER_PHONE)
-      .single();
-    const { data: seedDriver } = await admin
-      .from("drivers")
-      .select("id, full_name")
-      .eq("profile_id", seedProfile!.id)
-      .single();
-    const path = `${seedDriver!.id}/e2e-${Date.now()}.png`;
-    await admin.storage
-      .from("driver-documents")
-      .upload(path, Buffer.from("not really a png"), { contentType: "image/png" });
+    const { data: seedProfile } = await admin.from("profiles").select("id").eq("phone", SEED_DRIVER_PHONE).single();
+    const { data: seedDriver } = await admin.from("drivers").select("id, full_name").eq("profile_id", seedProfile!.id).single();
     const { data: document } = await admin
       .from("driver_documents")
-      .insert({
-        driver_id: seedDriver!.id,
-        // A certification: a new CDL photo would send the Roster-Ready driver back to Registered (CR-5).
-        type: "certification",
-        storage_path: path,
-        file_name: "e2e-cdl.png",
-        mime_type: "image/png",
-        size_bytes: 16,
-      })
       .select("id")
+      .eq("driver_id", seedDriver!.id)
+      .eq("type", "cdl_front")
       .single();
 
     await login(page, PHONES.carrier);
@@ -453,20 +432,68 @@ test.describe("driver search and a driver's page", () => {
     await expect(page.getByText(/555-1001|\+1555555/)).toHaveCount(0);
     await expectNoDriverPhone(page);
 
-    const paper = page.getByRole("link", { name: /Certification/ });
-    await expect(paper).toHaveAttribute("href", `/api/documents/${document!.id}/url`);
-    // The link answers with a redirect to a signed, short-lived storage URL.
-    const response = await page.request.get(`/api/documents/${document!.id}/url`, {
-      maxRedirects: 0,
-    });
-    expect(response.status()).toBe(302);
-    expect(response.headers()["location"]).toContain("/storage/v1/object/sign/driver-documents/");
-    expect(response.headers()["location"]).toContain("token=");
+    // Documents belong to a booked shift (0031): no section here, and a direct request is refused.
+    await expect(page.getByRole("heading", { name: "Papers" })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: /CDL|Medical card/ })).toHaveCount(0);
+    const refused = await page.request.get(`/api/documents/${document!.id}/url`, { maxRedirects: 0 });
+    expect(refused.status()).toBe(404);
 
     await page.getByRole("link", { name: "Back to search" }).click();
     await expect(page).toHaveURL(/\/carrier\/search$/);
+  });
 
-    await admin.storage.from("driver-documents").remove([path]);
+  test("the booked driver's CDL and medical card open from the shift, each view is logged, and a release ends it", async ({ page }) => {
+    const { carrierId } = await seedCarrier(PHONES.carrier, { terms: true, subscription: "active" });
+    const admin = adminClient();
+    const { data: seedProfile } = await admin.from("profiles").select("id").eq("phone", SEED_DRIVER_PHONE).single();
+    const { data: seedDriver } = await admin.from("drivers").select("id").eq("profile_id", seedProfile!.id).single();
+    const { data: frontDoc } = await admin
+      .from("driver_documents")
+      .select("id, storage_path")
+      .eq("driver_id", seedDriver!.id)
+      .eq("type", "cdl_front")
+      .single();
+    await admin.from("document_views").delete().eq("document_id", frontDoc!.id);
+    const start = new Date(Date.now() + 30 * 3_600_000);
+    const { data: shift } = await admin
+      .from("shifts")
+      .insert({
+        carrier_id: carrierId,
+        short_code: "",
+        status: "booked",
+        booked_driver_id: seedDriver!.id,
+        booked_at: new Date().toISOString(),
+        starts_at: start.toISOString(),
+        ends_at: new Date(start.getTime() + 8 * 3_600_000).toISOString(),
+        zip: "77002",
+        city: "Houston",
+        state: "TX",
+        lat: 29.7594,
+        lng: -95.3594,
+        work_description: "Yard moves for the documents spec.",
+        onsite_contact_name: "Lee Yard",
+        onsite_contact_phone: "+17135550142",
+      })
+      .select("id")
+      .single();
+
+    await login(page, PHONES.carrier);
+    await page.goto(`/carrier/shifts/${shift!.id}`);
+    const section = page.locator("[data-slot=booked-documents]");
+    await expect(section.getByRole("link")).toHaveCount(3);
+    await expect(section.getByRole("link", { name: /CDL \(front\)/ })).toHaveAttribute("href", `/api/documents/${frontDoc!.id}/url`);
+    await expect(section).toContainText("Each view is recorded.");
+
+    await page.request.get(`/api/documents/${frontDoc!.id}/url`, { maxRedirects: 0 });
+    const { data: views } = await admin.from("document_views").select("viewer_role, document_type, shift_id").eq("document_id", frontDoc!.id);
+    expect(views).toEqual([{ viewer_role: "carrier", document_type: "cdl_front", shift_id: shift!.id }]);
+
+    await admin.from("shifts").update({ status: "open", booked_driver_id: null, booked_at: null, released_at: new Date().toISOString() }).eq("id", shift!.id);
+    const refused = await page.request.get(`/api/documents/${frontDoc!.id}/url`, { maxRedirects: 0 });
+    expect(refused.status()).toBe(404);
+    await page.goto(`/carrier/shifts/${shift!.id}`);
+    await expect(section).toHaveCount(0);
+    await admin.from("document_views").delete().eq("document_id", frontDoc!.id);
   });
 
   test("a card that is not listed is not found, and a paper of an unlisted driver is not served", async ({

@@ -3,9 +3,9 @@ import { getContainer } from "@/server/container";
 import { AppError } from "@/server/errors/AppError";
 
 /**
- * A subscribed carrier opens a listed driver's paper here. The service checks the
- * subscription and the database decides whether the file is visible; the answer is a
- * redirect to a signed link that expires after a minute. Anyone else gets 401 or 404.
+ * A carrier opens the document of a driver booked on its shift here, and only from there. The
+ * database decides and logs the view; the answer is a redirect to a signed link that expires
+ * after a minute. Anyone else gets 401, 403 or 404.
  */
 export async function GET(
   _request: NextRequest,

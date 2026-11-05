@@ -19,7 +19,7 @@ export default async function DriverDocumentsPage({ searchParams }: PageProps<"/
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">My documents</h1>
         <p className="text-muted-foreground mt-2">
-          Only you and FleetGrid staff can see these files.
+          Only you and FleetGrid staff can see your documents. A company you book a shift with can view your CDL and medical card for that shift.
         </p>
       </div>
       <DocumentUploader initialDocuments={documents} initialType={initialType} />

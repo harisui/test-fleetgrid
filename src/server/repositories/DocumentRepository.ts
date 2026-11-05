@@ -22,6 +22,8 @@ export interface StoredFileInfo {
 
 export interface IDocumentRepository {
   listByDriverId(driverId: string): Promise<DriverDocument[]>;
+  /** Logs a carrier's view if the booking allows it (0031); false when it does not. */
+  recordCarrierView(documentId: string): Promise<boolean>;
   findById(id: string): Promise<DriverDocument | null>;
   create(input: CreateDocumentInput): Promise<DriverDocument>;
   delete(id: string): Promise<void>;
@@ -49,6 +51,10 @@ export function mapDocument(row: DocumentRow): DriverDocument {
 export class DocumentRepository extends BaseRepository implements IDocumentRepository {
   private get bucket() {
     return this.supabase.storage.from(DOCUMENTS_BUCKET);
+  }
+
+  async recordCarrierView(documentId: string): Promise<boolean> {
+    return this.unwrap(await this.supabase.rpc("record_carrier_document_view", { p_document_id: documentId })) === true;
   }
 
   async listByDriverId(driverId: string): Promise<DriverDocument[]> {

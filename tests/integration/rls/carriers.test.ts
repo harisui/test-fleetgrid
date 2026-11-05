@@ -233,23 +233,15 @@ describe("RLS through real clients: carriers, subscriptions and what carriers se
     });
 
     it("sees the documents of listed drivers and can make a signed link to their files", async () => {
+      // Only for a booked shift (0031): nothing from being subscribed and searching.
       const { data } = await subscribed.client.from("driver_documents").select("id, driver_id");
-      const ids = (data ?? []).map((row) => row.id);
-      expect(ids).toContain(listedDoc);
-      expect(ids).not.toContain(pendingDoc);
-      // Only the documents of listed (Roster-Ready, in-area) drivers.
-      const listedIds = new Set([listedHouston, listedPasadena, optedOut, declined].map((driver) => driver.driverId));
-      // Of this file's drivers, only the listed ones' papers (the local seed has its own).
-      const mine = new Set(testDriverIds());
-      const seen = (data ?? []).filter((row) => mine.has(row.driver_id));
-      expect(seen.every((row) => listedIds.has(row.driver_id))).toBe(true);
-      expect(new Set(seen.map((row) => row.driver_id))).toEqual(listedIds);
+      expect((data ?? []).map((row) => row.id)).toEqual([]);
+      expect(listedDoc).toBeTruthy();
 
       const listed = await subscribed.client.storage
         .from(DOCUMENTS_BUCKET)
         .createSignedUrl(`${listedHouston.driverId}/listed.png`, 60);
-      expect(listed.error).toBeNull();
-      expect(listed.data?.signedUrl).toContain("token=");
+      expect(listed.error).not.toBeNull();
 
       const pending = await subscribed.client.storage
         .from(DOCUMENTS_BUCKET)

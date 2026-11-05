@@ -175,7 +175,6 @@ describe("DriverSearchService", () => {
       await expect(service.getDriver(CARRIER_USER_ID, { driverId: driver.id })).resolves.toEqual({
         driver,
         distanceMiles: 10.4,
-        documents: [document],
       });
     });
 
@@ -209,14 +208,25 @@ describe("DriverSearchService", () => {
   });
 
   describe("getDocumentUrl", () => {
-    it("makes a short-lived link to a listed driver's file", async () => {
+    it("logs the view, then makes a short-lived link, for a booking the database allows", async () => {
       await subscribedCarrier();
       const document = buildDocument({ storagePath: `${id(1)}/cdl.jpg` });
       documents.rows.set(document.id, document);
       documents.files.set(document.storagePath, { sizeBytes: 10, mimeType: "image/jpeg" });
+      documents.viewable.add(document.id);
       await expect(service.getDocumentUrl(CARRIER_USER_ID, { documentId: document.id })).resolves.toBe(
         `https://storage.test/${id(1)}/cdl.jpg?expires=60`,
       );
+      expect(documents.views).toEqual([document.id]);
+    });
+
+    it("gives no link and logs nothing without a booking, even for a document it could find", async () => {
+      await subscribedCarrier();
+      const document = buildDocument({ storagePath: `${id(1)}/cdl.jpg` });
+      documents.rows.set(document.id, document);
+      const error = await expectAppError(service.getDocumentUrl(CARRIER_USER_ID, { documentId: document.id }));
+      expect(error.code).toBe("NOT_FOUND");
+      expect(documents.views).toEqual([]);
     });
 
     it("answers not found for a document the carrier cannot see", async () => {

@@ -23,6 +23,7 @@ import type {
   LocatedCarrier,
   Shift,
   ShiftRequirements,
+  DriverDocument,
 } from "@/types/domain";
 
 export { SHIFT_OUTSIDE_AREA_MESSAGE };
@@ -33,6 +34,8 @@ export interface CarrierShiftDetail {
   recipients: BroadcastRecipient[];
   /** The booked driver's name and phone, only while booked (2026-10-25). */
   bookedDriver: BookedDriverContact | null;
+  /** The booked driver's CDL and medical card, while the booking allows it (0031). */
+  bookedDocuments: DriverDocument[];
 }
 
 export interface PostedShift {
@@ -116,11 +119,13 @@ export class ShiftService {
 
   async getCarrierShift(userId: string, input: unknown): Promise<CarrierShiftDetail> {
     const shift = await this.requireOwnShift(userId, input);
-    const [recipients, bookedDriver] = await Promise.all([
+    const booked = shift.status === "booked" ? shift.bookedDriverId : null;
+    const [recipients, bookedDriver, bookedDocuments] = await Promise.all([
       this.recipients.listByShift(shift.id),
-      shift.status === "booked" ? this.shifts.bookedDriverContact(shift.id) : Promise.resolve(null),
+      booked ? this.shifts.bookedDriverContact(shift.id) : Promise.resolve(null),
+      booked ? this.shifts.bookedDriverDocuments(booked) : Promise.resolve([]),
     ]);
-    return { shift, recipients, bookedDriver };
+    return { shift, recipients, bookedDriver, bookedDocuments };
   }
 
   /** Cancels an open or booked shift; a booked driver is told by text (decision 2). */

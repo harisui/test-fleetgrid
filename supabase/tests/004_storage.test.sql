@@ -60,10 +60,10 @@ select results_eq(
 select policies_are(
   'storage', 'objects',
   array['driver_documents_objects_select', 'driver_documents_objects_insert', 'driver_documents_objects_delete',
-        'driver_documents_objects_select_subscribed_carrier'],
-  'storage.objects has exactly the four driver-documents policies (the carrier read arrived with 0015)'
+        'driver_documents_objects_select_booking_carrier'],
+  'storage.objects has exactly the four driver-documents policies (the carrier read for a booked shift arrived with 0031)'
 );
-select policy_cmd_is('storage', 'objects', 'driver_documents_objects_select_subscribed_carrier', 'select', 'the carrier policy is read-only');
+select policy_cmd_is('storage', 'objects', 'driver_documents_objects_select_booking_carrier', 'select', 'the carrier policy is read-only');
 select policy_cmd_is('storage', 'objects', 'driver_documents_objects_delete', 'delete', 'the delete policy applies to DELETE');
 select policy_roles_are('storage', 'objects', 'driver_documents_objects_delete', array['authenticated'], 'the delete policy is for signed-in users only');
 

@@ -1,4 +1,4 @@
-import { ArrowLeft, Phone, UserRound } from "lucide-react";
+import { ArrowLeft, ExternalLink, FileText, Phone, UserRound } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -13,7 +13,7 @@ import { formatE164ForDisplay } from "@/lib/phone";
 import { RECIPIENT_STATUS_LABELS, scheduledLine } from "@/lib/shifts/copy";
 import { getContainer, smsProviderKind } from "@/server/container";
 import { AppError } from "@/server/errors/AppError";
-import type { BroadcastRecipient } from "@/types/domain";
+import { DOCUMENT_TYPE_LABELS, type BroadcastRecipient } from "@/types/domain";
 
 export const metadata: Metadata = { title: "Shift" };
 
@@ -35,7 +35,7 @@ export default async function CarrierShiftPage({ params }: PageProps<"/carrier/s
     if (error instanceof AppError && (error.code === "NOT_FOUND" || error.code === "VALIDATION")) notFound();
     throw error;
   });
-  const { shift, recipients, bookedDriver } = detail;
+  const { shift, recipients, bookedDriver, bookedDocuments } = detail;
   const status = shiftService.statusOf(shift);
   const { sent, delivered, current } = countBy(recipients, shift.broadcastRound);
 
@@ -92,6 +92,35 @@ export default async function CarrierShiftPage({ params }: PageProps<"/carrier/s
             Use this number to arrange this shift only. If the driver does not show, release the shift and it goes out
             again.
           </p>
+          <div className="flex flex-col gap-2 border-t border-success pt-3" data-slot="booked-documents">
+            <h3 className="text-label leading-label font-semibold">CDL and medical card</h3>
+            {bookedDocuments.length === 0 ? (
+              <p className="text-helper leading-helper">This driver has not uploaded them yet.</p>
+            ) : (
+              <>
+                <ul className="flex flex-col gap-2" aria-label="CDL and medical card">
+                  {bookedDocuments.map((document) => (
+                    <li key={document.id}>
+                      <a
+                        href={`/api/documents/${document.id}/url`}
+                        target="_blank"
+                        rel="noopener"
+                        className="flex min-h-target items-center gap-3 rounded-card border border-border-strong bg-card px-4 py-2 hover:bg-muted"
+                      >
+                        <FileText aria-hidden="true" className="size-5 shrink-0 text-muted-foreground" />
+                        <span className="min-w-0 flex-1 text-label leading-label font-semibold">{DOCUMENT_TYPE_LABELS[document.type]}</span>
+                        <ExternalLink aria-hidden="true" className="size-5 shrink-0" />
+                        <span className="sr-only">(opens in a new tab)</span>
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-helper leading-helper">
+                  For this shift only, until 7 days after it ends. Each view is recorded.
+                </p>
+              </>
+            )}
+          </div>
         </section>
       )}
 

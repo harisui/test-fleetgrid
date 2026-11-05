@@ -1,3 +1,4 @@
+import { mapDocument } from "@/server/repositories/DocumentRepository";
 import { AppError } from "@/server/errors/AppError";
 import { BaseRepository } from "@/server/repositories/BaseRepository";
 import type { Database } from "@/types/database.types";
@@ -8,6 +9,7 @@ import {
   type Shift,
   type ShiftRequirements,
   type ShiftStatus,
+  type DriverDocument,
 } from "@/types/domain";
 
 type ShiftRow = Database["public"]["Tables"]["shifts"]["Row"];
@@ -99,6 +101,8 @@ export interface IShiftRepository {
   release(id: string): Promise<string | null>;
   expire(): Promise<number>;
   bookedDriverContact(id: string): Promise<BookedDriverContact | null>;
+  /** The documents of a booked driver this carrier may open now (RLS, 0031). */
+  bookedDriverDocuments(driverId: string): Promise<DriverDocument[]>;
   matchingDrivers(
     place: { lat: number; lng: number },
     requirements: ShiftRequirements,
@@ -196,6 +200,16 @@ export class ShiftRepository extends BaseRepository implements IShiftRepository 
   async expire(): Promise<number> {
     const result = await this.supabase.rpc("expire_shifts");
     return this.unwrapMaybe(result) ?? 0;
+  }
+
+  async bookedDriverDocuments(driverId: string): Promise<DriverDocument[]> {
+    const result = await this.supabase
+      .from("driver_documents")
+      .select("*")
+      .eq("driver_id", driverId)
+      .in("type", ["cdl_front", "cdl_back", "medical_card"])
+      .order("created_at", { ascending: false });
+    return this.unwrap(result).map(mapDocument);
   }
 
   async bookedDriverContact(id: string): Promise<BookedDriverContact | null> {

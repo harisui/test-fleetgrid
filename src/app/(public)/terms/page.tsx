@@ -83,8 +83,8 @@ export default function TermsPage() {
           when you reply YES.
         </li>
         <li>
-          Documents you upload (for example your CDL and medical card) can be seen by you, by
-          FleetGrid staff, and by a subscribed carrier reviewing you for a shift.
+          Only you and FleetGrid staff can see your documents. A company you book a shift with can
+          view your CDL and medical card for that shift.
         </li>
         <li>
           Receiving a shift offer is not an offer of employment and does not guarantee work.

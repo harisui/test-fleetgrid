@@ -99,6 +99,19 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"document_views": {
+                  Row: {
+                    "document_id": string,"document_type": Database["public"]['Enums']["document_type"],"driver_id": string,"id": string,"shift_id": string | null,"viewed_at": string,"viewer_id": string,"viewer_role": string
+                  }
+                  Insert: {
+                    "document_id": string,"document_type": Database["public"]['Enums']["document_type"],"driver_id": string,"id"?: string,"shift_id"?: string | null,"viewed_at"?: string,"viewer_id": string,"viewer_role": string
+                  }
+                  Update: {
+                    "document_id"?: string,"document_type"?: Database["public"]['Enums']["document_type"],"driver_id"?: string,"id"?: string,"shift_id"?: string | null,"viewed_at"?: string,"viewer_id"?: string,"viewer_role"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"driver_clearinghouse_self_reports": {
                   Row: {
                     "confirmed": boolean,"confirmed_at": string,"driver_id": string
@@ -404,8 +417,14 @@ isOneToOne: false
               "driver_id": string,"full_name": string,"phone": string
             }[]
                            },
+"carrier_document_shift":
+{ Args: { "p_driver_id": string,"p_type": Database["public"]['Enums']["document_type"] }; Returns: string
+                           },
 "carrier_has_active_subscription":
 { Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"carrier_may_read_document_object":
+{ Args: { "p_path": string }; Returns: boolean
                            },
 "claim_approval_texts":
 { Args: { "p_driver_id"?: string }; Returns: {
@@ -501,6 +520,9 @@ isOneToOne: false
                            },
 "queue_welcome_text":
 { Args: { "p_driver_id": string,"p_due_at": string,"p_phone_hash": string }; Returns: boolean
+                           },
+"record_carrier_document_view":
+{ Args: { "p_document_id": string }; Returns: boolean
                            },
 "release_shift":
 { Args: { "p_shift_id": string }; Returns: string

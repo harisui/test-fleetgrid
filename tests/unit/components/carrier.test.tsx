@@ -23,7 +23,6 @@ import type { Result } from "@/server/errors/AppError";
 import type { DriverSearchPage } from "@/server/services/DriverSearchService";
 import {
   buildCarrier,
-  buildDocument,
   buildDriver,
   buildSubscription,
   PLACES,
@@ -628,10 +627,9 @@ describe("DriverResults", () => {
 });
 
 describe("DriverCardView", () => {
-  it("shows the card in the sign-up's words, the optional answers given, and the papers as links", () => {
+  it("shows the card in the sign-up's words, the optional answers given, and no documents", () => {
     const driver = buildDriver({ certifications: ["OSHA 10"], bio: "Reliable and on time." });
-    const document_ = buildDocument({ fileName: "cdl-front.jpg", sizeBytes: 250_000 });
-    render(<DriverCardView driver={driver} distanceMiles={12.4} documents={[document_]} />);
+    render(<DriverCardView driver={driver} distanceMiles={12.4} />);
     expect(screen.getByRole("heading", { level: 1, name: "Pat Driver" })).toBeInTheDocument();
     expect(screen.getByText("12.4 miles from your yard")).toBeInTheDocument();
     expect(screen.getByText(/Travels up to 50 miles/)).toBeInTheDocument();
@@ -662,20 +660,19 @@ describe("DriverCardView", () => {
     for (const label of ["CDL class", "Record", "Equipment"]) {
       expect(within(within(card).getByText(label).nextElementSibling as HTMLElement).queryByText("Self-reported")).toBeNull();
     }
-    const paper = screen.getByRole("link", { name: /CDL \(front\)/ });
-    expect(paper).toHaveAttribute("href", `/api/documents/${document_.id}/url`);
-    expect(paper).toHaveAttribute("target", "_blank");
-    expect(paper).toHaveTextContent("cdl-front.jpg");
+    // Documents belong to a booked shift, never to this page (0031).
+    expect(screen.queryByRole("link", { name: /CDL|Medical/ })).toBeNull();
+    expect(screen.queryByText("Papers")).toBeNull();
     // Never the phone number, in any form: not in the text, not as a tel: link.
     expect(document.body.innerHTML).not.toMatch(/555-0100|5555550100|\+1555|tel:/);
   });
 
   it("no Documented profile badge for a driver still in the grace period", () => {
-    render(<DriverCardView driver={buildDriver({ rosterGraceUntil: "2026-11-19T18:00:00.000Z" })} distanceMiles={1} documents={[]} />);
+    render(<DriverCardView driver={buildDriver({ rosterGraceUntil: "2026-11-19T18:00:00.000Z" })} distanceMiles={1} />);
     expect(document.querySelector("[data-slot=documented-profile]")).toBeNull();
   });
 
-  it("leaves out the optional answers that were not given, and says when there are no papers", () => {
+  it("leaves out the optional answers that were not given, and never lists papers", () => {
     const driver = buildDriver({
       employmentType: null,
       drivingStyles: [],
@@ -684,16 +681,15 @@ describe("DriverCardView", () => {
       certifications: [],
       bio: null,
     });
-    render(<DriverCardView driver={driver} distanceMiles={0} documents={[]} />);
+    render(<DriverCardView driver={driver} distanceMiles={0} />);
     for (const label of ["W-2 or 1099", "Driving", "Clearinghouse", "Availability", "Certifications"]) {
       expect(screen.queryByText(label)).not.toBeInTheDocument();
     }
-    expect(document.querySelector("[data-slot=no-papers]")).toHaveTextContent("No papers uploaded yet");
   });
 
   it("says when a broadcast would not reach the driver", () => {
     const { unmount } = render(
-      <DriverCardView driver={buildDriver()} distanceMiles={0} documents={[]} />,
+      <DriverCardView driver={buildDriver()} distanceMiles={0} />,
     );
     expect(document.querySelector("[data-slot=texts-status]")).toHaveTextContent(
       "Shift offers reach this driver by text through FleetGrid.",
@@ -701,7 +697,7 @@ describe("DriverCardView", () => {
     expect(document.querySelector("[data-slot=no-shift-texts]")).toBeNull();
     unmount();
     render(
-      <DriverCardView driver={buildDriver({ smsOptIn: false })} distanceMiles={0} documents={[]} />,
+      <DriverCardView driver={buildDriver({ smsOptIn: false })} distanceMiles={0} />,
     );
     expect(document.querySelector("[data-slot=no-shift-texts]")).toHaveTextContent("No shift texts");
     expect(document.querySelector("[data-slot=texts-status]")).toHaveTextContent(

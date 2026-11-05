@@ -91,6 +91,7 @@ for (const colorScheme of ["light", "dark"] as const) {
 
       await banner.getByRole("link", { name: "Medical card" }).click();
       await expect(page).toHaveURL(/\/driver\/documents\?type=medical_card$/);
+      await expect(page.getByText("Only you and FleetGrid staff can see your documents. A company you book a shift with can view your CDL and medical card for that shift.")).toBeVisible();
       await expect(page.getByRole("combobox", { name: "Document type" })).toHaveText(/Medical card/);
 
       await page.goto("/driver/profile");

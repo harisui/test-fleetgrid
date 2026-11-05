@@ -6,7 +6,7 @@ import { AppError, parseInput } from "@/server/errors/AppError";
 import type { IDocumentRepository } from "@/server/repositories/DocumentRepository";
 import type { IDriverSearchRepository } from "@/server/repositories/DriverSearchRepository";
 import type { CarrierService } from "@/server/services/CarrierService";
-import type { Driver, DriverDocument, DriverMatch, LocatedCarrier } from "@/types/domain";
+import type { Driver, DriverMatch, LocatedCarrier } from "@/types/domain";
 
 export interface DriverSearchPage {
   matches: DriverMatch[];
@@ -21,7 +21,6 @@ export interface DriverSearchPage {
 export interface DriverView {
   driver: Driver;
   distanceMiles: number;
-  documents: DriverDocument[];
 }
 
 /**
@@ -64,7 +63,7 @@ export class DriverSearchService {
     };
   }
 
-  /** One listed driver with the distance from the yard and the papers they uploaded. */
+  /** One listed driver with the distance from the yard. Documents belong to a booked shift. */
   async getDriver(userId: string, input: unknown): Promise<DriverView> {
     const carrier = await this.requireSubscribedCarrier(userId);
     const { driverId } = parseInput(driverIdSchema, input);
@@ -73,18 +72,21 @@ export class DriverSearchService {
     if (!driver || driver.lat === null || driver.lng === null) {
       throw AppError.notFound("Driver not found");
     }
-    const documents = await this.documents.listByDriverId(driver.id);
     return {
       driver,
       distanceMiles: milesBetweenRounded(carrier.lat, carrier.lng, driver.lat, driver.lng),
-      documents,
     };
   }
 
-  /** A link to one of a listed driver's files. It expires after SIGNED_URL_TTL_SECONDS. */
+  /**
+   * A link to a document of a driver booked on one of this carrier's shifts. The database
+   * decides (0031) and records the view before the link exists; a refusal reads as not found.
+   * It expires after SIGNED_URL_TTL_SECONDS.
+   */
   async getDocumentUrl(userId: string, input: unknown): Promise<string> {
     await this.requireSubscribedCarrier(userId);
     const { documentId } = parseInput(documentIdSchema, input);
+    if (!(await this.documents.recordCarrierView(documentId))) throw AppError.notFound("Document not found");
     const document = await this.documents.findById(documentId);
     if (!document) throw AppError.notFound("Document not found");
     return this.documents.createSignedUrl(document.storagePath, SIGNED_URL_TTL_SECONDS);

@@ -39,7 +39,6 @@ export default async function CarrierDriverPage({ params }: PageProps<"/carrier/
       <DriverCardView
         driver={view.driver}
         distanceMiles={view.distanceMiles}
-        documents={view.documents}
       />
     </div>
   );
