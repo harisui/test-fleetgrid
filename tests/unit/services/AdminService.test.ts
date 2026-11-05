@@ -249,6 +249,21 @@ describe("AdminService", () => {
         expect(page.rows).toEqual([]);
       });
 
+      it("filters by TWIC: an issue, Needs review, and a yes with no date", async () => {
+        const recent = new Date(NOW.getTime() - 86_400_000).toISOString();
+        const names = async (twic: string) => (await service.getDriversPage(ADMIN_ID, { twic })).rows.map((row) => row.driver.id).sort();
+        admin.rows[0]!.driver = { ...admin.rows[0]!.driver, twicIssueAt: recent, twicIssuePriorAt: null, twicExpiresOn: "2099-12-31" };
+        admin.rows[1]!.driver = { ...admin.rows[1]!.driver, twicIssueAt: recent, twicIssuePriorAt: recent, twicExpiresOn: null, twicActive: true };
+        admin.rows[2]!.driver = { ...admin.rows[2]!.driver, twicIssueAt: null, twicIssuePriorAt: null, twicExpiresOn: "2099-12-31" };
+        // twicIssue reads the real clock, and these dates are in the past of it only within 90 days.
+        const today = new Date(Date.now() - 86_400_000).toISOString();
+        admin.rows[0]!.driver = { ...admin.rows[0]!.driver, twicIssueAt: today };
+        admin.rows[1]!.driver = { ...admin.rows[1]!.driver, twicIssueAt: today, twicIssuePriorAt: today };
+        expect(await names("issue")).toEqual([admin.rows[0]!.driver.id, admin.rows[1]!.driver.id].sort());
+        expect(await names("review")).toEqual([admin.rows[1]!.driver.id]);
+        expect(await names("nodate")).toEqual([admin.rows[1]!.driver.id]);
+      });
+
       it("filters by re-review needed", async () => {
         admin.rows[0]!.driver = { ...admin.rows[0]!.driver, rereviewNeeded: true };
         const page = await service.getDriversPage(ADMIN_ID, { rereview: "yes" });
@@ -526,6 +541,33 @@ describe("AdminService", () => {
       expect((await expectAppError(service.blockDriver(ADMIN_ID, { driverId: D9 }))).code).toBe("NOT_FOUND");
       const bad = await expectAppError(service.approveDriver(ADMIN_ID, { driverId: "x" }));
       expect(bad.fieldErrors).toEqual({ driverId: "Driver not found" });
+    });
+  });
+
+  describe("when the database disagrees at the last moment", () => {
+    const ready = async () => {
+      for (const type of ["cdl_front", "cdl_back", "medical_card"] as const) {
+        const document = buildDocument({ id: `dddddddd-0000-4000-8000-00000000000${type.length % 9}${type === "cdl_back" ? 1 : 0}`.slice(0, 36), driverId: D1, type, storagePath: `${D1}/${type}.png` });
+        documents.rows.set(document.id, document);
+      }
+      admin.rows[0]!.driver = { ...admin.rows[0]!.driver, fullName: "Pat Driver", cdlState: "TX", cardCompleted: true };
+    };
+
+    it("a card that changed reads as a reason to look again", async () => {
+      await ready();
+      admin.setProfileStatus = async () => {
+        throw AppError.validation("Some of the information is not valid");
+      };
+      const error = await expectAppError(service.approveDriver(ADMIN_ID, { driverId: D1 }));
+      expect(error.message).toBe("The driver's documents or card changed. Reload and check again.");
+    });
+
+    it("anything else is passed on as it is", async () => {
+      await ready();
+      admin.setProfileStatus = async () => {
+        throw AppError.conflict("Something else");
+      };
+      expect((await expectAppError(service.approveDriver(ADMIN_ID, { driverId: D1 }))).message).toBe("Something else");
     });
   });
 

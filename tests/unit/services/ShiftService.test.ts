@@ -135,6 +135,20 @@ describe("ShiftService", () => {
     expect(detail.bookedDriver).toEqual({ driverId: drivers[1].driverId, fullName: "Driver 2", phone: drivers[1].phone });
   });
 
+  it("lists a carrier's shifts, and a driver's booked ones split into upcoming and past", async () => {
+    const { shift } = await service.postShift(USER_ID, FORM);
+    expect((await service.listCarrierShifts(USER_ID)).map((item) => item.id)).toEqual([shift.id]);
+    await world.shiftRepository.claim(drivers[0].driverId, shift.shortCode);
+    const before = await service.listDriverShifts(drivers[0].driverId);
+    expect(before.upcoming.map((item) => item.id)).toEqual([shift.id]);
+    expect(before.past).toEqual([]);
+    now = new Date(new Date(shift.endsAt).getTime() + 1000);
+    const after = await service.listDriverShifts(drivers[0].driverId);
+    expect(after.upcoming).toEqual([]);
+    expect(after.past.map((item) => item.id)).toEqual([shift.id]);
+    expect(service.statusOf({ ...shift, status: "open" })).toBe("expired");
+  });
+
   it("cancelling a booked shift texts the driver the approved notice", async () => {
     const { shift } = await service.postShift(USER_ID, FORM);
     await world.shiftRepository.claim(drivers[0].driverId, shift.shortCode);

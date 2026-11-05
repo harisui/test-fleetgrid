@@ -17,6 +17,33 @@ const base = {
 const keys = { TWILIO_ACCOUNT_SID: "AC1", TWILIO_AUTH_TOKEN: "t", TWILIO_MESSAGING_SERVICE_SID: "MG1" };
 const consenting = { findById: async () => ({ smsOptIn: true, smsOptedOut: false }) };
 
+describe("TextService", () => {
+  it("names its sender", () => {
+    expect(new TextService(new HeldSmsProvider(), () => new FakeSmsLog()).sender).toBe("held");
+  });
+
+  it("sends nothing when the log refuses a second resend", async () => {
+    const log = new FakeSmsLog();
+    const sms = new RecordingSmsProvider();
+    const texts = new TextService(sms, () => log);
+    await texts.send(ME, "welcome", "FleetGrid: one", { resendOf: "m0" });
+    const again = await texts.send(ME, "welcome", "FleetGrid: one", { resendOf: "m0" });
+    expect(again).toMatchObject({ sent: false, status: "already_sent", messageId: null });
+    expect(sms.sent).toHaveLength(1);
+  });
+
+  it("a text that went out but could not be logged is reported, and still counts as sent", async () => {
+    const log = new FakeSmsLog();
+    log.updateById = async () => {
+      throw new Error("the log is down");
+    };
+    const reported: string[] = [];
+    const texts = new TextService(new RecordingSmsProvider(), () => log, (message) => reported.push(message));
+    expect((await texts.send(ME, "welcome", "FleetGrid: one")).sent).toBe(true);
+    expect(reported).toEqual(["A sent text's status was not logged"]);
+  });
+});
+
 describe("texts in production without a real sender", () => {
   it("production never uses the fake: no keys, a missing key or test mode all hold", () => {
     const production = { ...base, VERCEL_ENV: "production" };
