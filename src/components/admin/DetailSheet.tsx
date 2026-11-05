@@ -21,7 +21,7 @@ interface DetailSheetProps {
 export function DetailSheet({ open, onOpenChange, title, description, children, footer }: DetailSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="gap-0">
+      <SheetContent side="right" className="gap-0 overflow-hidden">
         <div className="flex flex-col gap-1 border-b border-border p-4 pr-14">
           <SheetTitle>{title}</SheetTitle>
           {description ? (
@@ -30,7 +30,8 @@ export function DetailSheet({ open, onOpenChange, title, description, children, 
             <SheetDescription className="sr-only">Details</SheetDescription>
           )}
         </div>
-        <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-4">{children}</div>
+        {/* Relative, so hidden text for screen readers stays inside this one scroll area. */}
+        <div className="relative flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4">{children}</div>
         {footer && (
           <div className="sticky bottom-0 flex flex-col-reverse gap-3 border-t border-border bg-popover p-4 sm:flex-row sm:justify-end" data-slot="detail-footer">
             {footer}
