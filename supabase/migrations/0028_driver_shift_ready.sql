@@ -11,18 +11,22 @@
 -- away from Texas without an override, goes back to Registered with "re-review needed", and
 -- the audit log records it as a system action.
 --
--- Live data: every approved driver who misses any requirement moves to Registered here. The
--- deployed code keeps working (it only reads the status), and nothing else changes for it.
+-- Live data (user decision of 2026-11-05): an approved driver who misses any requirement gets 14
+-- days' grace (roster_grace_until) instead of moving at once. They stay Shift-Ready, and
+-- expire_roster_grace() moves anyone still incomplete to Registered when it ends. A driver who
+-- signs up after this follows the full rule. The deployed code only reads the status.
 -- ---------------------------------------------------------------------------
 
 alter table public.drivers
   add column shift_ready_override_reason text,
   add column rereview_needed boolean not null default false,
+  add column roster_grace_until timestamptz,
   add constraint drivers_shift_ready_override_reason_length check (
     shift_ready_override_reason is null or char_length(btrim(shift_ready_override_reason)) between 5 and 300
   );
 
 comment on column public.drivers.shift_ready_override_reason is 'Why an admin made a driver without a Texas CDL Shift-Ready (CR-5). Audited.';
+comment on column public.drivers.roster_grace_until is 'Approved before CR-5 and missing something: stays Shift-Ready until this time. Null for everyone else.';
 comment on column public.drivers.rereview_needed is 'A Shift-Ready driver changed a required document or the CDL state and went back to Registered.';
 
 -- Drivers may not set the override or clear the re-review flag themselves.
@@ -53,7 +57,8 @@ begin
     raise exception 'Changing the text stamps is not allowed' using errcode = '42501';
   end if;
   if new.shift_ready_override_reason is distinct from old.shift_ready_override_reason
-     or new.rereview_needed is distinct from old.rereview_needed then
+     or new.rereview_needed is distinct from old.rereview_needed
+     or new.roster_grace_until is distinct from old.roster_grace_until then
     raise exception 'Changing the Shift-Ready review is not allowed' using errcode = '42501';
   end if;
 
@@ -85,7 +90,8 @@ $$;
 revoke execute on function public.shift_ready_missing(uuid) from public, anon, authenticated;
 grant execute on function public.shift_ready_missing(uuid) to service_role;
 
--- True when a driver may be listed and texted: Shift-Ready in the database's own terms.
+-- True when a driver may be listed and texted: Shift-Ready in the database's own terms, or
+-- approved and still inside the grace period.
 create function public.is_shift_ready(p_driver_id uuid)
 returns boolean
 language sql
@@ -97,7 +103,8 @@ as $$
     select 1 from public.drivers d
     join public.profiles p on p.id = d.profile_id
     where d.id = p_driver_id and p.status = 'approved'
-  ) and cardinality(coalesce(public.shift_ready_missing(p_driver_id), array['none'])) = 0;
+      and (d.roster_grace_until > now() or cardinality(public.shift_ready_missing(d.id)) = 0)
+  );
 $$;
 
 revoke execute on function public.is_shift_ready(uuid) from public, anon;
@@ -144,6 +151,10 @@ begin
   if new.role = 'driver' and new.status = 'approved' and old.status is distinct from 'approved' then
     update public.drivers set rereview_needed = false where profile_id = new.id and rereview_needed;
   end if;
+  -- Any change of status ends the grace: from then on the full rule applies.
+  if new.role = 'driver' and new.status is distinct from old.status then
+    update public.drivers set roster_grace_until = null where profile_id = new.id and roster_grace_until is not null;
+  end if;
   return new;
 end;
 $$;
@@ -167,11 +178,17 @@ as $$
 declare
   v_profile uuid;
   v_name text;
+  v_grace timestamptz;
 begin
-  select d.profile_id, d.full_name into v_profile, v_name
+  select d.profile_id, d.full_name, d.roster_grace_until into v_profile, v_name, v_grace
   from public.drivers d join public.profiles p on p.id = d.profile_id
   where d.id = p_driver_id and p.status = 'approved';
   if v_profile is null then
+    return;
+  end if;
+  -- Inside the grace a driver is expected to upload: they stay, flagged for an admin to look.
+  if v_grace > now() then
+    update public.drivers set rereview_needed = true where id = p_driver_id;
     return;
   end if;
   update public.profiles set status = 'pending' where id = v_profile;
@@ -228,10 +245,49 @@ create trigger drivers_rereview
   after update of cdl_state, full_name on public.drivers
   for each row execute function public.rereview_on_driver_change();
 
--- Live data: approved drivers who miss any requirement are Registered from now on.
-update public.profiles p
-set status = 'pending'
-from public.drivers d
+-- The grace ends: anyone still incomplete moves to Registered (audited, the system as actor),
+-- anyone complete simply loses the stamp. Returns the drivers moved, for the reminder. The daily
+-- job calls it; service role only.
+create function public.expire_roster_grace()
+returns table (driver_id uuid, phone text, missing text[])
+language plpgsql
+volatile
+security definer
+set search_path = public
+as $$
+declare
+  v_row record;
+  v_missing text[];
+begin
+  for v_row in
+    select d.id, d.profile_id, d.full_name, p.phone as phone, p.status::text as status
+    from public.drivers d join public.profiles p on p.id = d.profile_id
+    where d.roster_grace_until <= now()
+    for update of d
+  loop
+    v_missing := public.shift_ready_missing(v_row.id);
+    update public.drivers set roster_grace_until = null where id = v_row.id;
+    if v_row.status = 'approved' and cardinality(v_missing) > 0 then
+      update public.profiles set status = 'pending' where id = v_row.profile_id;
+      insert into public.admin_audit_log (admin_id, admin_phone, action, target_type, target_id, detail)
+      values ('00000000-0000-0000-0000-000000000000', 'system', 'driver_grace_expired', 'driver', v_row.id,
+        jsonb_build_object('from', 'approved', 'to', 'pending', 'missing', v_missing, 'name', v_row.full_name));
+      driver_id := v_row.id;
+      phone := v_row.phone;
+      missing := v_missing;
+      return next;
+    end if;
+  end loop;
+end;
+$$;
+
+revoke execute on function public.expire_roster_grace() from public, anon, authenticated;
+grant execute on function public.expire_roster_grace() to service_role;
+
+-- Live data: approved drivers who miss any requirement get the 14 days.
+update public.drivers d
+set roster_grace_until = now() + interval '14 days'
+from public.profiles p
 where d.profile_id = p.id
   and p.role = 'driver'
   and p.status = 'approved'

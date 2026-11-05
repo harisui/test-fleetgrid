@@ -1,5 +1,5 @@
 import { docReminderText, DOC_REMINDER_ITEMS, type DocReminderItems } from "@/content/sms-samples";
-import { quietHoursSendAt } from "@/lib/shifts/schedule";
+import { isReminderWindow, quietHoursSendAt } from "@/lib/shifts/schedule";
 import { docReminderItems } from "@/lib/sms/driverTexts";
 import { smsSegments } from "@/lib/sms/segments";
 import { docReminderPreviewSchema, sendDocReminderSchema } from "@/lib/validation/docReminder.schema";
@@ -120,6 +120,23 @@ export class DocReminderService {
     });
     await this.notices.finishBatch(batch.id, sent);
     return sent;
+  }
+
+  /**
+   * The daily job: moves drivers whose grace period is over and who are still incomplete to
+   * Registered, then reminds those missing a document, under the usual guardrails (consent, STOP,
+   * one per 3 days, the daytime window). Returns how many moved.
+   */
+  async expireGrace(): Promise<number> {
+    const moved = await this.notifications.expireRosterGrace();
+    if (!isReminderWindow(this.now())) return moved.length;
+    await inBatches(moved, SEND_CONCURRENCY, async (driverId) => {
+      const claimed = await this.notifications.claimDocReminder(driverId);
+      const items = claimed ? docReminderItems(claimed.missing) : null;
+      if (!claimed || !items) return;
+      await this.texts.send({ driverId, phone: claimed.phone, smsOptedOut: false }, "doc_reminder", docReminderText(items));
+    });
+    return moved.length;
   }
 
   /** The 7 AM run: reminders held for quiet hours whose time has come. */

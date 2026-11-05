@@ -68,6 +68,12 @@ class FakeDocs implements IDriverNotificationRepository {
         lastDocReminderAt: r.last,
       }));
   }
+  graceOver: string[] = [];
+  async expireRosterGrace() {
+    const moved = this.graceOver;
+    this.graceOver = [];
+    return moved;
+  }
   async claimDocReminder(driverId: string) {
     const row = this.rows.find((r) => r.driverId === driverId);
     if (!row || !row.registered || !row.optIn || row.optedOut || this.recent(row) || row.missing.length === 0) return null;
@@ -213,6 +219,21 @@ describe("DocReminderService (CR-5)", () => {
     now = new Date(SEVEN);
     expect(await service.dispatchDue()).toBe(2);
     expect(sms.sent).toHaveLength(2);
+  });
+
+  it("when the grace ends: the drivers moved get the reminder, with its guardrails", async () => {
+    docs.graceOver = [id(2), id(3), id(4)];
+    expect(await service.expireGrace()).toBe(3);
+    // 2 consents; 3 said STOP; 4 never agreed.
+    expect(sms.sent).toEqual([{ to: "+15555553002", body: docReminderText("medical card") }]);
+    expect(log.outbound().map((entry) => entry.kind)).toEqual(["doc_reminder"]);
+  });
+
+  it("when the grace ends at night: they still move, and no text goes", async () => {
+    docs.graceOver = [id(2)];
+    now = NIGHT;
+    expect(await service.expireGrace()).toBe(1);
+    expect(sms.sent).toEqual([]);
   });
 
   it("is for admins only and takes no text body", async () => {

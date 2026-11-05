@@ -4,6 +4,7 @@ import { ADMIN_PAGE_SIZE, DEFAULT_TIMEZONE, SIGNED_URL_TTL_SECONDS } from "@/lib
 import {
   REQUIRED_DOCUMENTS,
   SHIFT_READY_ITEM_LABELS,
+  inRosterGrace,
   missingDocuments,
   shiftReadyMissing,
   type ShiftReadyItem,
@@ -44,6 +45,8 @@ export interface AdminDriverRow extends DriverReviewRow {
   source: DriverSource;
   /** The required documents this driver has not uploaded (CR-5). */
   missingDocuments: DocumentType[];
+  /** Inside the grace period: what the driver must add by rosterGraceUntil. Empty otherwise. */
+  needsUpdate: ShiftReadyItem[];
 }
 
 export interface DriverTiles {
@@ -289,6 +292,7 @@ export class AdminService {
           : isInsideAnyArea(row.driver.lat, row.driver.lng, areas),
       complete: row.driver.cardCompleted,
       missingDocuments: missingDocuments(heldBy.get(row.driver.id) ?? []),
+      needsUpdate: inRosterGrace(row.driver, this.now()) ? shiftReadyMissing(row.driver, heldBy.get(row.driver.id) ?? []) : [],
       source: describeSource(row.profile.source, byId.get(row.profile.source.qrLinkId ?? "") ?? null),
     }));
   }
@@ -304,7 +308,7 @@ export class AdminService {
       approved: count((row) => row.profile.status === "approved"),
       blocked: count((row) => row.profile.status === "blocked"),
       incomplete: count((row) => !row.complete),
-      missingDocuments: count((row) => row.profile.status === "pending" && row.missingDocuments.length > 0),
+      missingDocuments: count((row) => (row.profile.status === "pending" || row.needsUpdate.length > 0) && row.missingDocuments.length > 0),
       remindersSent,
       today: count((row) => Date.parse(row.driver.createdAt) >= today),
       thisWeek: count((row) => Date.parse(row.driver.createdAt) >= week),
@@ -335,7 +339,8 @@ export function matches(row: AdminDriverRow, query: AdminDriversQuery): boolean 
   if (query.cdl === "other" && (row.driver.cdlState === null || row.driver.cdlState === "TX")) return false;
   if (query.cdl === "none" && row.driver.cdlState !== null) return false;
   if (query.docs) {
-    const lacks = row.profile.status === "pending" ? row.missingDocuments : [];
+    if (query.docs === "update" && row.needsUpdate.length === 0) return false;
+    const lacks = row.profile.status === "pending" || row.needsUpdate.length > 0 ? row.missingDocuments : [];
     if (query.docs === "any" && lacks.length === 0) return false;
     if (query.docs === "cdl" && !lacks.includes("cdl_front") && !lacks.includes("cdl_back")) return false;
     if (query.docs === "medical" && !lacks.includes("medical_card")) return false;

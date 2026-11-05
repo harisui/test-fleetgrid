@@ -236,6 +236,19 @@ describe("AdminService", () => {
         expect(await names({ docs: "nonsense" })).toEqual(["Dallas Driver", "Lee Lead", "Pat Driver"]);
       });
 
+      it("the grace period: what is missing, the tile and the filter, for an approved driver only until it ends", async () => {
+        const row = admin.rows.find((item) => item.driver.id === D2)!;
+        row.driver = { ...row.driver, rosterGraceUntil: new Date(NOW.getTime() + 86_400_000).toISOString(), cdlState: null };
+        let page = await service.getDriversPage(ADMIN_ID, { docs: "update" });
+        expect(page.rows.map((item) => item.driver.id)).toEqual([D2]);
+        expect(page.rows[0]!.needsUpdate).toEqual(["cdl_front", "cdl_back", "medical_card", "cdl_state"]);
+        expect(page.tiles.missingDocuments).toBe(3);
+
+        row.driver = { ...row.driver, rosterGraceUntil: new Date(NOW.getTime() - 1000).toISOString() };
+        page = await service.getDriversPage(ADMIN_ID, { docs: "update" });
+        expect(page.rows).toEqual([]);
+      });
+
       it("filters by re-review needed", async () => {
         admin.rows[0]!.driver = { ...admin.rows[0]!.driver, rereviewNeeded: true };
         const page = await service.getDriversPage(ADMIN_ID, { rereview: "yes" });

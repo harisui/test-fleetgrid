@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DriverDetailSheet } from "@/components/admin/DriverDetailSheet";
-import { MissingDocumentsBadge } from "@/components/admin/MissingDocumentsBadge";
+import { MissingDocumentsBadge, NeedsUpdateBadge } from "@/components/admin/MissingDocumentsBadge";
 import { DriversTable } from "@/components/admin/DriversTable";
 import { DriverTiles } from "@/components/admin/DriverTiles";
 import { adminDriversQuerySchema } from "@/lib/validation/admin.schema";
@@ -57,6 +57,7 @@ const row = (overrides: Partial<AdminDriverRow> = {}): AdminDriverRow => ({
   complete: true,
   source: { kind: "direct", label: "Direct or unknown", qrLinkId: null },
   missingDocuments: [],
+  needsUpdate: [],
   ...overrides,
 });
 
@@ -118,6 +119,19 @@ describe("MissingDocumentsBadge (CR-5)", () => {
     expect(document.querySelector("[data-slot=missing-documents]")).toBeNull();
     rerender(<MissingDocumentsBadge status="approved" missing={["cdl_front"]} />);
     expect(document.querySelector("[data-slot=missing-documents]")).toBeNull();
+  });
+
+  it("a driver in the grace period reads Needs update by the date, with what is missing", () => {
+    const { container } = render(<NeedsUpdateBadge until="2026-11-19T18:00:00.000Z" missing={["medical_card", "cdl_state"]} />);
+    expect(container.querySelector("[data-slot=needs-update]")).toHaveTextContent("Needs update by Nov 19: Medical card, Texas CDL");
+    expect(container.querySelector("svg")).not.toBeNull();
+  });
+
+  it("nothing outside the grace period, or with nothing missing", () => {
+    const { container, rerender } = render(<NeedsUpdateBadge until={null} missing={["medical_card"]} />);
+    expect(container.querySelector("[data-slot=needs-update]")).toBeNull();
+    rerender(<NeedsUpdateBadge until="2026-11-19T18:00:00.000Z" missing={[]} />);
+    expect(container.querySelector("[data-slot=needs-update]")).toBeNull();
   });
 
   it("appears on the list beside the status", () => {

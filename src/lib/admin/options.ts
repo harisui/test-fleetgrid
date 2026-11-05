@@ -38,6 +38,7 @@ export const MISSING_DOCUMENT_OPTIONS = [
   { value: "any", label: "Missing documents" },
   { value: "cdl", label: "Missing: CDL" },
   { value: "medical", label: "Missing: medical card" },
+  { value: "update", label: "Needs update" },
 ] as const;
 
 export const REREVIEW_OPTIONS = [

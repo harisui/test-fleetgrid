@@ -72,6 +72,7 @@ export default async function MyShiftsPage() {
         status={profile.status}
         missing={shiftReadyMissing(state.driver, documents.map((document) => document.type))}
         textsOn={state.driver.smsOptIn && !state.driver.smsOptedOut}
+        graceUntil={state.driver.rosterGraceUntil}
       />
       {upcoming.length === 0 ? (
         <EmptyState

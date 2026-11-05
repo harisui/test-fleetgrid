@@ -51,7 +51,8 @@ begin
     raise exception 'Changing the text stamps is not allowed' using errcode = '42501';
   end if;
   if new.shift_ready_override_reason is distinct from old.shift_ready_override_reason
-     or new.rereview_needed is distinct from old.rereview_needed then
+     or new.rereview_needed is distinct from old.rereview_needed
+     or new.roster_grace_until is distinct from old.roster_grace_until then
     raise exception 'Changing the Shift-Ready review is not allowed' using errcode = '42501';
   end if;
 
@@ -138,7 +139,7 @@ as $$
   ], null);
 $$;
 
--- Registered drivers missing a required document, and why a reminder would skip them. One
+-- Registered drivers, and drivers inside the grace of 0028, missing a required document, and why a reminder would skip them. One
 -- reason each, in this order: opted out, no consent, reminded in the last 3 days.
 create function public.doc_reminder_candidates(p_driver_id uuid default null)
 returns table (driver_id uuid, phone text, missing text[], exclusion text, last_doc_reminder_at timestamptz)
@@ -157,7 +158,7 @@ as $$
   from public.drivers d
   join public.profiles p on p.id = d.profile_id
   where p.role = 'driver'
-    and p.status = 'pending'
+    and (p.status = 'pending' or (p.status = 'approved' and d.roster_grace_until > now()))
     and (p_driver_id is null or d.id = p_driver_id)
     and cardinality(public.missing_documents(d.id)) > 0;
 $$;
@@ -177,7 +178,7 @@ as $$
   where d.id = p_driver_id
     and p.id = d.profile_id
     and p.role = 'driver'
-    and p.status = 'pending'
+    and (p.status = 'pending' or (p.status = 'approved' and d.roster_grace_until > now()))
     and d.sms_opt_in
     and not d.sms_opted_out
     and (d.last_doc_reminder_at is null or d.last_doc_reminder_at <= now() - interval '3 days')

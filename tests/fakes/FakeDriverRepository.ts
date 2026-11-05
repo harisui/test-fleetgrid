@@ -68,6 +68,7 @@ export class FakeDriverRepository implements IDriverRepository {
       approvalTextSentAt: null,
       shiftReadyOverrideReason: null,
       rereviewNeeded: false,
+      rosterGraceUntil: null,
       heardFrom: null,
       heardFromOther: null,
       clearinghouseSelfReportedAt: null,

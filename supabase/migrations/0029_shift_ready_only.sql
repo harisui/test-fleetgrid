@@ -4,7 +4,7 @@
 -- Carrier search (the RLS policy search_drivers() runs under), matching for broadcasts and
 -- the live "N drivers match" count (matching_drivers()), and booking (claim_shift()) all
 -- require a driver who is Shift-Ready in full: approved, and nothing missing by
--- shift_ready_missing() (0028). So a Registered or Blocked driver never appears, and neither
+-- shift_ready_missing() (0028), or inside the grace period of 0028. So a Registered or Blocked driver never appears, and neither
 -- does an approved row that misses a document (a raw insert could make one; the gate of 0028
 -- stops every update). Additive for the deployed code: the same functions and policy, a
 -- stricter rule.
@@ -48,7 +48,7 @@ as $$
   where p.role = 'driver'
     and p.status = 'approved'
     -- CR-5: Shift-Ready in full, not only approved (the documents and a Texas CDL or override).
-    and cardinality(public.shift_ready_missing(d.id)) = 0
+    and (d.roster_grace_until > now() or cardinality(public.shift_ready_missing(d.id)) = 0)
     and d.card_completed
     and d.sms_opt_in
     and not d.sms_opted_out
@@ -97,7 +97,7 @@ begin
     select 1 from public.drivers d
     join public.profiles p on p.id = d.profile_id
     where d.id = p_driver_id and p.status = 'approved' and not d.shifts_paused and not d.sms_opted_out
-      and cardinality(public.shift_ready_missing(d.id)) = 0
+      and (d.roster_grace_until > now() or cardinality(public.shift_ready_missing(d.id)) = 0)
   ) then
     return query select 'not_eligible'::text, v_recipient.shift_id;
     return;

@@ -1,3 +1,4 @@
+import { formatInTimeZone } from "date-fns-tz";
 import Link from "next/link";
 import { InlineNote } from "@/components/shared/InlineNote";
 import {
@@ -14,6 +15,8 @@ interface RosterStatusBannerProps {
   missing: readonly ShiftReadyItem[];
   /** True when shift texts reach this driver: opted in and never replied STOP. */
   textsOn: boolean;
+  /** Inside the grace period: the time the driver must add what is missing by. */
+  graceUntil?: string | null;
 }
 
 const LINK = "font-semibold underline underline-offset-4";
@@ -23,8 +26,27 @@ const LINK = "font-semibold underline underline-offset-4";
  * what is missing, each item linked to where it is added. Roster-Ready: that matching shifts
  * will be texted, or how to turn texts on. Nothing for a blocked account; the profile explains.
  */
-export function RosterStatusBanner({ status, missing, textsOn }: RosterStatusBannerProps) {
+export function RosterStatusBanner({ status, missing, textsOn, graceUntil = null }: RosterStatusBannerProps) {
   if (status === "blocked") return null;
+
+  if (status === "approved" && graceUntil && missing.length > 0) {
+    return (
+      <InlineNote variant="warning" data-slot="roster-status" data-status="grace">
+        <p>
+          Add these by {formatInTimeZone(new Date(graceUntil), "America/Chicago", "MMMM d")} to stay {ROSTER_READY}:
+        </p>
+        <ul className="mt-2 flex flex-col gap-1" aria-label="What is missing" data-slot="roster-missing">
+          {missing.map((item) => (
+            <li key={item}>
+              <Link href={DRIVER_MISSING_ITEMS[item].href} className={LINK}>
+                {DRIVER_MISSING_ITEMS[item].label}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </InlineNote>
+    );
+  }
 
   if (status === "approved") {
     return (

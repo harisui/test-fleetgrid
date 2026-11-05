@@ -50,6 +50,11 @@ export function missingDocumentsLabel(missing: readonly DocumentType[]): string 
   return `Missing: ${parts.join(" / ")}`;
 }
 
+/** True while a driver approved before CR-5 still has time to add what is missing (0028). */
+export function inRosterGrace(driver: Pick<Driver, "rosterGraceUntil">, now: Date = new Date()): boolean {
+  return driver.rosterGraceUntil !== null && Date.parse(driver.rosterGraceUntil) > now.getTime();
+}
+
 /** What the driver reads for each missing item, and where it is put right. */
 export const DRIVER_MISSING_ITEMS: Record<ShiftReadyItem, { label: string; href: string }> = {
   cdl_front: { label: "CDL front photo", href: "/driver/documents?type=cdl_front" },

@@ -670,6 +670,11 @@ describe("DriverCardView", () => {
     expect(document.body.innerHTML).not.toMatch(/555-0100|5555550100|\+1555|tel:/);
   });
 
+  it("no Documented profile badge for a driver still in the grace period", () => {
+    render(<DriverCardView driver={buildDriver({ rosterGraceUntil: "2026-11-19T18:00:00.000Z" })} distanceMiles={1} documents={[]} />);
+    expect(document.querySelector("[data-slot=documented-profile]")).toBeNull();
+  });
+
   it("leaves out the optional answers that were not given, and says when there are no papers", () => {
     const driver = buildDriver({
       employmentType: null,

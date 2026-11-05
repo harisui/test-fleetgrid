@@ -5,7 +5,7 @@ import { Users } from "lucide-react";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { DataTable, type DataColumn } from "@/components/admin/DataTable";
 import { FilterBar } from "@/components/admin/FilterBar";
-import { MissingDocumentsBadge } from "@/components/admin/MissingDocumentsBadge";
+import { MissingDocumentsBadge, NeedsUpdateBadge } from "@/components/admin/MissingDocumentsBadge";
 import { NotTexasBadge } from "@/components/admin/NotTexasBadge";
 import { RereviewBadge } from "@/components/admin/ShiftReadyReview";
 import { SelfReportBadge } from "@/components/admin/SelfReportBadge";
@@ -80,6 +80,7 @@ const COLUMNS: DataColumn<AdminDriverRow>[] = [
         <AdminStatusBadge kind="driver" status={row.profile.status} />
         {row.driver.rereviewNeeded && <RereviewBadge />}
         <MissingDocumentsBadge status={row.profile.status} missing={row.missingDocuments} />
+        <NeedsUpdateBadge until={row.driver.rosterGraceUntil} missing={row.needsUpdate} />
       </span>
     ),
     sortable: true,
@@ -131,6 +132,7 @@ function DriverCard({ row }: { row: AdminDriverRow }) {
       {row.driver.clearinghouseSelfReportedAt && <SelfReportBadge className="self-start" />}
       {row.driver.cdlState !== null && row.driver.cdlState !== "TX" && <NotTexasBadge className="self-start" />}
       <MissingDocumentsBadge status={row.profile.status} missing={row.missingDocuments} className="self-start" />
+      <NeedsUpdateBadge until={row.driver.rosterGraceUntil} missing={row.needsUpdate} className="self-start" />
     </div>
   );
 }

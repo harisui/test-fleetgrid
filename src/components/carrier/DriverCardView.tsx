@@ -37,7 +37,8 @@ function Row({ label, value, selfReported = false }: { label: string; value: str
 /**
  * One listed driver as a carrier sees them: the sign-up answers, the optional profile
  * answers when given, and the papers as links that open in a new tab. No phone number.
- * Only a Roster-Ready driver reaches this page (RLS), so each carries the carrier's badge.
+ * Only a Roster-Ready driver reaches this page (RLS), so each carries the carrier's badge, except
+ * one in the grace period, whose documents may not be on file yet.
  */
 export function DriverCardView({ driver, distanceMiles, documents }: DriverCardViewProps) {
   const summary = summarizeDriver(driver);
@@ -69,12 +70,14 @@ export function DriverCardView({ driver, distanceMiles, documents }: DriverCardV
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-2">
         <h1 className="font-heading text-h1 leading-h1 font-semibold">{driver.fullName}</h1>
-        <span className="flex">
-          <Badge variant="secondary" data-slot="documented-profile">
-            <FileCheck aria-hidden="true" />
-            {DOCUMENTED_PROFILE}
-          </Badge>
-        </span>
+        {driver.rosterGraceUntil === null && (
+          <span className="flex">
+            <Badge variant="secondary" data-slot="documented-profile">
+              <FileCheck aria-hidden="true" />
+              {DOCUMENTED_PROFILE}
+            </Badge>
+          </span>
+        )}
         <p className="flex items-center gap-2 text-helper leading-helper text-muted-foreground">
           <MapPin aria-hidden="true" className="size-5" />
           <span>

@@ -268,6 +268,8 @@ export interface Driver {
   shiftReadyOverrideReason: string | null;
   /** A Shift-Ready driver changed a required document or the CDL state and is back to Registered (0028). */
   rereviewNeeded: boolean;
+  /** Approved before CR-5 and missing something: stays Roster-Ready until this time (0028). */
+  rosterGraceUntil: string | null;
   /** The optional "How did you hear about FleetGrid?" answer, with the free text for Other. */
   heardFrom: HeardFrom | null;
   heardFromOther: string | null;
@@ -378,6 +380,7 @@ export const ADMIN_ACTIONS = [
   "driver_blocked",
   "driver_reopened",
   "driver_rereview_needed",
+  "driver_grace_expired",
   "driver_removed",
   "driver_paused",
   "driver_unpaused",

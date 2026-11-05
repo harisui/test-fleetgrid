@@ -36,9 +36,9 @@ export default async function AdminDriversPage({ searchParams }: PageProps<"/adm
       if (!(error instanceof AppError && error.code === "NOT_FOUND")) throw error;
     }
   }
-  // The sheet's documents reminder: for a Registered driver missing a required document.
+  // The sheet's documents reminder: a Registered driver, or one in the grace period, missing a required document.
   let reminder: DocReminderPreview | null = null;
-  if (detail && detail.profile.status === "pending" && detail.missing.some((item) => (REQUIRED_DOCUMENTS as readonly string[]).includes(item))) {
+  if (detail && (detail.profile.status === "pending" || detail.needsUpdate.length > 0) && detail.missing.some((item) => (REQUIRED_DOCUMENTS as readonly string[]).includes(item))) {
     reminder = await docReminderService.preview(user.id, { driverId: detail.driver.id });
   }
   const closeHref = driversHref({ ...driversFilters(page.query), page: page.page });

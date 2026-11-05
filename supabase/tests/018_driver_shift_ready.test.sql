@@ -7,9 +7,9 @@ select no_plan();
 
 select is(
   (select count(*) from public.profiles p join public.drivers d on d.profile_id = p.id
-   where p.role = 'driver' and p.status = 'approved' and cardinality(public.shift_ready_missing(d.id)) > 0),
+   where p.role = 'driver' and p.status = 'approved' and d.roster_grace_until is null and cardinality(public.shift_ready_missing(d.id)) > 0),
   0::bigint,
-  'after the live-data move no approved driver misses a requirement'
+  'after the live-data move every approved driver who misses a requirement is in the grace period'
 );
 select ok(not has_function_privilege('authenticated', 'public.shift_ready_missing(uuid)', 'execute'), 'signed-in users cannot list what a driver misses');
 

@@ -10,7 +10,7 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { DetailSheet } from "@/components/admin/DetailSheet";
 import { DocReminderButton } from "@/components/admin/DocReminderButton";
 import { DriverOpsActions } from "@/components/admin/DriverOpsActions";
-import { MissingDocumentsBadge } from "@/components/admin/MissingDocumentsBadge";
+import { MissingDocumentsBadge, NeedsUpdateBadge } from "@/components/admin/MissingDocumentsBadge";
 import { NotTexasBadge } from "@/components/admin/NotTexasBadge";
 import { ShiftReadyReview } from "@/components/admin/ShiftReadyReview";
 import { SelfReportBadge } from "@/components/admin/SelfReportBadge";
@@ -63,6 +63,7 @@ const HISTORY_LABELS: Partial<Record<AdminAction, string>> = {
   driver_blocked: "Blocked",
   driver_reopened: "Moved to Registered",
   driver_rereview_needed: "Back to Registered for re-review",
+  driver_grace_expired: "Back to Registered: update not made in time",
 };
 
 const labelOf = <T extends string>(options: readonly { value: T; label: string }[], value: T) =>
@@ -218,6 +219,7 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
           )}
           {driver.cdlState !== null && driver.cdlState !== "TX" && <NotTexasBadge />}
           <MissingDocumentsBadge status={profile.status} missing={detail.missingDocuments} />
+          <NeedsUpdateBadge until={driver.rosterGraceUntil} missing={detail.needsUpdate} />
           <Badge variant="secondary" data-area={detail.inServiceArea === null ? "unknown" : detail.inServiceArea ? "inside" : "outside"}>
             {areaLabel(detail)}
           </Badge>

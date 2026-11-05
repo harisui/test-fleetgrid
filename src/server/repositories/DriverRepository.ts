@@ -133,6 +133,7 @@ export function mapDriver(row: DriverRow & { driver_clearinghouse_self_reports?:
     approvalTextSentAt: row.approval_text_sent_at,
     shiftReadyOverrideReason: row.shift_ready_override_reason,
     rereviewNeeded: row.rereview_needed,
+    rosterGraceUntil: row.roster_grace_until,
     heardFrom: row.heard_from,
     heardFromOther: row.heard_from_other,
     clearinghouseSelfReportedAt: selfReportedAt(row.driver_clearinghouse_self_reports),

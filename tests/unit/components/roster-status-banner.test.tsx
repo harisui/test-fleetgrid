@@ -44,6 +44,19 @@ describe("RosterStatusBanner (CR-5 part 5)", () => {
     expect(banner()).toHaveTextContent("Your documents are in. FleetGrid staff are reviewing your profile.");
   });
 
+  it("an existing driver in the grace period sees the date and what to add, still Roster-Ready", () => {
+    render(<RosterStatusBanner status="approved" missing={["medical_card", "cdl_state"]} textsOn graceUntil="2026-11-19T18:00:00.000Z" />);
+    expect(banner()).toHaveTextContent("Add these by November 19 to stay Roster-Ready:");
+    expect(banner()).toHaveAttribute("data-status", "grace");
+    const links = within(screen.getByRole("list", { name: "What is missing" })).getAllByRole("link");
+    expect(links.map((link) => link.getAttribute("href"))).toEqual(["/driver/documents?type=medical_card", "/driver/profile"]);
+  });
+
+  it("the usual Roster-Ready line once nothing is missing, even before the grace ends", () => {
+    render(<RosterStatusBanner status="approved" missing={[]} textsOn graceUntil="2026-11-19T18:00:00.000Z" />);
+    expect(banner()).toHaveTextContent("You're Roster-Ready. We'll text you when matching shifts open.");
+  });
+
   it("shows nothing to a blocked driver", () => {
     render(<RosterStatusBanner status="blocked" missing={["cdl_front"]} textsOn />);
     expect(banner()).toBeNull();

@@ -45,7 +45,7 @@ select columns_are('public', 'drivers', array[
   'employment_type', 'driving_styles', 'transmission', 'equipment_types', 'twic_active',
   'medical_card_active', 'clearinghouse_registered', 'mvr_status', 'heard_from', 'heard_from_other',
   'no_show_count', 'shifts_paused', 'reminder_sent_at', 'approval_text_due_at', 'approval_text_sent_at', 'cdl_state',
-  'shift_ready_override_reason', 'rereview_needed', 'last_doc_reminder_at']);
+  'shift_ready_override_reason', 'rereview_needed', 'roster_grace_until', 'last_doc_reminder_at']);
 select columns_are('public', 'driver_documents', array[
   'id', 'driver_id', 'type', 'storage_path', 'file_name', 'mime_type', 'size_bytes',
   'created_at', 'updated_at']);

@@ -9,6 +9,9 @@ import { refuseUnlessCron } from "@/server/cron";
 export async function GET(request: Request): Promise<Response> {
   const refused = refuseUnlessCron(request);
   if (refused) return refused;
-  const reminders = await buildTextingServices().notificationService.sendDueReminders();
-  return Response.json({ ok: true, reminders });
+  const { notificationService, docReminderService } = buildTextingServices();
+  const reminders = await notificationService.sendDueReminders();
+  // The grace period for drivers approved before CR-5: moves anyone still incomplete when it ends.
+  const graceExpired = await docReminderService.expireGrace();
+  return Response.json({ ok: true, reminders, graceExpired });
 }

@@ -24,7 +24,7 @@ export const SELF_REPORT_FILTERS = ["", "yes", "none"] as const;
 /** The state that issued the CDL (CR-5): Texas, another state, or not answered yet. */
 export const CDL_STATE_FILTERS = ["", "tx", "other", "none"] as const;
 /** What a Registered driver still has to upload (CR-5). */
-export const MISSING_DOCUMENT_FILTERS = ["", "any", "cdl", "medical"] as const;
+export const MISSING_DOCUMENT_FILTERS = ["", "any", "cdl", "medical", "update"] as const;
 /** A driver sent back to Registered because a required document or the CDL state changed. */
 export const REREVIEW_FILTERS = ["", "yes"] as const;
 export const DRIVER_SORTS = ["created", "name", "status"] as const;

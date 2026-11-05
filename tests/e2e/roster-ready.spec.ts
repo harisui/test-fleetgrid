@@ -106,6 +106,31 @@ for (const colorScheme of ["light", "dark"] as const) {
       await expect(banner).toHaveText("You're Roster-Ready. We'll text you when matching shifts open.");
     });
 
+    test("a driver in the grace period stays Roster-Ready and sees the date and what to add", async ({ page }) => {
+      const { userId, driverId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP, { full_name: "Gia Grace" });
+      await makeShiftReady(userId);
+      const admin = adminClient();
+      await admin.from("drivers").update({ roster_grace_until: new Date(Date.now() + 14 * 86_400_000).toISOString() }).eq("id", driverId!);
+      await admin.from("driver_documents").delete().eq("driver_id", driverId!).eq("type", "medical_card");
+      const { data: profile } = await admin.from("profiles").select("status").eq("id", userId).single();
+      expect(profile?.status).toBe("approved");
+
+      await login(page, PHONES.driver);
+      await page.goto("/driver");
+      const banner = page.locator("[data-slot=roster-status]");
+      await expect(banner).toContainText(/Add these by .+ to stay Roster-Ready:/);
+      await expect(banner.getByRole("list", { name: "What is missing" }).getByRole("link")).toHaveText(["Medical card"]);
+      await expectNoAccessibilityViolations(page, "grace banner");
+
+      await seedUser(PHONES.admin, "admin", "approved");
+      await page.context().clearCookies();
+      await page.context().addCookies([{ name: "fleetgrid-theme", value: colorScheme, url: "http://localhost:3000" }]);
+      await login(page, PHONES.admin);
+      await page.goto("/admin/drivers?docs=update&q=Gia+Grace");
+      await expect(adminList(page, "Drivers")).toContainText(/Needs update by .+: Medical card/);
+      await expectNoAccessibilityViolations(page, "needs update badge");
+    });
+
     test("Roster-Ready with texts off is pointed to the profile", async ({ page }) => {
       const { userId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP, {
         full_name: "Quinn Quiet",

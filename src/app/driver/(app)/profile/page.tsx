@@ -25,6 +25,7 @@ export default async function DriverProfilePage() {
         status={profile.status}
         missing={shiftReadyMissing(state.driver, documents.map((document) => document.type))}
         textsOn={state.driver.smsOptIn && !state.driver.smsOptedOut}
+        graceUntil={state.driver.rosterGraceUntil}
       />
       <AccountStatusCard profile={profile} driver={state.driver} />
       <ClearinghouseSelfReportControl confirmedAt={state.driver.clearinghouseSelfReportedAt} />
