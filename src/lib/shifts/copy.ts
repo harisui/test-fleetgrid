@@ -39,4 +39,5 @@ export const RECIPIENT_STATUS_LABELS = {
   too_late: "Replied late",
   no_show: "No-show",
   skipped_cap: "Alert limit reached",
+  turned_away: "Turned away: TWIC",
 } as const;

@@ -279,6 +279,7 @@ describe("AdminService", () => {
         cdl: "",
         docs: "",
         rereview: "",
+        twic: "",
         qr: undefined,
         q: "",
         sort: "created",

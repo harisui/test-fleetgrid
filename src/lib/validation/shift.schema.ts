@@ -86,6 +86,14 @@ export const shiftPostSchema = z
 export type ShiftPostInput = z.infer<typeof shiftPostSchema>;
 export type ShiftPostFormValues = z.input<typeof shiftPostSchema>;
 
+export const RELEASE_REASONS = ["no_show", "twic_gate"] as const;
+export type ReleaseReason = (typeof RELEASE_REASONS)[number];
+
+export const releaseShiftSchema = z.object({
+  shiftId: z.uuid({ error: "Shift not found" }),
+  reason: z.enum(RELEASE_REASONS).default("no_show"),
+});
+
 export const shiftIdSchema = z.object({ shiftId: z.uuid({ error: "Shift not found" }) });
 
 export const cancelShiftSchema = z.object({

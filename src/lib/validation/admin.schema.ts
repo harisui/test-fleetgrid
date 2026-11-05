@@ -27,6 +27,8 @@ export const CDL_STATE_FILTERS = ["", "tx", "other", "none"] as const;
 export const MISSING_DOCUMENT_FILTERS = ["", "any", "cdl", "medical", "update"] as const;
 /** A driver sent back to Registered because a required document or the CDL state changed. */
 export const REREVIEW_FILTERS = ["", "yes"] as const;
+/** Turned away at the gate, twice in 90 days, or a yes with no date. */
+export const TWIC_FILTERS = ["", "issue", "review", "nodate"] as const;
 export const DRIVER_SORTS = ["created", "name", "status"] as const;
 export const SORT_DIRECTIONS = ["asc", "desc"] as const;
 
@@ -46,6 +48,7 @@ export const adminDriversQuerySchema = z.object({
   cdl: oneOf(CDL_STATE_FILTERS, ""),
   docs: oneOf(MISSING_DOCUMENT_FILTERS, ""),
   rereview: oneOf(REREVIEW_FILTERS, ""),
+  twic: oneOf(TWIC_FILTERS, ""),
   /** One QR code's sign-ups only (linked from the Analytics page). */
   qr: optionalId,
   /** Name, phone or ZIP. */

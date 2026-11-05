@@ -94,6 +94,7 @@ export type SmsKind =
   | "welcome"
   | "doc_reminder"
   | "cdl_state_notice"
+  | "twic_date_notice"
   | "overlap"
   | "paused"
   | "not_eligible"

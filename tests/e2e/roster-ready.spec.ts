@@ -132,6 +132,23 @@ for (const colorScheme of ["light", "dark"] as const) {
       await expectNoAccessibilityViolations(page, "needs update badge");
     });
 
+    test("a TWIC yes with no date is asked for it on My shifts and the profile, and saving it clears the line", async ({ page }) => {
+      const { userId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP, { full_name: "Tia Twic", twic_active: true, twic_expires_on: null });
+      await makeShiftReady(userId);
+      await login(page, PHONES.driver);
+      await page.goto("/driver");
+      const prompt = page.locator("[data-slot=twic-date-prompt]");
+      await expect(prompt).toHaveText("Add your TWIC expiry date to get port shifts.");
+      await expectNoAccessibilityViolations(page, "twic prompt");
+      await prompt.getByRole("link").click();
+      await expect(page).toHaveURL(/\/driver\/profile$/);
+      await page.getByLabel(/TWIC expiry date/).fill("2099-12-31");
+      await page.getByRole("button", { name: /^Save/ }).first().click();
+      await expect(prompt).toHaveCount(0);
+      const { data } = await adminClient().from("drivers").select("twic_expires_on").eq("profile_id", userId).single();
+      expect(data?.twic_expires_on).toBe("2099-12-31");
+    });
+
     test("Roster-Ready with texts off is pointed to the profile", async ({ page }) => {
       const { userId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP, {
         full_name: "Quinn Quiet",
@@ -242,7 +259,7 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.goto("/admin/drivers?status=blocked");
       const bar = page.getByRole("form", { name: "Filters" });
       const boxes = bar.getByRole("combobox");
-      await expect(boxes).toHaveCount(8);
+      await expect(boxes).toHaveCount(9);
       const tops = await boxes.evaluateAll((items) => items.map((item) => Math.round(item.getBoundingClientRect().top)));
       const widths = await boxes.evaluateAll((items) => items.map((item) => Math.round(item.getBoundingClientRect().width)));
       expect(new Set(tops).size).toBeLessThanOrEqual(2);

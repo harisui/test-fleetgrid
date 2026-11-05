@@ -69,6 +69,12 @@ class FakeDocs implements IDriverNotificationRepository {
       }));
   }
   graceOver: string[] = [];
+  twicDue: { driverId: string; phone: string }[] = [];
+  async claimTwicDateNotices() {
+    const due = this.twicDue;
+    this.twicDue = [];
+    return due;
+  }
   notices: { driverId: string; phone: string; missing: string[]; graceUntil: string }[] = [];
   async claimCdlStateNotices() {
     const due = this.notices;

@@ -46,6 +46,13 @@ export const REREVIEW_OPTIONS = [
   { value: "yes", label: "Re-review needed" },
 ] as const;
 
+export const TWIC_FILTER_OPTIONS = [
+  { value: "", label: "Any TWIC" },
+  { value: "issue", label: "TWIC issue" },
+  { value: "review", label: "Needs review" },
+  { value: "nodate", label: "No expiry date" },
+] as const;
+
 export const CDL_STATE_FILTER_OPTIONS = [
   { value: "", label: "Any CDL state" },
   { value: "tx", label: "Texas CDL" },
@@ -103,6 +110,7 @@ const QUERY_DEFAULTS: Partial<Record<keyof AdminDriversQuery, string>> = {
   cdl: "",
   docs: "",
   rereview: "",
+  twic: "",
   q: "",
   sort: "created",
   dir: "desc",
@@ -121,6 +129,7 @@ export function driversFilters(query: AdminDriversQuery) {
     cdl: query.cdl,
     docs: query.docs,
     rereview: query.rereview,
+    twic: query.twic,
     qr: query.qr,
     sort: query.sort,
     dir: query.dir,
@@ -130,7 +139,7 @@ export function driversFilters(query: AdminDriversQuery) {
 /** The Drivers page for a query, leaving out every parameter at its default. */
 export function driversHref(query: Partial<Record<keyof AdminDriversQuery, string | number | undefined>>): string {
   const params = new URLSearchParams();
-  for (const key of ["q", "status", "complete", "area", "source", "selfReport", "cdl", "docs", "rereview", "qr", "sort", "dir", "page", "open"] as const) {
+  for (const key of ["q", "status", "complete", "area", "source", "selfReport", "cdl", "docs", "rereview", "twic", "qr", "sort", "dir", "page", "open"] as const) {
     const value = query[key];
     if (value === undefined || value === "" || String(value) === QUERY_DEFAULTS[key]) continue;
     params.set(key, String(value));

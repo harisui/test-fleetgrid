@@ -1,7 +1,8 @@
 import { formatInTimeZone } from "date-fns-tz";
-import { CalendarClock, FileWarning, PauseCircle, PhoneOff } from "lucide-react";
+import { CalendarClock, FileWarning, PauseCircle, PhoneOff, ShieldAlert } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import type { TwicIssue } from "@/lib/drivers/twic";
 import { missingDocumentsLabel, SHIFT_READY_ITEM_LABELS, type ShiftReadyItem } from "@/lib/drivers/tiers";
 import type { AccountStatus, DocumentType } from "@/types/domain";
 
@@ -63,6 +64,17 @@ export function BookedNotNotifiedBadge({ className }: { className?: string }) {
     <Badge variant="destructive" data-slot="booked-not-notified" className={className}>
       <PhoneOff aria-hidden="true" />
       Booked, not notified
+    </Badge>
+  );
+}
+
+/** A carrier reported the driver turned away at the gate; twice in 90 days reads Needs review. */
+export function TwicIssueBadge({ issue, className }: { issue: TwicIssue; className?: string }) {
+  if (!issue) return null;
+  return (
+    <Badge variant={issue === "needs_review" ? "destructive" : "warning"} data-slot="twic-issue" className={className}>
+      <ShieldAlert aria-hidden="true" />
+      {issue === "needs_review" ? "TWIC issue: Needs review" : "TWIC issue"}
     </Badge>
   );
 }

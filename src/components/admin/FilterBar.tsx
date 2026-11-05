@@ -129,7 +129,7 @@ export function FilterBar(props: FilterBarProps) {
           </div>
         )}
         {/* Desktop: the selects inline. */}
-        <div className="hidden items-end gap-3 lg:col-span-2 lg:row-start-2 lg:grid lg:grid-cols-4">
+        <div className="hidden items-end gap-3 lg:col-span-2 lg:row-start-2 lg:grid lg:grid-cols-3 xl:grid-cols-5">
           {selects.map((filter) => (
             <SelectFilter key={filter.name} filter={filter} />
           ))}

@@ -39,6 +39,7 @@ export function ProfileEditor({ driver }: ProfileEditorProps) {
       serviceRadiusMiles: driver.serviceRadiusMiles,
       cdlClass: driver.cdlClass === "none" ? undefined : driver.cdlClass,
       cdlState: driver.cdlState ?? undefined,
+      twicExpiresOn: driver.twicExpiresOn ?? "",
       endorsements: driver.endorsements,
       yearsExperience: driver.yearsExperience ?? undefined,
       employmentType: driver.employmentType ?? undefined,

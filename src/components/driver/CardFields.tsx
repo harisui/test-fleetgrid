@@ -269,9 +269,11 @@ function CheckChoice<T extends FieldValues>({
 /** Equipment and checks, in the order sign-up asks them, then the profile-only ones. */
 export function ChecksFields<T extends FieldValues>({
   control,
+  register,
   errorOf,
   disabled,
 }: GroupProps<T>) {
+  const twicActive = useWatch({ control, name: field<T>("twicActive") });
   return (
     <>
       <Controller
@@ -292,6 +294,11 @@ export function ChecksFields<T extends FieldValues>({
       />
 
       <CheckChoice control={control} name="twicActive" errorOf={errorOf} disabled={disabled} />
+      {twicActive === true && (
+        <FormField label="TWIC expiry date" required error={errorOf("twicExpiresOn")} description="Self-reported. A TWIC counts for port shifts until this date.">
+          <Input type="date" {...register(field<T>("twicExpiresOn"))} disabled={disabled} />
+        </FormField>
+      )}
       <CheckChoice
         control={control}
         name="medicalCardActive"

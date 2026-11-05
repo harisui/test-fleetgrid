@@ -379,6 +379,7 @@ describe("ProfileEditor", () => {
         transmission: "automatic_only",
         equipmentTypes: ["dry_van", "flatbed", "reefer"],
         twicActive: false,
+        twicExpiresOn: null,
         medicalCardActive: true,
         clearinghouseRegistered: true,
         mvrStatus: "major_3_plus",

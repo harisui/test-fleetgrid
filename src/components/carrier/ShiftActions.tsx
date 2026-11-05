@@ -4,7 +4,10 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { FormField } from "@/components/shared/FormField";
+import { SelectInput } from "@/components/shared/SelectInput";
 import { Button } from "@/components/ui/button";
+import type { ReleaseReason } from "@/lib/validation/shift.schema";
 import { cancelShiftAction, releaseShiftAction } from "@/server/actions/shift.actions";
 import type { ShiftStatus } from "@/types/domain";
 
@@ -20,13 +23,14 @@ export function ShiftActions({ shiftId, status, driverName }: ShiftActionsProps)
   const router = useRouter();
   const [dialog, setDialog] = useState<"cancel" | "release" | null>(null);
   const [pending, startTransition] = useTransition();
+  const [reason, setReason] = useState<ReleaseReason>("no_show");
 
   if (status !== "open" && status !== "booked") return null;
 
   const run = (action: "cancel" | "release") =>
     startTransition(async () => {
       const result =
-        action === "cancel" ? await cancelShiftAction({ shiftId }) : await releaseShiftAction({ shiftId });
+        action === "cancel" ? await cancelShiftAction({ shiftId }) : await releaseShiftAction({ shiftId, reason });
       if (!result.ok) {
         toast.error(result.error.message);
         return;
@@ -50,12 +54,23 @@ export function ShiftActions({ shiftId, status, driverName }: ShiftActionsProps)
         open={dialog === "release"}
         onOpenChange={(open) => setDialog(open ? "release" : null)}
         title={`Release ${driverName ?? "the driver"}?`}
-        description="Use this when the driver did not show. It counts a no-show for them, and the shift goes out again with a new code to the other matching drivers."
+        description={reason === "twic_gate" ? "It flags the driver for FleetGrid to look at, not as a no-show, and the shift goes out again without them." : "Use this when the driver did not show. It counts a no-show for them, and the shift goes out again without them."}
         confirmLabel="Release and rebroadcast"
         pendingLabel="Sending..."
         pending={pending}
         onConfirm={() => run("release")}
-      />
+      >
+        <FormField label="What happened?" errorIcon={false}>
+          <SelectInput
+            value={reason}
+            onValueChange={(value) => setReason(value as ReleaseReason)}
+            options={[
+              { value: "no_show", label: "Did not show" },
+              { value: "twic_gate", label: "Turned away at gate: TWIC" },
+            ]}
+          />
+        </FormField>
+      </ConfirmDialog>
       <ConfirmDialog
         open={dialog === "cancel"}
         onOpenChange={(open) => setDialog(open ? "cancel" : null)}

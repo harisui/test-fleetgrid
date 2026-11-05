@@ -358,7 +358,7 @@ describe("options", () => {
     const other = ONBOARDING_DOCUMENT_TILES[3];
     expect(other.label).toBe("Other papers");
     // The client's words of 2026-10-12.
-    expect(other.helper).toBe("TWIC, forklift cert, or extra CDL endorsements (optional)");
+    expect(other.helper).toBe("Forklift cert or extra CDL endorsements (optional)");
   });
 });
 

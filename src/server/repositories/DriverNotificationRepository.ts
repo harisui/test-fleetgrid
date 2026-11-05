@@ -37,6 +37,8 @@ export interface IDriverNotificationRepository {
   claimDocReminder(driverId: string): Promise<{ phone: string; missing: string[] } | null>;
   /** Stamps and returns the drivers due the one CDL-state text (0030). */
   claimCdlStateNotices(): Promise<{ driverId: string; phone: string; missing: string[]; graceUntil: string }[]>;
+  /** Stamps and returns the drivers due the text asking for their TWIC date (0033). */
+  claimTwicDateNotices(): Promise<ClaimedText[]>;
   /** Ends the grace periods that are over; returns the drivers moved to Registered (0028). */
   expireRosterGrace(): Promise<string[]>;
 }
@@ -91,6 +93,11 @@ export class DriverNotificationRepository extends BaseRepository implements IDri
   async claimCdlStateNotices() {
     const rows = this.unwrap(await this.supabase.rpc("claim_cdl_state_notices"));
     return rows.map((row) => ({ driverId: row.driver_id, phone: row.phone, missing: row.missing, graceUntil: row.grace_until }));
+  }
+
+  async claimTwicDateNotices(): Promise<ClaimedText[]> {
+    const rows = this.unwrap(await this.supabase.rpc("claim_twic_date_notices"));
+    return rows.map((row) => ({ driverId: row.driver_id, phone: row.phone }));
   }
 
   async expireRosterGrace(): Promise<string[]> {

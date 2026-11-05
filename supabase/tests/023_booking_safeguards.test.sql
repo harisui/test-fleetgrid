@@ -154,7 +154,7 @@ select ok(not public.claim_recipient_send(pg_temp.rid('92')), 'with a text on re
 select ok(
   not has_function_privilege('authenticated', 'public.begin_inbound(text)', 'execute')
   and not has_function_privilege('authenticated', 'public.drivers_at_alert_cap(uuid[], integer)', 'execute')
-  and not has_function_privilege('authenticated', 'public.release_shift(uuid, integer)', 'execute'),
+  and not has_function_privilege('authenticated', 'public.release_shift(uuid, integer, text)', 'execute'),
   'nobody signed in may run these'
 );
 

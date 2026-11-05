@@ -1,3 +1,4 @@
+import { needsTwicDate, twicIssue } from "@/lib/drivers/twic";
 import { startOfDay, startOfWeek } from "date-fns";
 import { fromZonedTime, toZonedTime } from "date-fns-tz";
 import { ADMIN_PAGE_SIZE, DEFAULT_TIMEZONE, SIGNED_URL_TTL_SECONDS } from "@/lib/constants";
@@ -346,6 +347,12 @@ export function matches(row: AdminDriverRow, query: AdminDriversQuery): boolean 
     if (query.docs === "medical" && !lacks.includes("medical_card")) return false;
   }
   if (query.rereview === "yes" && !row.driver.rereviewNeeded) return false;
+  if (query.twic) {
+    const issue = twicIssue(row.driver);
+    if (query.twic === "issue" && !issue) return false;
+    if (query.twic === "review" && issue !== "needs_review") return false;
+    if (query.twic === "nodate" && !needsTwicDate(row.driver)) return false;
+  }
   if (query.selfReport === "yes" && row.driver.clearinghouseSelfReportedAt === null) return false;
   if (query.selfReport === "none" && row.driver.clearinghouseSelfReportedAt !== null) return false;
   if (query.q) {

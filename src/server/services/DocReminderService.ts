@@ -1,5 +1,5 @@
 import { formatInTimeZone } from "date-fns-tz";
-import { cdlStateNoticeText, docReminderText, DOC_REMINDER_ITEMS, type DocReminderItems } from "@/content/sms-samples";
+import { cdlStateNoticeText, docReminderText, DOC_REMINDER_ITEMS, SMS_TWIC_DATE, type DocReminderItems } from "@/content/sms-samples";
 import { isReminderWindow, quietHoursSendAt } from "@/lib/shifts/schedule";
 import { SHIFT_TIME_ZONE } from "@/lib/shifts/texts";
 import { docReminderItems } from "@/lib/sms/driverTexts";
@@ -152,6 +152,16 @@ export class DocReminderService {
       const date = formatInTimeZone(new Date(graceUntil), SHIFT_TIME_ZONE, "MMM d");
       const body = cdlStateNoticeText(date, docReminderItems(missing));
       await this.texts.send({ driverId, phone, smsOptedOut: false }, "cdl_state_notice", body);
+    });
+    return due.length;
+  }
+
+  /** The text asking for a TWIC date, by day: at most one per 7 days and two in all (0033). */
+  async sendTwicDateNotices(): Promise<number> {
+    if (!isReminderWindow(this.now())) return 0;
+    const due = await this.notifications.claimTwicDateNotices();
+    await inBatches(due, SEND_CONCURRENCY, async ({ driverId, phone }) => {
+      await this.texts.send({ driverId, phone, smsOptedOut: false }, "twic_date_notice", SMS_TWIC_DATE);
     });
     return due.length;
   }

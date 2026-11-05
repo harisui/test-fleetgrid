@@ -137,7 +137,7 @@ export class BroadcastRepository extends BaseRepository implements IBroadcastRep
       .from("broadcast_recipients")
       .select("driver_id")
       .eq("shift_id", shiftId)
-      .eq("status", "no_show");
+      .in("status", ["no_show", "turned_away"]);
     return this.unwrap(result).map((row) => row.driver_id);
   }
 

@@ -165,7 +165,7 @@ describe("broadcast logic on the real database", () => {
 
   it("the fourth alert in 24 hours is skipped and on record", async () => {
     const carrier = await createTestCarrier({ subscription: "active" });
-    const [driver] = await makeDrivers(1, "Capped Driver");
+    await makeDrivers(1, "Capped Driver");
     await pauseOthers("Capped Driver");
     const sms = new RecordingSmsProvider();
     const { broadcast } = services(sms);

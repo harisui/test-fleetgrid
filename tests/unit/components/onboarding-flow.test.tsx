@@ -411,7 +411,7 @@ describe("Cards page", () => {
     actions.saveOnboardingScreenAction.mockResolvedValue(
       ok(driverAt(7, { twicActive: true, medicalCardActive: false })),
     );
-    renderFlow("credentials", driverAt(6));
+    renderFlow("credentials", driverAt(6, { twicExpiresOn: null }));
     const twic = CARD_CHECKS.twicActive.question;
     const medical = CARD_CHECKS.medicalCardActive.question;
     expect(screen.getByText("Carriers ask for both. You can update these any time.")).toBeInTheDocument();
@@ -420,12 +420,16 @@ describe("Cards page", () => {
 
     await userEvent.click(checkChip(twic, "Yes"));
     await userEvent.click(checkChip(medical, "No"));
+    // A yes asks for the date, and will not go without it.
+    await userEvent.click(next());
+    expect(await screen.findByText("Enter the date your TWIC expires")).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText(/TWIC expiry date/), "2099-12-31");
     expect(checkChip(twic, "Yes")).toHaveAttribute("aria-pressed", "true");
     expect(checkChip(medical, "No")).toHaveAttribute("aria-pressed", "true");
     await userEvent.click(next());
     await waitFor(() => expect(heading()).toHaveTextContent("Letters"));
     expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("credentials", {
-      twicActive: true,
+      twicActive: true, twicExpiresOn: "2099-12-31",
       medicalCardActive: false,
     });
   });
@@ -683,7 +687,7 @@ describe("Finish page: consent and done", () => {
     expect(summary.getByText("Class A")).toBeInTheDocument();
     expect(summary.getByText("6 to 10 years")).toBeInTheDocument();
     expect(summary.getByText("No violations in 3 years")).toBeInTheDocument();
-    expect(summary.getByText("TWIC, medical card current")).toBeInTheDocument();
+    expect(summary.getByText("TWIC to Dec 31, 2099, medical card current")).toBeInTheDocument();
     expect(summary.getByText("H, T")).toBeInTheDocument();
     expect(summary.getByText("Automatic and manual")).toBeInTheDocument();
     expect(summary.getByText("Dry van, Flatbed")).toBeInTheDocument();

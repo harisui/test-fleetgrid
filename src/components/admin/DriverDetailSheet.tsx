@@ -10,7 +10,7 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
 import { DetailSheet } from "@/components/admin/DetailSheet";
 import { DocReminderButton } from "@/components/admin/DocReminderButton";
 import { DriverOpsActions } from "@/components/admin/DriverOpsActions";
-import { MissingDocumentsBadge, NeedsUpdateBadge } from "@/components/admin/MissingDocumentsBadge";
+import { MissingDocumentsBadge, NeedsUpdateBadge, TwicIssueBadge } from "@/components/admin/MissingDocumentsBadge";
 import { NotTexasBadge } from "@/components/admin/NotTexasBadge";
 import { ShiftReadyReview } from "@/components/admin/ShiftReadyReview";
 import { SelfReportBadge } from "@/components/admin/SelfReportBadge";
@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { CONFIRMATIONS, STATUS_DONE } from "@/lib/admin/options";
 import { ROSTER_READY, SHIFT_READY_ITEM_LABELS } from "@/lib/drivers/tiers";
+import { twicIssue } from "@/lib/drivers/twic";
 import { heardFromLabel, referrerLabel, tagsLabel } from "@/lib/admin/source";
 import { summarizeDriver } from "@/lib/carrier/driverSummary";
 import { formatFileSize } from "@/lib/image";
@@ -65,6 +66,7 @@ const HISTORY_LABELS: Partial<Record<AdminAction, string>> = {
   driver_rereview_needed: "Back to Registered for re-review",
   driver_grace_expired: "Back to Registered: update not made in time",
   driver_auto_paused: "Paused: no-shows",
+  driver_twic_flagged: "Turned away at gate: TWIC",
   driver_unpaused: "Shift texts resumed",
 };
 
@@ -222,6 +224,7 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
           {driver.cdlState !== null && driver.cdlState !== "TX" && <NotTexasBadge />}
           <MissingDocumentsBadge status={profile.status} missing={detail.missingDocuments} />
           <NeedsUpdateBadge until={driver.rosterGraceUntil} missing={detail.needsUpdate} />
+          <TwicIssueBadge issue={twicIssue(driver)} />
           <Badge variant="secondary" data-area={detail.inServiceArea === null ? "unknown" : detail.inServiceArea ? "inside" : "outside"}>
             {areaLabel(detail)}
           </Badge>

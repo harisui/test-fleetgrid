@@ -38,6 +38,7 @@ export const ACCOUNT_KIND_LABELS: Record<AccountKind, string> = {
   welcome: "Welcome",
   doc_reminder: "Documents reminder",
   cdl_state_notice: "CDL state",
+  twic_date_notice: "TWIC date",
   cancelled: "Cancellation",
   security: "Security",
 };

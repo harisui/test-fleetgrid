@@ -167,6 +167,7 @@ export async function createListedDriver(
       transmission: "manual_ok",
       equipment_types: ["dry_van", "flatbed"],
       twic_active: true,
+      twic_expires_on: "2099-12-31",
       medical_card_active: true,
       mvr_status: "clean",
       sms_opt_in: true,

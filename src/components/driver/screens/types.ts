@@ -13,6 +13,7 @@ import type {
 
 /** Every field any onboarding screen can hold. One form, one set of keys. */
 export interface OnboardingFormValues {
+  twicExpiresOn?: string | null;
   fullName?: string;
   zip?: string;
   city?: string;

@@ -1,3 +1,5 @@
+import { InlineNote } from "@/components/shared/InlineNote";
+import Link from "next/link";
 import { CalendarCheck, Phone } from "lucide-react";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
@@ -7,6 +9,7 @@ import { EmptyState } from "@/components/shared/EmptyState";
 import { RosterStatusBanner } from "@/components/driver/RosterStatusBanner";
 import { requireDriverWithCdlState } from "@/lib/auth/guards";
 import { shiftReadyMissing } from "@/lib/drivers/tiers";
+import { needsTwicDate, TWIC_DATE_PROMPT } from "@/lib/drivers/twic";
 import { formatE164ForDisplay } from "@/lib/phone";
 import { getContainer } from "@/server/container";
 import type { Shift } from "@/types/domain";
@@ -74,6 +77,13 @@ export default async function MyShiftsPage() {
         textsOn={state.driver.smsOptIn && !state.driver.smsOptedOut}
         graceUntil={state.driver.rosterGraceUntil}
       />
+      {needsTwicDate(state.driver) && (
+        <InlineNote variant="warning" data-slot="twic-date-prompt">
+          <Link href="/driver/profile" className="font-semibold underline underline-offset-4">
+            {TWIC_DATE_PROMPT}
+          </Link>
+        </InlineNote>
+      )}
       {upcoming.length === 0 ? (
         <EmptyState
           icon={CalendarCheck}

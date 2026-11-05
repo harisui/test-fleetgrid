@@ -60,6 +60,7 @@ export interface DriverPatch {
   transmission?: TransmissionType | null;
   equipmentTypes?: EquipmentType[];
   twicActive?: boolean | null;
+  twicExpiresOn?: string | null;
   medicalCardActive?: boolean | null;
   clearinghouseRegistered?: boolean | null;
   mvrStatus?: MvrStatus | null;
@@ -119,6 +120,9 @@ export function mapDriver(row: DriverRow & { driver_clearinghouse_self_reports?:
     transmission: row.transmission,
     equipmentTypes: row.equipment_types,
     twicActive: row.twic_active,
+    twicExpiresOn: row.twic_expires_on,
+    twicIssueAt: row.twic_issue_at,
+    twicIssuePriorAt: row.twic_issue_prior_at,
     medicalCardActive: row.medical_card_active,
     clearinghouseRegistered: row.clearinghouse_registered,
     mvrStatus: row.mvr_status,
@@ -168,6 +172,7 @@ export function toDriverUpdate(patch: DriverPatch): DriverUpdate {
     transmission: "transmission",
     equipmentTypes: "equipment_types",
     twicActive: "twic_active",
+    twicExpiresOn: "twic_expires_on",
     medicalCardActive: "medical_card_active",
     clearinghouseRegistered: "clearinghouse_registered",
     mvrStatus: "mvr_status",

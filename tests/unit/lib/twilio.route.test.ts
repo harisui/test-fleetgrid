@@ -15,7 +15,7 @@ const services = vi.hoisted(() => ({
   noticeService: { dispatchDue: vi.fn() },
   textService: { drainHeld: vi.fn() },
   drivers: {},
-  docReminderService: { dispatchDue: vi.fn(), expireGrace: vi.fn(), sendCdlStateNotices: vi.fn() },
+  docReminderService: { dispatchDue: vi.fn(), expireGrace: vi.fn(), sendCdlStateNotices: vi.fn(), sendTwicDateNotices: vi.fn() },
 }));
 
 vi.mock("@/lib/env", () => ({ getServerEnv: () => env }));
@@ -134,11 +134,12 @@ describe("GET /api/cron/reminders", () => {
     services.notificationService.sendDueReminders.mockResolvedValue(4);
     services.docReminderService.expireGrace.mockResolvedValue(2);
     services.docReminderService.sendCdlStateNotices.mockResolvedValue(3);
+    services.docReminderService.sendTwicDateNotices.mockResolvedValue(5);
     services.textService.drainHeld.mockResolvedValue(1);
     expect((await remindersCron(new Request("http://localhost/api/cron/reminders"))).status).toBe(401);
     const response = await remindersCron(
       new Request("http://localhost/api/cron/reminders", { headers: { authorization: "Bearer s3cret" } }),
     );
-    expect(await response.json()).toEqual({ ok: true, reminders: 4, graceExpired: 2, cdlStateNotices: 3, held: 1 });
+    expect(await response.json()).toEqual({ ok: true, reminders: 4, graceExpired: 2, cdlStateNotices: 3, twicDateNotices: 5, held: 1 });
   });
 });

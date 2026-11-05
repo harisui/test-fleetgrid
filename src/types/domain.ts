@@ -138,6 +138,7 @@ export const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   cdl_front: "CDL (front)",
   cdl_back: "CDL (back)",
   medical_card: "Medical card",
+  twic: "TWIC card",
   certification: "Certification",
   other: "Other",
 };
@@ -246,6 +247,11 @@ export interface Driver {
   equipmentTypes: EquipmentType[];
   /** Asked of everyone. Null until the cards screen is saved. */
   twicActive: boolean | null;
+  /** Self-reported. Null with a yes: the date was not asked yet. */
+  twicExpiresOn: string | null;
+  /** Turned away at the gate for TWIC: the last report, and the one before. */
+  twicIssueAt: string | null;
+  twicIssuePriorAt: string | null;
   medicalCardActive: boolean | null;
   /** CDL drivers only. Null for everyone else. */
   clearinghouseRegistered: boolean | null;
@@ -386,6 +392,7 @@ export const ADMIN_ACTIONS = [
   "driver_removed",
   "driver_paused",
   "driver_auto_paused",
+  "driver_twic_flagged",
   "driver_unpaused",
   "carrier_approved",
   "carrier_blocked",

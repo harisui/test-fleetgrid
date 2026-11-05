@@ -195,8 +195,9 @@ describe("CDL class, experience, record", () => {
 
 describe("cards", () => {
   it("the cards screen takes two real yes-or-no answers", () => {
-    expect(credentialsScreenSchema.parse({ twicActive: true, medicalCardActive: false })).toEqual({
+    expect(credentialsScreenSchema.parse({ twicActive: true, twicExpiresOn: "2099-12-31", medicalCardActive: false })).toEqual({
       twicActive: true,
+      twicExpiresOn: "2099-12-31",
       medicalCardActive: false,
     });
     expect(errorsOf(credentialsScreenSchema, {})).toEqual({

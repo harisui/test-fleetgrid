@@ -14,6 +14,7 @@ export async function GET(request: Request): Promise<Response> {
   // The grace period for drivers approved before CR-5: moves anyone still incomplete when it ends.
   const graceExpired = await docReminderService.expireGrace();
   const cdlStateNotices = await docReminderService.sendCdlStateNotices();
+  const twicDateNotices = await docReminderService.sendTwicDateNotices();
   const held = await textService.drainHeld(drivers);
-  return Response.json({ ok: true, reminders, graceExpired, cdlStateNotices, held });
+  return Response.json({ ok: true, reminders, graceExpired, cdlStateNotices, twicDateNotices, held });
 }

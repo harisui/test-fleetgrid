@@ -568,9 +568,9 @@ describe("DriverResults", () => {
     expect(screen.getByRole("columnheader", { name: "Endorsements" })).toBeInTheDocument();
     expect(screen.getByRole("cell", { name: "H, T" })).toBeInTheDocument();
     // The two card answers sit one per line in the table.
-    const cards = screen.getByRole("cell", { name: /^TWIC\s*medical card current$/ });
+    const cards = screen.getByRole("cell", { name: /^TWIC to Dec 31, 2099\s*medical card current$/ });
     expect([...cards.querySelectorAll("span")].map((line) => line.textContent)).toEqual([
-      "TWIC",
+      "TWIC to Dec 31, 2099",
       "medical card current",
     ]);
     // Never the phone number, in any form.
@@ -638,7 +638,7 @@ describe("DriverCardView", () => {
       ["CDL class", "Class A"],
       ["Experience", "6 to 10 years"],
       ["Record", "No violations in 3 years"],
-      ["Cards", "TWIC, medical card current"],
+      ["Cards", "TWIC to Dec 31, 2099, medical card current"],
       ["Endorsements", "H, T"],
       ["Transmission", "Automatic and manual"],
       ["Equipment", "Dry van, Flatbed"],

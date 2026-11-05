@@ -18,6 +18,8 @@ import {
   MVR_MESSAGE,
   TRANSMISSION_MESSAGE,
   TWIC_MESSAGE,
+  checkTwicDate,
+  twicExpiresOnField,
 } from "@/lib/validation/onboarding.schema";
 import {
   AVAILABILITY_TYPES,
@@ -147,6 +149,7 @@ export const driverChecksSchema = z.object({
     .min(1, EQUIPMENT_MESSAGE)
     .transform(unique),
   twicActive: z.boolean({ error: TWIC_MESSAGE }),
+  twicExpiresOn: twicExpiresOnField,
   medicalCardActive: z.boolean({ error: MEDICAL_CARD_MESSAGE }),
   clearinghouseRegistered: optionalYesNo(CLEARINGHOUSE_MESSAGE),
   mvrStatus: z.enum(MVR_STATUSES, { error: MVR_MESSAGE }),
@@ -175,7 +178,9 @@ export const driverCardSchema = z.object({
   ...driverLicensesSchema.shape,
   ...driverChecksSchema.shape,
   ...driverAvailabilitySchema.shape,
-});
+})
+  .superRefine((data, context) => checkTwicDate(data, context))
+  .transform((data) => ({ ...data, twicExpiresOn: data.twicActive ? data.twicExpiresOn : null }));
 
 export type DriverBasicsInput = z.infer<typeof driverBasicsSchema>;
 export type DriverLicensesInput = z.infer<typeof driverLicensesSchema>;

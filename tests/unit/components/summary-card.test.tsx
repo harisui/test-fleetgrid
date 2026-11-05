@@ -22,7 +22,7 @@ describe("SummaryCard", () => {
       ["CDL class", "Class A"],
       ["Experience", "6 to 10 years"],
       ["Record", "No violations in 3 years"],
-      ["Cards", "TWIC, medical card current"],
+      ["Cards", "TWIC to Dec 31, 2099, medical card current"],
       ["Endorsements", "H, T"],
       ["Transmission", "Automatic and manual"],
       ["Equipment", "Dry van, Flatbed"],

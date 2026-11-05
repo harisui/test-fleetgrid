@@ -1,3 +1,5 @@
+import { InlineNote } from "@/components/shared/InlineNote";
+import Link from "next/link";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { DeleteAccountCard } from "@/components/account/DeleteAccountCard";
@@ -7,6 +9,7 @@ import { ProfileEditor } from "@/components/driver/ProfileEditor";
 import { RosterStatusBanner } from "@/components/driver/RosterStatusBanner";
 import { requireDriverWithCdlState } from "@/lib/auth/guards";
 import { shiftReadyMissing } from "@/lib/drivers/tiers";
+import { needsTwicDate, TWIC_DATE_PROMPT } from "@/lib/drivers/twic";
 import { getContainer } from "@/server/container";
 
 export const metadata: Metadata = { title: "My profile" };
@@ -27,6 +30,13 @@ export default async function DriverProfilePage() {
         textsOn={state.driver.smsOptIn && !state.driver.smsOptedOut}
         graceUntil={state.driver.rosterGraceUntil}
       />
+      {needsTwicDate(state.driver) && (
+        <InlineNote variant="warning" data-slot="twic-date-prompt">
+          <Link href="/driver/profile" className="font-semibold underline underline-offset-4">
+            {TWIC_DATE_PROMPT}
+          </Link>
+        </InlineNote>
+      )}
       <AccountStatusCard profile={profile} driver={state.driver} />
       <ClearinghouseSelfReportControl confirmedAt={state.driver.clearinghouseSelfReportedAt} />
       <ProfileEditor driver={state.driver} />

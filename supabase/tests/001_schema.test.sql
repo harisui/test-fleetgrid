@@ -23,7 +23,7 @@ select throws_ok(
   $$select '{S}'::public.endorsement[]$$, '22P02', null, 'S (school bus) is no longer an endorsement'
 );
 select enum_has_labels('public', 'availability_type', array['full_time', 'part_time', 'on_call', 'weekends']);
-select enum_has_labels('public', 'document_type', array['cdl_front', 'cdl_back', 'medical_card', 'certification', 'other']);
+select enum_has_labels('public', 'document_type', array['cdl_front', 'cdl_back', 'medical_card', 'certification', 'other', 'twic']);
 
 -- ---------------------------------------------------------------------------
 -- Tables and columns
@@ -45,7 +45,7 @@ select columns_are('public', 'drivers', array[
   'employment_type', 'driving_styles', 'transmission', 'equipment_types', 'twic_active',
   'medical_card_active', 'clearinghouse_registered', 'mvr_status', 'heard_from', 'heard_from_other',
   'no_show_count', 'shifts_paused', 'reminder_sent_at', 'approval_text_due_at', 'approval_text_sent_at', 'cdl_state',
-  'shift_ready_override_reason', 'rereview_needed', 'roster_grace_until', 'last_doc_reminder_at', 'cdl_state_notice_sent_at', 'shifts_paused_reason']);
+  'shift_ready_override_reason', 'rereview_needed', 'roster_grace_until', 'last_doc_reminder_at', 'cdl_state_notice_sent_at', 'shifts_paused_reason', 'twic_expires_on', 'twic_issue_at', 'twic_issue_prior_at', 'twic_date_notice_at', 'twic_date_notice_count']);
 select columns_are('public', 'driver_documents', array[
   'id', 'driver_id', 'type', 'storage_path', 'file_name', 'mime_type', 'size_bytes',
   'created_at', 'updated_at']);

@@ -127,6 +127,10 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(screenHeading(page)).toHaveText("Cards");
     await checkChip(page, TWIC_QUESTION, "Yes").click();
     await checkChip(page, MEDICAL_QUESTION, "Yes").click();
+    // A yes needs its date.
+    await nextButton(page).click();
+    await expect(page.getByText("Enter the date your TWIC expires")).toBeVisible();
+    await page.getByLabel(/TWIC expiry date/).fill("2099-12-31");
     await nextButton(page).click();
 
     // Mile 5: Letters (endorsements and transmission)
@@ -178,6 +182,7 @@ test.describe("driver onboarding, a page per mile", () => {
       years_experience: 6,
       mvr_status: "clean",
       twic_active: true,
+      twic_expires_on: "2099-12-31",
       medical_card_active: true,
       endorsements: ["H", "T"],
       transmission: "manual_ok",
@@ -231,7 +236,7 @@ test.describe("driver onboarding, a page per mile", () => {
       "Class A",
       "6 to 10 years",
       "No violations in 3 years",
-      "TWIC, medical card current",
+      "TWIC to Dec 31, 2099, medical card current",
       "H, T",
       "Automatic and manual",
       "Dry van, Flatbed",

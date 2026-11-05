@@ -101,7 +101,7 @@ export interface IShiftRepository {
   listBookedByDriver(driverId: string): Promise<Shift[]>;
   update(id: string, patch: ShiftPatch): Promise<Shift>;
   claim(driverId: string, code: string): Promise<{ outcome: ClaimOutcome; shiftId: string | null }>;
-  release(id: string): Promise<string | null>;
+  release(id: string, reason?: "no_show" | "twic_gate"): Promise<string | null>;
   expire(): Promise<number>;
   bookedDriverContact(id: string): Promise<BookedDriverContact | null>;
   /** The documents of a booked driver this carrier may open now (RLS, 0031). */
@@ -200,8 +200,8 @@ export class ShiftRepository extends BaseRepository implements IShiftRepository 
     return { outcome, shiftId: row.shift_id };
   }
 
-  async release(id: string): Promise<string | null> {
-    const result = await this.supabase.rpc("release_shift", { p_shift_id: id, p_pause_threshold: NO_SHOW_PAUSE_THRESHOLD });
+  async release(id: string, reason: "no_show" | "twic_gate" = "no_show"): Promise<string | null> {
+    const result = await this.supabase.rpc("release_shift", { p_shift_id: id, p_pause_threshold: NO_SHOW_PAUSE_THRESHOLD, p_reason: reason });
     return this.unwrapMaybe(result) ?? null;
   }
 

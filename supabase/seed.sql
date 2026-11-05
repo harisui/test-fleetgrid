@@ -189,6 +189,8 @@ $$;
 -- admin's override. Registered drivers have none, as after a quick sign-up.
 -- ---------------------------------------------------------------------------
 select pg_temp.seed_shift_ready_documents();
+-- A TWIC yes carries its self-reported date, as after M3 additions Part B.
+update public.drivers set twic_expires_on = current_date + 400 where twic_active;
 
 
 -- ---------------------------------------------------------------------------

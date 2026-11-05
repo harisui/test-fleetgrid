@@ -44,6 +44,10 @@ export const SMS_REMINDER =
 export const SMS_APPROVED =
   `FleetGrid: Your profile is ${ROSTER_READY}. You'll get texts when matching shifts open. Reply STOP to opt out.`;
 
+/** To a driver who said yes to TWIC with no date (agreed 2026-11-05): at most one per 7 days, two in all. */
+export const SMS_TWIC_DATE =
+  "FleetGrid: To get port shifts, please add your TWIC expiry date at fleetgridus.com/driver. Reply STOP to opt out.";
+
 /**
  * The answers to a YES that books nothing (wording agreed 2026-11-05), word for word, so no
  * reply is ever met with silence.

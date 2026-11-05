@@ -12,7 +12,7 @@ select has_table('public', 'sms_messages', 'sms_messages exists');
 select has_column('public', 'drivers', 'no_show_count', 'drivers carry a no-show count');
 select has_column('public', 'drivers', 'shifts_paused', 'drivers carry the admin pause');
 select has_function('public', 'claim_shift', array['uuid', 'text'], 'claim_shift exists');
-select has_function('public', 'release_shift', array['uuid', 'integer'], 'release_shift exists');
+select has_function('public', 'release_shift', array['uuid', 'integer', 'text'], 'release_shift exists');
 select has_function('public', 'expire_shifts', 'expire_shifts exists');
 select has_function('public', 'booked_driver_contact', array['uuid'], 'booked_driver_contact exists');
 select ok(
@@ -68,6 +68,7 @@ update public.drivers set endorsements = '{H}' where id = pg_temp.did('16');    
 update public.drivers set years_experience = 2 where id = pg_temp.did('17');
 update public.drivers set service_radius_miles = 5, zip = '77506', lat = 29.7009, lng = -95.1989
   where id = pg_temp.did('18');                                                            -- Pasadena, 5 miles
+update public.drivers set twic_expires_on = current_date + 400 where twic_active;
 update public.drivers set transmission = 'automatic_only', twic_active = false where id = pg_temp.did('19');
 
 -- CR-5: only Shift-Ready drivers match and book, so the fixture drivers carry a Texas CDL

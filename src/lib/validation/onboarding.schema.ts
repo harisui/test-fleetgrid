@@ -102,10 +102,34 @@ export const recordScreenSchema = z.object({
   mvrStatus: z.enum(MVR_STATUSES, { error: MVR_MESSAGE }),
 });
 
-export const credentialsScreenSchema = z.object({
-  twicActive: yesNo(TWIC_MESSAGE),
-  medicalCardActive: yesNo(MEDICAL_CARD_MESSAGE),
-});
+/** The date a TWIC runs to: required with a yes, not already passed, and dropped with a no. */
+export const TWIC_DATE_MESSAGE = "Enter the date your TWIC expires";
+export const TWIC_PAST_MESSAGE = "This date has passed. A TWIC that has expired counts as No";
+const twicDateFormat = /^\d{4}-\d{2}-\d{2}$/;
+
+export function checkTwicDate(
+  data: { twicActive?: boolean | null; twicExpiresOn?: string | null },
+  context: z.RefinementCtx,
+  today: string = new Date().toISOString().slice(0, 10),
+): void {
+  if (!data.twicActive) return;
+  if (!data.twicExpiresOn || !twicDateFormat.test(data.twicExpiresOn)) {
+    context.addIssue({ code: "custom", path: ["twicExpiresOn"], message: TWIC_DATE_MESSAGE });
+  } else if (data.twicExpiresOn < today) {
+    context.addIssue({ code: "custom", path: ["twicExpiresOn"], message: TWIC_PAST_MESSAGE });
+  }
+}
+
+export const twicExpiresOnField = z.string().nullish().transform((value) => value || null);
+
+export const credentialsScreenSchema = z
+  .object({
+    twicActive: yesNo(TWIC_MESSAGE),
+    twicExpiresOn: twicExpiresOnField,
+    medicalCardActive: yesNo(MEDICAL_CARD_MESSAGE),
+  })
+  .superRefine((data, context) => checkTwicDate(data, context))
+  .transform((data) => ({ ...data, twicExpiresOn: data.twicActive ? data.twicExpiresOn : null }));
 
 export const endorsementsScreenSchema = z.object({
   endorsements: z

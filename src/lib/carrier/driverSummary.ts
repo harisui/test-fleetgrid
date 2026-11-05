@@ -1,5 +1,6 @@
 import { checkSummary, experienceSummary, mvrSummary } from "@/components/driver/SummaryCard";
 import { CDL_CLASS_OPTIONS, EQUIPMENT_CHIPS, TRANSMISSION_OPTIONS } from "@/lib/onboarding/options";
+import { twicSummary } from "@/lib/drivers/twic";
 import type { Driver } from "@/types/domain";
 
 /** How a listed driver's answers read on the carrier side, in the words of the sign-up. */
@@ -20,7 +21,7 @@ const labelOf = <T extends string>(options: readonly { value: T; label: string }
 
 export function summarizeDriver(driver: Driver): DriverSummary {
   const cardLines: [string, string] = [
-    checkSummary("twicActive", driver.twicActive),
+    twicSummary(driver),
     checkSummary("medicalCardActive", driver.medicalCardActive),
   ];
   return {

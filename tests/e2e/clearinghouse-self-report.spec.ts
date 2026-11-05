@@ -80,7 +80,7 @@ test.describe("Clearinghouse and SAP self-report", () => {
 
     // Finish the card, then the profile: the box is ticked, with the date, apart from the account question.
     await adminClient().from("drivers").update({
-      twic_active: true, medical_card_active: true, endorsements: ["H"], transmission: "manual_ok",
+      twic_active: true, twic_expires_on: "2099-12-31", medical_card_active: true, endorsements: ["H"], transmission: "manual_ok",
       equipment_types: ["dry_van"], onboarding_step: COMPLETE_STEP, card_completed: true,
     }).eq("id", driverId!);
     await page.goto("/driver/profile");

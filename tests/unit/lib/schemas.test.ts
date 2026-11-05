@@ -326,6 +326,7 @@ describe("driverChecksSchema (equipment and checks)", () => {
       transmission: "manual_ok",
       equipmentTypes: ["dry_van", "flatbed"],
       twicActive: true,
+      twicExpiresOn: "2099-12-31",
       medicalCardActive: true,
       clearinghouseRegistered: true,
       mvrStatus: "clean",
@@ -343,6 +344,7 @@ describe("driverChecksSchema (equipment and checks)", () => {
         drivingStyles: [],
         clearinghouseRegistered: null,
         twicActive: false,
+        twicExpiresOn: "2099-12-31",
         medicalCardActive: true,
       }),
     ).toEqual({
@@ -406,6 +408,7 @@ describe("driverCardSchema (profile edit)", () => {
       transmission: "manual_ok",
       equipmentTypes: ["dry_van", "flatbed"],
       twicActive: true,
+      twicExpiresOn: "2099-12-31",
       medicalCardActive: true,
       clearinghouseRegistered: true,
       mvrStatus: "clean",
@@ -455,6 +458,7 @@ describe("driverCardSchema (profile edit)", () => {
       certifications: [],
       bio: null,
       twicActive: true,
+      twicExpiresOn: "2099-12-31",
       medicalCardActive: true,
     });
   });

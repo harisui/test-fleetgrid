@@ -110,6 +110,7 @@ select pg_temp.card('eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee', '88888888-8888-4888-
 
 -- The fixture describes a state, not an upload: CR-5's re-review on a new document is off
 -- while it is built.
+update public.drivers set twic_expires_on = current_date + 400 where twic_active;
 alter table public.driver_documents disable trigger driver_documents_rereview;
 insert into public.driver_documents (id, driver_id, type, storage_path, file_name, mime_type, size_bytes) values
   ('a0000000-0000-4000-8000-000000000001', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'cdl_front', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/a1.jpg', 'a1.jpg', 'image/jpeg', 1000),

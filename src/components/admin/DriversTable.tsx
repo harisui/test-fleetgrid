@@ -5,7 +5,7 @@ import { Users } from "lucide-react";
 import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { DataTable, type DataColumn } from "@/components/admin/DataTable";
 import { FilterBar } from "@/components/admin/FilterBar";
-import { MissingDocumentsBadge, NeedsUpdateBadge, PausedNoShowsBadge } from "@/components/admin/MissingDocumentsBadge";
+import { MissingDocumentsBadge, NeedsUpdateBadge, PausedNoShowsBadge, TwicIssueBadge } from "@/components/admin/MissingDocumentsBadge";
 import { NotTexasBadge } from "@/components/admin/NotTexasBadge";
 import { RereviewBadge } from "@/components/admin/ShiftReadyReview";
 import { SelfReportBadge } from "@/components/admin/SelfReportBadge";
@@ -22,8 +22,10 @@ import {
   REVIEW_STATUS_OPTIONS,
   SELF_REPORT_OPTIONS,
   SOURCE_OPTIONS,
+  TWIC_FILTER_OPTIONS,
 } from "@/lib/admin/options";
 import { summarizeDriver } from "@/lib/carrier/driverSummary";
+import { twicIssue } from "@/lib/drivers/twic";
 import { formatE164ForDisplay } from "@/lib/phone";
 import type { AdminDriverRow, AdminDriversPage } from "@/server/services/AdminService";
 
@@ -82,6 +84,7 @@ const COLUMNS: DataColumn<AdminDriverRow>[] = [
         <MissingDocumentsBadge status={row.profile.status} missing={row.missingDocuments} />
         <NeedsUpdateBadge until={row.driver.rosterGraceUntil} missing={row.needsUpdate} />
         {row.driver.shiftsPausedReason === "no_shows" && <PausedNoShowsBadge />}
+        <TwicIssueBadge issue={twicIssue(row.driver)} />
       </span>
     ),
     sortable: true,
@@ -135,6 +138,7 @@ function DriverCard({ row }: { row: AdminDriverRow }) {
       <MissingDocumentsBadge status={row.profile.status} missing={row.missingDocuments} className="self-start" />
       <NeedsUpdateBadge until={row.driver.rosterGraceUntil} missing={row.needsUpdate} className="self-start" />
       {row.driver.shiftsPausedReason === "no_shows" && <PausedNoShowsBadge className="self-start" />}
+      <TwicIssueBadge issue={twicIssue(row.driver)} className="self-start" />
     </div>
   );
 }
@@ -144,7 +148,7 @@ export function DriversTable({ page }: { page: AdminDriversPage }) {
   const { query } = page;
   const base = driversFilters(query);
   const filtered = Boolean(
-    query.q || query.status || query.complete || query.area || query.source || query.selfReport || query.cdl || query.docs || query.rereview || query.qr,
+    query.q || query.status || query.complete || query.area || query.source || query.selfReport || query.cdl || query.docs || query.rereview || query.twic || query.qr,
   );
   return (
     <section aria-label="Drivers list" className="flex flex-col gap-4">
@@ -160,6 +164,7 @@ export function DriversTable({ page }: { page: AdminDriversPage }) {
           { name: "cdl", label: "CDL state", value: query.cdl, options: CDL_STATE_FILTER_OPTIONS },
           { name: "docs", label: "Documents", value: query.docs, options: MISSING_DOCUMENT_OPTIONS },
           { name: "rereview", label: "Review", value: query.rereview, options: REREVIEW_OPTIONS },
+          { name: "twic", label: "TWIC", value: query.twic, options: TWIC_FILTER_OPTIONS },
           {
             name: "qr",
             label: "QR code",

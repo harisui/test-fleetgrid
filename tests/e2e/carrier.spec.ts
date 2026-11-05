@@ -2,6 +2,11 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import {
   adminClient,
+  COMPLETE_STEP,
+  makeShiftReady,
+  seedDriverAtStep,
+  seedUser,
+  adminList,
   CARRIER_DETAILS,
   chooseRole,
   expectNoDriverPhone,
@@ -494,6 +499,60 @@ test.describe("driver search and a driver's page", () => {
     await page.goto(`/carrier/shifts/${shift!.id}`);
     await expect(section).toHaveCount(0);
     await admin.from("document_views").delete().eq("document_id", frontDoc!.id);
+  });
+
+  test("a release as Turned away at gate: TWIC flags the driver, not as a no-show", async ({ page }) => {
+    const { carrierId } = await seedCarrier(PHONES.carrier, { terms: true, subscription: "active" });
+    await seedUser(PHONES.admin, "admin", "approved");
+    await resetUser(PHONES.secondDriver);
+    const driver = await seedDriverAtStep(PHONES.secondDriver, COMPLETE_STEP, { full_name: "Gus Gate" });
+    await makeShiftReady(driver.userId);
+    const admin = adminClient();
+    const start = new Date(Date.now() + 30 * 3_600_000);
+    const { data: shift } = await admin
+      .from("shifts")
+      .insert({
+        carrier_id: carrierId,
+        short_code: "",
+        status: "booked",
+        booked_driver_id: driver.driverId,
+        booked_at: new Date().toISOString(),
+        starts_at: start.toISOString(),
+        ends_at: new Date(start.getTime() + 8 * 3_600_000).toISOString(),
+        zip: "77002",
+        city: "Houston",
+        state: "TX",
+        lat: 29.7594,
+        lng: -95.3594,
+        twic_required: true,
+        work_description: "Port moves for the TWIC spec.",
+        onsite_contact_name: "Lee Yard",
+        onsite_contact_phone: "+17135550142",
+      })
+      .select("id")
+      .single();
+
+    await login(page, PHONES.carrier);
+    await page.goto(`/carrier/shifts/${shift!.id}`);
+    await page.getByRole("button", { name: "Release and rebroadcast" }).click();
+    const dialog = page.getByRole("dialog", { name: /^Release/ });
+    await dialog.getByRole("combobox", { name: "What happened?" }).click();
+    await page.getByRole("option", { name: "Turned away at gate: TWIC" }).click();
+    await expect(dialog).toContainText("not as a no-show");
+    await dialog.getByRole("button", { name: "Release and rebroadcast" }).click();
+    await expect(dialog).toBeHidden();
+
+    const { data: row } = await admin.from("drivers").select("no_show_count, twic_issue_at, shifts_paused").eq("id", driver.driverId!).single();
+    expect(row?.no_show_count).toBe(0);
+    expect(row?.shifts_paused).toBe(false);
+    expect(row?.twic_issue_at).not.toBeNull();
+
+    await page.context().clearCookies();
+    await login(page, PHONES.admin);
+    await page.goto("/admin/drivers?twic=issue");
+    await expect(adminList(page, "Drivers")).toContainText("Gus Gate");
+    await expect(adminList(page, "Drivers")).toContainText("TWIC issue");
+    await resetUser(PHONES.secondDriver);
   });
 
   test("a card that is not listed is not found, and a paper of an unlisted driver is not served", async ({

@@ -5,6 +5,7 @@ import {
   SHIFT_OUTSIDE_AREA_MESSAGE,
   SHIFT_START_PAST_MESSAGE,
   shiftIdSchema,
+  releaseShiftSchema,
   shiftPostSchema,
 } from "@/lib/validation/shift.schema";
 import { ZIP_UNKNOWN_MESSAGE } from "@/lib/validation/onboarding.schema";
@@ -154,9 +155,10 @@ export class ShiftService {
    */
   async releaseShift(userId: string, input: unknown): Promise<PostedShift> {
     this.refuseWhileCarriersOff();
-    const shift = await this.requireOwnShift(userId, input);
+    const { shiftId, reason } = parseInput(releaseShiftSchema, input);
+    const shift = await this.requireOwnShift(userId, { shiftId });
     if (shift.status !== "booked") throw AppError.conflict("Only a booked shift can be released");
-    const released = await this.admin.shifts().release(shift.id);
+    const released = await this.admin.shifts().release(shift.id, reason);
     if (!released) throw AppError.conflict("This shift can no longer be released");
     const broadcast = await this.broadcasts().broadcast(shift.id, this.now());
     return { shift: (await this.admin.shifts().findById(shift.id)) ?? shift, broadcast };
