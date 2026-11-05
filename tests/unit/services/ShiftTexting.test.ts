@@ -270,6 +270,12 @@ describe("broadcasting and replies", () => {
     });
   });
 
+  it("a shift paused by a carrier block sends nothing", async () => {
+    world.shifts.set(shift.id, { ...shift, carrierPausedAt: "2026-11-01T11:00:00.000Z" });
+    expect((await broadcasts.broadcast(shift.id, world.now())).offered).toBe(0);
+    expect(sms.sent).toEqual([]);
+  });
+
   it("a refused send is recorded and the rest still go", async () => {
     sms.failing.add(drivers[1].phone);
     const result = await broadcasts.broadcast(shift.id, world.now());

@@ -47,6 +47,7 @@ export function mapShift(row: ShiftRow): Shift {
     bookedDriverId: row.booked_driver_id,
     bookedAt: row.booked_at,
     bookedNoticeFailedAt: row.booked_notice_failed_at,
+    carrierPausedAt: row.carrier_paused_at,
     cancelledAt: row.cancelled_at,
     cancelReason: row.cancel_reason,
     createdAt: row.created_at,
@@ -258,6 +259,7 @@ export class ShiftRepository extends BaseRepository implements IShiftRepository 
       .select("*")
       .eq("status", "open")
       .eq("broadcast_round", 0)
+      .is("carrier_paused_at", null)
       .lte("send_after", now)
       .gt("starts_at", now)
       .order("starts_at", { ascending: true })

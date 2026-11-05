@@ -47,7 +47,7 @@ export class BroadcastService {
   async broadcast(shiftId: string, now: Date = new Date()): Promise<BroadcastResult> {
     if (this.carrierDisabled()) return NOTHING;
     const shift = await this.shifts.findById(shiftId);
-    if (!shift || shift.status !== "open" || !isBookable(shift, now)) return NOTHING;
+    if (!shift || shift.status !== "open" || shift.carrierPausedAt || !isBookable(shift, now)) return NOTHING;
 
     const exclude = await this.recipients.noShowDriverIds(shift.id);
     const matches = await this.shifts.matchingDrivers(shift, shift, exclude, { startsAt: shift.startsAt, endsAt: shift.endsAt });

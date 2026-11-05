@@ -59,11 +59,11 @@ reset role;
 select throws_ok($$ update public.sms_messages set body = 'changed' where id = (select id from t_msg) $$, '42501', null, 'the trigger refuses an edit, whoever asks');
 select throws_ok($$ update public.sms_messages set provider_sid = 'SMother' where id = (select id from t_msg) $$, '42501', null, 'a SID is set once');
 select throws_ok($$ delete from public.sms_messages where id = (select id from t_msg) $$, '42501', null, 'and a delete');
-insert into public.shift_events (driver_id, kind) values ('d0000011-0000-4000-8000-000000000000', 'booked');
+insert into public.shift_events (driver_id, kind, detail) values ('d0000011-0000-4000-8000-000000000000', 'booked', '{"check": "025"}');
 select throws_ok($$ update public.shift_events set kind = 'ended' $$, '42501', null, 'shift events hold');
 select throws_ok($$ delete from public.shift_events $$, '42501', null, 'both ways');
 insert into public.document_views (viewer_id, viewer_role, driver_id, document_id, document_type)
-values (gen_random_uuid(), 'admin', 'd0000011-0000-4000-8000-000000000000', gen_random_uuid(), 'cdl_front');
+values ('e0000012-0000-4000-8000-000000000000', 'admin', 'd0000011-0000-4000-8000-000000000000', gen_random_uuid(), 'cdl_front');
 select throws_ok($$ update public.document_views set viewer_role = 'carrier' $$, '42501', null, 'document views hold');
 
 -- An admin writes in their own name; the number comes from the profile.
@@ -89,8 +89,8 @@ select public.anonymize_driver_logs('e0000011-0000-4000-8000-000000000000');
 reset role;
 select is((select driver_id from public.sms_messages where id = (select id from t_msg)), null, 'the text no longer points at the driver');
 select is((select body from public.sms_messages where id = (select id from t_msg)), 'FleetGrid: one', 'and still says what it said');
-select is((select count(*)::int from public.shift_events where driver_id is null and kind = 'booked'), 1, 'shift events stay');
-select is((select count(*)::int from public.document_views where driver_id is null), 1, 'document views stay');
+select is((select count(*)::int from public.shift_events where driver_id is null and detail = '{"check": "025"}'), 1, 'shift events stay');
+select is((select count(*)::int from public.document_views where driver_id is null and viewer_id = 'e0000012-0000-4000-8000-000000000000'), 1, 'document views stay');
 delete from auth.users where id = 'e0000013-0000-4000-8000-000000000000';
 select results_eq($$ select profile_id, version, ip from public.tos_acceptances where version = 'v-test' $$, $$ values (null::uuid, 'v-test'::text, '203.0.113.9'::text) $$, 'proof of acceptance outlives the account, with the IP');
 

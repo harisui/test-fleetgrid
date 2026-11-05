@@ -99,6 +99,7 @@ export default async function AdminShiftsPage({ searchParams }: PageProps<"/admi
         >
           <ShiftStatusBadge status={detail.status} scheduled={detail.shift.sendAfter !== null} />
           {detail.status === "booked" && detail.shift.bookedNoticeFailedAt && <BookedNotNotifiedBadge className="self-start" />}
+          {detail.shift.carrierPausedAt && <p data-slot="carrier-paused">Paused: the carrier is blocked. No alerts go and nobody can book it.</p>}
           <ShiftSummary shift={detail.shift} />
           {detail.status === "open" && detail.shift.sendAfter && <p>{scheduledLine(detail.shift.sendAfter)}</p>}
           <SheetSection title="Shift">

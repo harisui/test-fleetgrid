@@ -471,6 +471,8 @@ export interface Shift extends ShiftRequirements {
   bookedAt: string | null;
   /** The booked text could not be delivered: someone should call the driver. */
   bookedNoticeFailedAt: string | null;
+  /** The carrier was blocked with this shift open: no alert goes, nobody can book it. */
+  carrierPausedAt: string | null;
   cancelledAt: string | null;
   cancelReason: string | null;
   createdAt: string;

@@ -54,6 +54,7 @@ export function buildShift(overrides: Partial<Shift> = {}): Shift {
     bookedDriverId: null,
     bookedAt: null,
     bookedNoticeFailedAt: null,
+    carrierPausedAt: null,
     cancelledAt: null,
     cancelReason: null,
     createdAt: T,

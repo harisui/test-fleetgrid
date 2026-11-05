@@ -31,7 +31,35 @@ test.describe("admin operations", () => {
     await resetUser(PHONES.driver);
   });
 
-  test("carriers, subscriptions and the carrier sheet with Block", async ({ page }) => {
+  test("carriers, subscriptions and the carrier sheet with Block", async ({ page, browser }) => {
+    const start = new Date(Date.now() + 30 * 3_600_000);
+    const { data: openShift, error: shiftError } = await adminClient()
+      .from("shifts")
+      .insert({
+        carrier_id: carrierId,
+        short_code: "",
+        starts_at: start.toISOString(),
+        ends_at: new Date(start.getTime() + 8 * 3_600_000).toISOString(),
+        zip: "77002",
+        city: "Houston",
+        state: "TX",
+        lat: 29.7594,
+        lng: -95.3594,
+        work_description: "Yard moves for the block check.",
+        onsite_contact_name: "Lee Yard",
+        onsite_contact_phone: "+17135550142",
+      })
+      .select("id")
+      .single();
+    if (shiftError) throw new Error(shiftError.message);
+
+    // The carrier is signed in with a live session when the block lands.
+    const carrierContext = await browser.newContext();
+    const carrierPage = await carrierContext.newPage();
+    await login(carrierPage, PHONES.carrier);
+    await carrierPage.goto("/carrier/search");
+    await expect(carrierPage).toHaveURL(/\/carrier\/search/);
+
     await login(page, PHONES.admin);
     await page.goto("/admin/carriers?status=subscribed");
     await expect(page.getByRole("heading", { level: 1, name: "Carriers" })).toBeVisible();
@@ -53,6 +81,15 @@ test.describe("admin operations", () => {
       .order("created_at", { ascending: false })
       .limit(1);
     expect(audit?.[0]?.action).toBe("carrier_blocked");
+
+    // Access ends at once: pages, shift posting, and the open shift is paused.
+    await carrierPage.goto("/carrier/search");
+    await expect(carrierPage).toHaveURL(/\/login\?blocked=1/);
+    await carrierContext.close();
+    const { data: paused } = await adminClient().from("shifts").select("carrier_paused_at").eq("id", openShift!.id).single();
+    expect(paused?.carrier_paused_at).not.toBeNull();
+    await page.goto(`/admin/shifts?open=${openShift!.id}`);
+    await expect(page.locator("[data-slot=carrier-paused]")).toContainText("the carrier is blocked");
 
     await page.goto("/admin/subscriptions");
     await expect(page.locator("[data-slot=stat-tile]").filter({ hasText: "MRR" })).toContainText("$");
@@ -111,8 +148,11 @@ test.describe("admin operations", () => {
       const { data } = await adminClient().from("drivers").select("shifts_paused").eq("id", driverId).single();
       return data?.shifts_paused;
     }).toBe(false);
-    const { data: audit } = await adminClient().from("admin_audit_log").select("detail").eq("target_id", driverId).eq("action", "driver_unpaused").single();
-    expect(audit?.detail).toMatchObject({ reason: "Called them, a family emergency" });
+    // The audit entry follows the change by a moment.
+    await expect.poll(async () => {
+      const { data: audit } = await adminClient().from("admin_audit_log").select("detail").eq("target_id", driverId).eq("action", "driver_unpaused").maybeSingle();
+      return audit?.detail;
+    }).toMatchObject({ reason: "Called them, a family emergency" });
   });
 
   test("Paused: no-shows and Booked, not notified show in the admin, with no accessibility issue", async ({ page }) => {
