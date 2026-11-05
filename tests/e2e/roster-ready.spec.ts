@@ -235,6 +235,28 @@ for (const colorScheme of ["light", "dark"] as const) {
       await resetUser(PHONES.driver);
     });
 
+    test("the filter bar: every label on one line, boxes in line, and choosing Any clears a filter", async ({ page }) => {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await login(page, PHONES.admin);
+      await page.goto("/admin/drivers?status=blocked");
+      const bar = page.getByRole("form", { name: "Filters" });
+      const boxes = bar.getByRole("combobox");
+      await expect(boxes).toHaveCount(8);
+      const tops = await boxes.evaluateAll((items) => items.map((item) => Math.round(item.getBoundingClientRect().top)));
+      const widths = await boxes.evaluateAll((items) => items.map((item) => Math.round(item.getBoundingClientRect().width)));
+      expect(new Set(tops).size).toBeLessThanOrEqual(2);
+      expect(new Set(widths).size).toBe(1);
+      const search = await page.getByRole("searchbox", { name: "Search" }).boundingBox();
+      expect(search!.width).toBeGreaterThan(400);
+      await expect(bar.getByRole("combobox", { name: "Profile" })).toHaveText(/Any profile/);
+
+      await bar.getByRole("combobox", { name: "Status" }).click();
+      await page.getByRole("option", { name: "Any status" }).click();
+      await bar.getByRole("button", { name: "Apply" }).click();
+      await expect(page.getByRole("link", { name: /^Status:/ })).toHaveCount(0);
+      await expect(page).not.toHaveURL(/status=blocked/);
+    });
+
     test("the badge, the filters and the tiles", async ({ page }) => {
       await login(page, PHONES.admin);
       await page.goto("/admin/drivers?q=Rae+Reminder");

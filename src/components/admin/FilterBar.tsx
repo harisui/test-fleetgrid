@@ -60,18 +60,23 @@ export function activeFilterChips({ action, search, filters, keep = {} }: Filter
   return chips;
 }
 
+/** The dropdown's own value for "no filter": an item cannot be empty. Never reaches the address. */
+const NO_FILTER = "__any";
+
 function SelectFilter({ filter }: { filter: FilterDefinition }) {
   const [value, setValue] = useState(filter.value);
   return (
-    <FormField label={filter.label} errorIcon={false}>
-      <SelectInput
-        name={filter.name}
-        value={value}
-        onValueChange={setValue}
-        options={filter.options}
-        className="h-target"
-      />
-    </FormField>
+    <div>
+      <FormField label={filter.label} errorIcon={false}>
+        <SelectInput
+          value={value || NO_FILTER}
+          onValueChange={(next) => setValue(next === NO_FILTER ? "" : next)}
+          options={filter.options.map((option) => ({ ...option, value: option.value || NO_FILTER }))}
+          className="h-target w-full"
+        />
+      </FormField>
+      <input type="hidden" name={filter.name} value={value} />
+    </div>
   );
 }
 
@@ -101,7 +106,7 @@ export function FilterBar(props: FilterBarProps) {
 
   return (
     <div className="flex flex-col gap-3" data-slot="filter-bar">
-      <Form action={action} scroll={false} className="flex flex-col gap-3 lg:flex-row lg:items-end" aria-label="Filters">
+      <Form action={action} scroll={false} className="flex flex-col gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_auto]" aria-label="Filters">
         <KeepFields keep={keep} filters={filters} />
         {search && (
           <div className="relative flex-1">
@@ -124,12 +129,12 @@ export function FilterBar(props: FilterBarProps) {
           </div>
         )}
         {/* Desktop: the selects inline. */}
-        <div className="hidden gap-3 lg:flex">
+        <div className="hidden items-end gap-3 lg:col-span-2 lg:row-start-2 lg:grid lg:grid-cols-4">
           {selects.map((filter) => (
             <SelectFilter key={filter.name} filter={filter} />
           ))}
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 lg:col-start-2 lg:row-start-1">
           <Button type="submit" variant="secondary" size="md" className="flex-1 lg:flex-none">
             <Search aria-hidden="true" />
             Apply

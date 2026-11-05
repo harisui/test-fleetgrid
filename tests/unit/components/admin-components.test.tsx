@@ -191,6 +191,18 @@ describe("DataTable", () => {
 });
 
 describe("FilterBar", () => {
+  it("each dropdown reads its Any option when no filter is on, and sends nothing for it", () => {
+    render(
+      <FilterBar
+        action="/admin/drivers"
+        filters={[{ name: "status", label: "Status", value: "", options: [{ value: "", label: "Any status" }, { value: "blocked", label: "Blocked" }] }]}
+      />,
+    );
+    expect(screen.getAllByRole("combobox", { name: "Status" })[0]).toHaveTextContent("Any status");
+    const hidden = document.querySelector<HTMLInputElement>('input[type="hidden"][name="status"]');
+    expect(hidden?.value).toBe("");
+  });
+
   const filters = [
     { name: "status", label: "Review", value: "pending", options: [{ value: "", label: "Any" }, { value: "pending", label: "Pending" }] },
     { name: "area", label: "Area", value: "", options: [{ value: "", label: "Any" }, { value: "in", label: "In area" }] },
