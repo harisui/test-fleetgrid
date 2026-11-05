@@ -354,3 +354,7 @@ tests                 unit, integration, e2e, fakes, setup
 - A text's row is fixed once written. Later status is a row in `sms_status_events`, and `sms_messages_current` shows the latest. The Twilio SID is the one exception: it is set once, because a text is logged before it is sent.
 - Deleting a driver: `anonymize_driver_logs()` sets the driver link to null, and foreign keys do the same on delete. Nothing else on the row may change. The records stay; they stop pointing at a person. `tos_acceptances` keeps the version, time, IP and user agent with the profile link null.
 - Tests clear and fill the logs through `test_log_delete` and `test_log_insert`, which live only in `supabase/seed.sql`. `supabase db push` never runs the seed, so they do not exist in production.
+
+## Fake phones
+
+`/dev/phones` shows each fake driver's texts, with a reply box that goes through the real signed webhook. It opens only with the fake sender and the local database, never on production or a hosted project (`devPhonesEnabled`). Locally, set `TWILIO_AUTH_TOKEN` to any value in `.env.local` so the webhook can check signatures; without all three Twilio keys the fake sender stays on. Playwright sets it itself. The scenarios are in `tests/integration/simulator`; the Twilio contract there runs only with `TWILIO_TEST_ACCOUNT_SID` and `TWILIO_TEST_AUTH_TOKEN`.

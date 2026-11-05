@@ -48,6 +48,7 @@ export default defineConfig({
     // .env.local carries the Stripe sandbox keys. A dev server you started yourself needs
     // PAYMENT_TEST_MODE=true for those specs. SMS_TEST_MODE keeps the shift texts in the fake
     // sender even where the Twilio keys are set.
-    env: { PAYMENT_TEST_MODE: "true", SMS_TEST_MODE: "true" },
+    // TWILIO_AUTH_TOKEN is a dummy for /dev/phones, whose replies are signed and checked by the real webhook.
+    env: { PAYMENT_TEST_MODE: "true", SMS_TEST_MODE: "true", TWILIO_AUTH_TOKEN: "simulator-auth-token" },
   },
 });
