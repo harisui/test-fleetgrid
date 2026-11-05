@@ -149,6 +149,63 @@ describe("ShiftService", () => {
     expect(service.statusOf({ ...shift, status: "open" })).toBe("expired");
   });
 
+  describe("editing a shift's details", () => {
+    const DETAILS = { workDescription: "New work for the driver.", onsiteContactName: "Ana Gate", onsiteContactPhone: "713 555 0111", payText: "$35 an hour" };
+
+    it("changes the details on a booked shift, records it, and sends no text", async () => {
+      const { shift } = await service.postShift(USER_ID, FORM);
+      await world.shiftRepository.claim(drivers[0].driverId, shift.shortCode);
+      sms.sent = [];
+      const edited = await service.editShiftDetails(USER_ID, { shiftId: shift.id, ...DETAILS });
+      expect(edited).toMatchObject({ workDescription: DETAILS.workDescription, onsiteContactName: "Ana Gate", onsiteContactPhone: "+17135550111", payText: "$35 an hour", status: "booked", startsAt: shift.startsAt, zip: shift.zip });
+      expect(sms.sent).toEqual([]);
+      expect(world.editsRecorded).toEqual([{ id: shift.id, actorId: USER_ID, details: expect.objectContaining({ workDescription: DETAILS.workDescription }) }]);
+    });
+
+    it("an empty pay line clears it", async () => {
+      const { shift } = await service.postShift(USER_ID, { ...FORM, payText: "$30" });
+      expect((await service.editShiftDetails(USER_ID, { shiftId: shift.id, ...DETAILS, payText: "" })).payText).toBeNull();
+    });
+
+    it.each([
+      ["date", { date: "2026-12-01" }],
+      ["start", { startTime: "09:00" }],
+      ["ZIP", { zip: "75201" }],
+      ["class", { cdlClass: "B" }],
+      ["TWIC requirement", { twicRequired: true }],
+      ["start moment", { startsAt: "2026-12-01T12:00:00.000Z" }],
+    ])("refuses the %s: those go through cancel and repost", async (_name, extra) => {
+      const { shift } = await service.postShift(USER_ID, FORM);
+      await expect(service.editShiftDetails(USER_ID, { shiftId: shift.id, ...DETAILS, ...extra })).rejects.toMatchObject({ code: "VALIDATION" });
+      expect(world.shifts.get(shift.id)).toMatchObject({ startsAt: shift.startsAt, zip: shift.zip, cdlClass: shift.cdlClass, workDescription: shift.workDescription });
+    });
+
+    it("refuses a cancelled shift, one that is over, and bad details", async () => {
+      const { shift } = await service.postShift(USER_ID, FORM);
+      await expect(service.editShiftDetails(USER_ID, { shiftId: shift.id, ...DETAILS, workDescription: "short" })).rejects.toMatchObject({ code: "VALIDATION" });
+      await expect(service.editShiftDetails(USER_ID, { shiftId: shift.id, ...DETAILS, onsiteContactPhone: "12" })).rejects.toMatchObject({ code: "VALIDATION" });
+      const past = now;
+      now = new Date(new Date(shift.startsAt).getTime() + 1000);
+      await expect(service.editShiftDetails(USER_ID, { shiftId: shift.id, ...DETAILS })).rejects.toMatchObject({ code: "CONFLICT" });
+      now = past;
+      await service.cancelShift(USER_ID, { shiftId: shift.id });
+      await expect(service.editShiftDetails(USER_ID, { shiftId: shift.id, ...DETAILS })).rejects.toMatchObject({ code: "CONFLICT" });
+      expect(world.editsRecorded).toEqual([]);
+    });
+
+    it("the shift can end between the check and the save: refused", async () => {
+      const { shift } = await service.postShift(USER_ID, FORM);
+      world.shiftRepository.editDetails = async () => null;
+      await expect(service.editShiftDetails(USER_ID, { shiftId: shift.id, ...DETAILS })).rejects.toMatchObject({ code: "CONFLICT" });
+    });
+
+    it("another carrier's shift is not found", async () => {
+      const { shift } = await service.postShift(USER_ID, FORM);
+      world.shifts.set(shift.id, { ...shift, carrierId: "c0000000-0000-4000-a000-0000000000ff" });
+      await expect(service.editShiftDetails(USER_ID, { shiftId: shift.id, ...DETAILS })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
   it("cancelling a booked shift texts the driver the approved notice", async () => {
     const { shift } = await service.postShift(USER_ID, FORM);
     await world.shiftRepository.claim(drivers[0].driverId, shift.shortCode);

@@ -11,7 +11,7 @@ import { ShiftSummary } from "@/components/shifts/ShiftSummary";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { requireAdmin } from "@/lib/auth/guards";
 import { formatE164ForDisplay } from "@/lib/phone";
-import { RECIPIENT_STATUS_LABELS, SHIFT_STATUS_LABELS, scheduledLine } from "@/lib/shifts/copy";
+import { RECIPIENT_STATUS_LABELS, SHIFT_EDIT_FIELD_LABELS, SHIFT_STATUS_LABELS, scheduledLine } from "@/lib/shifts/copy";
 import { SHIFT_FILTERS } from "@/lib/validation/admin-ops.schema";
 import { getContainer } from "@/server/container";
 import { AppError } from "@/server/errors/AppError";
@@ -113,6 +113,17 @@ export default async function AdminShiftsPage({ searchParams }: PageProps<"/admi
               {detail.shift.cancelReason && <SheetRow label="Cancelled">{detail.shift.cancelReason}</SheetRow>}
             </dl>
           </SheetSection>
+          {detail.edits.length > 0 && (
+            <SheetSection title={`Edits by the carrier (${detail.edits.length})`}>
+              <ol className="flex flex-col gap-1 text-helper leading-helper" aria-label="Edits by the carrier" data-slot="shift-edits">
+                {detail.edits.map((edit) => (
+                  <li key={edit.at}>
+                    {format(new Date(edit.at), "MMM d h:mm a")}: {edit.fields.map((field) => SHIFT_EDIT_FIELD_LABELS[field] ?? field).join(", ")}
+                  </li>
+                ))}
+              </ol>
+            </SheetSection>
+          )}
           <SheetSection title={`Texted (${detail.recipients.length})`}>
             <ul className="flex flex-col gap-1 text-helper leading-helper" aria-label="Texted drivers">
               {detail.recipients.map((recipient) => (

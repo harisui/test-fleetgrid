@@ -142,6 +142,22 @@ export async function enterCode(page: Page, code: string) {
 }
 
 /** Full login through the UI. Ends wherever the app routes the user. */
+/**
+ * Resolves when a Realtime channel on this page, its topic starting with this name, is listening
+ * to the database. Call it before the page opens the channel.
+ */
+export function realtimeListening(page: Page, topic: string): Promise<void> {
+  return new Promise((resolve) => {
+    page.on("websocket", (socket) => {
+      if (!socket.url().includes("/realtime/")) return;
+      socket.on("framereceived", ({ payload }) => {
+        const frame = String(payload);
+        if (frame.includes(`realtime:${topic}`) && frame.includes("Subscribed to PostgreSQL")) resolve();
+      });
+    });
+  });
+}
+
 export async function login(page: Page, phone: string, loginPath = "/login") {
   await requestCode(page, phone, loginPath);
   await enterCode(page, OTP);

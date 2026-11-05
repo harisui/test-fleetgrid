@@ -8,9 +8,11 @@ import {
   COMPLETE_STEP,
   login,
   PHONES,
+  realtimeListening,
   resetUser,
   seedCarrier,
   seedDriverAtStep,
+  seedUser,
   makeShiftReady,
 } from "./helpers";
 
@@ -224,6 +226,143 @@ test.describe("Broadcast Shift", () => {
     // The list shows the shift as cancelled.
     await page.goto("/carrier/shifts");
     await expect(page.locator("[data-slot=shift-row] [data-status=cancelled]")).toBeVisible();
+  });
+
+  /** Posts a shift three hours from now through the form, so it goes at once whatever the hour. */
+  async function postThroughForm(page: Page): Promise<{ shiftId: string; code: string; startsAt: string }> {
+    const start = new Date(Date.now() + 3 * 3_600_000);
+    await page.goto("/carrier/shifts/new");
+    await page.getByLabel(/^ZIP code/).fill("77506");
+    await expect(page.locator("[data-slot=zip-place]")).toContainText("Pasadena");
+    await page.getByLabel(/^Date/).fill(formatInTimeZone(start, TZ, "yyyy-MM-dd"));
+    await page.getByLabel(/^Start time/).fill(formatInTimeZone(start, TZ, "HH:mm"));
+    await page.getByLabel(/^End time/).fill(formatInTimeZone(new Date(start.getTime() + 8 * 3_600_000), TZ, "HH:mm"));
+    await page.getByLabel(/^What the driver will do/).fill("Container moves between Barbours Cut and our yard.");
+    await page.getByLabel(/^Pay/).fill("$32 an hour");
+    await page.getByLabel(/^On-site contact/).fill(ONSITE.name);
+    await page.getByLabel(/^On-site phone/).fill(ONSITE.display);
+    await page.getByRole("button", { name: "Post shift" }).click();
+    await page.waitForURL(/\/carrier\/shifts\/[0-9a-f-]{36}$/);
+    const shiftId = page.url().split("/").pop()!;
+    const row = await shiftRow(shiftId);
+    return { shiftId, code: row.short_code, startsAt: row.starts_at };
+  }
+
+  test("the shift page updates live, without a reload, when a driver books", async ({ page }) => {
+    await login(page, PHONES.carrier);
+    const listening = realtimeListening(page, "shift-");
+    const { shiftId, code } = await postThroughForm(page);
+    await expect(page.locator("[data-slot=booked-driver]")).toHaveCount(0);
+    await listening;
+    // A reload would clear this mark.
+    await page.evaluate(() => {
+      (window as unknown as { __sameDocument: boolean }).__sameDocument = true;
+    });
+
+    const { data, error } = await adminClient().rpc("claim_shift", { p_driver_id: first, p_code: code });
+    if (error) throw new Error(error.message);
+    expect(data?.[0]?.outcome).toBe("won");
+
+    // Well inside the page's 30-second backup poll, so this is Realtime.
+    await expect(page.locator("[data-slot=booked-driver]")).toContainText("Pat Winner", { timeout: 10_000 });
+    await expect(page.locator("[data-status=booked]").first()).toBeVisible();
+    expect(await page.evaluate(() => (window as unknown as { __sameDocument?: boolean }).__sameDocument)).toBe(true);
+    expect((await shiftRow(shiftId)).status).toBe("booked");
+  });
+
+  test("editing a booked shift's details: no text, the driver sees it, the admin sees the record", async ({ page, browser }) => {
+    test.setTimeout(120_000);
+    await login(page, PHONES.carrier);
+    const { shiftId, code, startsAt } = await postThroughForm(page);
+    await reply(page, first, shiftId, `YES ${code}`);
+    await expect(page.locator("[data-slot=booked-driver]")).toContainText("Pat Winner");
+    const textsBefore = [await textsTo(PHONES.driver), await textsTo(PHONES.secondDriver)];
+
+    await page.getByRole("link", { name: "Edit details" }).click();
+    await expect(page.getByRole("heading", { level: 1, name: "Edit shift details" })).toBeVisible();
+    // The time, place and requirements are shown, not editable.
+    await expect(page.locator("[data-slot=fixed-details]")).toContainText("Pasadena");
+    await expect(page.locator("[data-slot=fixed-details]").getByRole("button", { name: "Cancel and repost" })).toBeVisible();
+    for (const field of [/^Date/, /^Start time/, /^End time/, /^ZIP code/, /^CDL class/]) await expect(page.getByLabel(field)).toHaveCount(0);
+    await expect(page.getByLabel(/^On-site phone/)).toHaveValue(ONSITE.display);
+    await expectNoAccessibilityViolations(page, "edit shift details");
+
+    await page.getByLabel(/^What the driver will do/).fill("short");
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect(page.getByText("Describe the work in at least 10 characters")).toBeVisible();
+
+    await page.getByLabel(/^What the driver will do/).fill("Gate 4 now, ask at the office first.");
+    await page.getByLabel(/^Pay/).fill("$35 an hour");
+    await page.getByLabel(/^On-site contact/).fill("Ana Gate");
+    await page.getByLabel(/^On-site phone/).fill("(713) 555-0111");
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await page.waitForURL(new RegExp(`/carrier/shifts/${shiftId}$`));
+    await expect(page.getByText("Gate 4 now, ask at the office first.")).toBeVisible();
+
+    expect([await textsTo(PHONES.driver), await textsTo(PHONES.secondDriver)]).toEqual(textsBefore);
+    const row = await shiftRow(shiftId);
+    expect(row).toMatchObject({ status: "booked", booked_driver_id: first, short_code: code, pay_text: "$35 an hour", onsite_contact_phone: "+17135550111" });
+    expect(new Date(row.starts_at).getTime()).toBe(new Date(startsAt).getTime());
+    const { data: events } = await adminClient().from("shift_events").select("detail").eq("shift_id", shiftId).eq("kind", "edited");
+    expect(events).toHaveLength(1);
+    expect(events![0]!.detail).toMatchObject({ changes: { pay_text: { from: "$32 an hour", to: "$35 an hour" }, onsite_contact_name: { from: ONSITE.name, to: "Ana Gate" } } });
+
+    const driverContext = await browser.newContext({ ...test.info().project.use });
+    const driverPage = await driverContext.newPage();
+    await login(driverPage, PHONES.driver);
+    await driverPage.goto("/driver");
+    const card = driverPage.locator("[data-slot=my-shift]");
+    await expect(card).toContainText("Gate 4 now");
+    await expect(card).toContainText("$35 an hour");
+    await expect(card).toContainText("Ask for Ana Gate");
+    await driverContext.close();
+
+    const adminContext = await browser.newContext({ ...test.info().project.use });
+    const adminPage = await adminContext.newPage();
+    await resetUser(PHONES.admin);
+    await seedUser(PHONES.admin, "admin", "approved");
+    await login(adminPage, PHONES.admin);
+    await adminPage.goto(`/admin/shifts?open=${shiftId}`);
+    await expect(adminPage.locator("[data-slot=shift-edits]")).toContainText("Pay");
+    await adminContext.close();
+    await resetUser(PHONES.admin);
+  });
+
+  test("cancel and repost: the booked driver is told, the form is filled in, nothing goes out until it is posted", async ({ page }) => {
+    test.setTimeout(120_000);
+    await login(page, PHONES.carrier);
+    const { shiftId, code, startsAt } = await postThroughForm(page);
+    await reply(page, first, shiftId, `YES ${code}`);
+    await expect(page.locator("[data-slot=booked-driver]")).toContainText("Pat Winner");
+
+    await page.locator("[data-slot=shift-actions]").getByRole("button", { name: "Cancel and repost" }).click();
+    const dialog = page.getByRole("dialog");
+    await expect(dialog).toContainText("Pat Winner gets a text right away");
+    await dialog.getByRole("button", { name: "Cancel and repost" }).click();
+
+    await page.waitForURL(new RegExp(`/carrier/shifts/new\\?from=${shiftId}$`));
+    await expect(page.locator("[data-slot=repost-note]")).toBeVisible();
+    await expect(page.getByLabel(/^ZIP code/)).toHaveValue("77506");
+    await expect(page.getByLabel(/^Date/)).toHaveValue(formatInTimeZone(new Date(startsAt), TZ, "yyyy-MM-dd"));
+    await expect(page.getByLabel(/^Start time/)).toHaveValue(formatInTimeZone(new Date(startsAt), TZ, "HH:mm"));
+    await expect(page.getByLabel(/^What the driver will do/)).toHaveValue("Container moves between Barbours Cut and our yard.");
+    await expect(page.getByLabel(/^Pay/)).toHaveValue("$32 an hour");
+    await expect(page.getByLabel(/^On-site contact/)).toHaveValue(ONSITE.name);
+    await expect(page.getByLabel(/^On-site phone/)).toHaveValue(ONSITE.display);
+
+    const cancelled = await shiftRow(shiftId);
+    expect(cancelled.status).toBe("cancelled");
+    expect(await textsTo(PHONES.driver, "cancelled")).toEqual([cancelledText({ cdlClass: "A", city: "Pasadena", state: "TX", startsAt })]);
+    expect(await textsTo(PHONES.secondDriver, "cancelled")).toEqual([]);
+    // Nothing new has gone out: one alert each, from the first post.
+    expect(await textsTo(PHONES.driver, "offer")).toHaveLength(1);
+    expect(await textsTo(PHONES.secondDriver, "offer")).toHaveLength(1);
+
+    await page.getByRole("button", { name: "Post shift" }).click();
+    await page.waitForURL(/\/carrier\/shifts\/[0-9a-f-]{36}$/);
+    expect(page.url().split("/").pop()).not.toBe(shiftId);
+    expect(await textsTo(PHONES.driver, "offer")).toHaveLength(2);
+    expect(await textsTo(PHONES.secondDriver, "offer")).toHaveLength(2);
   });
 
   test("the booked driver's phone appears on that shift only, never in search or a driver page", async ({ page }) => {

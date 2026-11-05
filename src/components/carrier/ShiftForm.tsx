@@ -92,11 +92,11 @@ function tomorrow(): string {
  * on-site contact and an optional pay line. A live count shows how many drivers it would
  * reach, and the button says when it will send (quiet hours, 2026-11-01).
  */
-export function ShiftForm() {
+export function ShiftForm({ initial }: { initial?: ShiftPostFormValues }) {
   const router = useRouter();
   const { form, submit, pending, formError, errorOf } = useStepForm({
     schema: shiftPostSchema,
-    defaultValues: {
+    defaultValues: initial ?? {
       zip: "",
       date: tomorrow(),
       startTime: "06:00",

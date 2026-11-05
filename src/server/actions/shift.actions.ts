@@ -54,6 +54,18 @@ export async function cancelShiftAction(input: unknown): Promise<Result<Shift>> 
   });
 }
 
+/** The details of a live shift. No text goes out. */
+export async function editShiftDetailsAction(input: unknown): Promise<Result<Shift>> {
+  return runAction(async () => {
+    const { user } = await requireRole("carrier");
+    const { shiftService } = await getContainer();
+    const shift = await shiftService.editShiftDetails(user.id, input);
+    revalidatePath("/carrier/shifts", "layout");
+    revalidatePath("/driver");
+    return shift;
+  });
+}
+
 /** The booked driver did not show: count it, reopen and send the shift again. */
 export async function releaseShiftAction(input: unknown): Promise<Result<PostedShift>> {
   return runAction(async () => {

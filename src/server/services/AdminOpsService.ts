@@ -19,7 +19,7 @@ import { ZIP_UNKNOWN_MESSAGE } from "@/lib/validation/onboarding.schema";
 import { AppError, parseInput } from "@/server/errors/AppError";
 import type { IZipProvider } from "@/server/providers/ZipProvider";
 import type { IAccountRepository } from "@/server/repositories/AccountRepository";
-import type { IAdminOpsRepository, CarrierReviewRow, ShiftAdminRow } from "@/server/repositories/AdminOpsRepository";
+import type { IAdminOpsRepository, CarrierReviewRow, ShiftAdminRow, ShiftEdit } from "@/server/repositories/AdminOpsRepository";
 import type { IAdminRepository } from "@/server/repositories/AdminRepository";
 import type { IDocumentRepository } from "@/server/repositories/DocumentRepository";
 import type { IProfileRepository } from "@/server/repositories/ProfileRepository";
@@ -74,6 +74,7 @@ export interface AdminShiftsPage {
 export interface AdminShiftDetail extends AdminShiftRow {
   recipients: BroadcastRecipient[];
   texts: SmsMessage[];
+  edits: ShiftEdit[];
 }
 
 export interface AreaRow {
@@ -292,8 +293,8 @@ export class AdminOpsService {
     const { shiftId } = parseInput(shiftIdSchema, input);
     const row = await this.ops.findShift(shiftId);
     if (!row) throw AppError.notFound("Shift not found");
-    const [recipients, texts] = await Promise.all([this.ops.listRecipients(shiftId), this.ops.listSms(shiftId)]);
-    return { ...this.shiftRow(row), recipients, texts };
+    const [recipients, texts, edits] = await Promise.all([this.ops.listRecipients(shiftId), this.ops.listSms(shiftId), this.ops.listShiftEdits(shiftId)]);
+    return { ...this.shiftRow(row), recipients, texts, edits };
   }
 
   // ---------------------------------------------------------------------------

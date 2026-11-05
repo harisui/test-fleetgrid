@@ -44,6 +44,12 @@ export interface Located {
   lng: number;
 }
 
+/** One carrier edit of a shift's details: when, and which fields. The old and new values are in shift_events. */
+export interface ShiftEdit {
+  at: string;
+  fields: string[];
+}
+
 export interface IAdminOpsRepository {
   listCarriers(): Promise<CarrierReviewRow[]>;
   findCarrier(carrierId: string): Promise<CarrierReviewRow | null>;
@@ -51,6 +57,7 @@ export interface IAdminOpsRepository {
   findShift(shiftId: string): Promise<ShiftAdminRow | null>;
   listRecipients(shiftId: string): Promise<BroadcastRecipient[]>;
   listSms(shiftId: string): Promise<SmsMessage[]>;
+  listShiftEdits(shiftId: string): Promise<ShiftEdit[]>;
   listAreas(): Promise<ServiceArea[]>;
   createArea(input: ServiceAreaInput): Promise<ServiceArea>;
   updateArea(id: string, input: Partial<ServiceAreaInput>): Promise<ServiceArea>;
@@ -104,6 +111,16 @@ export class AdminOpsRepository extends BaseRepository implements IAdminOpsRepos
         .order("position", { ascending: true }),
     );
     return rows.map(mapRecipient);
+  }
+
+  async listShiftEdits(shiftId: string): Promise<ShiftEdit[]> {
+    const rows = this.unwrap(
+      await this.supabase.from("shift_events").select("created_at, detail").eq("shift_id", shiftId).eq("kind", "edited").order("created_at", { ascending: true }),
+    );
+    return rows.map((row) => {
+      const detail = row.detail as { changes?: Record<string, unknown> };
+      return { at: row.created_at, fields: Object.keys(detail.changes ?? {}) };
+    });
   }
 
   async listSms(shiftId: string): Promise<SmsMessage[]> {

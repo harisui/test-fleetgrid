@@ -358,3 +358,88 @@ tests                 unit, integration, e2e, fakes, setup
 ## Fake phones
 
 `/dev/phones` shows each fake driver's texts, with a reply box that goes through the real signed webhook. It opens only with the fake sender and the local database, never on production or a hosted project (`devPhonesEnabled`). Locally, set `TWILIO_AUTH_TOKEN` to any value in `.env.local` so the webhook can check signatures; without all three Twilio keys the fake sender stays on. Playwright sets it itself. The scenarios are in `tests/integration/simulator`; the Twilio contract there runs only with `TWILIO_TEST_ACCOUNT_SID` and `TWILIO_TEST_AUTH_TOKEN`.
+
+## Handover
+
+Where each part of running FleetGrid is. Secrets live in Vercel, Supabase, Twilio and Stripe, never in this repository.
+
+### Twilio
+
+Two separate paths, and they must stay separate:
+
+| | Login codes | Every other text |
+|---|---|---|
+| Sent by | Supabase Auth, through Twilio Verify | The app, through the Messaging Service and its toll-free number |
+| Set up in | Supabase, Authentication, Sign In / Providers, Phone | Vercel Production: the three `TWILIO_*` variables |
+| Details | "Login codes" above | "Shift texts" above |
+
+Webhooks, set on the Messaging Service. Signatures are checked against exactly these addresses, so no `www` and no preview URL:
+
+- Inbound: `https://fleetgridus.com/api/twilio/inbound` (POST), set in the console.
+- Delivery reports: `https://fleetgridus.com/api/twilio/status`, requested by the app on each text.
+- Advanced Opt-Out stays on: Twilio answers STOP, START and HELP. The app logs and syncs them and never answers them.
+
+### Environment variables
+
+The full table is under "Environment variables" above, and `src/lib/env.ts` is the source of truth. Also needed in production: `CRON_SECRET` (without it every `/api/cron/*` call is refused) and `PHONE_HASH_SECRET` (set once, never change it: the welcome text's once-per-number check depends on it). Never set `ENABLE_TEST_LOGIN`, `PAYMENT_TEST_MODE` or `SMS_TEST_MODE` in production.
+
+### Scheduled jobs
+
+In `vercel.json`, all guarded by `CRON_SECRET`. Times are UTC. Vercel Hobby runs a job once a day, at any time within its hour.
+
+| Job | Schedule | What it does |
+|---|---|---|
+| `/api/cron/reconcile-subscriptions` | 06:00 | Re-reads subscriptions from Stripe |
+| `/api/cron/heartbeat` | 06:30 | One read, so a free Supabase project is not paused |
+| `/api/cron/shifts` | 12:00 and 13:00 | 7 AM Houston in either season: marks ended and expired shifts, sends what quiet hours held, sends held texts, resumes cut-off broadcasts and unfinished replies |
+| `/api/cron/reminders` | 16:00 | 10 AM Houston in winter, 11 AM in summer: profile reminder, grace period expiry, CDL-state and TWIC date texts, held texts |
+
+`/api/cron/resume` exists but is not scheduled, because it needs Vercel Pro. On Hobby, a cut-off broadcast or an unfinished reply waits for the next morning's shifts job. On Pro, add `/api/cron/resume` to `vercel.json` every 5 minutes (`*/5 * * * *`), change the shifts job to `*/15 * * * *` and the reminders job to `0 * * * *`.
+
+### The fake text sender
+
+`createSmsProvider` in `src/server/providers/SmsProvider.ts` picks the sender:
+
+- All three Twilio keys and `SMS_TEST_MODE` off: Twilio, real texts.
+- Otherwise on Vercel production: held. Nothing is sent or marked sent; `drainHeld` sends the texts once Twilio is in place.
+- Otherwise: the fake, which only records. Local development, tests and previews.
+
+`/dev/phones` is the fake phone inbox ("Fake phones" below). It opens only with the fake sender and the local database.
+
+### Turning the carrier side off and on
+
+`CARRIER_DISABLED=true` in Vercel, then redeploy: the carrier pages and sign-up show "coming soon", nobody can post or release a shift, and no shift alert goes by any path. Account texts (welcome, reminders, notices) still go. Set it to `false` and redeploy to turn the carrier side on. It reads exactly `true`, so anything else means on.
+
+Before real alerts go out, run the live test with 2 to 3 real phones, then start with small broadcasts.
+
+### Deploying
+
+Production runs what is pushed to the `client` remote, which Vercel deploys. `origin` is the working remote.
+
+1. Run `pnpm test:all` on the commit.
+2. Check whether the deployed code works with the new migrations. A migration that changes how the app writes (0035 did) needs the migration and the code deployed back to back, at a quiet moment.
+3. Dry run: `pnpm exec supabase db push --dry-run`.
+4. Take a backup (below).
+5. `pnpm exec supabase db push`, then `git push client main`.
+6. Check `https://fleetgridus.com/api/health`, the main pages and the Messaging page.
+
+A migration that only adds things goes first, then the code.
+
+### Backups
+
+Before any production migration, outside the repository:
+
+```bash
+pnpm exec supabase db dump --linked -f <folder>/<name>-schema.sql
+pnpm exec supabase db dump --linked --data-only --use-copy -f <folder>/<name>-data.sql
+pnpm exec supabase db dump --linked --role-only -f <folder>/<name>-roles.sql
+```
+
+These files hold personal data, so keep them private. They are the only backups on the free Supabase plan: Pro adds daily backups, and point-in-time recovery is a paid add-on to it.
+
+### Rolling back
+
+- **Code only:** in Vercel, Deployments, promote the last good deployment, or revert the commit and push. The code must still work with the database as it is now.
+- **A migration:** migrations only go forward. Write a new migration that undoes the change.
+- **Data lost or damaged:** restore from the backup into a new Supabase project, check it, then point Vercel at it. Do not restore over a live database without a fresh backup of what is there. Everything since the backup is lost, so compare the logs first.
+- **Stop all shift alerts now:** `CARRIER_DISABLED=true` and redeploy.

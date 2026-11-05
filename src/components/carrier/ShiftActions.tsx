@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/admin/ConfirmDialog";
+import { CancelAndRepost } from "@/components/carrier/CancelAndRepost";
 import { FormField } from "@/components/shared/FormField";
 import { SelectInput } from "@/components/shared/SelectInput";
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,7 @@ interface ShiftActionsProps {
   driverName: string | null;
 }
 
-/** Cancel an open or booked shift; release a booked driver who did not show. */
+/** Edit the details or cancel an open or booked shift; release a booked driver who did not show. */
 export function ShiftActions({ shiftId, status, driverName }: ShiftActionsProps) {
   const router = useRouter();
   const [dialog, setDialog] = useState<"cancel" | "release" | null>(null);
@@ -41,7 +43,11 @@ export function ShiftActions({ shiftId, status, driverName }: ShiftActionsProps)
     });
 
   return (
-    <div className="flex flex-col gap-3 sm:flex-row" data-slot="shift-actions">
+    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap" data-slot="shift-actions">
+      <Button variant="secondary" asChild>
+        <Link href={`/carrier/shifts/${shiftId}/edit`}>Edit details</Link>
+      </Button>
+      <CancelAndRepost shiftId={shiftId} status={status} driverName={driverName} />
       {status === "booked" && (
         <Button variant="secondary" onClick={() => setDialog("release")}>
           Release and rebroadcast

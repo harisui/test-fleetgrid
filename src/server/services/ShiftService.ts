@@ -2,8 +2,10 @@ import { displayStatus, sendAfterFor } from "@/lib/shifts/schedule";
 import { cancelledText } from "@/lib/shifts/texts";
 import {
   cancelShiftSchema,
+  SHIFT_NOT_EDITABLE_MESSAGE,
   SHIFT_OUTSIDE_AREA_MESSAGE,
   SHIFT_START_PAST_MESSAGE,
+  shiftDetailsSchema,
   shiftIdSchema,
   releaseShiftSchema,
   shiftPostSchema,
@@ -147,6 +149,21 @@ export class ShiftService {
       if (driver) await this.texts.send(driver, "cancelled", cancelledText(shift), shift.id);
     }
     return cancelled;
+  }
+
+  /**
+   * The work, the on-site contact and the pay line, on a shift still live (T3.3, user decision of
+   * 2026-11-05). No text goes out: the booked driver reads them on My shifts. The database writes
+   * each change to the record. The time, place and requirements go through cancel and repost.
+   */
+  async editShiftDetails(userId: string, input: unknown): Promise<Shift> {
+    const { shiftId, ...details } = parseInput(shiftDetailsSchema, input);
+    const shift = await this.requireOwnShift(userId, { shiftId });
+    const status = this.statusOf(shift);
+    if (status !== "open" && status !== "booked") throw AppError.conflict(SHIFT_NOT_EDITABLE_MESSAGE);
+    const edited = await this.admin.shifts().editDetails(shift.id, userId, details);
+    if (!edited) throw AppError.conflict(SHIFT_NOT_EDITABLE_MESSAGE);
+    return edited;
   }
 
   /**

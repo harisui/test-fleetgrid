@@ -593,6 +593,50 @@ isOneToOne: true
 "drivers_at_alert_cap":
 { Args: { "p_cap": number,"p_driver_ids": (string)[] }; Returns: string[]
                            },
+"edit_shift_details":
+{ Args: { "p_actor": string,"p_onsite_contact_name": string,"p_onsite_contact_phone": string,"p_pay_text": string,"p_shift_id": string,"p_work_description": string }; Returns: {
+              "booked_at": string | null,
+"booked_driver_id": string | null,
+"booked_notice_failed_at": string | null,
+"booked_range": unknown,
+"broadcast_at": string | null,
+"broadcast_round": number,
+"cancel_reason": string | null,
+"cancelled_at": string | null,
+"carrier_id": string,
+"carrier_paused_at": string | null,
+"cdl_class": Database["public"]['Enums']["cdl_class"],
+"city": string,
+"created_at": string,
+"endorsements": (Database["public"]['Enums']["endorsement"])[],
+"ends_at": string,
+"equipment_types": (Database["public"]['Enums']["equipment_type"])[],
+"id": string,
+"lat": number,
+"lng": number,
+"manual_required": boolean,
+"medical_required": boolean,
+"min_years": number,
+"onsite_contact_name": string,
+"onsite_contact_phone": string,
+"pay_text": string | null,
+"released_at": string | null,
+"send_after": string | null,
+"short_code": string,
+"starts_at": string,
+"state": string,
+"status": Database["public"]['Enums']["shift_status"],
+"twic_required": boolean,
+"updated_at": string,
+"work_description": string,
+"zip": string
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "shifts"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "expire_roster_grace":
 { Args: Record<PropertyKey, never>; Returns: {
               "driver_id": string,"missing": (string)[],"phone": string

@@ -94,6 +94,8 @@ export class FakeShiftWorld {
   /** Claims taken, so an alert goes once. */
   claimed = new Set<string>();
   bookedDocuments: DriverDocument[] = [];
+  /** What edit_shift_details() would write to shift_events. */
+  editsRecorded: { id: string; actorId: string; details: object }[] = [];
   now = () => new Date(T);
   private seq = 0;
 
@@ -108,6 +110,14 @@ export class FakeShiftWorld {
       return shift;
     },
     findById: async (id) => this.shifts.get(id) ?? null,
+    editDetails: async (id, actorId, details) => {
+      const shift = this.shifts.get(id);
+      if (!shift || (shift.status !== "open" && shift.status !== "booked")) return null;
+      const edited = { ...shift, ...details };
+      this.shifts.set(id, edited);
+      this.editsRecorded.push({ id, actorId, details });
+      return edited;
+    },
     findLiveIdByCode: async (code) =>
       [...this.shifts.values()].find((shift) => shift.shortCode === code && (shift.status === "open" || shift.status === "booked"))?.id ?? null,
     list: async (filter: ShiftListFilter = {}) =>

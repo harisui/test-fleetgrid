@@ -410,6 +410,22 @@ describe("simulated phones", () => {
     expect(phone(driver.phone).at(-1)).toBe(`FleetGrid: Your shift is booked. South Houston TX, ${when}. See details in your FleetGrid account: fleetgridus.com/driver. Reply HELP for help.`);
   });
 
+  it("a carrier edits a booked shift's details: no text goes out, and it is on record", async () => {
+    const carrier = await createTestCarrier({ subscription: "active" });
+    const driver = await pasadena("Ed Edited");
+    const shiftService = services().shiftsFor(carrier.carrierId);
+    const { shift } = await shiftService.postShift(carrier.id, form(inDays(3)));
+    await reply(driver.phone, `YES ${shift.shortCode}`);
+    outbox().length = 0;
+
+    const edited = await shiftService.editShiftDetails(carrier.id, { shiftId: shift.id, workDescription: "Gate 4, ask at the office.", onsiteContactName: "Ana Gate", onsiteContactPhone: "713 555 0111", payText: "" });
+
+    expect(outbox()).toEqual([]);
+    expect(edited).toMatchObject({ workDescription: "Gate 4, ask at the office.", onsiteContactPhone: "+17135550111", payText: null, startsAt: expect.any(String), status: "booked" });
+    const { data } = await admin.from("shift_events").select("driver_id, detail").eq("shift_id", shift.id).eq("kind", "edited").single();
+    expect(data).toMatchObject({ driver_id: driver.driverId, detail: { by: carrier.id, changes: { onsite_contact_name: { from: "Lee Yard", to: "Ana Gate" } } } });
+  });
+
   it("h. the carrier cancels a booked shift: the driver gets the cancellation text", async () => {
     const carrier = await createTestCarrier({ subscription: "active" });
     const driver = await pasadena("Cal Cancelled");

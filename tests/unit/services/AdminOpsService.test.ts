@@ -54,6 +54,9 @@ class FakeOps implements IAdminOpsRepository {
   async listRecipients() {
     return [];
   }
+  async listShiftEdits() {
+    return [{ at: "2026-11-05T12:00:00.000Z", fields: ["pay_text"] }];
+  }
   async listSms() {
     return [];
   }

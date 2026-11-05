@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { formatInTimeZone } from "date-fns-tz";
 import { expect, test, type Page } from "@playwright/test";
-import { clearLog, fillLog, adminClient, COMPLETE_STEP, login, makeShiftReady, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
+import { clearLog, realtimeListening, fillLog, adminClient, COMPLETE_STEP, login, makeShiftReady, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
 
 /**
  * Admin Messaging: Activity (Milestone 3 part 6) and Send notice (CR-3). Activity lists what
@@ -79,6 +79,28 @@ test.describe("admin messaging: activity", () => {
   test.afterAll(async () => {
     await resetUser(PHONES.driver);
     await resetUser(PHONES.carrier);
+  });
+
+  test("Activity updates live, without a reload, when a text is logged", async ({ page }) => {
+    const body = "FleetGrid: A text logged while the page is open.";
+    await login(page, PHONES.admin);
+    const listening = realtimeListening(page, "admin-messaging");
+    await page.goto(`/admin/messaging?tab=account&type=approved&driver=${driverId}`);
+    const rows = page.getByRole("list", { name: "Account texts", exact: true }).locator("[data-slot=message-row]");
+    await expect(rows).toHaveCount(2);
+    await listening;
+    // A reload would clear this mark.
+    await page.evaluate(() => {
+      (window as unknown as { __sameDocument: boolean }).__sameDocument = true;
+    });
+
+    await fillLog("sms_messages", [
+      { direction: "outbound", kind: "approved", from_phone: "fake", to_phone: PHONES.driver, body, status: "sent", driver_id: driverId },
+    ]);
+
+    await expect(rows).toHaveCount(3, { timeout: 10_000 });
+    expect(await page.evaluate(() => (window as unknown as { __sameDocument?: boolean }).__sameDocument)).toBe(true);
+    await clearLog("sms_messages", "body", [body]);
   });
 
   test("tiles, the four tabs, masked phones in lists and whole in the sheet, and a resend once", async ({ page }) => {

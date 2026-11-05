@@ -83,6 +83,37 @@ export const shiftPostSchema = z
     return { ...input, startsAt, endsAt };
   });
 
+export const SHIFT_NOT_EDITABLE_MESSAGE = "This shift is over or cancelled, so its details can no longer change.";
+
+/** What a carrier may change on a live shift (T3.3). Strict: a time, place or requirement is refused. */
+export const shiftDetailsSchema = z.strictObject({
+  shiftId: z.uuid({ error: "Shift not found" }),
+  payText: z.preprocess(
+    (value) => (typeof value === "string" && value.trim() === "" ? null : value),
+    z.string().trim().max(80, "Keep the pay line to 80 characters").nullish().transform((value) => value ?? null),
+  ),
+  workDescription: z
+    .string({ error: WORK_MESSAGE })
+    .trim()
+    .min(10, WORK_MESSAGE)
+    .max(500, "Keep the description to 500 characters"),
+  onsiteContactName: z
+    .string({ error: ONSITE_NAME_MESSAGE })
+    .trim()
+    .min(2, ONSITE_NAME_MESSAGE)
+    .max(100, "Keep the name to 100 characters"),
+  onsiteContactPhone: z.string({ error: ONSITE_PHONE_MESSAGE }).transform((value, context) => {
+    const phone = normalizeUsPhone(value);
+    if (!phone) {
+      context.addIssue({ code: "custom", message: ONSITE_PHONE_MESSAGE });
+      return z.NEVER;
+    }
+    return phone;
+  }),
+});
+
+export type ShiftDetailsFormValues = z.input<typeof shiftDetailsSchema>;
+
 export type ShiftPostInput = z.infer<typeof shiftPostSchema>;
 export type ShiftPostFormValues = z.input<typeof shiftPostSchema>;
 

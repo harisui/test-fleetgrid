@@ -94,6 +94,13 @@ export interface MatchedDriver {
   phone: string;
 }
 
+export interface ShiftDetails {
+  workDescription: string;
+  onsiteContactName: string;
+  onsiteContactPhone: string;
+  payText: string | null;
+}
+
 export interface IShiftRepository {
   create(carrierId: string, input: CreateShiftInput): Promise<Shift>;
   findById(id: string): Promise<Shift | null>;
@@ -103,6 +110,8 @@ export interface IShiftRepository {
   list(filter?: ShiftListFilter): Promise<Shift[]>;
   listBookedByDriver(driverId: string): Promise<Shift[]>;
   update(id: string, patch: ShiftPatch): Promise<Shift>;
+  /** The details of a live shift, each change on record; null when it is no longer live. Service role. */
+  editDetails(id: string, actorId: string, details: ShiftDetails): Promise<Shift | null>;
   claim(driverId: string, code: string): Promise<{ outcome: ClaimOutcome; shiftId: string | null }>;
   release(id: string, reason?: "no_show" | "twic_gate"): Promise<string | null>;
   expire(): Promise<number>;
@@ -200,6 +209,20 @@ export class ShiftRepository extends BaseRepository implements IShiftRepository 
     if (patch.bookedNoticeFailedAt !== undefined) update.booked_notice_failed_at = patch.bookedNoticeFailedAt;
     const result = await this.supabase.from("shifts").update(update).eq("id", id).select("*").single();
     return mapShift(this.unwrap(result));
+  }
+
+  async editDetails(id: string, actorId: string, details: ShiftDetails): Promise<Shift | null> {
+    const result = await this.supabase.rpc("edit_shift_details", {
+      p_shift_id: id,
+      p_actor: actorId,
+      p_work_description: details.workDescription,
+      p_onsite_contact_name: details.onsiteContactName,
+      p_onsite_contact_phone: details.onsiteContactPhone,
+      // The generated type has no null for a function argument; null clears the pay line.
+      p_pay_text: details.payText as string,
+    });
+    const row = this.unwrap(result)[0];
+    return row ? mapShift(row) : null;
   }
 
   async claim(driverId: string, code: string): Promise<{ outcome: ClaimOutcome; shiftId: string | null }> {

@@ -18,6 +18,8 @@ import {
 import { shiftPostSchema } from "@/lib/validation/shift.schema";
 import { isValidTwilioSignature, twilioSignature } from "@/server/twilio/signature";
 import { smsSegments } from "@/lib/sms/segments";
+import { shiftFormValues } from "@/lib/shifts/copy";
+import { buildShift } from "../../fakes/FakeShiftRepositories";
 
 /** The sample's shift: Pasadena TX, Tuesday October 14 at 6:00 AM Houston time (CDT). */
 const SAMPLE = { cdlClass: "A" as const, city: "Pasadena", state: "TX", startsAt: "2025-10-14T11:00:00.000Z" };
@@ -36,6 +38,29 @@ describe("the shift texts", () => {
     expect(offerText(SAMPLE, "4821")).toBe(SMS_SAMPLE_OFFER);
     expect(bookedText(SAMPLE)).toBe(SMS_SAMPLE_CONFIRMATION);
     expect(FILLED_TEXT).toBe(SMS_SAMPLE_FILLED);
+  });
+
+  it("the post form filled in from a shift posts the same shift again", () => {
+    const shift = buildShift({
+      zip: "77506",
+      startsAt: "2026-12-01T23:30:00.000Z",
+      endsAt: "2026-12-02T07:30:00.000Z",
+      cdlClass: "B",
+      endorsements: ["H", "T"],
+      minYears: 3,
+      equipmentTypes: ["flatbed"],
+      twicRequired: true,
+      medicalRequired: true,
+      manualRequired: false,
+      payText: null,
+      workDescription: "Yard moves on the night shift.",
+      onsiteContactName: "Lee Yard",
+      onsiteContactPhone: "+17135550142",
+    });
+    const values = shiftPostSchema.parse(shiftFormValues(shift));
+    expect(values).toMatchObject({ zip: "77506", cdlClass: "B", endorsements: ["H", "T"], minYears: 3, equipmentTypes: ["flatbed"], twicRequired: true, medicalRequired: true, manualRequired: false, payText: null, workDescription: "Yard moves on the night shift.", onsiteContactName: "Lee Yard", onsiteContactPhone: "+17135550142" });
+    expect(values.startsAt.toISOString()).toBe(shift.startsAt);
+    expect(values.endsAt.toISOString()).toBe(shift.endsAt);
   });
 
   describe("the booked text stays one segment", () => {
