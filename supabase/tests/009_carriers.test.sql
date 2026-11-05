@@ -46,7 +46,7 @@ select function_returns('public', 'profile_status', array['uuid'], 'account_stat
 select is_definer('public', 'current_carrier_id', array[]::text[]);
 select is_definer('public', 'carrier_has_active_subscription', array[]::text[]);
 select is_definer('public', 'profile_status', array['uuid']);
-select isnt_definer('public', 'search_drivers', array[
+select is_definer('public', 'search_drivers', array[
   'double precision', 'double precision', 'integer', 'cdl_class', 'endorsement[]', 'integer',
   'boolean', 'boolean', 'boolean', 'equipment_type[]', 'mvr_status', 'integer', 'integer']);
 
@@ -242,11 +242,12 @@ select is_empty('select 1 from public.profiles where id <> auth.uid()', 'a carri
 -- Listed drivers only: approved, complete, inside an active area. Shift-text consent does not
 -- gate the listing (0016); the carrier sees the flag and the app shows "No shift texts".
 select results_eq(
-  'select full_name from public.drivers order by full_name',
+  'select full_name from public.carrier_driver_cards(array(select driver_id from public.search_drivers(29.7594, -95.3594, 500))) order by full_name',
   $$values ('Declined texts Houston'), ('Listed Houston'), ('Listed Pasadena')$$,
   'a subscribed carrier sees the listed cards and nothing else');
+select is_empty('select 1 from public.drivers', 'and reads nothing from the drivers table itself (0038)');
 select results_eq(
-  $$select sms_opt_in from public.drivers where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddddd'$$,
+  $$select sms_opt_in from public.carrier_driver_cards(array['dddddddd-dddd-4ddd-8ddd-dddddddddddd']::uuid[])$$,
   $$values (false)$$,
   'and can tell that a listed driver declined shift texts');
 select is_empty(

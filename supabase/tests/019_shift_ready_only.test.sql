@@ -57,7 +57,7 @@ values ('c0000065-0000-4000-a000-000000000000', 'sub_search', 'cus_search', 'act
 select set_config('request.jwt.claims', json_build_object('sub', 'e0000065-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
 set local role authenticated;
 select set_eq(
-  $$ select id from public.drivers where id in (select pg_temp.did(n) from unnest(array['61', '62', '63', '64']) as n) $$,
+  $$ select id from public.carrier_driver_cards(array(select pg_temp.did(n) from unnest(array['61', '62', '63', '64']) as n)) $$,
   $$ values ('d0000061-0000-4000-8000-000000000000'::uuid) $$,
   'a subscribed carrier reads only the Shift-Ready card'
 );

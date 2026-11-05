@@ -566,9 +566,43 @@ export interface BookedDriverContact {
 export const CLAIM_OUTCOMES = ["won", "overlap", "already_yours", "filled", "closed", "not_eligible", "not_found"] as const;
 export type ClaimOutcome = (typeof CLAIM_OUTCOMES)[number];
 
+/**
+ * What a carrier may read of a driver: the columns of carrier_driver_cards() (0038). Never
+ * reliability data, pause reasons, consent text, review notes or the phone number.
+ */
+export type CarrierDriverCard = Pick<
+  Driver,
+  | "id"
+  | "fullName"
+  | "cdlClass"
+  | "endorsements"
+  | "yearsExperience"
+  | "city"
+  | "state"
+  | "zip"
+  | "serviceRadiusMiles"
+  | "lat"
+  | "lng"
+  | "availability"
+  | "certifications"
+  | "bio"
+  | "employmentType"
+  | "drivingStyles"
+  | "transmission"
+  | "equipmentTypes"
+  | "twicActive"
+  | "twicExpiresOn"
+  | "medicalCardActive"
+  | "clearinghouseRegistered"
+  | "mvrStatus"
+  | "smsOptIn"
+  | "smsOptedOut"
+  | "rosterGraceUntil"
+>;
+
 /** A listed driver as a search result: the card and how far it is from the yard. */
 export interface DriverMatch {
-  driver: Driver;
+  driver: CarrierDriverCard;
   distanceMiles: number;
 }
 

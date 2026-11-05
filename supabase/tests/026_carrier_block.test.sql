@@ -38,13 +38,13 @@ values ('70000001-0000-4000-8000-000000000000', 'd0000042-0000-4000-8000-0000000
 
 select set_config('request.jwt.claims', json_build_object('sub', 'e0000041-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
 set local role authenticated;
-select is((select count(*)::int from public.drivers where id = 'd0000042-0000-4000-8000-000000000000'), 1, 'a subscribed carrier reads a listed driver');
+select is((select count(*)::int from public.carrier_driver_cards(array['d0000042-0000-4000-8000-000000000000']::uuid[])), 1, 'a subscribed carrier reads a listed driver');
 reset role;
 
 update public.profiles set status = 'blocked' where id = 'e0000041-0000-4000-8000-000000000000';
 
 set local role authenticated;
-select is((select count(*)::int from public.drivers where id = 'd0000042-0000-4000-8000-000000000000'), 0, 'blocked, with the session still valid: nothing');
+select is((select count(*)::int from public.carrier_driver_cards(array['d0000042-0000-4000-8000-000000000000']::uuid[])), 0, 'blocked, with the session still valid: nothing');
 reset role;
 select ok((select carrier_paused_at is not null from public.shifts where id = '70000001-0000-4000-8000-000000000000'), 'the open shift is paused');
 select is((select carrier_paused_at from public.shifts where id = '70000002-0000-4000-8000-000000000000'), null, 'a booked shift is left alone');
@@ -54,7 +54,7 @@ select is_empty($$ select 1 from public.stale_queued_recipients(now() + interval
 
 update public.profiles set status = 'approved' where id = 'e0000041-0000-4000-8000-000000000000';
 set local role authenticated;
-select is((select count(*)::int from public.drivers where id = 'd0000042-0000-4000-8000-000000000000'), 1, 'block lifted: access back');
+select is((select count(*)::int from public.carrier_driver_cards(array['d0000042-0000-4000-8000-000000000000']::uuid[])), 1, 'block lifted: access back');
 reset role;
 select is((select carrier_paused_at from public.shifts where id = '70000001-0000-4000-8000-000000000000'), null, 'and the pause goes');
 

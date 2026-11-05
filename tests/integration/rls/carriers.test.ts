@@ -201,18 +201,24 @@ describe("RLS through real clients: carriers, subscriptions and what carriers se
 
     it("sees the listed cards only: approved, complete, inside a launch area, texts or not", async () => {
       // The seed's Houston drivers are listed too, so look at this test's drivers only.
-      const { data, error } = await subscribed.client
-        .from("drivers")
-        .select("full_name, sms_opt_in, sms_opted_out")
-        .in("id", testDriverIds())
-        .order("full_name");
+      const { data, error } = await subscribed.client.rpc("carrier_driver_cards", { p_driver_ids: testDriverIds() });
       expect(error).toBeNull();
-      expect(data).toEqual([
+      const cards = (data ?? [])
+        .map(({ full_name, sms_opt_in, sms_opted_out }) => ({ full_name, sms_opt_in, sms_opted_out }))
+        .sort((a, b) => a.full_name.localeCompare(b.full_name));
+      expect(cards).toEqual([
         { full_name: "Declined texts", sms_opt_in: false, sms_opted_out: false },
         { full_name: "Listed Houston", sms_opt_in: true, sms_opted_out: false },
         { full_name: "Listed Pasadena", sms_opt_in: true, sms_opted_out: false },
         { full_name: "Opted out", sms_opt_in: true, sms_opted_out: true },
       ]);
+    });
+
+    it("never reads the drivers table, so no reliability data, and the cards carry none", async () => {
+      const direct = await subscribed.client.from("drivers").select("no_show_count, twic_issue_at, shifts_paused, shifts_paused_reason").in("id", testDriverIds());
+      expect(direct.data).toEqual([]);
+      const { data } = await subscribed.client.rpc("carrier_driver_cards", { p_driver_ids: [listedHouston.driverId] });
+      expect(Object.keys(data![0]!)).toEqual(expect.not.arrayContaining(["no_show_count", "twic_issue_at", "twic_issue_prior_at", "shifts_paused", "shifts_paused_reason", "profile_id", "phone", "sms_opt_in_text"]));
     });
 
     it("never reads a driver's profile, so never the phone number", async () => {
@@ -302,7 +308,7 @@ describe("RLS through real clients: carriers, subscriptions and what carriers se
 
   describe("a trialing carrier", () => {
     it("has the same access as an active one", async () => {
-      const { data } = await trialing.client.from("drivers").select("id").in("id", testDriverIds());
+      const { data } = await trialing.client.rpc("carrier_driver_cards", { p_driver_ids: testDriverIds() });
       expect(data?.map((row) => row.id).sort()).toEqual(
         [
           listedHouston.driverId,
@@ -321,6 +327,7 @@ describe("RLS through real clients: carriers, subscriptions and what carriers se
     ])("with %s sees no cards, documents, files or search results", async (_, carrier) => {
       const { client } = carrier();
       expect((await client.from("drivers").select("id")).data).toEqual([]);
+      expect((await client.rpc("carrier_driver_cards", { p_driver_ids: testDriverIds() })).data).toEqual([]);
       expect((await client.from("driver_documents").select("id")).data).toEqual([]);
       const file = await client.storage
         .from(DOCUMENTS_BUCKET)

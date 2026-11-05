@@ -6,7 +6,7 @@ import { AppError, parseInput } from "@/server/errors/AppError";
 import type { IDocumentRepository } from "@/server/repositories/DocumentRepository";
 import type { IDriverSearchRepository } from "@/server/repositories/DriverSearchRepository";
 import type { CarrierService } from "@/server/services/CarrierService";
-import type { Driver, DriverMatch, LocatedCarrier } from "@/types/domain";
+import type { CarrierDriverCard, DriverMatch, LocatedCarrier } from "@/types/domain";
 
 export interface DriverSearchPage {
   matches: DriverMatch[];
@@ -19,7 +19,7 @@ export interface DriverSearchPage {
 }
 
 export interface DriverView {
-  driver: Driver;
+  driver: CarrierDriverCard;
   distanceMiles: number;
 }
 

@@ -1,8 +1,8 @@
 import { BaseRepository } from "@/server/repositories/BaseRepository";
-import { mapDriver } from "@/server/repositories/DriverRepository";
+import type { Database } from "@/types/database.types";
 import type {
+  CarrierDriverCard,
   CdlClass,
-  Driver,
   DriverMatch,
   Endorsement,
   EquipmentType,
@@ -34,14 +34,47 @@ export interface DriverSearchResult {
   total: number;
 }
 
+type CardRow = Database["public"]["Functions"]["carrier_driver_cards"]["Returns"][number];
+
+function mapCard(row: CardRow): CarrierDriverCard {
+  return {
+    id: row.id,
+    fullName: row.full_name,
+    cdlClass: row.cdl_class,
+    endorsements: row.endorsements,
+    yearsExperience: row.years_experience,
+    city: row.city,
+    state: row.state,
+    zip: row.zip,
+    serviceRadiusMiles: row.service_radius_miles,
+    lat: row.lat,
+    lng: row.lng,
+    availability: row.availability,
+    certifications: row.certifications,
+    bio: row.bio,
+    employmentType: row.employment_type,
+    drivingStyles: row.driving_styles,
+    transmission: row.transmission,
+    equipmentTypes: row.equipment_types,
+    twicActive: row.twic_active,
+    twicExpiresOn: row.twic_expires_on,
+    medicalCardActive: row.medical_card_active,
+    clearinghouseRegistered: row.clearinghouse_registered,
+    mvrStatus: row.mvr_status,
+    smsOptIn: row.sms_opt_in,
+    smsOptedOut: row.sms_opted_out,
+    rosterGraceUntil: row.roster_grace_until,
+  };
+}
+
 /**
- * What a carrier can see of drivers. Every read goes through the drivers table under RLS,
- * so a carrier without an active subscription gets nothing, and nobody gets a card that is
- * not listed.
+ * What a carrier can see of drivers. Every read goes through carrier_driver_cards() and
+ * search_drivers() (0038), never the drivers table: a carrier without an active subscription gets
+ * nothing, nobody gets a card that is not listed, and only the safe columns ever leave.
  */
 export interface IDriverSearchRepository {
   search(params: DriverSearchParams): Promise<DriverSearchResult>;
-  findById(driverId: string): Promise<Driver | null>;
+  findById(driverId: string): Promise<CarrierDriverCard | null>;
 }
 
 export class DriverSearchRepository extends BaseRepository implements IDriverSearchRepository {
@@ -65,16 +98,8 @@ export class DriverSearchRepository extends BaseRepository implements IDriverSea
     );
     if (ranked.length === 0) return { matches: [], total: 0 };
 
-    const rows = this.unwrap(
-      await this.supabase
-        .from("drivers")
-        .select("*")
-        .in(
-          "id",
-          ranked.map((row) => row.driver_id),
-        ),
-    );
-    const byId = new Map(rows.map((row) => [row.id, mapDriver(row)]));
+    const rows = this.unwrap(await this.supabase.rpc("carrier_driver_cards", { p_driver_ids: ranked.map((row) => row.driver_id) }));
+    const byId = new Map(rows.map((row) => [row.id, mapCard(row)]));
     const matches: DriverMatch[] = [];
     for (const row of ranked) {
       const driver = byId.get(row.driver_id);
@@ -83,9 +108,8 @@ export class DriverSearchRepository extends BaseRepository implements IDriverSea
     return { matches, total: Number(ranked[0].total_count) };
   }
 
-  async findById(driverId: string): Promise<Driver | null> {
-    const result = await this.supabase.from("drivers").select("*").eq("id", driverId).maybeSingle();
-    const row = this.unwrapMaybe(result);
-    return row ? mapDriver(row) : null;
+  async findById(driverId: string): Promise<CarrierDriverCard | null> {
+    const [row] = this.unwrap(await this.supabase.rpc("carrier_driver_cards", { p_driver_ids: [driverId] }));
+    return row ? mapCard(row) : null;
   }
 }

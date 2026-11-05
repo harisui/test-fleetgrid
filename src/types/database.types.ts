@@ -532,6 +532,11 @@ isOneToOne: true
 "carrier_document_shift":
 { Args: { "p_driver_id": string,"p_type": Database["public"]['Enums']["document_type"] }; Returns: string
                            },
+"carrier_driver_cards":
+{ Args: { "p_driver_ids": (string)[] }; Returns: {
+              "availability": (Database["public"]['Enums']["availability_type"])[],"bio": string,"cdl_class": Database["public"]['Enums']["cdl_class"],"certifications": (string)[],"city": string,"clearinghouse_registered": boolean,"driving_styles": (Database["public"]['Enums']["driving_style"])[],"employment_type": Database["public"]['Enums']["employment_type"],"endorsements": (Database["public"]['Enums']["endorsement"])[],"equipment_types": (Database["public"]['Enums']["equipment_type"])[],"full_name": string,"id": string,"lat": number,"lng": number,"medical_card_active": boolean,"mvr_status": Database["public"]['Enums']["mvr_status"],"roster_grace_until": string,"service_radius_miles": number,"sms_opt_in": boolean,"sms_opted_out": boolean,"state": string,"transmission": Database["public"]['Enums']["transmission_type"],"twic_active": boolean,"twic_expires_on": string,"years_experience": number,"zip": string
+            }[]
+                           },
 "carrier_has_active_subscription":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },

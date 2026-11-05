@@ -128,7 +128,7 @@ select pg_temp.sign_out();
 -- ---------------------------------------------------------------------------
 select pg_temp.sign_in('b4444444-4444-4444-8444-444444444444', '+15555559204');
 select is(
-  (select count(*) from public.drivers where id = 'd2222222-2222-4222-8222-222222222222'),
+  (select count(*) from public.carrier_driver_cards(array['d2222222-2222-4222-8222-222222222222']::uuid[])),
   1::bigint, 'the carrier can read the listed driver''s card');
 select is_empty('select 1 from public.driver_clearinghouse_self_reports', 'but never the self-reported answer');
 select throws_ok(

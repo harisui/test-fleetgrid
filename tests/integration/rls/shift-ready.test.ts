@@ -76,8 +76,9 @@ describe("only Roster-Ready drivers reach carriers", () => {
     expect(found).toEqual([ready.driverId]);
   });
 
-  it("a carrier cannot read a Registered card directly either", async () => {
-    const { data } = await carrier.client.from("drivers").select("id").in("id", mine());
+  it("a carrier cannot read a Registered card either", async () => {
+    const { data } = await carrier.client.rpc("carrier_driver_cards", { p_driver_ids: mine() });
     expect((data ?? []).map((row) => row.id)).toEqual([ready.driverId]);
+    expect((await carrier.client.from("drivers").select("id").in("id", mine())).data).toEqual([]);
   });
 });

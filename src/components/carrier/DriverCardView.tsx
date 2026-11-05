@@ -8,11 +8,11 @@ import {
   receivesShiftTexts,
   summarizeDriver,
 } from "@/lib/carrier/driverSummary";
-import { AVAILABILITY_LABELS, type Driver } from "@/types/domain";
+import { AVAILABILITY_LABELS, type CarrierDriverCard } from "@/types/domain";
 import { DRIVING_STYLE_OPTIONS, EMPLOYMENT_TYPE_OPTIONS } from "@/lib/onboarding/options";
 
 interface DriverCardViewProps {
-  driver: Driver;
+  driver: CarrierDriverCard;
   distanceMiles: number;
 }
 

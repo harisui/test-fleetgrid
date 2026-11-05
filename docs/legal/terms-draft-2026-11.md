@@ -256,7 +256,7 @@ Listed by the project owner:
 
 Found while preparing this draft:
 
-5. **No-show data and carriers.** The terms say no carrier other than the one involved ever sees a driver's no-show history. No carrier page shows it, but the database lets a subscribed carrier's own session read the no-show count, the TWIC gate flag and the pause flag on a listed driver. This must be closed before the sentence is published.
+5. **No-show data and carriers: built, deploying with this draft (migration 0038).** A carrier's session reads driver cards only through a function with a fixed list of columns, with no no-show count, pause or TWIC gate data, and reads nothing from the drivers table directly. On its own shift, a carrier still sees its own texted drivers' status, including a no-show it reported.
 6. **Booking-reliability pause.** Today the pause has no end date until staff lift it, and the driver gets no notice of the pause or a way to dispute. The [X] days, the notice and the dispute path are not built.
 7. **Medical card consent at upload and a retention rule.** Not built.
 8. **Pricing, trial and fills.** The $99 base fee, $35 fill fee, trial, first-charge screen, acknowledgment, online cancellation for the trial, completed-fill rule and fill disputes are not built. The live price is a flat $399 a month.
