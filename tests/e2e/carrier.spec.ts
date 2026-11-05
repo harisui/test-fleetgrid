@@ -489,7 +489,14 @@ test.describe("driver search and a driver's page", () => {
     await expect(section.getByRole("link", { name: /CDL \(front\)/ })).toHaveAttribute("href", `/api/documents/${frontDoc!.id}/url`);
     await expect(section).toContainText("Each view is recorded.");
 
-    await page.request.get(`/api/documents/${frontDoc!.id}/url`, { maxRedirects: 0 });
+    const opened = await page.request.get(`/api/documents/${frontDoc!.id}/url`, { maxRedirects: 0 });
+    expect(opened.status()).toBe(302);
+    expect(opened.headers()["x-robots-tag"]).toBe("noindex, nofollow");
+    expect(opened.headers()["cache-control"]).toContain("no-store");
+    const shiftPage = await page.request.get(`/carrier/shifts/${shift!.id}`);
+    expect(shiftPage.headers()["x-robots-tag"]).toBe("noindex, nofollow");
+    // The framework sets a page's own: never public. Part C checked no-store on a production build.
+    expect(shiftPage.headers()["cache-control"]).not.toContain("public");
     const { data: views } = await admin.from("document_views").select("viewer_role, document_type, shift_id").eq("document_id", frontDoc!.id);
     expect(views).toEqual([{ viewer_role: "carrier", document_type: "cdl_front", shift_id: shift!.id }]);
 

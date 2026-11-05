@@ -576,6 +576,9 @@ isOneToOne: false
 "queue_welcome_text":
 { Args: { "p_driver_id": string,"p_due_at": string,"p_phone_hash": string }; Returns: boolean
                            },
+"record_admin_document_view":
+{ Args: { "p_document_id": string }; Returns: boolean
+                           },
 "record_carrier_document_view":
 { Args: { "p_document_id": string }; Returns: boolean
                            },

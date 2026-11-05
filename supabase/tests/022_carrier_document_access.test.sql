@@ -113,6 +113,19 @@ set local role authenticated;
 select is_empty($$ select 1 from public.driver_documents where driver_id = 'd0000081-0000-4000-8000-000000000000' $$, 'released: closed at once');
 reset role;
 
+-- Admin views are logged too (0034), and only an admin's.
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000083-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+set local role authenticated;
+select ok(not public.record_admin_document_view('a1000000-0000-4000-8000-000000000001'), 'a carrier cannot log as an admin');
+reset role;
+insert into auth.users (id, phone) values ('e0000085-0000-4000-8000-000000000000', '15555559685');
+insert into public.profiles (id, role, phone, status) values ('e0000085-0000-4000-8000-000000000000', 'admin', '+15555559685', 'approved');
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000085-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+set local role authenticated;
+select ok(public.record_admin_document_view('a1000000-0000-4000-8000-000000000001'), 'an admin view is logged');
+select is((select count(*)::int from public.document_views where viewer_role = 'admin' and viewer_id = 'e0000085-0000-4000-8000-000000000000'), 1, 'and an admin reads the log');
+reset role;
+
 -- The driver keeps their own.
 select pg_temp.as_user('e0000081-0000-4000-8000-000000000000');
 set local role authenticated;

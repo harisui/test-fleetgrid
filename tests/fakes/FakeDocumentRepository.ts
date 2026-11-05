@@ -29,6 +29,11 @@ export class FakeDocumentRepository implements IDocumentRepository {
   /** The documents a carrier's booking opens; views are logged here. */
   viewable = new Set<string>();
   views: string[] = [];
+  adminViews: string[] = [];
+  async recordAdminView(documentId: string) {
+    this.adminViews.push(documentId);
+    return true;
+  }
   async recordCarrierView(documentId: string) {
     if (!this.viewable.has(documentId)) return false;
     this.views.push(documentId);

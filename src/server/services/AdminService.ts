@@ -169,9 +169,7 @@ export class AdminService {
       REQUIRED_DOCUMENTS.map(async (type): Promise<ShiftReadyPhoto> => {
         const document =
           documents.filter((item) => item.type === type).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
-        const url = document
-          ? await this.documents.createSignedUrl(document.storagePath, SIGNED_URL_TTL_SECONDS).catch(() => null)
-          : null;
+        const url = document ? await this.loggedLink(document).catch(() => null) : null;
         return { type, document, url };
       }),
     );
@@ -250,6 +248,12 @@ export class AdminService {
     const { documentId } = parseInput(documentIdSchema, input);
     const document = await this.documents.findById(documentId);
     if (!document) throw AppError.notFound("Document not found");
+    return this.loggedLink(document);
+  }
+
+  /** No link without its row in the view log (Part C). */
+  private async loggedLink(document: DriverDocument): Promise<string> {
+    if (!(await this.documents.recordAdminView(document.id))) throw AppError.forbidden("Only FleetGrid staff can do this");
     return this.documents.createSignedUrl(document.storagePath, SIGNED_URL_TTL_SECONDS);
   }
 

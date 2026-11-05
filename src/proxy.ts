@@ -1,3 +1,4 @@
+import { carriesDocuments, DOCUMENT_RESPONSE_HEADERS } from "@/lib/documents/headers";
 import type { NextRequest } from "next/server";
 import { captureAttribution } from "@/lib/attribution";
 import { updateSession } from "@/lib/supabase/middleware";
@@ -10,6 +11,9 @@ import { updateSession } from "@/lib/supabase/middleware";
 export async function proxy(request: NextRequest) {
   const response = await updateSession(request);
   captureAttribution(request, response, process.env.NODE_ENV === "production");
+  if (carriesDocuments(request.nextUrl.pathname)) {
+    for (const [name, value] of Object.entries(DOCUMENT_RESPONSE_HEADERS)) response.headers.set(name, value);
+  }
   return response;
 }
 

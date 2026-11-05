@@ -530,6 +530,20 @@ describe("AdminService", () => {
   });
 
   describe("getDocumentUrl", () => {
+    it("logs the view before the link exists", async () => {
+      const document = buildDocument({ driverId: D1, storagePath: `${D1}/v.png` });
+      documents.rows.set(document.id, document);
+      documents.files.set(document.storagePath, { sizeBytes: 10, mimeType: "image/png" });
+      await service.getDocumentUrl(ADMIN_ID, { documentId: document.id });
+      expect(documents.adminViews).toEqual([document.id]);
+    });
+
+    it("opening the sheet logs each photo it signs a link for", async () => {
+      const document = await documents.create({ driverId: D1, type: "medical_card", storagePath: `${D1}/m.png`, fileName: "m.png", mimeType: "image/png", sizeBytes: 10 });
+      await service.getDriver(ADMIN_ID, { driverId: D1 });
+      expect(documents.adminViews).toContain(document.id);
+    });
+
     it("makes a short-lived link to a driver's file", async () => {
       const document = buildDocument({ driverId: D1, storagePath: "d1/cdl.jpg" });
       documents.rows.set(document.id, document);

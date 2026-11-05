@@ -1,4 +1,5 @@
 import type { NextRequest } from "next/server";
+import { documentRedirect } from "@/lib/documents/headers";
 import { getContainer } from "@/server/container";
 import { AppError } from "@/server/errors/AppError";
 
@@ -18,7 +19,7 @@ export async function GET(
 
   try {
     const url = await driverSearchService.getDocumentUrl(user.id, { documentId: id });
-    return Response.redirect(url, 302);
+    return documentRedirect(url);
   } catch (error) {
     if (error instanceof AppError) {
       const status = error.code === "FORBIDDEN" ? 403 : error.code === "NOT_FOUND" ? 404 : 400;
