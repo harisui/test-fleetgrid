@@ -8,6 +8,8 @@
  * verify: "milestone-3-template"
  */
 
+import { ROSTER_READY } from "@/lib/drivers/tiers";
+
 export interface SmsBubble {
   direction: "in" | "out";
   text: string;
@@ -38,9 +40,9 @@ export const SMS_SAMPLE_FILLED =
 export const SMS_REMINDER =
   "FleetGrid: Your driver profile is almost done. Finish it to get shift texts: fleetgridus.com/driver. Reply STOP to opt out.";
 
-/** Approved: once, to a consenting driver when an admin approves them. */
+/** Roster-Ready: once, to a consenting driver when an admin marks them (wording agreed 2026-11-05). */
 export const SMS_APPROVED =
-  "FleetGrid: Your profile is approved. You'll get texts when matching shifts open. Reply STOP to opt out.";
+  `FleetGrid: Your profile is ${ROSTER_READY}. You'll get texts when matching shifts open. Reply STOP to opt out.`;
 
 /**
  * The Shift-Ready texts (change request CR-5, approved by Annie 2026-11-03), word for word.

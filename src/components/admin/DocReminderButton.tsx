@@ -26,7 +26,8 @@ const plural = (count: number, one: string, many: string) => `${count} ${count =
  * The missing-documents reminder (CR-5). With a driver: on their sheet, the exact text and a
  * dialog. Without: "Remind all drivers missing documents" on the Drivers page, with the count,
  * who is left out and why, and the typed SEND {N} the server checks against its own recount.
- * Disabled with the reason when nobody can get one. The dialog reloads the preview on opening.
+ * Disabled with the reason when nobody can get one. The button follows the page's preview; an
+ * open dialog shows the one it reloaded, so the counts are current when the admin decides.
  */
 export function DocReminderButton({
   driverId,
@@ -40,17 +41,23 @@ export function DocReminderButton({
   const id = useId();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const [preview, setPreview] = useState(initial);
+  const [fresh, setFresh] = useState<DocReminderPreview | null>(null);
+  const preview = (open && fresh) || initial;
   const [typed, setTyped] = useState("");
   const [pending, setPending] = useState(false);
   const bulk = !driverId;
   const label = bulk ? "Remind all drivers missing documents" : "Send documents reminder";
 
+  async function reload() {
+    const result = await previewDocReminderAction(driverId ? { driverId } : {});
+    if (result.ok) setFresh(result.data);
+  }
+
   async function openDialog() {
     setTyped("");
+    setFresh(null);
     setOpen(true);
-    const fresh = await previewDocReminderAction(driverId ? { driverId } : {});
-    if (fresh.ok) setPreview(fresh.data);
+    await reload();
   }
 
   async function send() {
@@ -59,8 +66,7 @@ export function DocReminderButton({
     setPending(false);
     if (!result.ok) {
       toast.error(result.error.fieldErrors?.confirm ?? result.error.message);
-      const fresh = await previewDocReminderAction(driverId ? { driverId } : {});
-      if (fresh.ok) setPreview(fresh.data);
+      await reload();
       return;
     }
     setOpen(false);

@@ -135,14 +135,6 @@ function readableCopy(source: string, fileName = "copy.tsx"): string[] {
 /** Annie's list (2026-11-04). */
 const REVIEW_WORDS = /\b(verified|vetted|approved?|approves|approving|approval|screened|candidates?)\b/i;
 
-/**
- * Texts Twilio or the client signed off word for word, which only the user may change. Each is
- * waiting on the user's OK for new wording; delete the line when the text changes.
- */
-const WORDING_ON_HOLD = new Set([
-  "FleetGrid: Your profile is approved. You'll get texts when matching shifts open. Reply STOP to opt out.",
-]);
-
 const COPY_DIRS = ["src/app", "src/components", "src/content", "src/lib", "src/server"];
 const LABELS_FILE = join("src", "lib", "drivers", "tiers.ts");
 
@@ -150,7 +142,7 @@ describe("the review words (Annie, 2026-11-04)", () => {
   it.each(COPY_DIRS)("nothing a person reads in %s says verified, vetted, approved, screened or candidate", (dir) => {
     const hits = sourceFiles(dir).flatMap((file) =>
       readableCopy(readFileSync(file, "utf8"))
-        .filter((text) => REVIEW_WORDS.test(text) && !WORDING_ON_HOLD.has(text))
+        .filter((text) => REVIEW_WORDS.test(text))
         .map((text) => `${file}: "${text}"`),
     );
     expect(hits).toEqual([]);

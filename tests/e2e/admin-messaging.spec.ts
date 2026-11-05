@@ -11,7 +11,7 @@ import { adminClient, COMPLETE_STEP, login, makeShiftReady, PHONES, resetUser, s
  */
 
 const APPROVED =
-  "FleetGrid: Your profile is approved. You'll get texts when matching shifts open. Reply STOP to opt out.";
+  "FleetGrid: Your profile is Roster-Ready. You'll get texts when matching shifts open. Reply STOP to opt out.";
 
 async function expectNoAccessibilityViolations(page: Page, label: string) {
   const results = await new AxeBuilder({ page })

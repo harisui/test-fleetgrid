@@ -87,6 +87,21 @@ describe("DocReminderButton (CR-5)", () => {
     );
   });
 
+  it("follows the page after a send: the button greys out without a reload of its own", () => {
+    const { rerender } = render(<DocReminderButton driverId={DRIVER_ID} name="Pat Driver" initial={preview({ count: 1, confirmPhrase: "SEND 1" })} />);
+    const button = screen.getByRole("button", { name: "Send documents reminder" });
+    expect(button).toBeEnabled();
+    rerender(
+      <DocReminderButton
+        driverId={DRIVER_ID}
+        name="Pat Driver"
+        initial={preview({ count: 0, blocked: "A documents reminder went to this driver in the last 3 days." })}
+      />,
+    );
+    expect(button).toBeDisabled();
+    expect(button).toHaveAccessibleDescription("A documents reminder went to this driver in the last 3 days.");
+  });
+
   it("reports a refused send and reloads the counts", async () => {
     actions.previewDocReminderAction.mockResolvedValue({ ok: true, data: preview() });
     actions.sendDocReminderAction.mockResolvedValue({

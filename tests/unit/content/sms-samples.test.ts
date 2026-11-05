@@ -54,7 +54,7 @@ describe("the one-time driver texts (change request of 2026-11-01, approved by A
       "FleetGrid: Your driver profile is almost done. Finish it to get shift texts: fleetgridus.com/driver. Reply STOP to opt out.",
     );
     expect(SMS_APPROVED).toBe(
-      "FleetGrid: Your profile is approved. You'll get texts when matching shifts open. Reply STOP to opt out.",
+      "FleetGrid: Your profile is Roster-Ready. You'll get texts when matching shifts open. Reply STOP to opt out.",
     );
     for (const text of [SMS_REMINDER, SMS_APPROVED]) expect(text.length).toBeLessThan(160);
   });

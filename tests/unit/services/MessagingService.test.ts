@@ -21,7 +21,7 @@ function text(overrides: Partial<SmsMessage> = {}): SmsMessage {
     kind: "approved",
     fromPhone: "fake",
     toPhone: driver.phone,
-    body: "FleetGrid: Your profile is approved. You'll get texts when matching shifts open. Reply STOP to opt out.",
+    body: "FleetGrid: Your profile is Roster-Ready. You'll get texts when matching shifts open. Reply STOP to opt out.",
     providerSid: "SM1",
     status: "failed",
     errorCode: "30003",
