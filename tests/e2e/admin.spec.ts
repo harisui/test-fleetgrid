@@ -225,6 +225,33 @@ test.describe("admin drivers", () => {
     expect(entry).toMatchObject({ action: "driver_approved", detail: { cdlState: "LA", overrideReason: "Moving to Houston, Texas CDL booked for next week" } });
   });
 
+  test("Mark as reviewed clears the flag on a Roster-Ready driver in the grace period, with no text", async ({ page }) => {
+    const { driverId, userId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
+    await uploadRequiredDocuments(driverId!);
+    await adminClient().from("profiles").update({ status: "approved" }).eq("id", userId);
+    await adminClient()
+      .from("drivers")
+      .update({ rereview_needed: true, roster_grace_until: new Date(Date.now() + 7 * 86_400_000).toISOString() })
+      .eq("id", driverId!);
+    const textsBefore = (await adminClient().from("sms_messages").select("id").eq("driver_id", driverId!)).data?.length;
+
+    await login(page, PHONES.admin);
+    await page.goto(`/admin/drivers?open=${driverId}`);
+    const sheet = page.getByRole("dialog", { name: "Pat Driver" });
+    await expect(sheet.locator("[data-slot=rereview]")).toBeVisible();
+    await sheet.getByRole("button", { name: "Mark as reviewed" }).click();
+
+    await expect(sheet.locator("[data-slot=rereview]")).toHaveCount(0);
+    await expect(sheet.getByRole("button", { name: "Mark as reviewed" })).toHaveCount(0);
+    await expect(sheet.getByRole("list", { name: "History" })).toContainText("Marked as reviewed");
+    const { data: profile } = await adminClient().from("profiles").select("status").eq("id", userId).single();
+    const { data: driver } = await adminClient().from("drivers").select("rereview_needed, roster_grace_until").eq("id", driverId!).single();
+    expect(profile?.status).toBe("approved");
+    expect(driver?.rereview_needed).toBe(false);
+    expect(driver?.roster_grace_until).not.toBeNull();
+    expect((await adminClient().from("sms_messages").select("id").eq("driver_id", driverId!)).data?.length).toBe(textsBefore);
+  });
+
   test("a new CDL photo from a Roster-Ready driver sends them back to Registered with Re-review needed", async ({ page }) => {
     const { driverId, userId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
     await uploadRequiredDocuments(driverId!);

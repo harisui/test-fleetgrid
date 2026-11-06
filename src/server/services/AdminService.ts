@@ -242,6 +242,29 @@ export class AdminService {
     return this.changeStatus(adminId, input, "pending");
   }
 
+  /**
+   * An admin has looked at what a Roster-Ready driver changed: Re-review needed clears and the
+   * driver stays Roster-Ready. No text goes out. A Registered driver clears it by being marked.
+   */
+  async markDriverReviewed(adminId: string, input: unknown): Promise<Profile> {
+    const admin = await this.requireAdmin(adminId);
+    const { driverId } = parseInput(driverIdSchema, input);
+    const row = await this.admin.findDriver(driverId);
+    if (!row || row.profile.role !== "driver") throw AppError.notFound("Driver not found");
+    if (row.profile.status !== "approved") throw AppError.conflict(`Only a ${ROSTER_READY} driver can be marked as reviewed.`);
+    if (await this.admin.clearRereview(driverId)) {
+      await this.admin.writeAudit({
+        adminId: admin.id,
+        adminPhone: admin.phone,
+        action: "driver_rereview_cleared",
+        targetType: "driver",
+        targetId: driverId,
+        detail: { name: row.driver.fullName },
+      });
+    }
+    return row.profile;
+  }
+
   /** A link to one of a driver's files, for the detail sheet. Expires after SIGNED_URL_TTL_SECONDS. */
   async getDocumentUrl(adminId: string, input: unknown): Promise<string> {
     await this.requireAdmin(adminId);

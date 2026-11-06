@@ -33,6 +33,7 @@ import { formatE164ForDisplay } from "@/lib/phone";
 import {
   approveDriverAction,
   blockDriverAction,
+  markDriverReviewedAction,
   reopenDriverAction,
 } from "@/server/actions/admin.actions";
 import type { DocReminderPreview } from "@/server/services/DocReminderService";
@@ -64,6 +65,7 @@ const HISTORY_LABELS: Partial<Record<AdminAction, string>> = {
   driver_blocked: "Blocked",
   driver_reopened: "Moved to Registered",
   driver_rereview_needed: "Back to Registered for re-review",
+  driver_rereview_cleared: "Marked as reviewed",
   driver_grace_expired: "Back to Registered: update not made in time",
   driver_auto_paused: "Paused: no-shows",
   driver_twic_flagged: "Turned away at gate: TWIC",
@@ -157,7 +159,20 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
     router.refresh();
   }
 
+  async function markReviewed() {
+    setPending(true);
+    const result = await markDriverReviewedAction({ driverId: driver.id });
+    setPending(false);
+    if (!result.ok) {
+      toast.error(result.error.message);
+      return;
+    }
+    toast.success("Marked as reviewed");
+    router.refresh();
+  }
+
   const canApprove = profile.status !== "approved";
+  const canMarkReviewed = profile.status === "approved" && driver.rereviewNeeded;
   // Everything but the CDL state must be in; that one an admin may meet with a typed reason.
   const blocking = detail.missing.filter((item) => item !== "cdl_state");
   const needsReason = detail.missing.includes("cdl_state");
@@ -181,6 +196,11 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
         description={`Signed up ${format(new Date(driver.createdAt), "MMMM d, yyyy")}`}
         footer={
           <>
+            {canMarkReviewed && (
+              <Button type="button" size="md" onClick={() => void markReviewed()} disabled={pending}>
+                Mark as reviewed
+              </Button>
+            )}
             {canReopen && (
               <Button type="button" variant="secondary" size="md" onClick={() => setConfirming("pending")} disabled={pending}>
                 Move to Registered

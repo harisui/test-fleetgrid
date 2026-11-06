@@ -51,6 +51,13 @@ export class FakeAdminRepository implements IAdminRepository {
     return row.profile;
   }
 
+  async clearRereview(driverId: string): Promise<boolean> {
+    const row = this.rows.find((candidate) => candidate.driver.id === driverId);
+    if (!row?.driver.rereviewNeeded) return false;
+    row.driver = { ...row.driver, rereviewNeeded: false };
+    return true;
+  }
+
   readonly overrides: { driverId: string; reason: string | null }[] = [];
 
   async setShiftReadyOverride(driverId: string, reason: string | null): Promise<void> {

@@ -1,4 +1,5 @@
 ﻿// @vitest-environment node
+import type { AccountStatus } from "@/types/domain";
 import { beforeEach, describe, expect, it } from "vitest";
 import { ADMIN_PAGE_SIZE } from "@/lib/constants";
 import type { DocumentType as DriverDocumentType } from "@/types/domain";
@@ -425,6 +426,40 @@ describe("AdminService", () => {
       expect((await expectAppError(service.getDriver(ADMIN_ID, { driverId: D9 }))).code).toBe("NOT_FOUND");
       const bad = await expectAppError(service.getDriver(ADMIN_ID, { driverId: "" }));
       expect(bad.fieldErrors).toEqual({ driverId: "Driver not found" });
+    });
+  });
+
+  describe("marking a driver as reviewed", () => {
+    const flag = (status: AccountStatus) => {
+      admin.rows[0]!.profile = { ...admin.rows[0]!.profile, status };
+      admin.rows[0]!.driver = { ...admin.rows[0]!.driver, rereviewNeeded: true };
+    };
+
+    it("clears the flag on a Roster-Ready driver, who stays Roster-Ready, on record once", async () => {
+      flag("approved");
+      expect((await service.markDriverReviewed(ADMIN_ID, { driverId: D1 })).status).toBe("approved");
+      expect(admin.rows[0]!.driver.rereviewNeeded).toBe(false);
+      expect(admin.statusChanges).toEqual([]);
+      expect(admin.audit.map((entry) => [entry.action, entry.targetId])).toEqual([["driver_rereview_cleared", D1]]);
+
+      await service.markDriverReviewed(ADMIN_ID, { driverId: D1 });
+      expect(admin.audit).toHaveLength(1);
+    });
+
+    it("refuses a Registered driver, who is cleared by being marked Roster-Ready", async () => {
+      flag("pending");
+      expect((await expectAppError(service.markDriverReviewed(ADMIN_ID, { driverId: D1 }))).code).toBe("CONFLICT");
+      expect(admin.rows[0]!.driver.rereviewNeeded).toBe(true);
+      expect(admin.audit).toEqual([]);
+    });
+
+    it("is for admins only, and a missing driver is not found", async () => {
+      flag("approved");
+      for (const who of [USER_ID, CARRIER_USER_ID, "nobody"]) {
+        expect((await expectAppError(service.markDriverReviewed(who, { driverId: D1 }))).code).toBe("FORBIDDEN");
+      }
+      expect(admin.rows[0]!.driver.rereviewNeeded).toBe(true);
+      expect((await expectAppError(service.markDriverReviewed(ADMIN_ID, { driverId: "99999999-9999-4999-8999-999999999999" }))).code).toBe("NOT_FOUND");
     });
   });
 
