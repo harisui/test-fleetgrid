@@ -48,6 +48,8 @@ export interface AdminDriverRow extends DriverReviewRow {
   missingDocuments: DocumentType[];
   /** Inside the grace period: what the driver must add by rosterGraceUntil. Empty otherwise. */
   needsUpdate: ShiftReadyItem[];
+  /** Registered with everything on file: an admin can look and mark them Roster-Ready. */
+  readyToReview: boolean;
 }
 
 export interface DriverTiles {
@@ -330,6 +332,7 @@ export class AdminService {
       complete: row.driver.cardCompleted,
       missingDocuments: missingDocuments(heldBy.get(row.driver.id) ?? []),
       needsUpdate: inRosterGrace(row.driver, this.now()) ? shiftReadyMissing(row.driver, heldBy.get(row.driver.id) ?? []) : [],
+      readyToReview: row.profile.status === "pending" && shiftReadyMissing(row.driver, heldBy.get(row.driver.id) ?? []).length === 0,
       source: describeSource(row.profile.source, byId.get(row.profile.source.qrLinkId ?? "") ?? null),
     }));
   }
@@ -383,6 +386,7 @@ export function matches(row: AdminDriverRow, query: AdminDriversQuery): boolean 
     if (query.docs === "medical" && !lacks.includes("medical_card")) return false;
   }
   if (query.rereview === "yes" && !row.driver.rereviewNeeded) return false;
+  if (query.rereview === "ready" && !row.readyToReview) return false;
   if (query.twic) {
     const issue = twicIssue(row.driver);
     if (query.twic === "issue" && !issue) return false;

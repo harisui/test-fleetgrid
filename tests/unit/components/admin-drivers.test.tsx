@@ -51,6 +51,7 @@ const QR_LINK = {
 };
 
 const row = (overrides: Partial<AdminDriverRow> = {}): AdminDriverRow => ({
+  readyToReview: false,
   driver: buildDriver({ profileId: USER_ID, createdAt: "2026-10-27T14:00:00.000Z" }),
   profile: buildProfile({ id: USER_ID, status: "pending" }),
   inServiceArea: true,

@@ -225,6 +225,27 @@ test.describe("admin drivers", () => {
     expect(entry).toMatchObject({ action: "driver_approved", detail: { cdlState: "LA", overrideReason: "Moving to Houston, Texas CDL booked for next week" } });
   });
 
+  test("the Ready to review filter finds a Registered driver with everything on file", async ({ page }) => {
+    const { driverId, userId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
+    await login(page, PHONES.admin);
+    const list = adminList(page, "Drivers");
+
+    // No documents yet: not ready.
+    await page.goto("/admin/drivers?q=Pat+Driver&rereview=ready");
+    await expect(page.getByText("No drivers match these filters.")).toBeVisible();
+
+    // Everything on file: listed, under the filter's own name.
+    await uploadRequiredDocuments(driverId!);
+    await page.goto("/admin/drivers?q=Pat+Driver&rereview=ready");
+    await expect(list).toContainText("Pat Driver");
+    await expect(page.getByText("Review: Ready to review").first()).toBeVisible();
+
+    // Marked Roster-Ready: they leave the list.
+    await adminClient().from("profiles").update({ status: "approved" }).eq("id", userId);
+    await page.goto("/admin/drivers?q=Pat+Driver&rereview=ready");
+    await expect(page.getByText("No drivers match these filters.")).toBeVisible();
+  });
+
   test("Mark as reviewed clears the flag on a Roster-Ready driver in the grace period, with no text", async ({ page }) => {
     const { driverId, userId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
     await uploadRequiredDocuments(driverId!);

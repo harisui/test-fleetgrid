@@ -44,6 +44,7 @@ export const MISSING_DOCUMENT_OPTIONS = [
 export const REREVIEW_OPTIONS = [
   { value: "", label: "Any review" },
   { value: "yes", label: "Re-review needed" },
+  { value: "ready", label: "Ready to review" },
 ] as const;
 
 export const TWIC_FILTER_OPTIONS = [

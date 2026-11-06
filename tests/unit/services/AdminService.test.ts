@@ -265,6 +265,29 @@ describe("AdminService", () => {
         expect(await names("nodate")).toEqual([admin.rows[1]!.driver.id]);
       });
 
+      it("Ready to review lists Registered drivers with everything on file, and no one else", async () => {
+        const ready = async () => (await service.getDriversPage(ADMIN_ID, { rereview: "ready" })).rows.map((row) => row.driver.id);
+        const finish = (index: number) => {
+          const driverId = admin.rows[index]!.driver.id;
+          admin.rows[index]!.driver = { ...admin.rows[index]!.driver, fullName: "Pat Driver", cdlState: "TX", cardCompleted: true };
+          admin.requiredDocuments = (["cdl_front", "cdl_back", "medical_card"] as const).map((type) => ({ driverId, type }));
+        };
+        expect(await ready()).toEqual([]);
+
+        finish(0);
+        admin.rows[0]!.profile = { ...admin.rows[0]!.profile, status: "pending" };
+        expect(await ready()).toEqual([admin.rows[0]!.driver.id]);
+
+        // Already marked: not waiting for anyone.
+        admin.rows[0]!.profile = { ...admin.rows[0]!.profile, status: "approved" };
+        expect(await ready()).toEqual([]);
+
+        // Registered but with a name or card still to finish: not ready.
+        admin.rows[0]!.profile = { ...admin.rows[0]!.profile, status: "pending" };
+        admin.rows[0]!.driver = { ...admin.rows[0]!.driver, cdlState: null };
+        expect(await ready()).toEqual([]);
+      });
+
       it("filters by re-review needed", async () => {
         admin.rows[0]!.driver = { ...admin.rows[0]!.driver, rereviewNeeded: true };
         const page = await service.getDriversPage(ADMIN_ID, { rereview: "yes" });

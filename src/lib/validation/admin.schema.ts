@@ -26,7 +26,7 @@ export const CDL_STATE_FILTERS = ["", "tx", "other", "none"] as const;
 /** What a Registered driver still has to upload (CR-5). */
 export const MISSING_DOCUMENT_FILTERS = ["", "any", "cdl", "medical", "update"] as const;
 /** A driver sent back to Registered because a required document or the CDL state changed. */
-export const REREVIEW_FILTERS = ["", "yes"] as const;
+export const REREVIEW_FILTERS = ["", "yes", "ready"] as const;
 /** Turned away at the gate, twice in 90 days, or a yes with no date. */
 export const TWIC_FILTERS = ["", "issue", "review", "nodate"] as const;
 export const DRIVER_SORTS = ["created", "name", "status"] as const;
