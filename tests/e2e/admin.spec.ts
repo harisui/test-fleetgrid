@@ -250,6 +250,18 @@ test.describe("admin drivers", () => {
     expect(driver?.rereview_needed).toBe(false);
     expect(driver?.roster_grace_until).not.toBeNull();
     expect((await adminClient().from("sms_messages").select("id").eq("driver_id", driverId!)).data?.length).toBe(textsBefore);
+
+    // The three-dot menu brings the flag back; the driver stays Roster-Ready, with no text.
+    await sheet.getByRole("button", { name: "More actions" }).click();
+    await page.getByRole("menuitem", { name: "Mark for re-review" }).click();
+    await expect(sheet.locator("[data-slot=rereview]")).toBeVisible();
+    await expect(sheet.getByRole("button", { name: "Mark as reviewed" })).toBeVisible();
+    await expect(sheet.getByRole("button", { name: "More actions" })).toHaveCount(0);
+    await expect(sheet.getByRole("list", { name: "History" })).toContainText("Marked for re-review");
+    expect((await adminClient().from("profiles").select("status").eq("id", userId).single()).data?.status).toBe("approved");
+    expect((await adminClient().from("drivers").select("rereview_needed").eq("id", driverId!).single()).data?.rereview_needed).toBe(true);
+    expect((await adminClient().from("sms_messages").select("id").eq("driver_id", driverId!)).data?.length).toBe(textsBefore);
+    await new AxeBuilder({ page }).include("[data-slot=sheet-content]").analyze().then(({ violations }) => expect(violations).toEqual([]));
   });
 
   test("a new CDL photo from a Roster-Ready driver sends them back to Registered with Re-review needed", async ({ page }) => {

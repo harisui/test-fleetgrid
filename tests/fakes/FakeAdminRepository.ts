@@ -51,10 +51,10 @@ export class FakeAdminRepository implements IAdminRepository {
     return row.profile;
   }
 
-  async clearRereview(driverId: string): Promise<boolean> {
+  async setRereview(driverId: string, needed: boolean): Promise<boolean> {
     const row = this.rows.find((candidate) => candidate.driver.id === driverId);
-    if (!row?.driver.rereviewNeeded) return false;
-    row.driver = { ...row.driver, rereviewNeeded: false };
+    if (!row || row.driver.rereviewNeeded === needed) return false;
+    row.driver = { ...row.driver, rereviewNeeded: needed };
     return true;
   }
 

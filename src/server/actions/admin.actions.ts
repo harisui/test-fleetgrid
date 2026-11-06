@@ -7,7 +7,7 @@ import { getContainer } from "@/server/container";
 import { runAction, type Result } from "@/server/errors/AppError";
 import type { Profile } from "@/types/domain";
 
-type Change = "approveDriver" | "blockDriver" | "reopenDriver" | "markDriverReviewed";
+type Change = "approveDriver" | "blockDriver" | "reopenDriver" | "markDriverReviewed" | "markDriverForRereview";
 
 async function change(method: Change, input: unknown): Promise<Result<Profile>> {
   return runAction(async () => {
@@ -33,6 +33,11 @@ export async function blockDriverAction(input: unknown): Promise<Result<Profile>
 /** Clears Re-review needed on a Roster-Ready driver. No text goes out. */
 export async function markDriverReviewedAction(input: unknown): Promise<Result<Profile>> {
   return change("markDriverReviewed", input);
+}
+
+/** Brings Re-review needed back on a Roster-Ready driver. No text goes out. */
+export async function markDriverForRereviewAction(input: unknown): Promise<Result<Profile>> {
+  return change("markDriverForRereview", input);
 }
 
 export async function reopenDriverAction(input: unknown): Promise<Result<Profile>> {

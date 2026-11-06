@@ -2,6 +2,7 @@
 
 import type { ReactNode } from "react";
 import { Sheet, SheetContent, SheetDescription, SheetTitle } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
 
 interface DetailSheetProps {
   open: boolean;
@@ -11,6 +12,8 @@ interface DetailSheetProps {
   children: ReactNode;
   /** Actions, pinned to the bottom. */
   footer?: ReactNode;
+  /** Less common actions, beside the close button. */
+  menu?: ReactNode;
 }
 
 /**
@@ -18,11 +21,12 @@ interface DetailSheetProps {
  * right edge, 560px on a tablet, 640px on a desktop and the whole screen on a phone, with the actions in a
  * sticky footer.
  */
-export function DetailSheet({ open, onOpenChange, title, description, children, footer }: DetailSheetProps) {
+export function DetailSheet({ open, onOpenChange, title, description, children, footer, menu }: DetailSheetProps) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="gap-0 overflow-hidden">
-        <div className="flex flex-col gap-1 border-b border-border p-4 pr-14">
+        {menu && <div className="absolute top-3 right-14">{menu}</div>}
+        <div className={cn("flex flex-col gap-1 border-b border-border p-4", menu ? "pr-28" : "pr-14")}>
           <SheetTitle>{title}</SheetTitle>
           {description ? (
             <SheetDescription>{description}</SheetDescription>

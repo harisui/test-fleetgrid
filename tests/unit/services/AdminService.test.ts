@@ -446,6 +446,24 @@ describe("AdminService", () => {
       expect(admin.audit).toHaveLength(1);
     });
 
+    it("marking for re-review brings the flag back, on record once, and the driver stays Roster-Ready", async () => {
+      flag("approved");
+      admin.rows[0]!.driver = { ...admin.rows[0]!.driver, rereviewNeeded: false };
+      expect((await service.markDriverForRereview(ADMIN_ID, { driverId: D1 })).status).toBe("approved");
+      expect(admin.rows[0]!.driver.rereviewNeeded).toBe(true);
+      expect(admin.statusChanges).toEqual([]);
+      await service.markDriverForRereview(ADMIN_ID, { driverId: D1 });
+      expect(admin.audit.map((entry) => [entry.action, entry.targetId])).toEqual([["driver_rereview_requested", D1]]);
+    });
+
+    it("marking for re-review is for admins and Roster-Ready drivers only", async () => {
+      flag("pending");
+      admin.rows[0]!.driver = { ...admin.rows[0]!.driver, rereviewNeeded: false };
+      expect((await expectAppError(service.markDriverForRereview(ADMIN_ID, { driverId: D1 }))).code).toBe("CONFLICT");
+      expect((await expectAppError(service.markDriverForRereview(USER_ID, { driverId: D1 }))).code).toBe("FORBIDDEN");
+      expect(admin.rows[0]!.driver.rereviewNeeded).toBe(false);
+    });
+
     it("refuses a Registered driver, who is cleared by being marked Roster-Ready", async () => {
       flag("pending");
       expect((await expectAppError(service.markDriverReviewed(ADMIN_ID, { driverId: D1 }))).code).toBe("CONFLICT");

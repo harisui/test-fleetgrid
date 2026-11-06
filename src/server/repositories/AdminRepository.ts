@@ -42,8 +42,8 @@ export interface IAdminRepository {
   setProfileStatus(profileId: string, status: AccountStatus): Promise<Profile>;
   /** The reason a driver without a Texas CDL may be Shift-Ready, or null to clear it (CR-5). */
   setShiftReadyOverride(driverId: string, reason: string | null): Promise<void>;
-  /** Clears Re-review needed. False when it was already clear, so two admins record it once. */
-  clearRereview(driverId: string): Promise<boolean>;
+  /** Sets or clears Re-review needed. False when it already was, so two admins record it once. */
+  setRereview(driverId: string, needed: boolean): Promise<boolean>;
   /** Records what the admin did. Admins write in their own name (RLS). */
   writeAudit(entry: AuditEntryInput): Promise<AuditEntry>;
   /** The history of one record, newest first. */
@@ -121,8 +121,8 @@ export class AdminRepository extends BaseRepository implements IAdminRepository 
     if (error) throw this.toAppError(error);
   }
 
-  async clearRereview(driverId: string): Promise<boolean> {
-    const rows = this.unwrap(await this.supabase.from("drivers").update({ rereview_needed: false }).eq("id", driverId).eq("rereview_needed", true).select("id"));
+  async setRereview(driverId: string, needed: boolean): Promise<boolean> {
+    const rows = this.unwrap(await this.supabase.from("drivers").update({ rereview_needed: needed }).eq("id", driverId).eq("rereview_needed", !needed).select("id"));
     return rows.length > 0;
   }
 

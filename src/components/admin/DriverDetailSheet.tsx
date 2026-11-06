@@ -1,7 +1,7 @@
 "use client";
 
 import { format } from "date-fns";
-import { ExternalLink, FileText } from "lucide-react";
+import { EllipsisVertical, ExternalLink, FileText } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -17,6 +17,7 @@ import { SelfReportBadge } from "@/components/admin/SelfReportBadge";
 import { areaLabel, smsLabel } from "@/components/admin/DriversTable";
 import { SelfReportedTag } from "@/components/shared/SelfReportedTag";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Button } from "@/components/ui/button";
 import { CONFIRMATIONS, STATUS_DONE } from "@/lib/admin/options";
 import { ROSTER_READY, SHIFT_READY_ITEM_LABELS } from "@/lib/drivers/tiers";
@@ -33,6 +34,7 @@ import { formatE164ForDisplay } from "@/lib/phone";
 import {
   approveDriverAction,
   blockDriverAction,
+  markDriverForRereviewAction,
   markDriverReviewedAction,
   reopenDriverAction,
 } from "@/server/actions/admin.actions";
@@ -66,6 +68,7 @@ const HISTORY_LABELS: Partial<Record<AdminAction, string>> = {
   driver_reopened: "Moved to Registered",
   driver_rereview_needed: "Back to Registered for re-review",
   driver_rereview_cleared: "Marked as reviewed",
+  driver_rereview_requested: "Marked for re-review",
   driver_grace_expired: "Back to Registered: update not made in time",
   driver_auto_paused: "Paused: no-shows",
   driver_twic_flagged: "Turned away at gate: TWIC",
@@ -159,20 +162,21 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
     router.refresh();
   }
 
-  async function markReviewed() {
+  async function setRereview(needed: boolean) {
     setPending(true);
-    const result = await markDriverReviewedAction({ driverId: driver.id });
+    const result = await (needed ? markDriverForRereviewAction : markDriverReviewedAction)({ driverId: driver.id });
     setPending(false);
     if (!result.ok) {
       toast.error(result.error.message);
       return;
     }
-    toast.success("Marked as reviewed");
+    toast.success(needed ? "Marked for re-review" : "Marked as reviewed");
     router.refresh();
   }
 
   const canApprove = profile.status !== "approved";
   const canMarkReviewed = profile.status === "approved" && driver.rereviewNeeded;
+  const canMarkForRereview = profile.status === "approved" && !driver.rereviewNeeded;
   // Everything but the CDL state must be in; that one an admin may meet with a typed reason.
   const blocking = detail.missing.filter((item) => item !== "cdl_state");
   const needsReason = detail.missing.includes("cdl_state");
@@ -194,10 +198,24 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
         }}
         title={name}
         description={`Signed up ${format(new Date(driver.createdAt), "MMMM d, yyyy")}`}
+        menu={
+          canMarkForRereview ? (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="ghost" size="icon" disabled={pending} aria-label="More actions">
+                  <EllipsisVertical aria-hidden="true" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onSelect={() => void setRereview(true)}>Mark for re-review</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          ) : undefined
+        }
         footer={
           <>
             {canMarkReviewed && (
-              <Button type="button" size="md" onClick={() => void markReviewed()} disabled={pending}>
+              <Button type="button" size="md" onClick={() => void setRereview(false)} disabled={pending}>
                 Mark as reviewed
               </Button>
             )}

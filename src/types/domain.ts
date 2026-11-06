@@ -389,6 +389,7 @@ export const ADMIN_ACTIONS = [
   "driver_reopened",
   "driver_rereview_needed",
   "driver_rereview_cleared",
+  "driver_rereview_requested",
   "driver_grace_expired",
   "driver_removed",
   "driver_paused",
