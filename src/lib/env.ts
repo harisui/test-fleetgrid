@@ -80,6 +80,10 @@ export const serverEnvSchema = clientEnvSchema
     // "true" hides the carrier side: /carrier/* and the carrier sign-up go to a "coming soon"
     // page (src/lib/carrier/availability.ts). Off unless set to exactly "true".
     CARRIER_DISABLED: flag,
+    // A live test with real phones: shift alerts go only to these numbers, comma separated
+    // (src/lib/shifts/alertAllowlist.ts). Set but with no valid number, no alert goes at all.
+    // Kept raw, so an empty value still counts as set. Remove it after the test.
+    SHIFT_ALERTS_ONLY_TO: z.string().optional(),
     TEST_PHONE_DRIVER: optionalString,
     TEST_OTP: optionalString,
     NODE_ENV: optionalString,

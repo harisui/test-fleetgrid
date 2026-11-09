@@ -406,6 +406,10 @@ In `vercel.json`, all guarded by `CRON_SECRET`. Times are UTC. Vercel Hobby runs
 
 `/dev/phones` is the fake phone inbox ("Fake phones" below). It opens only with the fake sender and the local database.
 
+### A live test with real phones
+
+Set `SHIFT_ALERTS_ONLY_TO` in Vercel Production to the test numbers, comma separated (`+13085550100,+13605550100`), and redeploy, before the carrier side is turned on. While it is set, shift alerts go only to those numbers: real drivers are left out when a shift is matched (the carrier's "drivers match" count shows only the test numbers), and the one sending path refuses an alert to any other number. Set but with no valid number in it (`none`), no alert goes at all. Account texts are not affected. Remove it and redeploy after the test.
+
 ### Turning the carrier side off and on
 
 `CARRIER_DISABLED=true` in Vercel, then redeploy: the carrier pages and sign-up show "coming soon", nobody can post or release a shift, and no shift alert goes by any path. Account texts (welcome, reminders, notices) still go. Set it to `false` and redeploy to turn the carrier side on. It reads exactly `true`, so anything else means on.

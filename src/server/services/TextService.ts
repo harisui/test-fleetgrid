@@ -1,6 +1,7 @@
 import type { SmsKind } from "@/lib/shifts/texts";
 import { inBatches, SEND_CONCURRENCY } from "@/server/services/BroadcastService";
 import { quietHoursSendAt } from "@/lib/shifts/schedule";
+import { alertAllowed } from "@/lib/shifts/alertAllowlist";
 import { RETRYABLE_ERROR_CODES } from "@/lib/sms/retryable";
 import { SmsSendError, type ISmsProvider } from "@/server/providers/SmsProvider";
 import type { ISmsLogRepository } from "@/server/repositories/SmsLogRepository";
@@ -40,6 +41,8 @@ export class TextService {
     private readonly log: () => ISmsLogRepository,
     private readonly report: (message: string, detail?: unknown) => void = () => undefined,
     private readonly sleep: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    /** SHIFT_ALERTS_ONLY_TO: the last check, here where every text goes, whatever path sent it. */
+    private readonly alertsOnlyTo: () => ReadonlySet<string> | null = () => null,
   ) {}
 
   get sender(): string {
@@ -58,6 +61,10 @@ export class TextService {
       typeof links === "string" || links === null ? { shiftId: links } : links;
     if (to.smsOptedOut) {
       return { sent: false, sid: null, status: "skipped_opted_out", errorCode: null, messageId: null };
+    }
+    if (kind === "offer" && !alertAllowed(this.alertsOnlyTo(), to.phone)) {
+      this.report("A shift alert outside SHIFT_ALERTS_ONLY_TO was refused");
+      return { sent: false, sid: null, status: "skipped_test_mode", errorCode: null, messageId: null };
     }
     const log = this.log();
     const held = this.sms.kind === "held";

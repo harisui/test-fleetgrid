@@ -1,4 +1,5 @@
 import { RESUME_AFTER_MS, SHIFT_ALERT_CAP } from "@/lib/constants";
+import { alertAllowed } from "@/lib/shifts/alertAllowlist";
 import { isBookable, sendAfterFor } from "@/lib/shifts/schedule";
 import { shuffleAndCap } from "@/lib/shifts/shuffle";
 import { offerText } from "@/lib/shifts/texts";
@@ -37,11 +38,18 @@ export class BroadcastService {
     private readonly random: () => number = Math.random,
     /** CARRIER_DISABLED: no shift alert goes by any path; held shifts wait, untouched. */
     private readonly carrierDisabled: () => boolean = () => false,
+    /** SHIFT_ALERTS_ONLY_TO: during a live test, only these numbers are offered a shift. */
+    private readonly alertsOnlyTo: () => ReadonlySet<string> | null = () => null,
   ) {}
 
   /** How many drivers a shift with these requirements would reach now. */
   async countMatches(...args: Parameters<IShiftRepository["matchingDrivers"]>): Promise<number> {
-    return (await this.shifts.matchingDrivers(...args)).length;
+    return this.allowed(await this.shifts.matchingDrivers(...args)).length;
+  }
+
+  private allowed(matches: MatchedDriver[]): MatchedDriver[] {
+    const allowlist = this.alertsOnlyTo();
+    return matches.filter((match) => alertAllowed(allowlist, match.phone));
   }
 
   async broadcast(shiftId: string, now: Date = new Date()): Promise<BroadcastResult> {
@@ -50,7 +58,7 @@ export class BroadcastService {
     if (!shift || shift.status !== "open" || shift.carrierPausedAt || !isBookable(shift, now)) return NOTHING;
 
     const exclude = await this.recipients.noShowDriverIds(shift.id);
-    const matches = await this.shifts.matchingDrivers(shift, shift, exclude, { startsAt: shift.startsAt, endsAt: shift.endsAt });
+    const matches = this.allowed(await this.shifts.matchingDrivers(shift, shift, exclude, { startsAt: shift.startsAt, endsAt: shift.endsAt }));
     const atCap = new Set(await this.recipients.driversAtAlertCap(matches.map((match) => match.driverId), SHIFT_ALERT_CAP));
     const chosen = shuffleAndCap(matches.filter((match) => !atCap.has(match.driverId)), this.random);
     const capped = matches.filter((match) => atCap.has(match.driverId));
@@ -130,8 +138,10 @@ export class BroadcastService {
       if (!shifts.has(row.shiftId)) shifts.set(row.shiftId, await this.shifts.findById(row.shiftId));
     }
     const atCap = new Set(await this.recipients.driversAtAlertCap(stale.map((row) => row.driverId), SHIFT_ALERT_CAP));
+    const allowlist = this.alertsOnlyTo();
     let sent = 0;
     await inBatches(stale, SEND_CONCURRENCY, async (row) => {
+      if (!alertAllowed(allowlist, row.phone)) return;
       const shift = shifts.get(row.shiftId);
       if (!shift || sendAfterFor(now, new Date(shift.startsAt))) return;
       if (atCap.has(row.driverId)) {

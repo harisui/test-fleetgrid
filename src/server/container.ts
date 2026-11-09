@@ -1,4 +1,5 @@
 import { getServerEnv, getSiteEnv } from "@/lib/env";
+import { shiftAlertAllowlist } from "@/lib/shifts/alertAllowlist";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createServerClient } from "@/lib/supabase/server";
 import { getPaymentProvider } from "@/server/providers/createPaymentProvider";
@@ -67,6 +68,9 @@ export function smsProviderKind(): ISmsProvider["kind"] {
 
 const reportError = (message: string, detail?: unknown) => console.error(`[FleetGrid] ${message}`, detail);
 
+/** SHIFT_ALERTS_ONLY_TO, read on each use (src/lib/shifts/alertAllowlist.ts). */
+const alertsOnlyTo = () => shiftAlertAllowlist(getServerEnv().SHIFT_ALERTS_ONLY_TO);
+
 /**
  * The texting side with the service role: broadcasts, replies, delivery reports and notices.
  * Used by the cron, the Twilio webhooks and, after their own checks, the services below.
@@ -75,8 +79,8 @@ export function buildTextingServices() {
   const admin = createAdminClient();
   const shifts = new ShiftRepository(admin);
   const recipients = new BroadcastRepository(admin);
-  const textService = new TextService(getSmsProvider(), () => new SmsLogRepository(admin), reportError);
-  const broadcastService = new BroadcastService(shifts, recipients, textService, undefined, () => getServerEnv().CARRIER_DISABLED);
+  const textService = new TextService(getSmsProvider(), () => new SmsLogRepository(admin), reportError, undefined, alertsOnlyTo);
+  const broadcastService = new BroadcastService(shifts, recipients, textService, undefined, () => getServerEnv().CARRIER_DISABLED, alertsOnlyTo);
   const inboundService = new InboundService(
     new TextingDriverRepository(admin),
     shifts,
@@ -174,7 +178,7 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     zipProvider,
     serviceAreas,
     () => buildTextingServices().broadcastService,
-    new TextService(getSmsProvider(), () => new SmsLogRepository(createAdminClient()), reportError),
+    new TextService(getSmsProvider(), () => new SmsLogRepository(createAdminClient()), reportError, undefined, alertsOnlyTo),
     undefined,
     () => env.CARRIER_DISABLED,
   );
@@ -205,7 +209,7 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     new NoticeRepository(createAdminClient()),
     profiles,
     (entry) => adminRepository.writeAudit(entry),
-    new TextService(getSmsProvider(), () => new SmsLogRepository(createAdminClient()), reportError),
+    new TextService(getSmsProvider(), () => new SmsLogRepository(createAdminClient()), reportError, undefined, alertsOnlyTo),
   );
 
   // Documents reminders (CR-5): the admin's own audit entry; drivers and batches through the service role.
@@ -214,7 +218,7 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     new NoticeRepository(createAdminClient()),
     profiles,
     (entry) => adminRepository.writeAudit(entry),
-    new TextService(getSmsProvider(), () => new SmsLogRepository(createAdminClient()), reportError),
+    new TextService(getSmsProvider(), () => new SmsLogRepository(createAdminClient()), reportError, undefined, alertsOnlyTo),
   );
 
   return {
