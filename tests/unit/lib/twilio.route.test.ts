@@ -19,7 +19,8 @@ const services = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/env", () => ({ getServerEnv: () => env }));
-vi.mock("@/server/container", () => ({ buildTextingServices: () => services }));
+const fillRun = vi.fn();
+vi.mock("@/server/container", () => ({ buildTextingServices: () => services, buildFillService: () => ({ runDaily: fillRun }) }));
 
 const TOKEN = "test-auth-token";
 const REPLY = { MessageSid: "SM0123456789", From: "+15555553001", To: "+18888692040", Body: "YES 4821", AccountSid: "AC1" };
@@ -121,11 +122,14 @@ describe("GET /api/cron/shifts", () => {
     services.shifts.recordEnded.mockResolvedValue(9);
     services.broadcastService.resumeQueued.mockResolvedValue(10);
     services.inboundService.reprocessUnfinished.mockResolvedValue(11);
+    const fills = { recorded: 4, included: 1, billed: 3, invoicedNow: 0, failed: 0 };
+    fillRun.mockResolvedValue(fills);
     expect((await shiftsCron(new Request("http://localhost/api/cron/shifts"))).status).toBe(401);
     const response = await shiftsCron(
       new Request("http://localhost/api/cron/shifts", { headers: { authorization: "Bearer s3cret" } }),
     );
-    expect(await response.json()).toEqual({ ok: true, ended: 9, resumed: 10, repliesHandled: 11, expired: 2, dispatched: 1, approvals: 3, notices: 5, welcomes: 6, docReminders: 7, held: 8 });
+    expect(await response.json()).toEqual({ ok: true, ended: 9, resumed: 10, repliesHandled: 11, expired: 2, dispatched: 1, approvals: 3, notices: 5, welcomes: 6, docReminders: 7, held: 8, fills });
+    expect(fillRun).toHaveBeenCalledOnce();
   });
 });
 

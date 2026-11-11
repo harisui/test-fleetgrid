@@ -10,6 +10,28 @@ export interface SubscriptionSnapshot {
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
   canceledAt: string | null;
+  /** The trial window, when the subscription had one. */
+  trialStart: string | null;
+  trialEnd: string | null;
+}
+
+/** One completed fill to charge: a pending item on the customer, picked up by their next invoice. */
+export interface FillChargeInput {
+  customerId: string;
+  amountCents: number;
+  description: string;
+  /** The same key twice returns the first item: a re-run never charges twice. */
+  idempotencyKey: string;
+  metadata: Record<string, string>;
+}
+
+/** Takes back one fill's charge (an admin waive). */
+export interface ReverseFillChargeInput {
+  customerId: string;
+  invoiceItemId: string;
+  amountCents: number;
+  description: string;
+  idempotencyKey: string;
 }
 
 /** A verified provider event, reduced to what the subscription service acts on. */
@@ -71,6 +93,19 @@ export interface IPaymentProvider {
   cancelSubscription(subscriptionId: string): Promise<void>;
   /** Verifies the signature and reduces the event. Throws a VALIDATION AppError when it is not genuine. */
   parseWebhookEvent(rawBody: string, signature: string | null): Promise<PaymentEvent>;
+  /** Adds a fill's charge to the customer's next invoice. Returns the invoice item id. */
+  createFillCharge(input: FillChargeInput): Promise<string>;
+  /**
+   * Invoices every pending item of the customer at once (a one-off invoice, charged to the
+   * card on file): used when the subscription has ended, so no fill goes unbilled. Null when
+   * nothing is pending, so a second call does nothing.
+   */
+  invoicePendingNow(customerId: string): Promise<string | null>;
+  /**
+   * Removes a fill's charge still waiting for an invoice, or, once invoiced, credits the
+   * amount to the customer's balance (taken off their next invoice).
+   */
+  reverseFillCharge(input: ReverseFillChargeInput): Promise<"removed" | "credited">;
   /** Test mode only: marks the customer's checkout as paid and returns the subscription. */
   simulateCheckoutPaid?(customerId: string): Promise<SubscriptionSnapshot>;
 }

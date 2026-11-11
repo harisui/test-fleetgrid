@@ -40,6 +40,15 @@ class UnconfiguredPaymentProvider implements IPaymentProvider {
   parseWebhookEvent(): Promise<PaymentEvent> {
     return this.fail();
   }
+  createFillCharge(): Promise<string> {
+    return this.fail();
+  }
+  invoicePendingNow(): Promise<string | null> {
+    return this.fail();
+  }
+  reverseFillCharge(): Promise<"removed" | "credited"> {
+    return this.fail();
+  }
 }
 
 /** One provider per server process: the test one keeps its customers in memory. */

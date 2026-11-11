@@ -56,6 +56,8 @@ describe("TestPaymentProvider", () => {
       currentPeriodEnd: "2026-11-12T12:00:00.000Z",
       cancelAtPeriodEnd: false,
       canceledAt: null,
+      trialStart: null,
+      trialEnd: null,
     });
     await expect(payments.getSubscription("sub_test_0002")).resolves.toEqual(subscription);
     const second = await payments.simulateCheckoutPaid(customerId);
@@ -104,6 +106,8 @@ describe("StripeProvider", () => {
       currentPeriodEnd: "2026-11-13T12:00:00.000Z",
       cancelAtPeriodEnd: false,
       canceledAt: null,
+      trialStart: null,
+      trialEnd: null,
     });
     expect(
       snapshotOf(

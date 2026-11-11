@@ -353,8 +353,31 @@ export interface Subscription {
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
   canceledAt: string | null;
+  /** The trial window, when the subscription had one. */
+  trialStart: string | null;
+  trialEnd: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+export type FillCharge = "included" | "billable" | "waived";
+
+/** A completed fill (0039): a booked shift 2 hours past its end, with no no-show or cancel. */
+export interface ShiftFill {
+  id: string;
+  shiftId: string | null;
+  carrierId: string | null;
+  driverId: string | null;
+  shiftStartsAt: string;
+  shiftEndsAt: string;
+  completedAt: string;
+  charge: FillCharge;
+  amountCents: number;
+  stripeInvoiceItemId: string | null;
+  billedAt: string | null;
+  waivedAt: string | null;
+  waivedBy: string | null;
+  waiveReason: string | null;
 }
 
 /** A carrier waiting for FleetGrid to reach their yard. */

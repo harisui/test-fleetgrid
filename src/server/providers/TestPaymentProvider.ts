@@ -2,11 +2,23 @@ import { AppError } from "@/server/errors/AppError";
 import type {
   CheckoutSessionInput,
   CreateCustomerInput,
+  FillChargeInput,
   IPaymentProvider,
   PaymentEvent,
   PortalSessionInput,
+  ReverseFillChargeInput,
   SubscriptionSnapshot,
 } from "@/server/providers/PaymentProvider";
+
+/** A fill charge as the test provider keeps it: pending until an invoice takes it. */
+export interface TestInvoiceItem {
+  id: string;
+  customerId: string;
+  amountCents: number;
+  description: string;
+  metadata: Record<string, string>;
+  invoiceId: string | null;
+}
 
 /** The path of the in-app page that stands in for Stripe Checkout in test mode. */
 export const TEST_CHECKOUT_PATH = "/carrier/billing/test-checkout";
@@ -26,6 +38,10 @@ export class TestPaymentProvider implements IPaymentProvider {
   readonly cancelled: string[] = [];
   /** Events parseWebhookEvent returns, keyed by the signature a test sends. */
   readonly events = new Map<string, PaymentEvent>();
+  readonly invoiceItems = new Map<string, TestInvoiceItem>();
+  readonly invoices: { id: string; customerId: string; itemIds: string[] }[] = [];
+  readonly credits: { customerId: string; amountCents: number; description: string }[] = [];
+  private readonly idempotency = new Map<string, string>();
   private sequence = 0;
 
   constructor(
@@ -94,6 +110,53 @@ export class TestPaymentProvider implements IPaymentProvider {
     });
   }
 
+  async createFillCharge(input: FillChargeInput): Promise<string> {
+    if (!this.customers.has(input.customerId)) throw AppError.notFound("Unknown customer");
+    const known = this.idempotency.get(input.idempotencyKey);
+    if (known) return known;
+    const id = this.nextId("ii");
+    this.invoiceItems.set(id, {
+      id,
+      customerId: input.customerId,
+      amountCents: input.amountCents,
+      description: input.description,
+      metadata: input.metadata,
+      invoiceId: null,
+    });
+    this.idempotency.set(input.idempotencyKey, id);
+    return id;
+  }
+
+  /** The pending items of a customer, as the next invoice would take them. */
+  pendingItems(customerId: string): TestInvoiceItem[] {
+    return [...this.invoiceItems.values()].filter((item) => item.customerId === customerId && item.invoiceId === null);
+  }
+
+  async invoicePendingNow(customerId: string): Promise<string | null> {
+    const pending = this.pendingItems(customerId);
+    if (pending.length === 0) return null;
+    const id = this.nextId("in");
+    for (const item of pending) item.invoiceId = id;
+    this.invoices.push({ id, customerId, itemIds: pending.map((item) => item.id) });
+    return id;
+  }
+
+  async reverseFillCharge(input: ReverseFillChargeInput): Promise<"removed" | "credited"> {
+    const known = this.idempotency.get(input.idempotencyKey);
+    if (known) return known as "removed" | "credited";
+    const item = this.invoiceItems.get(input.invoiceItemId);
+    let outcome: "removed" | "credited";
+    if (item && item.invoiceId === null) {
+      this.invoiceItems.delete(item.id);
+      outcome = "removed";
+    } else {
+      this.credits.push({ customerId: input.customerId, amountCents: input.amountCents, description: input.description });
+      outcome = "credited";
+    }
+    this.idempotency.set(input.idempotencyKey, outcome);
+    return outcome;
+  }
+
   async parseWebhookEvent(rawBody: string, signature: string | null): Promise<PaymentEvent> {
     const event = signature ? this.events.get(signature) : undefined;
     if (!event) throw AppError.validation("Invalid Stripe signature");
@@ -113,6 +176,8 @@ export class TestPaymentProvider implements IPaymentProvider {
       currentPeriodEnd: periodEnd.toISOString(),
       cancelAtPeriodEnd: false,
       canceledAt: null,
+      trialStart: null,
+      trialEnd: null,
     };
     this.subscriptions.set(subscription.stripeSubscriptionId, subscription);
     return subscription;

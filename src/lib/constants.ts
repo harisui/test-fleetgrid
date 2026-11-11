@@ -24,6 +24,16 @@ export const SMS_SEGMENT_COST_ESTIMATE_USD = 0.011;
 /** The same price in dollars, for the admin's monthly recurring revenue. */
 export const SUBSCRIPTION_PRICE_DOLLARS = 399;
 export const SUBSCRIPTION_PLAN_NAME = "FleetGrid Carrier";
+/**
+ * Pricing of 2026-11-11 (Artifacts/pricing-plan.md): a completed fill costs this, flat. Fills
+ * are billed as Stripe invoice items in cents; the monthly price lives in Stripe.
+ */
+export const FILL_FEE_CENTS = 3500;
+/** The trial: length, and how many completed fills of shifts started inside it are free. */
+export const TRIAL_DAYS = 7;
+export const TRIAL_INCLUDED_FILLS = 3;
+/** A booked shift becomes a completed fill this long after its end (0039 fill_grace()). */
+export const FILL_GRACE_HOURS = 2;
 /** Driver search (T2.7): results per page and the distance from the yard. */
 export const SEARCH_PAGE_SIZE = 20;
 export const SEARCH_RADIUS_DEFAULT_MILES = 50;

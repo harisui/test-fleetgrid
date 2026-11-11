@@ -15,6 +15,8 @@ export interface SubscriptionUpsert {
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
   canceledAt: string | null;
+  trialStart: string | null;
+  trialEnd: string | null;
 }
 
 export interface ISubscriptionRepository {
@@ -41,6 +43,8 @@ export function mapSubscription(row: SubscriptionRow): Subscription {
     currentPeriodEnd: row.current_period_end,
     cancelAtPeriodEnd: row.cancel_at_period_end,
     canceledAt: row.canceled_at,
+    trialStart: row.trial_start,
+    trialEnd: row.trial_end,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -95,6 +99,8 @@ export class SubscriptionRepository extends BaseRepository implements ISubscript
           current_period_end: input.currentPeriodEnd,
           cancel_at_period_end: input.cancelAtPeriodEnd,
           canceled_at: input.canceledAt,
+          trial_start: input.trialStart,
+          trial_end: input.trialEnd,
         },
         { onConflict: "stripe_subscription_id" },
       )

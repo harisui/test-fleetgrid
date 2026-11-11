@@ -46,6 +46,8 @@ const snapshot = (overrides: Partial<SubscriptionSnapshot> = {}): SubscriptionSn
   currentPeriodEnd: "2026-11-13T12:00:00.000Z",
   cancelAtPeriodEnd: false,
   canceledAt: null,
+  trialStart: null,
+  trialEnd: null,
   ...overrides,
 });
 
@@ -492,6 +494,9 @@ describe("SubscriptionService", () => {
         resumeSubscription: (id) => payments.resumeSubscription(id),
         cancelSubscription: (id) => payments.cancelSubscription(id),
         parseWebhookEvent: (body, signature) => payments.parseWebhookEvent(body, signature),
+        createFillCharge: (input) => payments.createFillCharge(input),
+        invoicePendingNow: (id) => payments.invoicePendingNow(id),
+        reverseFillCharge: (input) => payments.reverseFillCharge(input),
       };
       const stripeLike = new SubscriptionService(
         carrierService,

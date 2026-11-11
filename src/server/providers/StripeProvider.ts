@@ -1,13 +1,16 @@
 import "server-only";
+import { createHash } from "node:crypto";
 import Stripe from "stripe";
 import { SUBSCRIPTION_PLAN_NAME } from "@/lib/constants";
 import { AppError } from "@/server/errors/AppError";
 import type {
   CheckoutSessionInput,
   CreateCustomerInput,
+  FillChargeInput,
   IPaymentProvider,
   PaymentEvent,
   PortalSessionInput,
+  ReverseFillChargeInput,
   SubscriptionSnapshot,
 } from "@/server/providers/PaymentProvider";
 import { SUBSCRIPTION_STATUSES, type SubscriptionStatus } from "@/types/domain";
@@ -46,6 +49,8 @@ export function snapshotOf(subscription: Stripe.Subscription): SubscriptionSnaps
     currentPeriodEnd: isoFromSeconds(item?.current_period_end),
     cancelAtPeriodEnd: subscription.cancel_at_period_end || Boolean(subscription.cancel_at),
     canceledAt: isoFromSeconds(subscription.canceled_at),
+    trialStart: isoFromSeconds(subscription.trial_start),
+    trialEnd: isoFromSeconds(subscription.trial_end),
   };
 }
 
@@ -154,6 +159,63 @@ export class StripeProvider implements IPaymentProvider {
       if (error instanceof Stripe.errors.StripeError && error.statusCode === 404) return;
       throw error;
     }
+  }
+
+  async createFillCharge(input: FillChargeInput): Promise<string> {
+    // No subscription on the item: the customer's next invoice (the monthly one, or the
+    // one-off below) takes it.
+    const item = await this.stripe.invoiceItems.create(
+      {
+        customer: input.customerId,
+        amount: input.amountCents,
+        currency: "usd",
+        description: input.description,
+        metadata: input.metadata,
+      },
+      { idempotencyKey: input.idempotencyKey },
+    );
+    return item.id;
+  }
+
+  async invoicePendingNow(customerId: string): Promise<string | null> {
+    const pending = await this.stripe.invoiceItems.list({ customer: customerId, pending: true, limit: 100 });
+    if (pending.data.length === 0) return null;
+    // Checkout saves the card on the subscription, not the customer: charge the same card.
+    const [latest] = (await this.stripe.subscriptions.list({ customer: customerId, status: "all", limit: 1 })).data;
+    const card = idOf(latest?.default_payment_method ?? null);
+    const key = createHash("sha256")
+      .update(pending.data.map((item) => item.id).sort().join(","))
+      .digest("hex")
+      .slice(0, 32);
+    const invoice = await this.stripe.invoices.create(
+      {
+        customer: customerId,
+        collection_method: "charge_automatically",
+        pending_invoice_items_behavior: "include",
+        auto_advance: true,
+        description: "Completed fills not yet invoiced",
+        ...(card ? { default_payment_method: card } : {}),
+      },
+      { idempotencyKey: `fills-now-${key}` },
+    );
+    if (!invoice.id) throw AppError.internal(new Error("Stripe returned no invoice id"));
+    await this.stripe.invoices.finalizeInvoice(invoice.id, { auto_advance: true });
+    return invoice.id;
+  }
+
+  async reverseFillCharge(input: ReverseFillChargeInput): Promise<"removed" | "credited"> {
+    const item = await this.stripe.invoiceItems.retrieve(input.invoiceItemId);
+    if (!item.invoice) {
+      await this.stripe.invoiceItems.del(input.invoiceItemId);
+      return "removed";
+    }
+    // Invoiced already: a credit on the customer's balance comes off their next invoice.
+    await this.stripe.customers.createBalanceTransaction(
+      input.customerId,
+      { amount: -input.amountCents, currency: "usd", description: input.description },
+      { idempotencyKey: input.idempotencyKey },
+    );
+    return "credited";
   }
 
   async parseWebhookEvent(rawBody: string, signature: string | null): Promise<PaymentEvent> {

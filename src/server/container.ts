@@ -17,6 +17,7 @@ import { ConsentLogRepository } from "@/server/repositories/ConsentLogRepository
 import { DocumentRepository } from "@/server/repositories/DocumentRepository";
 import { DriverNotificationRepository } from "@/server/repositories/DriverNotificationRepository";
 import { DriverRepository } from "@/server/repositories/DriverRepository";
+import { FillRepository } from "@/server/repositories/FillRepository";
 import { MessagingRepository } from "@/server/repositories/MessagingRepository";
 import { NoticeRepository } from "@/server/repositories/NoticeRepository";
 import { DriverSearchRepository } from "@/server/repositories/DriverSearchRepository";
@@ -43,6 +44,7 @@ import { DriverSearchService } from "@/server/services/DriverSearchService";
 import { DriverNotificationService } from "@/server/services/DriverNotificationService";
 import { DocReminderService } from "@/server/services/DocReminderService";
 import { DriverService } from "@/server/services/DriverService";
+import { FillService } from "@/server/services/FillService";
 import { InboundService } from "@/server/services/InboundService";
 import { MessagingService } from "@/server/services/MessagingService";
 import { NoticeService } from "@/server/services/NoticeService";
@@ -118,6 +120,19 @@ export function buildTextingServices() {
     broadcastService,
     inboundService,
   };
+}
+
+/** Completed fills and their billing (pricing of 2026-11-11): service role, for the job and Stripe events. */
+export function buildFillService(): FillService {
+  return new FillService(
+    {
+      fills: () => new FillRepository(createAdminClient()),
+      carriers: () => new CarrierRepository(createAdminClient()),
+      subscriptions: () => new SubscriptionRepository(createAdminClient()),
+    },
+    getPaymentProvider(getServerEnv()),
+    reportError,
+  );
 }
 
 /** Wires repositories into services for one Supabase client. */

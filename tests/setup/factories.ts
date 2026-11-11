@@ -313,6 +313,8 @@ export function buildSubscription(overrides: Partial<Subscription> = {}): Subscr
       currentPeriodEnd: "2026-11-13T12:00:00.000Z",
       cancelAtPeriodEnd: false,
       canceledAt: null,
+      trialStart: null,
+      trialEnd: null,
       createdAt: TIMESTAMP,
       updatedAt: TIMESTAMP,
     },

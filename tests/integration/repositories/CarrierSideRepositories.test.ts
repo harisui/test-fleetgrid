@@ -128,6 +128,8 @@ describe("carrier-side repositories", () => {
         currentPeriodEnd: "2026-11-13T12:00:00.000Z",
         cancelAtPeriodEnd: false,
         canceledAt: null,
+        trialStart: null,
+        trialEnd: null,
       });
       expect(first).toMatchObject({ status: "trialing", stripeSubscriptionId: stripeId });
 
@@ -140,6 +142,8 @@ describe("carrier-side repositories", () => {
         currentPeriodEnd: "2026-11-13T12:00:00.000Z",
         cancelAtPeriodEnd: false,
         canceledAt: "2026-10-13T12:00:00.000Z",
+        trialStart: null,
+        trialEnd: null,
       });
       expect(second.id).toBe(first.id);
       expect(second.status).toBe("canceled");
