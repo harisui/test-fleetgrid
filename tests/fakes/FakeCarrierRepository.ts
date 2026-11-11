@@ -50,6 +50,7 @@ export class FakeCarrierRepository implements ICarrierRepository {
       profileId,
       ...input,
       stripeCustomerId: null,
+      trialUsedAt: null,
       createdAt: TIMESTAMP,
       updatedAt: TIMESTAMP,
     };

@@ -31,6 +31,9 @@ export default async function CarrierBillingPage({ searchParams }: PageProps<"/c
         portalAvailable={billing.portalAvailable}
         testMode={billing.testMode}
         checkoutResult={checkoutResult}
+        trialAvailable={billing.trialAvailable}
+        trialWouldEnd={billing.trialWouldEnd}
+        fills={billing.fills}
       />
     </div>
   );

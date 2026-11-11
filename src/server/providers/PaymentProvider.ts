@@ -55,6 +55,8 @@ export interface CheckoutSessionInput {
   carrierId: string;
   successUrl: string;
   cancelUrl: string;
+  /** Days of trial (card still required), or null when the carrier has had their trial. */
+  trialDays: number | null;
 }
 
 export interface PortalSessionInput {
@@ -93,6 +95,10 @@ export interface IPaymentProvider {
   cancelSubscription(subscriptionId: string): Promise<void>;
   /** Verifies the signature and reduces the event. Throws a VALIDATION AppError when it is not genuine. */
   parseWebhookEvent(rawBody: string, signature: string | null): Promise<PaymentEvent>;
+  /** The fingerprint of the card on the subscription, to allow one trial per card. Never card data. */
+  trialCardFingerprint(subscriptionId: string): Promise<string | null>;
+  /** Ends a trial at once: the first monthly charge is taken now. Returns the subscription after. */
+  endTrialNow(subscriptionId: string): Promise<SubscriptionSnapshot>;
   /** Adds a fill's charge to the customer's next invoice. Returns the invoice item id. */
   createFillCharge(input: FillChargeInput): Promise<string>;
   /**

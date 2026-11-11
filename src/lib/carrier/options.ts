@@ -1,7 +1,12 @@
 import {
+  FILL_GRACE_HOURS,
+  FILL_PRICE_LABEL,
+  INVOICE_TAX_FOOTER,
   SEARCH_RADIUS_DEFAULT_MILES,
   SUBSCRIPTION_PLAN_NAME,
   SUBSCRIPTION_PRICE_LABEL,
+  TRIAL_DAYS,
+  TRIAL_INCLUDED_FILLS,
 } from "@/lib/constants";
 import type { Subscription, SubscriptionStatus } from "@/types/domain";
 
@@ -10,12 +15,48 @@ import type { Subscription, SubscriptionStatus } from "@/types/domain";
 export const PLAN = {
   name: SUBSCRIPTION_PLAN_NAME,
   price: SUBSCRIPTION_PRICE_LABEL,
+  fillPrice: FILL_PRICE_LABEL,
   includes: [
     "Search local CDL drivers near your yard",
     "See driver CDL class, endorsements, experience, and availability",
     "Broadcast shifts by text",
   ],
 } as const;
+
+/**
+ * The price disclosure shown before the card is entered (pricing of 2026-11-11, the attorney's
+ * draft "Fees and Trial"). Carrier-facing wording: it goes to the client before a deploy, and
+ * a change bumps BILLING_DISCLOSURE_VERSION. `firstCharge` is the date written out.
+ */
+export function priceDisclosure(trial: { firstCharge: string } | null): string[] {
+  const fillRule = `A shift counts as a completed fill ${FILL_GRACE_HOURS} hours after its scheduled end, unless before then you report a no-show, release it or cancel it.`;
+  const cancel = "Cancel online at any time from Manage billing.";
+  if (trial) {
+    return [
+      `${TRIAL_DAYS}-day free trial. A card is required to start it.`,
+      `The first ${TRIAL_INCLUDED_FILLS} completed fills of shifts that start during the trial are included at no charge. Each one after that is $35.`,
+      `Unless you cancel, your card is charged $99 on ${trial.firstCharge}, when the trial ends, and then $99 on the same date every month.`,
+      "Completed fills are $35 each, flat, and are added to your next monthly invoice.",
+      fillRule,
+      `${cancel} Cancel before ${trial.firstCharge} and the $99 is never charged; fills beyond the ${TRIAL_INCLUDED_FILLS} included are still billed.`,
+      INVOICE_TAX_FOOTER,
+    ];
+  }
+  return [
+    "Your card is charged $99 today, and then $99 on the same date every month.",
+    "Completed fills are $35 each, flat, and are added to your next monthly invoice.",
+    fillRule,
+    `${cancel} Fills completed before you cancel are still billed.`,
+    INVOICE_TAX_FOOTER,
+  ];
+}
+
+/** The checkbox before the card. */
+export function priceAcknowledgment(trial: { firstCharge: string } | null): string {
+  return trial
+    ? `I have read the pricing above. My card is charged $99 on ${trial.firstCharge} and every month after, plus $35 per completed fill, unless I cancel before then.`
+    : "I have read the pricing above. My card is charged $99 today and every month after, plus $35 per completed fill, until I cancel.";
+}
 
 /** How each Stripe status reads, and whether it grants access. */
 export const SUBSCRIPTION_STATUS_LABELS: Record<SubscriptionStatus, string> = {

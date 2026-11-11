@@ -39,17 +39,22 @@ export async function lookupYardZipAction(zip: unknown): Promise<Result<ZipLooku
   });
 }
 
+/** The caller's address and browser, kept with an acceptance or acknowledgment. */
+async function requestContext(): Promise<{ ip: string | null; userAgent: string | null }> {
+  const requestHeaders = await headers();
+  const forwarded = requestHeaders.get("x-forwarded-for");
+  return {
+    ip: forwarded ? forwarded.split(",")[0].trim() : (requestHeaders.get("x-real-ip") ?? null),
+    userAgent: requestHeaders.get("user-agent"),
+  };
+}
+
 /** Records the Terms acceptance with the caller's address and browser. */
 export async function acceptTermsAction(input: unknown): Promise<Result<TosAcceptance>> {
   return runAction(async () => {
     const { user } = await requireRole("carrier");
     const { carrierService } = await getContainer();
-    const requestHeaders = await headers();
-    const forwarded = requestHeaders.get("x-forwarded-for");
-    const acceptance = await carrierService.acceptTerms(user.id, input, {
-      ip: forwarded ? forwarded.split(",")[0].trim() : (requestHeaders.get("x-real-ip") ?? null),
-      userAgent: requestHeaders.get("user-agent"),
-    });
+    const acceptance = await carrierService.acceptTerms(user.id, input, await requestContext());
     revalidatePath("/carrier", "layout");
     return acceptance;
   });
@@ -65,12 +70,15 @@ export async function joinWaitlistAction(): Promise<Result<WaitlistEntry>> {
   });
 }
 
-/** Starts payment. Returns the URL to send the browser to (Stripe Checkout, or the test page). */
-export async function startCheckoutAction(): Promise<Result<{ url: string }>> {
+/**
+ * Starts payment once the carrier acknowledged the price (recorded with their address and
+ * browser). Returns the URL to send the browser to (Stripe Checkout, or the test page).
+ */
+export async function startCheckoutAction(input: unknown): Promise<Result<{ url: string }>> {
   return runAction(async () => {
     const { user } = await requireRole("carrier");
     const { subscriptionService } = await getContainer();
-    return subscriptionService.startCheckout(user.id);
+    return subscriptionService.startCheckout(user.id, input, await requestContext());
   });
 }
 

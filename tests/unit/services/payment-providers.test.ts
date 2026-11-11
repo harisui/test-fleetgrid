@@ -44,6 +44,7 @@ describe("TestPaymentProvider", () => {
       carrierId: "c1",
       successUrl: "https://app.test/ok",
       cancelUrl: "https://app.test/no",
+      trialDays: null,
     });
     expect(url).toBe(`https://app.test${TEST_CHECKOUT_PATH}?customer=cus_test_0001`);
 
@@ -87,7 +88,7 @@ describe("TestPaymentProvider", () => {
   it("refuses unknown customers and subscriptions, and unsigned webhooks", async () => {
     const payments = new TestPaymentProvider("https://app.test");
     await expect(
-      payments.createCheckoutSession({ customerId: "cus_x", carrierId: "c", successUrl: "a", cancelUrl: "b" }),
+      payments.createCheckoutSession({ customerId: "cus_x", carrierId: "c", successUrl: "a", cancelUrl: "b", trialDays: null }),
     ).rejects.toBeInstanceOf(AppError);
     await expect(payments.simulateCheckoutPaid("cus_x")).rejects.toBeInstanceOf(AppError);
     await expect(payments.getSubscription("sub_x")).rejects.toBeInstanceOf(AppError);
@@ -125,6 +126,91 @@ describe("StripeProvider", () => {
       currentPeriodEnd: null,
       canceledAt: "2026-11-13T12:00:00.000Z",
     });
+  });
+
+  it("takes the card and offers the trial at checkout, and reads the trial window", async () => {
+    const create = vi.fn(async () => ({ url: "https://checkout.stripe.test/t" }));
+    const stripe = { checkout: { sessions: { create } } } as unknown as Stripe;
+    const provider = new StripeProvider(stripe, { priceId: "price_1", webhookSecret: "whsec" });
+    await provider.createCheckoutSession({ customerId: "cus_1", carrierId: "c1", successUrl: "s", cancelUrl: "c", trialDays: 7 });
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payment_method_collection: "always",
+        subscription_data: expect.objectContaining({
+          trial_period_days: 7,
+          trial_settings: { end_behavior: { missing_payment_method: "cancel" } },
+        }),
+      }),
+    );
+    expect(snapshotOf(stripeSubscription({ status: "trialing", trial_start: 1_762_862_400, trial_end: 1_763_467_200 }))).toMatchObject({
+      status: "trialing",
+      trialStart: "2025-11-11T12:00:00.000Z",
+      trialEnd: "2025-11-18T12:00:00.000Z",
+    });
+  });
+
+  it("reads the card fingerprint, ends a trial now, and bills fills as customer invoice items", async () => {
+    const calls: Record<string, unknown[]> = {};
+    const record = (name: string, result: unknown) =>
+      vi.fn(async (...args: unknown[]) => {
+        calls[name] = args;
+        return result;
+      });
+    let pending = [{ id: "ii_2" }, { id: "ii_1" }];
+    const stripe = {
+      subscriptions: {
+        retrieve: record("subscriptions.retrieve", stripeSubscription({ default_payment_method: { id: "pm_1", card: { fingerprint: "fp_abc" } } })),
+        update: record("subscriptions.update", stripeSubscription({ trial_end: 1_762_862_400 })),
+        list: record("subscriptions.list", { data: [stripeSubscription({ default_payment_method: "pm_1" })] }),
+      },
+      invoiceItems: {
+        create: record("invoiceItems.create", { id: "ii_new" }),
+        list: vi.fn(async () => ({ data: pending })),
+        retrieve: vi.fn(async (id: string) => ({ id, invoice: id === "ii_done" ? "in_1" : null })),
+        del: record("invoiceItems.del", { deleted: true }),
+      },
+      invoices: {
+        create: record("invoices.create", { id: "in_new" }),
+        finalizeInvoice: record("invoices.finalize", { id: "in_new" }),
+      },
+      customers: { createBalanceTransaction: record("customers.balance", { id: "cbtxn_1" }) },
+    } as unknown as Stripe;
+    const provider = new StripeProvider(stripe, { priceId: "price_1", webhookSecret: "whsec" });
+
+    await expect(provider.trialCardFingerprint("sub_123")).resolves.toBe("fp_abc");
+    expect(calls["subscriptions.retrieve"]).toEqual(["sub_123", { expand: ["default_payment_method"] }]);
+    await expect(provider.endTrialNow("sub_123")).resolves.toMatchObject({ stripeSubscriptionId: "sub_123" });
+    expect(calls["subscriptions.update"]).toEqual(["sub_123", { trial_end: "now" }]);
+
+    await expect(
+      provider.createFillCharge({ customerId: "cus_1", amountCents: 3500, description: "Completed fill", idempotencyKey: "fill-f1", metadata: { fill_id: "f1" } }),
+    ).resolves.toBe("ii_new");
+    expect(calls["invoiceItems.create"]).toEqual([
+      { customer: "cus_1", amount: 3500, currency: "usd", description: "Completed fill", metadata: { fill_id: "f1" } },
+      { idempotencyKey: "fill-f1" },
+    ]);
+
+    await expect(provider.invoicePendingNow("cus_1")).resolves.toBe("in_new");
+    const [params, options] = calls["invoices.create"] as [Record<string, unknown>, { idempotencyKey: string }];
+    expect(params).toMatchObject({
+      customer: "cus_1",
+      collection_method: "charge_automatically",
+      pending_invoice_items_behavior: "include",
+      default_payment_method: "pm_1",
+    });
+    // The key comes from the pending items, in any order: a re-run cannot double-invoice.
+    pending = [{ id: "ii_1" }, { id: "ii_2" }];
+    await provider.invoicePendingNow("cus_1");
+    expect((calls["invoices.create"] as [unknown, { idempotencyKey: string }])[1].idempotencyKey).toBe(options.idempotencyKey);
+    expect(calls["invoices.finalize"]).toEqual(["in_new", { auto_advance: true }]);
+    pending = [];
+    await expect(provider.invoicePendingNow("cus_1")).resolves.toBeNull();
+
+    const waive = { customerId: "cus_1", amountCents: 3500, description: "Fill waived", idempotencyKey: "waive-f1" };
+    await expect(provider.reverseFillCharge({ ...waive, invoiceItemId: "ii_open" })).resolves.toBe("removed");
+    expect(calls["invoiceItems.del"]).toEqual(["ii_open"]);
+    await expect(provider.reverseFillCharge({ ...waive, invoiceItemId: "ii_done" })).resolves.toBe("credited");
+    expect(calls["customers.balance"]).toEqual(["cus_1", { amount: -3500, currency: "usd", description: "Fill waived" }, { idempotencyKey: "waive-f1" }]);
   });
 
   it("reduces each event type to the subscription it concerns", () => {
@@ -213,13 +299,21 @@ describe("StripeProvider", () => {
     expect(calls["subscriptions.update"]).toBeUndefined();
 
     await expect(provider.createCustomer({ email: "a@b.c", name: "Co", carrierId: "c1" })).resolves.toBe("cus_new");
-    expect(calls["customers.create"][0]).toEqual({ email: "a@b.c", name: "Co", metadata: { carrier_id: "c1" } });
+    expect(calls["customers.create"][0]).toEqual({
+      email: "a@b.c",
+      name: "Co",
+      metadata: { carrier_id: "c1" },
+      invoice_settings: { footer: "Prices exclude applicable taxes." },
+    });
 
     await provider.updateCustomer("cus_new", { email: "new@b.com", name: "Co 2" });
-    expect(calls["customers.update"]).toEqual(["cus_new", { email: "new@b.com", name: "Co 2" }]);
+    expect(calls["customers.update"]).toEqual([
+      "cus_new",
+      { email: "new@b.com", name: "Co 2", invoice_settings: { footer: "Prices exclude applicable taxes." } },
+    ]);
 
     await expect(
-      provider.createCheckoutSession({ customerId: "cus_new", carrierId: "c1", successUrl: "s", cancelUrl: "c" }),
+      provider.createCheckoutSession({ customerId: "cus_new", carrierId: "c1", successUrl: "s", cancelUrl: "c", trialDays: null }),
     ).resolves.toBe("https://checkout.stripe.test/s");
     expect(calls["checkout.create"][0]).toMatchObject({
       mode: "subscription",
@@ -227,8 +321,10 @@ describe("StripeProvider", () => {
       line_items: [{ price: "price_1", quantity: 1 }],
       success_url: "s",
       cancel_url: "c",
+      payment_method_collection: "always",
       subscription_data: { metadata: { carrier_id: "c1" } },
     });
+    expect(calls["checkout.create"][0]).not.toHaveProperty("subscription_data.trial_period_days");
 
     await expect(provider.createPortalSession({ customerId: "cus_new", returnUrl: "r" })).resolves.toBe(
       "https://billing.stripe.test/p",
@@ -292,7 +388,7 @@ describe("StripeProvider", () => {
     } as unknown as Stripe;
     const provider = new StripeProvider(stripe, { priceId: "price_1", webhookSecret: "whsec" });
     await expect(
-      provider.createCheckoutSession({ customerId: "c", carrierId: "c", successUrl: "s", cancelUrl: "c" }),
+      provider.createCheckoutSession({ customerId: "c", carrierId: "c", successUrl: "s", cancelUrl: "c", trialDays: null }),
     ).rejects.toMatchObject({ code: "INTERNAL" });
     await expect(provider.cancelSubscription("sub_gone")).resolves.toBeUndefined();
   });
@@ -374,7 +470,7 @@ describe("createPaymentProvider", () => {
     for (const call of [
       () => provider.createCustomer({ email: "a", name: "b", carrierId: "c" }),
       () => provider.updateCustomer("a", { email: "b", name: "c" }),
-      () => provider.createCheckoutSession({ customerId: "a", carrierId: "b", successUrl: "c", cancelUrl: "d" }),
+      () => provider.createCheckoutSession({ customerId: "a", carrierId: "b", successUrl: "c", cancelUrl: "d", trialDays: null }),
       () => provider.createPortalSession({ customerId: "a", returnUrl: "b" }),
       () => provider.getSubscription("a"),
       () => provider.listSubscriptions("a"),

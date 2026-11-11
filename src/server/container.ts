@@ -10,6 +10,7 @@ import { AdminAuthRepository } from "@/server/repositories/AdminAuthRepository";
 import { AdminOpsRepository } from "@/server/repositories/AdminOpsRepository";
 import { AdminRepository } from "@/server/repositories/AdminRepository";
 import { AuthRepository } from "@/server/repositories/AuthRepository";
+import { BillingAcknowledgmentRepository, TrialCardRepository } from "@/server/repositories/BillingRecordRepository";
 import { BroadcastRepository } from "@/server/repositories/BroadcastRepository";
 import type { TypedSupabaseClient } from "@/server/repositories/BaseRepository";
 import { CarrierRepository } from "@/server/repositories/CarrierRepository";
@@ -166,9 +167,15 @@ export function buildContainer(supabase: TypedSupabaseClient) {
       carriers: () => new CarrierRepository(createAdminClient()),
       subscriptions: () => new SubscriptionRepository(createAdminClient()),
       webhookEvents: () => new WebhookEventRepository(createAdminClient()),
+      trialCards: () => new TrialCardRepository(createAdminClient()),
     },
     getPaymentProvider(env),
     env.NEXT_PUBLIC_APP_URL,
+    {
+      acknowledgments: () => new BillingAcknowledgmentRepository(supabase),
+      closeOutFills: (carrierId) => buildFillService().closeOut(carrierId),
+      fills: () => new FillRepository(supabase),
+    },
     (message, detail) => console.error(`[FleetGrid] ${message}`, detail),
   );
 

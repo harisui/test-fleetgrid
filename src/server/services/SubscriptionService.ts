@@ -1,20 +1,45 @@
-import { SUBSCRIPTION_RECHECK_HOURS } from "@/lib/constants";
-import { AppError } from "@/server/errors/AppError";
+import { BILLING_DISCLOSURE_VERSION, SUBSCRIPTION_RECHECK_HOURS, TRIAL_DAYS } from "@/lib/constants";
+import { startCheckoutSchema } from "@/lib/validation/carrier.schema";
+import { AppError, parseInput } from "@/server/errors/AppError";
 import {
   isSubscriptionEventType,
   type IPaymentProvider,
   type SubscriptionSnapshot,
 } from "@/server/providers/PaymentProvider";
+import type { IBillingAcknowledgmentRepository, ITrialCardRepository } from "@/server/repositories/BillingRecordRepository";
 import type { ICarrierRepository } from "@/server/repositories/CarrierRepository";
+import type { IFillRepository } from "@/server/repositories/FillRepository";
 import {
   isAccessStatus,
   type ISubscriptionRepository,
 } from "@/server/repositories/SubscriptionRepository";
 import type { IWebhookEventRepository } from "@/server/repositories/WebhookEventRepository";
 import type { CarrierAccess, CarrierService } from "@/server/services/CarrierService";
-import type { Carrier, Subscription } from "@/types/domain";
+import type { Carrier, Subscription, SubscriptionStatus } from "@/types/domain";
+
+/** A subscription in one of these has ended for good: its pending fills are invoiced at once. */
+const ENDED_STATUSES: readonly SubscriptionStatus[] = ["canceled", "incomplete_expired"];
+const isEnded = (status: SubscriptionStatus | undefined): boolean => status !== undefined && ENDED_STATUSES.includes(status);
 
 const RECHECK_MS = SUBSCRIPTION_RECHECK_HOURS * 3_600_000;
+
+/**
+ * The 7-day trial goes to a carrier who has never subscribed: no trial on record and no
+ * subscription of any status (one that subscribed before the trial existed gets none).
+ */
+const trialOffered = (access: CarrierAccess): boolean =>
+  access.carrier !== null && access.carrier.trialUsedAt === null && access.subscription === null;
+
+/** The same day and time one calendar month earlier, as Stripe counts a monthly period. */
+function monthBefore(iso: string): string {
+  const date = new Date(iso);
+  const day = date.getUTCDate();
+  date.setUTCDate(1);
+  date.setUTCMonth(date.getUTCMonth() - 1);
+  const lastDay = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0)).getUTCDate();
+  date.setUTCDate(Math.min(day, lastDay));
+  return date.toISOString();
+}
 
 /**
  * True when the stored subscription should be read from Stripe again: it was last written
@@ -47,6 +72,21 @@ export interface BillingView {
   portalAvailable: boolean;
   /** Whether the test checkout page, not Stripe, handles payment. */
   testMode: boolean;
+  /** True while the carrier has never had a trial: checkout starts the 7-day one. */
+  trialAvailable: boolean;
+  /** When a trial started now would end (for the disclosure), or null with no trial left. */
+  trialWouldEnd: string | null;
+  /** The completed fills of the current billing period, once subscribed. */
+  fills: FillSummary | null;
+}
+
+/** The completed fills since the current period (or the trial) began. */
+export interface FillSummary {
+  since: string;
+  included: number;
+  billable: number;
+  waived: number;
+  billableCents: number;
 }
 
 /** What the reconcile did, for its log line. */
@@ -66,6 +106,24 @@ export interface PrivilegedBillingRepositories {
   carriers: () => ICarrierRepository;
   subscriptions: () => ISubscriptionRepository;
   webhookEvents: () => IWebhookEventRepository;
+  /** Card fingerprints that had a trial (service role). */
+  trialCards: () => ITrialCardRepository;
+}
+
+/** The pricing pieces (2026-11-11): the price acknowledgment and the fills owed when a plan ends. */
+export interface BillingHooks {
+  /** As the signed-in carrier. */
+  acknowledgments: () => IBillingAcknowledgmentRepository;
+  /** Bills the carrier's unbilled fills and invoices everything pending (FillService.closeOut). */
+  closeOutFills: (carrierId: string) => Promise<void>;
+  /** As the signed-in carrier (RLS: their own fills). */
+  fills: () => IFillRepository;
+}
+
+/** Where the checkout request came from, kept with the acknowledgment. */
+export interface CheckoutContext {
+  ip: string | null;
+  userAgent: string | null;
 }
 
 /**
@@ -80,6 +138,7 @@ export class SubscriptionService {
     private readonly privileged: PrivilegedBillingRepositories,
     private readonly payments: IPaymentProvider,
     private readonly appUrl: string,
+    private readonly billing: BillingHooks,
     private readonly log: (message: string, detail?: unknown) => void = () => undefined,
     private readonly now: () => Date = () => new Date(),
   ) {}
@@ -158,24 +217,49 @@ export class SubscriptionService {
     if (!carrier.stripeCustomerId) return null;
     const snapshots = await this.payments.listSubscriptions(carrier.stripeCustomerId);
     const current = snapshots.find((s) => isAccessStatus(s.status)) ?? snapshots[0] ?? null;
-    if (current) await this.privileged.subscriptions().upsert({ carrierId: carrier.id, ...current });
-    return current;
+    return current ? this.store(carrier, current) : null;
   }
 
-  private toBilling(access: CarrierAccess): BillingView {
+  private async toBilling(access: CarrierAccess): Promise<BillingView> {
+    const trialAvailable = trialOffered(access);
     return {
       subscription: access.subscription,
       subscribed: access.subscribed,
       portalAvailable: access.carrier?.stripeCustomerId !== null && access.carrier !== null,
       testMode: this.payments.mode === "test",
+      trialAvailable,
+      trialWouldEnd: trialAvailable ? new Date(this.now().getTime() + TRIAL_DAYS * 86_400_000).toISOString() : null,
+      fills: access.carrier && access.subscribed && access.subscription ? await this.fillSummary(access.carrier.id, access.subscription) : null,
+    };
+  }
+
+  /** Since the trial began while trialing, else since the start of the paid month. */
+  private async fillSummary(carrierId: string, subscription: Subscription): Promise<FillSummary> {
+    const since =
+      subscription.status === "trialing" && subscription.trialStart
+        ? subscription.trialStart
+        : subscription.currentPeriodEnd
+          ? monthBefore(subscription.currentPeriodEnd)
+          : subscription.createdAt;
+    const fills = await this.billing.fills().listForCarrier(carrierId, since);
+    const count = (charge: string) => fills.filter((fill) => fill.charge === charge).length;
+    return {
+      since,
+      included: count("included"),
+      billable: count("billable"),
+      waived: count("waived"),
+      billableCents: fills.filter((fill) => fill.charge === "billable").reduce((sum, fill) => sum + fill.amountCents, 0),
     };
   }
 
   /**
-   * Sends the carrier to pay. Needs the Terms accepted and a yard inside a launch area;
-   * a carrier who already has access is sent back to the search instead.
+   * Sends the carrier to pay. Needs the Terms accepted, a yard inside a launch area and the
+   * price disclosure acknowledged (recorded with the version, address and browser); a
+   * carrier who already has access is sent back to the search instead. A carrier who has
+   * never had a trial gets the 7-day one; the card is taken either way.
    */
-  async startCheckout(userId: string): Promise<{ url: string }> {
+  async startCheckout(userId: string, input: unknown, context: CheckoutContext): Promise<{ url: string }> {
+    parseInput(startCheckoutSchema, input);
     const access = await this.carrierService.getAccess(userId);
     if (!access.carrier) throw AppError.notFound("Save your company details first");
     if (!access.termsAccepted) throw AppError.forbidden("Accept the Terms of Service first");
@@ -201,9 +285,18 @@ export class SubscriptionService {
       });
     }
 
+    const trialDays = trialOffered(access) ? TRIAL_DAYS : null;
+    await this.billing.acknowledgments().record({
+      version: BILLING_DISCLOSURE_VERSION,
+      withTrial: trialDays !== null,
+      ip: context.ip,
+      userAgent: context.userAgent,
+    });
+
     const url = await this.payments.createCheckoutSession({
       customerId,
       carrierId: access.carrier.id,
+      trialDays,
       successUrl: `${this.appUrl}/carrier/billing?checkout=success`,
       cancelUrl: `${this.appUrl}/carrier/billing?checkout=cancelled`,
     });
@@ -285,13 +378,20 @@ export class SubscriptionService {
       throw AppError.forbidden("This checkout is not yours");
     }
     const snapshot = await this.payments.simulateCheckoutPaid(carrier.stripeCustomerId);
-    return this.privileged.subscriptions().upsert({ carrierId: carrier.id, ...snapshot });
+    const stored = await this.store(carrier, snapshot);
+    const subscription = await this.privileged.subscriptions().findByStripeId(stored.stripeSubscriptionId);
+    if (!subscription) throw AppError.internal(new Error("The test subscription was not stored"));
+    return subscription;
   }
 
   /** Stops billing before an account is deleted, so a removed carrier is never charged again. */
   async cancelForAccountDeletion(userId: string): Promise<void> {
     const carrier = await this.carrierService.getCarrier(userId).catch(() => null);
     if (!carrier) return;
+    // The fills owed are invoiced first: once the account is gone no event can find the carrier.
+    await this.billing.closeOutFills(carrier.id).catch((error: unknown) => {
+      this.log(`Could not invoice the pending fills of carrier ${carrier.id} before deletion`, error);
+    });
     const subscription = await this.subscriptions.findActiveByCarrierId(carrier.id);
     if (!subscription) return;
     await this.payments.cancelSubscription(subscription.stripeSubscriptionId);
@@ -303,7 +403,45 @@ export class SubscriptionService {
       this.log("Stripe event for an unknown customer", snapshot.stripeCustomerId);
       return { handled: false, duplicate: false, reason: "unknown_customer" };
     }
-    await this.privileged.subscriptions().upsert({ carrierId: carrier.id, ...snapshot });
+    await this.store(carrier, snapshot);
     return { handled: true, duplicate: false };
+  }
+
+  /**
+   * Writes what the provider holds, with the pricing rules on the way:
+   * - a subscription that has just ended has its pending fills invoiced first, so a failure
+   *   leaves it unstored and the next event or reconcile tries again;
+   * - a trial is one per carrier and one per card: the first trial is recorded, and a second
+   *   one (another checkout, or a card that had a trial) is ended at once, which takes the
+   *   first monthly charge now.
+   * Returns the snapshot as stored.
+   */
+  private async store(carrier: Carrier, snapshot: SubscriptionSnapshot): Promise<SubscriptionSnapshot> {
+    const subscriptions = this.privileged.subscriptions();
+    if (isEnded(snapshot.status)) {
+      const before = await subscriptions.findByStripeId(snapshot.stripeSubscriptionId);
+      if (!isEnded(before?.status)) await this.billing.closeOutFills(carrier.id);
+    }
+    const stored = snapshot.status === "trialing" && snapshot.trialStart ? await this.secureTrial(carrier, snapshot) : snapshot;
+    await subscriptions.upsert({ carrierId: carrier.id, ...stored });
+    return stored;
+  }
+
+  private async secureTrial(carrier: Carrier, snapshot: SubscriptionSnapshot): Promise<SubscriptionSnapshot> {
+    const trialStart = snapshot.trialStart as string;
+    const current = (await this.privileged.carriers().findById(carrier.id)) ?? carrier;
+    const sameTrial = current.trialUsedAt !== null && Date.parse(current.trialUsedAt) === Date.parse(trialStart);
+    if (current.trialUsedAt !== null && !sameTrial) {
+      this.log(`Carrier ${carrier.id} had a trial already: the new one ends now`);
+      return this.payments.endTrialNow(snapshot.stripeSubscriptionId);
+    }
+    const fingerprint = await this.payments.trialCardFingerprint(snapshot.stripeSubscriptionId);
+    if (fingerprint && !(await this.privileged.trialCards().claim(fingerprint, carrier.id))) {
+      this.log(`The card of carrier ${carrier.id} had a trial with another carrier: the trial ends now`);
+      if (current.trialUsedAt === null) await this.privileged.carriers().update(carrier.id, { trialUsedAt: trialStart });
+      return this.payments.endTrialNow(snapshot.stripeSubscriptionId);
+    }
+    if (current.trialUsedAt === null) await this.privileged.carriers().update(carrier.id, { trialUsedAt: trialStart });
+    return snapshot;
   }
 }

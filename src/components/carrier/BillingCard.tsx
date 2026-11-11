@@ -5,6 +5,7 @@ import { CalendarClock, CircleCheck, CreditCard, TriangleAlert } from "lucide-re
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { AdsConversion } from "@/components/seo/AdsConversion";
+import { ConsentCard } from "@/components/shared/ConsentCard";
 import { InlineNote } from "@/components/shared/InlineNote";
 import { LoadingButton } from "@/components/shared/LoadingButton";
 import { Badge } from "@/components/ui/badge";
@@ -12,10 +13,14 @@ import { Button } from "@/components/ui/button";
 import {
   isEnding,
   PLAN,
+  priceAcknowledgment,
+  priceDisclosure,
   SUBSCRIPTION_ENDING_LABEL,
   SUBSCRIPTION_STATUS_HELP,
   SUBSCRIPTION_STATUS_LABELS,
 } from "@/lib/carrier/options";
+import { PRICE_ACKNOWLEDGMENT_MESSAGE } from "@/lib/validation/carrier.schema";
+import type { FillSummary } from "@/server/services/SubscriptionService";
 import {
   keepSubscriptionAction,
   openBillingPortalAction,
@@ -35,7 +40,15 @@ interface BillingCardProps {
   testMode: boolean;
   /** From the URL after checkout: "success" or "cancelled". */
   checkoutResult?: string;
+  /** The carrier has never had a trial: checkout starts the 7-day one. */
+  trialAvailable: boolean;
+  /** When a trial started now would end. */
+  trialWouldEnd: string | null;
+  /** This period's completed fills, once subscribed. */
+  fills: FillSummary | null;
 }
+
+const longDate = (iso: string) => format(new Date(iso), "MMMM d, yyyy");
 
 /** The plan, the state of the subscription, and the buttons that start or manage it. */
 export function BillingCard({
@@ -44,10 +57,17 @@ export function BillingCard({
   portalAvailable,
   testMode,
   checkoutResult,
+  trialAvailable,
+  trialWouldEnd,
+  fills,
 }: BillingCardProps) {
   const router = useRouter();
   const [pending, setPending] = useState<"checkout" | "portal" | "keep">();
   const [error, setError] = useState<string>();
+  // The price disclosure must be acknowledged before the card (recorded with the checkout).
+  const [acknowledged, setAcknowledged] = useState(false);
+  const [ackError, setAckError] = useState<string>();
+  const trial = trialAvailable && trialWouldEnd ? { firstCharge: longDate(trialWouldEnd) } : null;
   // The carrier cleared a cancellation on this visit: said once, kept through the reload.
   const [kept, setKept] = useState(false);
   const ending = isEnding(subscription, subscribed);
@@ -85,12 +105,18 @@ export function BillingCard({
   const confirming = confirm === "checking" && !subscribed;
 
   async function go(kind: "checkout" | "portal") {
+    if (kind === "checkout" && !acknowledged) {
+      setAckError(PRICE_ACKNOWLEDGMENT_MESSAGE);
+      return;
+    }
     setPending(kind);
     setError(undefined);
-    const result = kind === "checkout" ? await startCheckoutAction() : await openBillingPortalAction();
+    const result =
+      kind === "checkout" ? await startCheckoutAction({ acknowledged }) : await openBillingPortalAction();
     if (!result.ok) {
       setPending(undefined);
-      setError(result.error.message);
+      if (result.error.fieldErrors?.acknowledged) setAckError(result.error.fieldErrors.acknowledged);
+      else setError(result.error.message);
       return;
     }
     window.location.assign(result.data.url);
@@ -123,7 +149,9 @@ export function BillingCard({
       {checkoutResult === "success" && subscribed && <AdsConversion event="subscribe" />}
       {checkoutResult === "success" && subscribed && (
         <InlineNote variant="success" data-slot="checkout-result">
-          Payment received. Thank you. Your subscription is active.
+          {subscription?.status === "trialing"
+            ? "Card saved. Thank you. Your 7-day trial has started."
+            : "Payment received. Thank you. Your subscription is active."}
         </InlineNote>
       )}
       {confirming && (
@@ -160,6 +188,9 @@ export function BillingCard({
           </h2>
           <p className="text-number leading-number font-heading font-semibold" data-slot="price">
             {PLAN.price}
+          </p>
+          <p className="text-helper leading-helper font-semibold" data-slot="fill-price">
+            plus {PLAN.fillPrice}
           </p>
         </div>
         {subscription && ending ? (
@@ -200,23 +231,57 @@ export function BillingCard({
               ? "Your subscription is set to end. Driver search stays open until then; keep it to carry on without a break."
               : SUBSCRIPTION_STATUS_HELP[subscription.status]}
           </p>
-          {periodEnd && subscribed && (
-            <p className="text-helper leading-helper">
-              {ending ? "Access ends on" : "Next billing date:"}{" "}
-              <span className="font-semibold" data-slot="period-end">
-                {periodEnd}
-              </span>
-              .
+          {subscribed && subscription.status === "trialing" && subscription.trialEnd && !ending ? (
+            <p className="text-helper leading-helper" data-slot="trial-end">
+              Your trial ends on <span className="font-semibold">{longDate(subscription.trialEnd)}</span>. Your
+              card is charged $99 then, unless you cancel before.
+            </p>
+          ) : (
+            periodEnd &&
+            subscribed && (
+              <p className="text-helper leading-helper">
+                {ending ? "Access ends on" : "Next billing date:"}{" "}
+                <span className="font-semibold" data-slot="period-end">
+                  {periodEnd}
+                </span>
+                .
+              </p>
+            )
+          )}
+          {fills && (
+            <p className="text-helper leading-helper" data-slot="fills">
+              Completed fills since {longDate(fills.since)}:{" "}
+              <span className="font-semibold">{fills.included + fills.billable + fills.waived}</span>
+              {fills.included > 0 && <> ({fills.included} included in the trial)</>}
+              {fills.billable > 0 && <>. To be billed: ${(fills.billableCents / 100).toFixed(2)}</>}
+              {fills.waived > 0 && <>. Waived: {fills.waived}</>}.
             </p>
           )}
         </div>
       )}
 
       {!subscribed && (
-        <p className="text-helper leading-helper text-muted-foreground">
-          Billed monthly. Cancel any time from the billing page; access runs to the end of the
-          paid month.
-        </p>
+        <div className="flex flex-col gap-3 border-t border-border pt-4" data-slot="disclosure">
+          <h3 className="font-heading text-h3 leading-h3 font-semibold">
+            {trial ? "How the trial and billing work" : "How billing works"}
+          </h3>
+          <ul className="flex list-disc flex-col gap-1 pl-5 text-helper leading-helper">
+            {priceDisclosure(trial).map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+          <ConsentCard
+            id="price-acknowledged"
+            checked={acknowledged}
+            onCheckedChange={(next) => {
+              setAcknowledged(next);
+              if (next) setAckError(undefined);
+            }}
+            text={priceAcknowledgment(trial)}
+            error={ackError}
+            disabled={pending !== undefined || confirming}
+          />
+        </div>
       )}
 
       {error && (
@@ -245,7 +310,7 @@ export function BillingCard({
             loadingText="Opening checkout..."
             disabled={pending !== undefined || confirming}
           >
-            {subscription ? "Subscribe again" : "Subscribe"}
+            {trial ? "Start 7-day trial" : subscription ? "Subscribe again" : "Subscribe"}
           </LoadingButton>
         )}
         {portalAvailable && (

@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "node:crypto";
 import Stripe from "stripe";
-import { SUBSCRIPTION_PLAN_NAME } from "@/lib/constants";
+import { INVOICE_TAX_FOOTER, SUBSCRIPTION_PLAN_NAME } from "@/lib/constants";
 import { AppError } from "@/server/errors/AppError";
 import type {
   CheckoutSessionInput,
@@ -78,7 +78,7 @@ export function reduceEvent(event: Stripe.Event): PaymentEvent {
 }
 
 /**
- * Stripe Checkout for the $399 a month carrier plan, the Customer Portal for card and plan
+ * Stripe Checkout for the carrier plan ($99 a month after a 7-day trial; fills as invoice items), the Customer Portal for card and plan
  * changes, and signed webhooks. The secret key, price id and webhook secret come from the
  * environment; none of them reaches the browser.
  */
@@ -95,12 +95,17 @@ export class StripeProvider implements IPaymentProvider {
       email: input.email,
       name: input.name,
       metadata: { carrier_id: input.carrierId },
+      invoice_settings: { footer: INVOICE_TAX_FOOTER },
     });
     return customer.id;
   }
 
   async updateCustomer(customerId: string, input: { email: string; name: string }): Promise<void> {
-    await this.stripe.customers.update(customerId, { email: input.email, name: input.name });
+    await this.stripe.customers.update(customerId, {
+      email: input.email,
+      name: input.name,
+      invoice_settings: { footer: INVOICE_TAX_FOOTER },
+    });
   }
 
   async createCheckoutSession(input: CheckoutSessionInput): Promise<string> {
@@ -111,9 +116,17 @@ export class StripeProvider implements IPaymentProvider {
       success_url: input.successUrl,
       cancel_url: input.cancelUrl,
       allow_promotion_codes: false,
+      // A card is taken even for the trial; the paid plan starts by itself when it ends.
+      payment_method_collection: "always",
       subscription_data: {
         description: SUBSCRIPTION_PLAN_NAME,
         metadata: { carrier_id: input.carrierId },
+        ...(input.trialDays
+          ? {
+              trial_period_days: input.trialDays,
+              trial_settings: { end_behavior: { missing_payment_method: "cancel" as const } },
+            }
+          : {}),
       },
     });
     if (!session.url) throw AppError.internal(new Error("Stripe returned no checkout URL"));
@@ -159,6 +172,16 @@ export class StripeProvider implements IPaymentProvider {
       if (error instanceof Stripe.errors.StripeError && error.statusCode === 404) return;
       throw error;
     }
+  }
+
+  async trialCardFingerprint(subscriptionId: string): Promise<string | null> {
+    const subscription = await this.stripe.subscriptions.retrieve(subscriptionId, { expand: ["default_payment_method"] });
+    const method = subscription.default_payment_method;
+    return typeof method === "object" && method !== null ? (method.card?.fingerprint ?? null) : null;
+  }
+
+  async endTrialNow(subscriptionId: string): Promise<SubscriptionSnapshot> {
+    return snapshotOf(await this.stripe.subscriptions.update(subscriptionId, { trial_end: "now" }));
   }
 
   async createFillCharge(input: FillChargeInput): Promise<string> {

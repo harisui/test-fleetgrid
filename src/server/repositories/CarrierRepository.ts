@@ -19,7 +19,7 @@ export interface CreateCarrierInput {
   lng: number;
 }
 
-/** Any subset of the editable columns. The Stripe customer id is for the service role only. */
+/** Any subset of the editable columns. The Stripe customer id and the trial are for the service role only. */
 export interface CarrierPatch {
   companyName?: string;
   contactName?: string;
@@ -32,6 +32,7 @@ export interface CarrierPatch {
   lat?: number;
   lng?: number;
   stripeCustomerId?: string | null;
+  trialUsedAt?: string | null;
 }
 
 export interface ICarrierRepository {
@@ -59,6 +60,7 @@ export function mapCarrier(row: CarrierRow): Carrier {
     lat: row.lat,
     lng: row.lng,
     stripeCustomerId: row.stripe_customer_id,
+    trialUsedAt: row.trial_used_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -78,6 +80,7 @@ export function toCarrierUpdate(patch: CarrierPatch): CarrierUpdate {
     lat: "lat",
     lng: "lng",
     stripeCustomerId: "stripe_customer_id",
+    trialUsedAt: "trial_used_at",
   };
   const update: Record<string, unknown> = {};
   for (const [key, column] of Object.entries(columns)) {

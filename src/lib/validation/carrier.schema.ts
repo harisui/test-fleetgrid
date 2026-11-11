@@ -63,6 +63,14 @@ export const acceptTermsSchema = z.object({
   accepted: z.literal(true, { error: TERMS_MESSAGE }),
 });
 
+/** Carrier-facing wording: goes to the client before a deploy. */
+export const PRICE_ACKNOWLEDGMENT_MESSAGE = "Check the box to confirm you have read the pricing";
+
+/** Before the card: the carrier read the price disclosure (pricing of 2026-11-11). */
+export const startCheckoutSchema = z.object({
+  acknowledged: z.literal(true, { error: PRICE_ACKNOWLEDGMENT_MESSAGE }),
+});
+
 /** "true" and "false" from a URL or a form become booleans; anything else is "no filter". */
 const optionalFlag = z.preprocess((value) => {
   if (value === "true" || value === true) return true;

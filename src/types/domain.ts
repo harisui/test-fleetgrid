@@ -333,6 +333,8 @@ export interface Carrier {
   lng: number;
   /** Set by server code when checkout first starts. Null until then. */
   stripeCustomerId: string | null;
+  /** When this carrier's one trial started (server code only). Null: a trial is still open to them. */
+  trialUsedAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

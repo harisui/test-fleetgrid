@@ -40,6 +40,12 @@ class UnconfiguredPaymentProvider implements IPaymentProvider {
   parseWebhookEvent(): Promise<PaymentEvent> {
     return this.fail();
   }
+  trialCardFingerprint(): Promise<string | null> {
+    return this.fail();
+  }
+  endTrialNow(): Promise<SubscriptionSnapshot> {
+    return this.fail();
+  }
   createFillCharge(): Promise<string> {
     return this.fail();
   }

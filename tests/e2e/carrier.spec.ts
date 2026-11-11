@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
+import { BILLING_DISCLOSURE_VERSION } from "../../src/lib/constants";
 import {
   adminClient,
   adminList,
@@ -112,19 +113,26 @@ test.describe("carrier sign-up, Terms and payment", () => {
     // Step 3: billing. Not subscribed yet, so the search is closed.
     await expect(page).toHaveURL(/\/carrier\/billing$/);
     await expect(page.getByText("Not subscribed")).toBeVisible();
-    await expect(page.getByText("$399 a month")).toBeVisible();
+    await expect(page.getByText("$99 a month")).toBeVisible();
+    await expect(page.getByText("plus $35 per completed fill", { exact: true })).toBeVisible();
     await page.goto("/carrier/search");
     await expect(page).toHaveURL(/\/carrier\/billing$/);
 
-    await page.getByRole("button", { name: "Subscribe" }).click();
+    // The price disclosure, and a box to acknowledge it, before the card (pricing of 2026-11-11).
+    await expect(page.getByText("7-day free trial. A card is required to start it.")).toBeVisible();
+    await page.getByRole("button", { name: "Start 7-day trial" }).click();
+    await expect(page.getByText("Check the box to confirm you have read the pricing")).toBeVisible();
+    await expect(page).toHaveURL(/\/carrier\/billing$/);
+    await page.getByRole("checkbox").click();
+    await page.getByRole("button", { name: "Start 7-day trial" }).click();
     await expect(page).toHaveURL(/\/carrier\/billing\/test-checkout\?customer=cus_test_/);
     await expect(page.getByRole("heading", { name: "Test checkout" })).toBeVisible();
-    await page.getByRole("button", { name: "Pay $399 a month" }).click();
+    await page.getByRole("button", { name: "Pay $99 a month" }).click();
 
     await expect(page).toHaveURL(/\/carrier\/billing\?checkout=success$/);
-    await expect(page.locator("[data-slot=checkout-result]")).toContainText("Payment received");
-    await expect(page.locator("[data-subscription=active]")).toBeVisible();
-    await expect(page.locator("[data-slot=period-end]")).toBeVisible();
+    await expect(page.locator("[data-slot=checkout-result]")).toContainText("Your 7-day trial has started");
+    await expect(page.locator("[data-subscription=trialing]")).toHaveText("Trial");
+    await expect(page.locator("[data-slot=trial-end]")).toBeVisible();
     await expect(page.getByRole("button", { name: "Manage billing" })).toBeVisible();
 
     // Everything is in the database: the company, the acceptance with its context, the subscription.
@@ -159,12 +167,22 @@ test.describe("carrier sign-up, Terms and payment", () => {
       .single();
     expect(acceptance?.version).toBe(TOS_VERSION);
     expect(acceptance?.user_agent).toContain("Mozilla");
-    const { data: subscription } = await admin
-      .from("subscriptions")
-      .select("status, stripe_customer_id, current_period_end")
+    const { data: acknowledgment } = await admin
+      .from("billing_acknowledgments")
+      .select("version, with_trial, user_agent")
       .eq("carrier_id", carrier!.id)
       .single();
-    expect(subscription?.status).toBe("active");
+    expect(acknowledgment).toMatchObject({ version: BILLING_DISCLOSURE_VERSION, with_trial: true });
+    expect(acknowledgment?.user_agent).toContain("Mozilla");
+    const { data: subscription } = await admin
+      .from("subscriptions")
+      .select("status, stripe_customer_id, current_period_end, trial_end")
+      .eq("carrier_id", carrier!.id)
+      .single();
+    expect(subscription?.status).toBe("trialing");
+    expect(subscription?.trial_end).toBeTruthy();
+    const { data: trialCarrier } = await admin.from("carriers").select("trial_used_at").eq("id", carrier!.id).single();
+    expect(trialCarrier?.trial_used_at).toBeTruthy();
     expect(subscription?.stripe_customer_id).toBe(carrier!.stripe_customer_id);
     expect(subscription?.current_period_end).toBeTruthy();
 
@@ -192,7 +210,8 @@ test.describe("carrier sign-up, Terms and payment", () => {
     await page.goto("/carrier/billing/test-checkout?customer=cus_somebody_else");
     await expect(page).toHaveURL(/\/carrier\/billing$/);
 
-    await page.getByRole("button", { name: "Subscribe" }).click();
+    await page.getByRole("checkbox").click();
+    await page.getByRole("button", { name: "Start 7-day trial" }).click();
     await expect(page).toHaveURL(/test-checkout/);
     await page.getByRole("link", { name: "Cancel" }).click();
     await expect(page).toHaveURL(/\/carrier\/billing\?checkout=cancelled$/);
@@ -695,10 +714,11 @@ for (const colorScheme of ["light", "dark"] as const) {
       await page.goto("/carrier/billing");
       await expect(page.getByText("Not subscribed")).toBeVisible();
       await expectNoAccessibilityViolations(page, "billing");
-      await page.getByRole("button", { name: "Subscribe" }).click();
+      await page.getByRole("checkbox").click();
+      await page.getByRole("button", { name: "Start 7-day trial" }).click();
       await expect(page).toHaveURL(/test-checkout/);
       await expectNoAccessibilityViolations(page, "test checkout");
-      await page.getByRole("button", { name: "Pay $399 a month" }).click();
+      await page.getByRole("button", { name: "Pay $99 a month" }).click();
       await expect(page).toHaveURL(/checkout=success/);
       await expectNoAccessibilityViolations(page, "billing after payment");
 

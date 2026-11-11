@@ -15,7 +15,9 @@ export const ALLOWED_SUB_STATUSES = ["active", "trialing"] as const;
  */
 export const SUBSCRIPTION_RECHECK_HOURS = 6;
 /** The carrier plan as shown on the billing page. Stripe holds the real price. */
-export const SUBSCRIPTION_PRICE_LABEL = "$399 a month";
+export const SUBSCRIPTION_PRICE_LABEL = "$99 a month";
+/** The per-fill price as written next to the monthly one (pricing of 2026-11-11). */
+export const FILL_PRICE_LABEL = "$35 per completed fill";
 /**
  * What one SMS segment costs, an estimate (Twilio US toll-free plus carrier fees, rounded up;
  * user decision of 2026-11-01). The notice preview shows it as "about $X, estimate".
@@ -32,6 +34,10 @@ export const FILL_FEE_CENTS = 3500;
 /** The trial: length, and how many completed fills of shifts started inside it are free. */
 export const TRIAL_DAYS = 7;
 export const TRIAL_INCLUDED_FILLS = 3;
+/** Bump when the price disclosure on the billing page changes; stored with each acknowledgment. */
+export const BILLING_DISCLOSURE_VERSION = "2026-11-v1";
+/** The footer on every Stripe invoice (user decision of 2026-11-11: Stripe Tax stays off). */
+export const INVOICE_TAX_FOOTER = "Prices exclude applicable taxes.";
 /** A booked shift becomes a completed fill this long after its end (0039 fill_grace()). */
 export const FILL_GRACE_HOURS = 2;
 /** Driver search (T2.7): results per page and the distance from the yard. */

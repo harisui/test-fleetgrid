@@ -292,6 +292,7 @@ export function buildCarrier(overrides: Partial<LocatedCarrier> = {}): LocatedCa
       lat: PLACES.houston.lat,
       lng: PLACES.houston.lng,
       stripeCustomerId: null,
+      trialUsedAt: null,
       inServiceArea: true,
       createdAt: TIMESTAMP,
       updatedAt: TIMESTAMP,

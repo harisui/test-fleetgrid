@@ -233,14 +233,70 @@ describe("BillingCard", () => {
 
   it("offers Subscribe before any subscription and sends the browser to checkout", async () => {
     actions.startCheckoutAction.mockResolvedValue(ok({ url: "https://checkout.test/s" }));
-    render(<BillingCard subscription={null} subscribed={false} portalAvailable={false} testMode={false} />);
+    render(<BillingCard trialAvailable={false} trialWouldEnd={null} fills={null} subscription={null} subscribed={false} portalAvailable={false} testMode={false} />);
     expect(screen.getByText("Not subscribed")).toHaveAttribute("data-subscription", "none");
-    expect(screen.getByText("$399 a month")).toBeInTheDocument();
+    expect(screen.getByText("$99 a month")).toBeInTheDocument();
+    expect(screen.getByText("plus $35 per completed fill")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Manage billing" })).not.toBeInTheDocument();
     expect(document.querySelector("[data-slot=test-mode]")).toBeNull();
+    // No trial left: the plain disclosure.
+    expect(screen.getByText("How billing works")).toBeInTheDocument();
+    expect(screen.getByText("Your card is charged $99 today, and then $99 on the same date every month.")).toBeInTheDocument();
+    expect(screen.getByText("Prices exclude applicable taxes.")).toBeInTheDocument();
 
+    // Not without the box.
+    await userEvent.click(screen.getByRole("button", { name: "Subscribe" }));
+    expect(await screen.findByText("Check the box to confirm you have read the pricing")).toBeInTheDocument();
+    expect(actions.startCheckoutAction).not.toHaveBeenCalled();
+
+    await userEvent.click(screen.getByRole("checkbox"));
     await userEvent.click(screen.getByRole("button", { name: "Subscribe" }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith("https://checkout.test/s"));
+    expect(actions.startCheckoutAction).toHaveBeenCalledWith({ acknowledged: true });
+  });
+
+  it("offers a new carrier the 7-day trial with the date of the first charge", async () => {
+    render(
+      <BillingCard
+        subscription={null}
+        subscribed={false}
+        portalAvailable={false}
+        testMode={false}
+        trialAvailable
+        trialWouldEnd="2026-11-18T18:00:00.000Z"
+        fills={null}
+      />,
+    );
+    expect(screen.getByText("How the trial and billing work")).toBeInTheDocument();
+    expect(screen.getByText("7-day free trial. A card is required to start it.")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "Unless you cancel, your card is charged $99 on November 18, 2026, when the trial ends, and then $99 on the same date every month.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: /My card is charged \$99 on November 18, 2026/ })).not.toBeChecked();
+    expect(screen.getByRole("button", { name: "Start 7-day trial" })).toBeInTheDocument();
+  });
+
+  it("shows the trial end and the fills of the period once subscribed", () => {
+    render(
+      <BillingCard
+        subscription={buildSubscription({ status: "trialing", trialStart: "2026-11-11T18:00:00.000Z", trialEnd: "2026-11-18T18:00:00.000Z" })}
+        subscribed
+        portalAvailable
+        testMode={false}
+        trialAvailable={false}
+        trialWouldEnd={null}
+        fills={{ since: "2026-11-11T18:00:00.000Z", included: 3, billable: 1, waived: 0, billableCents: 3500 }}
+      />,
+    );
+    expect(document.querySelector("[data-slot=trial-end]")).toHaveTextContent(
+      "Your trial ends on November 18, 2026. Your card is charged $99 then, unless you cancel before.",
+    );
+    expect(document.querySelector("[data-slot=fills]")).toHaveTextContent(
+      "Completed fills since November 11, 2026: 4 (3 included in the trial). To be billed: $35.00.",
+    );
+    expect(document.querySelector("[data-slot=disclosure]")).toBeNull();
   });
 
   it("reports the confirmed payment to Google Ads once, only back from checkout, when the label is set", () => {
@@ -249,7 +305,7 @@ describe("BillingCard", () => {
     window.gtag = gtag;
     window.localStorage.clear();
     const paid = () => (
-      <BillingCard subscription={buildSubscription()} subscribed portalAvailable testMode checkoutResult="success" />
+      <BillingCard trialAvailable={false} trialWouldEnd={null} fills={null} subscription={buildSubscription()} subscribed portalAvailable testMode checkoutResult="success" />
     );
     const { unmount } = render(paid());
     expect(gtag).toHaveBeenCalledExactlyOnceWith("event", "conversion", {
@@ -259,7 +315,7 @@ describe("BillingCard", () => {
     // A reload of the same page, and a plain visit to the billing page later, count nothing more.
     const second = render(paid());
     second.unmount();
-    render(<BillingCard subscription={buildSubscription()} subscribed portalAvailable testMode />);
+    render(<BillingCard trialAvailable={false} trialWouldEnd={null} fills={null} subscription={buildSubscription()} subscribed portalAvailable testMode />);
     expect(gtag).toHaveBeenCalledTimes(1);
     delete window.gtag;
     vi.unstubAllEnvs();
@@ -268,7 +324,7 @@ describe("BillingCard", () => {
   it("shows an active subscription with the next billing date and the portal button", async () => {
     actions.openBillingPortalAction.mockResolvedValue(ok({ url: "https://billing.test/p" }));
     render(
-      <BillingCard
+      <BillingCard trialAvailable={false} trialWouldEnd={null} fills={null}
         subscription={buildSubscription()}
         subscribed
         portalAvailable
@@ -290,7 +346,7 @@ describe("BillingCard", () => {
 
   it("explains a failed payment and offers to subscribe again, and shows a cancelled checkout", () => {
     const { unmount } = render(
-      <BillingCard
+      <BillingCard trialAvailable={false} trialWouldEnd={null} fills={null}
         subscription={buildSubscription({ status: "past_due" })}
         subscribed={false}
         portalAvailable
@@ -307,7 +363,7 @@ describe("BillingCard", () => {
     unmount();
 
     render(
-      <BillingCard
+      <BillingCard trialAvailable={false} trialWouldEnd={null} fills={null}
         subscription={buildSubscription({ cancelAtPeriodEnd: true })}
         subscribed
         portalAvailable
@@ -320,7 +376,7 @@ describe("BillingCard", () => {
   it("a subscription set to end shows Ending with the date and a Keep button, which clears it", async () => {
     actions.keepSubscriptionAction.mockResolvedValue(ok(buildSubscription()));
     render(
-      <BillingCard
+      <BillingCard trialAvailable={false} trialWouldEnd={null} fills={null}
         subscription={buildSubscription({ cancelAtPeriodEnd: true, canceledAt: "2026-10-16T06:56:24.000Z" })}
         subscribed
         portalAvailable
@@ -346,7 +402,7 @@ describe("BillingCard", () => {
   it("shows the provider's refusal in place when keeping fails", async () => {
     actions.keepSubscriptionAction.mockResolvedValue(failure("Your subscription is not set to end."));
     render(
-      <BillingCard subscription={buildSubscription({ cancelAtPeriodEnd: true })} subscribed portalAvailable testMode={false} />,
+      <BillingCard trialAvailable={false} trialWouldEnd={null} fills={null} subscription={buildSubscription({ cancelAtPeriodEnd: true })} subscribed portalAvailable testMode={false} />,
     );
     await userEvent.click(screen.getByRole("button", { name: "Keep my subscription" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("not set to end");
@@ -360,7 +416,7 @@ describe("BillingCard", () => {
 
     const renderReturned = () =>
       render(
-        <BillingCard
+        <BillingCard trialAvailable={false} trialWouldEnd={null} fills={null}
           subscription={null}
           subscribed={false}
           portalAvailable
@@ -410,7 +466,7 @@ describe("BillingCard", () => {
 
     it("does not ask after a cancelled checkout", async () => {
       render(
-        <BillingCard
+        <BillingCard trialAvailable={false} trialWouldEnd={null} fills={null}
           subscription={null}
           subscribed={false}
           portalAvailable
@@ -426,7 +482,8 @@ describe("BillingCard", () => {
 
   it("shows a checkout error in place", async () => {
     actions.startCheckoutAction.mockResolvedValue(failure("Payments are not set up yet"));
-    render(<BillingCard subscription={null} subscribed={false} portalAvailable={false} testMode={false} />);
+    render(<BillingCard trialAvailable={false} trialWouldEnd={null} fills={null} subscription={null} subscribed={false} portalAvailable={false} testMode={false} />);
+    await userEvent.click(screen.getByRole("checkbox"));
     await userEvent.click(screen.getByRole("button", { name: "Subscribe" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Payments are not set up yet");
     expect(assign).not.toHaveBeenCalled();
@@ -442,7 +499,7 @@ describe("TestCheckout", () => {
       "href",
       "/carrier/billing?checkout=cancelled",
     );
-    await userEvent.click(screen.getByRole("button", { name: "Pay $399 a month" }));
+    await userEvent.click(screen.getByRole("button", { name: "Pay $99 a month" }));
     await waitFor(() => expect(actions.completeTestCheckoutAction).toHaveBeenCalledWith("cus_test_0001"));
     expect(router.push).toHaveBeenCalledWith("/carrier/billing?checkout=success");
   });
@@ -450,7 +507,7 @@ describe("TestCheckout", () => {
   it("shows a refusal", async () => {
     actions.completeTestCheckoutAction.mockResolvedValue(failure("This checkout is not yours"));
     render(<TestCheckout customerId="cus_other" />);
-    await userEvent.click(screen.getByRole("button", { name: "Pay $399 a month" }));
+    await userEvent.click(screen.getByRole("button", { name: "Pay $99 a month" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("This checkout is not yours");
   });
 });

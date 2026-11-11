@@ -39,6 +39,8 @@ export class TestPaymentProvider implements IPaymentProvider {
   /** Events parseWebhookEvent returns, keyed by the signature a test sends. */
   readonly events = new Map<string, PaymentEvent>();
   readonly invoiceItems = new Map<string, TestInvoiceItem>();
+  /** The card each customer pays with, by fingerprint. Defaults to one card per customer. */
+  readonly cardFingerprints = new Map<string, string>();
   readonly invoices: { id: string; customerId: string; itemIds: string[] }[] = [];
   readonly credits: { customerId: string; amountCents: number; description: string }[] = [];
   private readonly idempotency = new Map<string, string>();
@@ -164,20 +166,45 @@ export class TestPaymentProvider implements IPaymentProvider {
     return event;
   }
 
-  /** The carrier pressed Pay on the test checkout page: a month of access starts now. */
+  async trialCardFingerprint(subscriptionId: string): Promise<string | null> {
+    const subscription = this.subscriptions.get(subscriptionId);
+    if (!subscription) throw AppError.notFound("Unknown subscription");
+    return this.cardFingerprints.get(subscription.stripeCustomerId) ?? `fp_test_${subscription.stripeCustomerId}`;
+  }
+
+  async endTrialNow(subscriptionId: string): Promise<SubscriptionSnapshot> {
+    const subscription = this.subscriptions.get(subscriptionId);
+    if (!subscription) throw AppError.notFound("Unknown subscription");
+    const now = this.now();
+    const ended: SubscriptionSnapshot = {
+      ...subscription,
+      status: "active",
+      trialEnd: now.toISOString(),
+      currentPeriodEnd: new Date(now.getTime() + 30 * 86_400_000).toISOString(),
+    };
+    this.subscriptions.set(subscriptionId, ended);
+    return ended;
+  }
+
+  /**
+   * The carrier pressed Pay on the test checkout page: the trial their last checkout offered
+   * starts now, or, without one, a paid month.
+   */
   async simulateCheckoutPaid(customerId: string): Promise<SubscriptionSnapshot> {
     if (!this.customers.has(customerId)) throw AppError.notFound("Unknown customer");
-    const periodEnd = new Date(this.now().getTime() + 30 * 86_400_000);
+    const trialDays = this.checkouts.filter((checkout) => checkout.customerId === customerId).at(-1)?.trialDays ?? null;
+    const now = this.now();
+    const periodEnd = new Date(now.getTime() + (trialDays ?? 30) * 86_400_000);
     const subscription: SubscriptionSnapshot = {
       stripeSubscriptionId: this.nextId("sub"),
       stripeCustomerId: customerId,
-      status: "active",
+      status: trialDays ? "trialing" : "active",
       priceId: "price_test_monthly",
       currentPeriodEnd: periodEnd.toISOString(),
       cancelAtPeriodEnd: false,
       canceledAt: null,
-      trialStart: null,
-      trialEnd: null,
+      trialStart: trialDays ? now.toISOString() : null,
+      trialEnd: trialDays ? periodEnd.toISOString() : null,
     };
     this.subscriptions.set(subscription.stripeSubscriptionId, subscription);
     return subscription;
