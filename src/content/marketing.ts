@@ -48,7 +48,7 @@ export const HOME = {
     text: "Houston-area carriers post open shifts on FleetGrid. FleetGrid notifies qualified drivers on our platform by text, and a driver books the shift by replying YES.",
     primary: { href: "/carriers", label: "Find drivers" },
     secondary: { href: "/login?role=driver", label: "Sign up to drive, free" },
-    smallPrint: "Carriers $399 a month, cancel anytime. Free for drivers.",
+    smallPrint: "Carriers $99 a month plus $35 per completed fill, after a 7-day free trial. Free for drivers.",
     optInLine: "Drivers can opt in to receive shift offers by text. See",
     optInLink: { href: "/sms-terms", label: "SMS Terms" },
     /** What a screen reader hears for the animated scene. */
@@ -221,10 +221,14 @@ export const CARRIERS = {
   pricing: {
     id: "pricing",
     eyebrow: "Pricing",
-    title: "One plan, one price.",
+    title: "One plan, simple pricing.",
     header: "FleetGrid Carrier",
-    price: "$399",
+    price: "$99",
     period: "/month",
+    fillPrice: "plus $35 per completed fill",
+    fillNote:
+      "A completed fill is a booked shift that was worked. It counts 2 hours after the shift ends, unless you reported a no-show, released it or cancelled it before then.",
+    trial: "7-day free trial. A card is required to start. The first 3 completed fills of shifts that start during the trial are included.",
     included: [
       "Unlimited driver searches",
       "Unlimited shift broadcasts",
@@ -232,10 +236,10 @@ export const CARRIERS = {
       "Search up to 250 miles from your yard",
       "Email support at support@fleetgridus.com",
     ],
-    terms: "Billed monthly through Stripe. No contract. Cancel anytime from your account.",
+    terms: "Billed monthly through Stripe. No contract. Cancel anytime from your account. Prices exclude applicable taxes.",
     cta: { href: "#service-area", label: "Check your yard's ZIP" },
     framing:
-      "Compare $399 to what one missed shift costs you: a parked truck, a late load, overtime for whoever covers. You know those numbers better than we do.",
+      "Compare $99 a month, and $35 for a shift that got worked, to what one missed shift costs you: a parked truck, a late load, overtime for whoever covers. You know those numbers better than we do.",
   },
   serviceArea: {
     id: "service-area",
@@ -260,7 +264,7 @@ export const CARRIERS = {
       items: [
         "a directory of local CDL drivers",
         "a shift-text tool",
-        "a monthly subscription",
+        "a monthly subscription with a fee per completed fill",
       ],
     },
     /** LEGAL REVIEW */
@@ -347,7 +351,7 @@ export const DRIVERS = {
     id: "free",
     eyebrow: "Why it is free for drivers",
     title: "Carriers pay. You never do.",
-    text: "Carriers pay a monthly subscription. Drivers never pay to be listed, to get texts or to take a shift. The carrier pays you directly for the work, at the rate you agree on.",
+    text: "Carriers pay a monthly subscription and a fee for each completed fill. Drivers never pay to be listed, to get texts or to take a shift. The carrier pays you directly for the work, at the rate you agree on.",
   },
   respect: {
     id: "your-card-your-call",

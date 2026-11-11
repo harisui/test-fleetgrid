@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import type { FaqGroup } from "@/content/faq";
 import { seoPage, type SeoPath } from "@/content/seo";
+import { FILL_FEE_CENTS, SUBSCRIPTION_PRICE_DOLLARS } from "@/lib/constants";
 import { getSiteEnv } from "@/lib/env";
 import { BUSINESS_NAME, getSupportContact } from "@/lib/support";
 
@@ -94,14 +95,12 @@ export function carrierServiceJsonLd(): JsonLdObject {
     },
     offers: {
       "@type": "Offer",
-      price: 399,
+      price: SUBSCRIPTION_PRICE_DOLLARS,
       priceCurrency: "USD",
-      priceSpecification: {
-        "@type": "UnitPriceSpecification",
-        price: 399,
-        priceCurrency: "USD",
-        unitText: "monthly",
-      },
+      priceSpecification: [
+        { "@type": "UnitPriceSpecification", price: SUBSCRIPTION_PRICE_DOLLARS, priceCurrency: "USD", unitText: "monthly" },
+        { "@type": "UnitPriceSpecification", price: FILL_FEE_CENTS / 100, priceCurrency: "USD", unitText: "completed fill" },
+      ],
     },
   };
 }

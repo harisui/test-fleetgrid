@@ -192,6 +192,15 @@ export default function CarriersPage() {
                     {pricing.period}
                   </span>
                 </p>
+                <div className="-mt-3 flex flex-col gap-2">
+                  <p className="text-body-lg leading-body-lg font-semibold" data-slot="fill-price">
+                    {pricing.fillPrice}
+                  </p>
+                  <p className="text-helper leading-helper text-muted-foreground">{pricing.fillNote}</p>
+                  <p className="text-helper leading-helper font-semibold" data-slot="trial">
+                    {pricing.trial}
+                  </p>
+                </div>
                 <ul className="flex flex-col gap-3" aria-label="Included">
                   {pricing.included.map((line) => (
                     <CheckItem key={line}>{line}</CheckItem>

@@ -91,13 +91,21 @@ describe("structured data", () => {
     });
   });
 
-  it("prices the carrier service at $399 a month over a 50-mile circle around Pasadena", () => {
+  it("prices the carrier service at $99 a month plus $35 per completed fill over a 50-mile circle around Pasadena", () => {
     const service = carrierServiceJsonLd();
     expect(service).toMatchObject({
       "@type": "Service",
       serviceType: "Transport operator directory and shift messaging",
       areaServed: { "@type": "GeoCircle", geoRadius: 80467 },
-      offers: { "@type": "Offer", price: 399, priceCurrency: "USD", priceSpecification: { unitText: "monthly" } },
+      offers: {
+        "@type": "Offer",
+        price: 99,
+        priceCurrency: "USD",
+        priceSpecification: [
+          { "@type": "UnitPriceSpecification", price: 99, priceCurrency: "USD", unitText: "monthly" },
+          { "@type": "UnitPriceSpecification", price: 35, priceCurrency: "USD", unitText: "completed fill" },
+        ],
+      },
     });
     expect(SERVICE_AREA_RADIUS_METERS).toBe(Math.round(50 * 1609.344));
   });

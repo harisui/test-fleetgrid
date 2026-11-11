@@ -37,7 +37,7 @@ export const SEO_PAGES: readonly SeoPage[] = [
     path: "/carriers",
     title: "Find CDL Drivers in Houston for Open Shifts",
     description:
-      "Search local drivers near your Houston or Pasadena yard and broadcast shifts by text. $399 a month, no contract, cancel anytime.",
+      "Search local drivers near your Houston or Pasadena yard and broadcast shifts by text. $99 a month plus $35 per completed fill. 7-day free trial.",
     name: "For Carriers",
     og: { eyebrow: "For carriers · Houston area", headline: "Fill open shifts with local CDL drivers." },
     changeFrequency: "monthly",

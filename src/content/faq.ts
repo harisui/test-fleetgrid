@@ -1,5 +1,5 @@
 import { CANCELLED_SHIFT_DRIVER, QUIET_HOURS_CARRIER, QUIET_HOURS_DRIVER } from "@/content/quiet-hours";
-import { SUBSCRIPTION_PRICE_LABEL } from "@/lib/constants";
+import { FILL_PRICE_LABEL, SUBSCRIPTION_PRICE_LABEL } from "@/lib/constants";
 import type { CopyStatus } from "@/content/marketing";
 import { ROSTER_READY } from "@/lib/drivers/tiers";
 
@@ -31,7 +31,7 @@ export const FAQ_CARRIERS: FaqGroup = {
     {
       id: "carrier-cost",
       question: "What does FleetGrid cost?",
-      answer: `${SUBSCRIPTION_PRICE_LABEL}, billed through Stripe. No contract. Cancel anytime from your account.`,
+      answer: `${SUBSCRIPTION_PRICE_LABEL} plus ${FILL_PRICE_LABEL}, billed through Stripe, after a 7-day free trial. A completed fill is a booked shift that was worked; it counts 2 hours after the shift ends, unless you reported a no-show or cancelled it before then. No contract. Cancel anytime from your account. Prices exclude applicable taxes.`,
     },
     {
       id: "carrier-cancel",

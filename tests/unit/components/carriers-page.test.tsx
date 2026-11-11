@@ -82,12 +82,17 @@ describe("/carriers", () => {
     expect(thread.querySelector("[data-direction=out] span:last-child")).toHaveClass("font-mono");
   });
 
-  it("prices one plan at $399 a month with the verified lines and the Stripe terms", () => {
+  it("prices one plan at $99 a month plus $35 per completed fill, with the trial, the lines and the Stripe terms", () => {
     render(<CarriersPage />);
     const card = document.querySelector("[data-slot=pricing-card]") as HTMLElement;
     expect(card).toHaveTextContent("FleetGrid Carrier");
-    expect(card.querySelector("[data-slot=price]")).toHaveTextContent("$399");
+    expect(card.querySelector("[data-slot=price]")).toHaveTextContent("$99");
     expect(card).toHaveTextContent("/month");
+    expect(card.querySelector("[data-slot=fill-price]")).toHaveTextContent("plus $35 per completed fill");
+    expect(card).toHaveTextContent("It counts 2 hours after the shift ends, unless you reported a no-show, released it or cancelled it before then.");
+    expect(card.querySelector("[data-slot=trial]")).toHaveTextContent(
+      "7-day free trial. A card is required to start. The first 3 completed fills of shifts that start during the trial are included.",
+    );
     const included = within(card).getByRole("list", { name: "Included" });
     expect(within(included).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
       "Unlimited driver searches",
@@ -96,8 +101,8 @@ describe("/carriers", () => {
       "Search up to 250 miles from your yard",
       "Email support at support@fleetgridus.com",
     ]);
-    expect(card).toHaveTextContent("Billed monthly through Stripe. No contract. Cancel anytime from your account.");
-    expect(screen.getByText(/Compare \$399 to what one missed shift costs you/)).toBeInTheDocument();
+    expect(card).toHaveTextContent("Billed monthly through Stripe. No contract. Cancel anytime from your account. Prices exclude applicable taxes.");
+    expect(screen.getByText(/Compare \$99 a month, and \$35 for a shift that got worked, to what one missed shift costs you/)).toBeInTheDocument();
   });
 
   it("says what FleetGrid is and is not", () => {

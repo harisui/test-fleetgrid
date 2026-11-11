@@ -56,7 +56,7 @@ describe("home page", () => {
     expect(drive).toHaveAttribute("href", "/login?role=driver");
     expect(drive).toHaveAttribute("data-variant", "secondary");
     expect(hero.querySelector("[data-slot=hero-small-print]")).toHaveTextContent(
-      "Carriers $399 a month, cancel anytime. Free for drivers.",
+      "Carriers $99 a month plus $35 per completed fill, after a 7-day free trial. Free for drivers.",
     );
     const optIn = hero.querySelector("[data-slot=sms-opt-in-line]") as HTMLElement;
     expect(optIn).toHaveTextContent("Drivers can opt in to receive shift offers by text. See SMS Terms.");

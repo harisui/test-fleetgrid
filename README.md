@@ -156,8 +156,8 @@ is kept beside it. The Privacy Policy describes all of this (section 1).
 
 A carrier signs in with the same text code, then: `/carrier/onboarding` (company, contact,
 billing email, optional USDOT and MC, the yard ZIP), `/carrier/terms` (the Terms of Service,
-logged with the IP and browser), `/carrier/billing` (Stripe Checkout for the $399 a month
-plan; the Customer Portal for card changes and cancellation), `/carrier/search` (listed
+logged with the IP and browser), `/carrier/billing` (Stripe Checkout for the plan, see
+"Pricing" below; the Customer Portal for card changes and cancellation), `/carrier/search` (listed
 drivers by distance from the yard, filters in the URL), `/carrier/drivers/[id]` (one driver's
 card and papers), `/carrier/account`. A yard outside every active service area lands on
 `/carrier/waitlist` instead of checkout. Every carrier page sends the carrier to the page for
@@ -169,6 +169,35 @@ Stripe keeps the `subscriptions` table current through `POST /api/stripe/webhook
 with the events `checkout.session.completed`, `customer.subscription.*`, `invoice.paid` and
 `invoice.payment_failed`. Locally, without Stripe keys, `/carrier/billing/test-checkout` stands
 in for Checkout: "Pay" writes an active subscription the way a webhook would.
+
+#### Pricing (client decision of 2026-11-11)
+
+$99 a month plus $35 per completed fill, after a 7-day trial.
+
+- **Trial.** A carrier who has never subscribed gets 7 days; Checkout still takes the card
+  (`payment_method_collection: always`) and the paid plan starts by itself. One trial per
+  carrier (`carriers.trial_used_at`) and per card (`trial_card_fingerprints`, the Stripe card
+  fingerprint only): a second trial is ended at once, which takes the first $99 now.
+- **Disclosure.** The billing page shows the price before the card and the carrier ticks a
+  box; each acknowledgment is stored in `billing_acknowledgments` with
+  `BILLING_DISCLOSURE_VERSION`, the IP and the browser. Change the wording in
+  `src/lib/carrier/options.ts` (`priceDisclosure`) and bump the version together.
+- **Completed fill.** A booked shift 2 hours after its scheduled end, unless before then the
+  carrier reported a no-show, released or cancelled it (migration 0039). The daily shifts job
+  records it once (`record_completed_fills`) and bills it: the first 3 fills of shifts that
+  started inside the trial are included, every other one becomes a $35 Stripe invoice item on
+  the customer (idempotency key `fill-<id>`), which the next monthly invoice picks up.
+- **Cancellation.** When a subscription ends, its pending fill items are invoiced at once
+  (a one-off invoice), so nothing goes unbilled.
+- **No-shows.** A carrier can report a no-show until 2 hours after the end; after the end it is
+  recorded and the shift does not go out again. A started booked shift cannot be cancelled.
+- **Waive.** Admin, Subscriptions, Completed fills: Waive with a reason. A pending charge comes
+  off the next invoice; an invoiced one is credited to the customer's balance. Audited.
+- **Tax.** Invoices say "Prices exclude applicable taxes." Stripe Tax is off (open item).
+
+Stripe setup for a deployment: a recurring price of $99 a month in `STRIPE_PRICE_ID_MONTHLY`
+(fills need no price: they are invoice items of $35); in the Customer Portal, allow
+cancellation.
 
 A listed driver is one who is approved, has a complete card and has not
 opted out, with a ZIP inside an active service area. Carriers never see a driver's phone number.
@@ -270,7 +299,7 @@ tables. Users cannot change their own role, status or email: a database trigger 
    ```
    Do not run the seed against production. It contains fake data only.
 4. Import the repository in Vercel (framework preset: Next.js, package manager: pnpm).
-5. Set the environment variables in Vercel for Production and Preview: `NEXT_PUBLIC_APP_URL` (the deployed URL), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and for the carrier side `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID_MONTHLY` (a recurring monthly price of $399) and `STRIPE_WEBHOOK_SECRET`.
+5. Set the environment variables in Vercel for Production and Preview: `NEXT_PUBLIC_APP_URL` (the deployed URL), `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and for the carrier side `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID_MONTHLY` (a recurring monthly price of $99) and `STRIPE_WEBHOOK_SECRET`.
 6. In Supabase, set the Site URL to the deployed URL (Authentication, URL Configuration).
 7. In Stripe, add a webhook endpoint at `https://<your-domain>/api/stripe/webhook` for `checkout.session.completed`, `customer.subscription.created`, `customer.subscription.updated`, `customer.subscription.deleted`, `customer.subscription.paused`, `customer.subscription.resumed`, `invoice.paid` and `invoice.payment_failed`, and turn on the Customer Portal (Settings, Billing) with cancellation allowed.
 8. Deploy, then check `https://<your-domain>/api/health` returns `{"ok":true}`.
@@ -414,7 +443,7 @@ In `vercel.json`, all guarded by `CRON_SECRET`. Times are UTC. Vercel Hobby runs
 |---|---|---|
 | `/api/cron/reconcile-subscriptions` | 06:00 | Re-reads subscriptions from Stripe |
 | `/api/cron/heartbeat` | 06:30 | One read, so a free Supabase project is not paused |
-| `/api/cron/shifts` | 12:00 and 13:00 | 7 AM Houston in either season: marks ended and expired shifts, sends what quiet hours held, sends held texts, resumes cut-off broadcasts and unfinished replies |
+| `/api/cron/shifts` | 12:00 and 13:00 | 7 AM Houston in either season: marks ended and expired shifts, sends what quiet hours held, sends held texts, resumes cut-off broadcasts and unfinished replies, records and bills completed fills |
 | `/api/cron/reminders` | 16:00 | 10 AM Houston in winter, 11 AM in summer: profile reminder, grace period expiry, CDL-state and TWIC date texts, held texts |
 
 `/api/cron/resume` exists but is not scheduled, because it needs Vercel Pro. On Hobby, a cut-off broadcast or an unfinished reply waits for the next morning's shifts job. On Pro, add `/api/cron/resume` to `vercel.json` every 5 minutes (`*/5 * * * *`), change the shifts job to `*/15 * * * *` and the reminders job to `0 * * * *`.
