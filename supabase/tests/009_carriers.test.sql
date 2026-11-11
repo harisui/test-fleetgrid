@@ -16,10 +16,10 @@ select has_table('public', 'carrier_waitlist', 'carrier_waitlist exists');
 
 select columns_are('public', 'carriers', array[
   'id', 'profile_id', 'company_name', 'contact_name', 'billing_email', 'usdot', 'mc', 'city', 'state',
-  'zip', 'lat', 'lng', 'stripe_customer_id', 'created_at', 'updated_at']);
+  'zip', 'lat', 'lng', 'stripe_customer_id', 'trial_used_at', 'created_at', 'updated_at']);
 select columns_are('public', 'subscriptions', array[
   'id', 'carrier_id', 'stripe_subscription_id', 'stripe_customer_id', 'status', 'price_id',
-  'current_period_end', 'cancel_at_period_end', 'canceled_at', 'created_at', 'updated_at']);
+  'current_period_end', 'cancel_at_period_end', 'canceled_at', 'trial_start', 'trial_end', 'created_at', 'updated_at']);
 select columns_are('public', 'webhook_events', array[
   'id', 'provider', 'event_id', 'type', 'created_at', 'updated_at']);
 select columns_are('public', 'carrier_waitlist', array[

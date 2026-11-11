@@ -36,6 +36,31 @@ export type Database = {
                   Relationships: [
                     
                   ]
+                },"billing_acknowledgments": {
+                  Row: {
+                    "accepted_at": string,"carrier_id": string | null,"id": string,"ip": string | null,"profile_id": string | null,"user_agent": string | null,"version": string,"with_trial": boolean
+                  }
+                  Insert: {
+                    "accepted_at"?: string,"carrier_id"?: string | null,"id"?: string,"ip"?: string | null,"profile_id"?: string | null,"user_agent"?: string | null,"version": string,"with_trial": boolean
+                  }
+                  Update: {
+                    "accepted_at"?: string,"carrier_id"?: string | null,"id"?: string,"ip"?: string | null,"profile_id"?: string | null,"user_agent"?: string | null,"version"?: string,"with_trial"?: boolean
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "billing_acknowledgments_carrier_id_fkey"
+      columns: ["carrier_id"]
+isOneToOne: false
+      referencedRelation: "carriers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "billing_acknowledgments_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"broadcast_recipients": {
                   Row: {
                     "code": string,"created_at": string,"delivered_at": string | null,"driver_id": string,"error_code": string | null,"id": string,"message_sid": string | null,"position": number,"replied_at": string | null,"round": number,"send_claimed_at": string | null,"sent_at": string | null,"shift_id": string,"status": Database["public"]['Enums']["recipient_status"],"updated_at": string
@@ -82,13 +107,13 @@ isOneToOne: true
                   ]
                 },"carriers": {
                   Row: {
-                    "billing_email": string,"city": string,"company_name": string,"contact_name": string,"created_at": string,"id": string,"lat": number,"lng": number,"mc": string | null,"profile_id": string,"state": string,"stripe_customer_id": string | null,"updated_at": string,"usdot": string | null,"zip": string
+                    "billing_email": string,"city": string,"company_name": string,"contact_name": string,"created_at": string,"id": string,"lat": number,"lng": number,"mc": string | null,"profile_id": string,"state": string,"stripe_customer_id": string | null,"trial_used_at": string | null,"updated_at": string,"usdot": string | null,"zip": string
                   }
                   Insert: {
-                    "billing_email": string,"city": string,"company_name": string,"contact_name": string,"created_at"?: string,"id"?: string,"lat": number,"lng": number,"mc"?: string | null,"profile_id": string,"state": string,"stripe_customer_id"?: string | null,"updated_at"?: string,"usdot"?: string | null,"zip": string
+                    "billing_email": string,"city": string,"company_name": string,"contact_name": string,"created_at"?: string,"id"?: string,"lat": number,"lng": number,"mc"?: string | null,"profile_id": string,"state": string,"stripe_customer_id"?: string | null,"trial_used_at"?: string | null,"updated_at"?: string,"usdot"?: string | null,"zip": string
                   }
                   Update: {
-                    "billing_email"?: string,"city"?: string,"company_name"?: string,"contact_name"?: string,"created_at"?: string,"id"?: string,"lat"?: number,"lng"?: number,"mc"?: string | null,"profile_id"?: string,"state"?: string,"stripe_customer_id"?: string | null,"updated_at"?: string,"usdot"?: string | null,"zip"?: string
+                    "billing_email"?: string,"city"?: string,"company_name"?: string,"contact_name"?: string,"created_at"?: string,"id"?: string,"lat"?: number,"lng"?: number,"mc"?: string | null,"profile_id"?: string,"state"?: string,"stripe_customer_id"?: string | null,"trial_used_at"?: string | null,"updated_at"?: string,"usdot"?: string | null,"zip"?: string
                   }
                   Relationships: [
                     {
@@ -283,6 +308,37 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"shift_fills": {
+                  Row: {
+                    "amount_cents": number,"billed_at": string | null,"carrier_id": string | null,"charge": Database["public"]['Enums']["fill_charge"],"completed_at": string,"created_at": string,"driver_id": string | null,"id": string,"shift_ends_at": string,"shift_id": string | null,"shift_starts_at": string,"stripe_invoice_item_id": string | null,"waive_reason": string | null,"waived_at": string | null,"waived_by": string | null
+                  }
+                  Insert: {
+                    "amount_cents": number,"billed_at"?: string | null,"carrier_id"?: string | null,"charge": Database["public"]['Enums']["fill_charge"],"completed_at": string,"created_at"?: string,"driver_id"?: string | null,"id"?: string,"shift_ends_at": string,"shift_id"?: string | null,"shift_starts_at": string,"stripe_invoice_item_id"?: string | null,"waive_reason"?: string | null,"waived_at"?: string | null,"waived_by"?: string | null
+                  }
+                  Update: {
+                    "amount_cents"?: number,"billed_at"?: string | null,"carrier_id"?: string | null,"charge"?: Database["public"]['Enums']["fill_charge"],"completed_at"?: string,"created_at"?: string,"driver_id"?: string | null,"id"?: string,"shift_ends_at"?: string,"shift_id"?: string | null,"shift_starts_at"?: string,"stripe_invoice_item_id"?: string | null,"waive_reason"?: string | null,"waived_at"?: string | null,"waived_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "shift_fills_carrier_id_fkey"
+      columns: ["carrier_id"]
+isOneToOne: false
+      referencedRelation: "carriers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shift_fills_driver_id_fkey"
+      columns: ["driver_id"]
+isOneToOne: false
+      referencedRelation: "drivers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "shift_fills_shift_id_fkey"
+      columns: ["shift_id"]
+isOneToOne: true
+      referencedRelation: "shifts"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"shifts": {
                   Row: {
                     "booked_at": string | null,"booked_driver_id": string | null,"booked_notice_failed_at": string | null,"booked_range": unknown,"broadcast_at": string | null,"broadcast_round": number,"cancel_reason": string | null,"cancelled_at": string | null,"carrier_id": string,"carrier_paused_at": string | null,"cdl_class": Database["public"]['Enums']["cdl_class"],"city": string,"created_at": string,"endorsements": (Database["public"]['Enums']["endorsement"])[],"ends_at": string,"equipment_types": (Database["public"]['Enums']["equipment_type"])[],"id": string,"lat": number,"lng": number,"manual_required": boolean,"medical_required": boolean,"min_years": number,"onsite_contact_name": string,"onsite_contact_phone": string,"pay_text": string | null,"released_at": string | null,"send_after": string | null,"short_code": string,"starts_at": string,"state": string,"status": Database["public"]['Enums']["shift_status"],"twic_required": boolean,"updated_at": string,"work_description": string,"zip": string
@@ -410,13 +466,13 @@ isOneToOne: false
                   ]
                 },"subscriptions": {
                   Row: {
-                    "cancel_at_period_end": boolean,"canceled_at": string | null,"carrier_id": string,"created_at": string,"current_period_end": string | null,"id": string,"price_id": string | null,"status": Database["public"]['Enums']["subscription_status"],"stripe_customer_id": string,"stripe_subscription_id": string,"updated_at": string
+                    "cancel_at_period_end": boolean,"canceled_at": string | null,"carrier_id": string,"created_at": string,"current_period_end": string | null,"id": string,"price_id": string | null,"status": Database["public"]['Enums']["subscription_status"],"stripe_customer_id": string,"stripe_subscription_id": string,"trial_end": string | null,"trial_start": string | null,"updated_at": string
                   }
                   Insert: {
-                    "cancel_at_period_end"?: boolean,"canceled_at"?: string | null,"carrier_id": string,"created_at"?: string,"current_period_end"?: string | null,"id"?: string,"price_id"?: string | null,"status": Database["public"]['Enums']["subscription_status"],"stripe_customer_id": string,"stripe_subscription_id": string,"updated_at"?: string
+                    "cancel_at_period_end"?: boolean,"canceled_at"?: string | null,"carrier_id": string,"created_at"?: string,"current_period_end"?: string | null,"id"?: string,"price_id"?: string | null,"status": Database["public"]['Enums']["subscription_status"],"stripe_customer_id": string,"stripe_subscription_id": string,"trial_end"?: string | null,"trial_start"?: string | null,"updated_at"?: string
                   }
                   Update: {
-                    "cancel_at_period_end"?: boolean,"canceled_at"?: string | null,"carrier_id"?: string,"created_at"?: string,"current_period_end"?: string | null,"id"?: string,"price_id"?: string | null,"status"?: Database["public"]['Enums']["subscription_status"],"stripe_customer_id"?: string,"stripe_subscription_id"?: string,"updated_at"?: string
+                    "cancel_at_period_end"?: boolean,"canceled_at"?: string | null,"carrier_id"?: string,"created_at"?: string,"current_period_end"?: string | null,"id"?: string,"price_id"?: string | null,"status"?: Database["public"]['Enums']["subscription_status"],"stripe_customer_id"?: string,"stripe_subscription_id"?: string,"trial_end"?: string | null,"trial_start"?: string | null,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -445,6 +501,19 @@ isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
+                  ]
+                },"trial_card_fingerprints": {
+                  Row: {
+                    "carrier_id": string,"created_at": string,"fingerprint": string
+                  }
+                  Insert: {
+                    "carrier_id": string,"created_at"?: string,"fingerprint": string
+                  }
+                  Update: {
+                    "carrier_id"?: string,"created_at"?: string,"fingerprint"?: string
+                  }
+                  Relationships: [
+                    
                   ]
                 },"webhook_events": {
                   Row: {
@@ -653,6 +722,9 @@ isOneToOne: true
 "expire_shifts":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
+"fill_grace":
+{ Args: Record<PropertyKey, never>; Returns: string
+                           },
 "finish_inbound":
 { Args: { "p_sid": string }; Returns: undefined
                            },
@@ -705,9 +777,50 @@ isOneToOne: true
 "record_admin_document_view":
 { Args: { "p_document_id": string }; Returns: boolean
                            },
+"record_billing_acknowledgment":
+{ Args: { "p_ip"?: string,"p_user_agent"?: string,"p_version": string,"p_with_trial": boolean }; Returns: {
+              "accepted_at": string,
+"carrier_id": string | null,
+"id": string,
+"ip": string | null,
+"profile_id": string | null,
+"user_agent": string | null,
+"version": string,
+"with_trial": boolean
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "billing_acknowledgments"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
 "record_carrier_document_view":
 { Args: { "p_document_id": string }; Returns: boolean
                            },
+"record_completed_fills":
+{ Args: { "p_amount_cents": number,"p_included"?: number }; Returns: {
+              "amount_cents": number,
+"billed_at": string | null,
+"carrier_id": string | null,
+"charge": Database["public"]['Enums']["fill_charge"],
+"completed_at": string,
+"created_at": string,
+"driver_id": string | null,
+"id": string,
+"shift_ends_at": string,
+"shift_id": string | null,
+"shift_starts_at": string,
+"stripe_invoice_item_id": string | null,
+"waive_reason": string | null,
+"waived_at": string | null,
+"waived_by": string | null
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "shift_fills"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "record_ended_shifts":
 { Args: Record<PropertyKey, never>; Returns: number
                            },
@@ -790,7 +903,7 @@ isOneToOne: true
       } }
           }
           Enums: {
-            "account_status": "pending"|"approved"|"blocked","availability_type": "full_time"|"part_time"|"on_call"|"weekends","cdl_class": "A"|"B"|"none","document_type": "cdl_front"|"cdl_back"|"medical_card"|"certification"|"other"|"twic","driving_style": "local_day_cab"|"regional","employment_type": "w2"|"contractor_1099"|"either","endorsement": "H"|"N"|"T"|"X","equipment_type": "container_drayage"|"dry_van"|"flatbed"|"reefer","heard_from": "flyer"|"facebook_instagram"|"google_search"|"friend_coworker"|"other","mvr_status": "clean"|"minor_1_2"|"major_3_plus","notice_category": "policy_change"|"service_notice"|"service_restored"|"account_security"|"doc_reminder","notice_status": "queued"|"sending"|"sent","operator_type": "cdl_driver"|"yard_spotter"|"mechanic","recipient_status": "queued"|"sent"|"delivered"|"failed"|"booked"|"too_late"|"no_show"|"skipped_cap"|"turned_away","shift_status": "open"|"booked"|"cancelled"|"expired","sms_consent_event": "opt_in"|"opt_out"|"opt_in_again","sms_consent_source": "onboarding"|"sms_stop"|"sms_start"|"profile","sms_direction": "inbound"|"outbound","subscription_status": "trialing"|"active"|"past_due"|"canceled"|"unpaid"|"incomplete"|"incomplete_expired"|"paused","transmission_type": "automatic_only"|"manual_ok","user_role": "driver"|"carrier"|"admin"
+            "account_status": "pending"|"approved"|"blocked","availability_type": "full_time"|"part_time"|"on_call"|"weekends","cdl_class": "A"|"B"|"none","document_type": "cdl_front"|"cdl_back"|"medical_card"|"certification"|"other"|"twic","driving_style": "local_day_cab"|"regional","employment_type": "w2"|"contractor_1099"|"either","endorsement": "H"|"N"|"T"|"X","equipment_type": "container_drayage"|"dry_van"|"flatbed"|"reefer","fill_charge": "included"|"billable"|"waived","heard_from": "flyer"|"facebook_instagram"|"google_search"|"friend_coworker"|"other","mvr_status": "clean"|"minor_1_2"|"major_3_plus","notice_category": "policy_change"|"service_notice"|"service_restored"|"account_security"|"doc_reminder","notice_status": "queued"|"sending"|"sent","operator_type": "cdl_driver"|"yard_spotter"|"mechanic","recipient_status": "queued"|"sent"|"delivered"|"failed"|"booked"|"too_late"|"no_show"|"skipped_cap"|"turned_away","shift_status": "open"|"booked"|"cancelled"|"expired","sms_consent_event": "opt_in"|"opt_out"|"opt_in_again","sms_consent_source": "onboarding"|"sms_stop"|"sms_start"|"profile","sms_direction": "inbound"|"outbound","subscription_status": "trialing"|"active"|"past_due"|"canceled"|"unpaid"|"incomplete"|"incomplete_expired"|"paused","transmission_type": "automatic_only"|"manual_ok","user_role": "driver"|"carrier"|"admin"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -910,7 +1023,7 @@ export const Constants = {
           }
         },"public": {
           Enums: {
-            "account_status": ["pending", "approved", "blocked"],"availability_type": ["full_time", "part_time", "on_call", "weekends"],"cdl_class": ["A", "B", "none"],"document_type": ["cdl_front", "cdl_back", "medical_card", "certification", "other", "twic"],"driving_style": ["local_day_cab", "regional"],"employment_type": ["w2", "contractor_1099", "either"],"endorsement": ["H", "N", "T", "X"],"equipment_type": ["container_drayage", "dry_van", "flatbed", "reefer"],"heard_from": ["flyer", "facebook_instagram", "google_search", "friend_coworker", "other"],"mvr_status": ["clean", "minor_1_2", "major_3_plus"],"notice_category": ["policy_change", "service_notice", "service_restored", "account_security", "doc_reminder"],"notice_status": ["queued", "sending", "sent"],"operator_type": ["cdl_driver", "yard_spotter", "mechanic"],"recipient_status": ["queued", "sent", "delivered", "failed", "booked", "too_late", "no_show", "skipped_cap", "turned_away"],"shift_status": ["open", "booked", "cancelled", "expired"],"sms_consent_event": ["opt_in", "opt_out", "opt_in_again"],"sms_consent_source": ["onboarding", "sms_stop", "sms_start", "profile"],"sms_direction": ["inbound", "outbound"],"subscription_status": ["trialing", "active", "past_due", "canceled", "unpaid", "incomplete", "incomplete_expired", "paused"],"transmission_type": ["automatic_only", "manual_ok"],"user_role": ["driver", "carrier", "admin"]
+            "account_status": ["pending", "approved", "blocked"],"availability_type": ["full_time", "part_time", "on_call", "weekends"],"cdl_class": ["A", "B", "none"],"document_type": ["cdl_front", "cdl_back", "medical_card", "certification", "other", "twic"],"driving_style": ["local_day_cab", "regional"],"employment_type": ["w2", "contractor_1099", "either"],"endorsement": ["H", "N", "T", "X"],"equipment_type": ["container_drayage", "dry_van", "flatbed", "reefer"],"fill_charge": ["included", "billable", "waived"],"heard_from": ["flyer", "facebook_instagram", "google_search", "friend_coworker", "other"],"mvr_status": ["clean", "minor_1_2", "major_3_plus"],"notice_category": ["policy_change", "service_notice", "service_restored", "account_security", "doc_reminder"],"notice_status": ["queued", "sending", "sent"],"operator_type": ["cdl_driver", "yard_spotter", "mechanic"],"recipient_status": ["queued", "sent", "delivered", "failed", "booked", "too_late", "no_show", "skipped_cap", "turned_away"],"shift_status": ["open", "booked", "cancelled", "expired"],"sms_consent_event": ["opt_in", "opt_out", "opt_in_again"],"sms_consent_source": ["onboarding", "sms_stop", "sms_start", "profile"],"sms_direction": ["inbound", "outbound"],"subscription_status": ["trialing", "active", "past_due", "canceled", "unpaid", "incomplete", "incomplete_expired", "paused"],"transmission_type": ["automatic_only", "manual_ok"],"user_role": ["driver", "carrier", "admin"]
           }
         }
 } as const
