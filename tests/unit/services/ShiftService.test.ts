@@ -235,4 +235,52 @@ describe("ShiftService", () => {
     expect(world.drivers.get(drivers[0].driverId)?.noShowCount).toBe(1);
     await expect(service.releaseShift(USER_ID, { shiftId: shift.id })).rejects.toMatchObject({ code: "CONFLICT" });
   });
+
+  describe("a booked shift once it has started (pricing of 2026-11-11)", () => {
+    // FORM starts 2026-11-05 06:00 and ends 14:00 Houston: 12:00 and 20:00 UTC.
+    async function booked() {
+      const { shift } = await service.postShift(USER_ID, FORM);
+      await world.shiftRepository.claim(drivers[0].driverId, shift.shortCode);
+      sms.sent = [];
+      return shift;
+    }
+
+    it("cannot be cancelled once started: the driver who did not come is a no-show", async () => {
+      const shift = await booked();
+      now = new Date("2026-11-05T12:00:00.000Z");
+      await expect(service.cancelShift(USER_ID, { shiftId: shift.id })).rejects.toMatchObject({
+        code: "CONFLICT",
+        message: "This shift has started, so it can no longer be cancelled. If the driver did not show, report a no-show.",
+      });
+      expect(sms.sent).toHaveLength(0);
+    });
+
+    it("a no-show during the shift still goes out again", async () => {
+      const shift = await booked();
+      now = new Date("2026-11-05T13:00:00.000Z");
+      const { shift: reopened, broadcast } = await service.releaseShift(USER_ID, { shiftId: shift.id });
+      expect(reopened.status).toBe("open");
+      expect(broadcast).toMatchObject({ round: 2 });
+    });
+
+    it("after the end, a no-show is recorded until 2 hours later and nothing goes out", async () => {
+      const shift = await booked();
+      now = new Date("2026-11-05T21:59:00.000Z");
+      const { shift: closed, broadcast } = await service.releaseShift(USER_ID, { shiftId: shift.id });
+      expect(closed).toMatchObject({ status: "expired", bookedDriverId: null });
+      expect(broadcast).toBeNull();
+      expect(sms.sent).toHaveLength(0);
+      expect(world.drivers.get(drivers[0].driverId)?.noShowCount).toBe(1);
+    });
+
+    it("2 hours after the end it is a completed fill: no no-show any more", async () => {
+      const shift = await booked();
+      now = new Date("2026-11-05T22:00:00.000Z");
+      await expect(service.releaseShift(USER_ID, { shiftId: shift.id })).rejects.toMatchObject({
+        code: "CONFLICT",
+        message: "A no-show can be reported until 2 hours after the shift ends. Contact support about this shift.",
+      });
+      expect(world.drivers.get(drivers[0].driverId)?.noShowCount).toBe(0);
+    });
+  });
 });

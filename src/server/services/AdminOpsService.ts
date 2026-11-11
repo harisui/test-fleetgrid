@@ -55,8 +55,11 @@ export interface AdminCarrierDetail extends AdminCarrierRow {
 }
 
 export interface AdminSubscriptionsPage {
+  /** Carriers with access: paying or in their trial. */
   active: number;
-  /** Monthly recurring revenue in dollars: the access-granting subscriptions times the price. */
+  /** Of those, in their trial: nothing billed yet. */
+  trialing: number;
+  /** Monthly recurring revenue in dollars: the paying subscriptions (not trials) times $99. Fills are separate. */
   mrr: number;
   rows: { subscription: Subscription; companyName: string; carrierId: string }[];
 }
@@ -264,7 +267,8 @@ export class AdminOpsService {
       )
       .sort((a, b) => b.subscription.createdAt.localeCompare(a.subscription.createdAt));
     const active = carriers.filter((row) => row.subscriptions.some((s) => isAccessStatus(s.status))).length;
-    return { active, mrr: active * SUBSCRIPTION_PRICE_DOLLARS, rows };
+    const paying = carriers.filter((row) => row.subscriptions.some((s) => s.status === "active")).length;
+    return { active, trialing: active - paying, mrr: paying * SUBSCRIPTION_PRICE_DOLLARS, rows };
   }
 
   // ---------------------------------------------------------------------------
@@ -390,7 +394,8 @@ export class AdminOpsService {
     return {
       carriers: carriers.length,
       subscribed,
-      mrr: subscribed * SUBSCRIPTION_PRICE_DOLLARS,
+      // Paying only: a carrier in the trial is billed nothing yet (pricing of 2026-11-11).
+      mrr: carriers.filter((row) => row.subscriptions.some((s) => s.status === "active")).length * SUBSCRIPTION_PRICE_DOLLARS,
       shifts30d: recent.length,
       booked30d: booked,
       fillRate30d: decided === 0 ? null : Math.round((booked / decided) * 100),

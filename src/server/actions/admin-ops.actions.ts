@@ -5,6 +5,7 @@ import { requireAdmin } from "@/lib/auth/guards";
 import { getContainer } from "@/server/container";
 import { runAction, type Result } from "@/server/errors/AppError";
 import type { AreaPreview } from "@/server/services/AdminOpsService";
+import type { WaiveOutcome } from "@/server/services/FillService";
 import type { Profile, ServiceArea } from "@/types/domain";
 
 type CarrierChange = "approveCarrier" | "blockCarrier" | "reopenCarrier";
@@ -29,6 +30,17 @@ export async function blockCarrierAction(input: unknown): Promise<Result<Profile
 
 export async function reopenCarrierAction(input: unknown): Promise<Result<Profile>> {
   return carrierChange("reopenCarrier", input);
+}
+
+/** Waives a completed fill (a dispute): removed from the next invoice, or credited if invoiced. */
+export async function waiveFillAction(input: unknown): Promise<Result<{ outcome: WaiveOutcome }>> {
+  return runAction(async () => {
+    const { user } = await requireAdmin();
+    const { adminBillingService } = await getContainer();
+    const { outcome } = await adminBillingService.waiveFill(user.id, input);
+    revalidatePath("/admin/subscriptions");
+    return { outcome };
+  });
 }
 
 /** Deletes a driver's or carrier's account for good (typed REMOVE to confirm). */

@@ -1,4 +1,5 @@
 import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
+import { FILL_GRACE_HOURS } from "@/lib/constants";
 import { SHIFT_TIME_ZONE } from "@/lib/shifts/texts";
 import type { Shift } from "@/types/domain";
 
@@ -63,4 +64,30 @@ export function displayStatus(
 ): Shift["status"] {
   if (shift.status === "open" && !isBookable(shift, now)) return "expired";
   return shift.status;
+}
+
+/**
+ * Where a booked shift stands (pricing of 2026-11-11): before its start everything is open;
+ * once started it can no longer be cancelled, only released as a no-show (it goes out again);
+ * after its end a no-show can still be reported for FILL_GRACE_HOURS, without going out again;
+ * after that it is a completed fill and nothing changes it (0039).
+ */
+export type BookedShiftPhase = "before_start" | "in_progress" | "no_show_window" | "completed";
+
+export function bookedShiftPhase(shift: Pick<Shift, "startsAt" | "endsAt">, now: Date): BookedShiftPhase {
+  const time = now.getTime();
+  if (time < new Date(shift.startsAt).getTime()) return "before_start";
+  if (time < new Date(shift.endsAt).getTime()) return "in_progress";
+  if (time < noShowDeadline(shift).getTime()) return "no_show_window";
+  return "completed";
+}
+
+/** The last moment a no-show can be reported: FILL_GRACE_HOURS after the scheduled end. */
+export function noShowDeadline(shift: Pick<Shift, "endsAt">): Date {
+  return new Date(new Date(shift.endsAt).getTime() + FILL_GRACE_HOURS * HOUR);
+}
+
+/** "Tue Nov 18, 4:00 PM" in Houston time. */
+export function formatDeadline(at: Date): string {
+  return formatInTimeZone(at, SHIFT_TIME_ZONE, "EEE MMM d, h:mm a");
 }

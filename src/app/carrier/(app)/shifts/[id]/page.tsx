@@ -11,6 +11,7 @@ import { InlineNote } from "@/components/shared/InlineNote";
 import { requireActiveSubscription } from "@/lib/auth/guards";
 import { formatE164ForDisplay } from "@/lib/phone";
 import { RECIPIENT_STATUS_LABELS, scheduledLine } from "@/lib/shifts/copy";
+import { bookedShiftPhase, formatDeadline, noShowDeadline } from "@/lib/shifts/schedule";
 import { getContainer, smsProviderKind } from "@/server/container";
 import { AppError } from "@/server/errors/AppError";
 import { DOCUMENT_TYPE_LABELS, type BroadcastRecipient } from "@/types/domain";
@@ -37,6 +38,7 @@ export default async function CarrierShiftPage({ params }: PageProps<"/carrier/s
   });
   const { shift, recipients, bookedDriver, bookedDocuments } = detail;
   const status = shiftService.statusOf(shift);
+  const now = new Date();
   const { sent, delivered, current } = countBy(recipients, shift.broadcastRound);
 
   return (
@@ -124,7 +126,13 @@ export default async function CarrierShiftPage({ params }: PageProps<"/carrier/s
         </section>
       )}
 
-      <ShiftActions shiftId={shift.id} status={status} driverName={bookedDriver?.fullName ?? null} />
+      <ShiftActions
+        shiftId={shift.id}
+        status={status}
+        driverName={bookedDriver?.fullName ?? null}
+        phase={status === "booked" ? bookedShiftPhase(shift, now) : null}
+        noShowUntil={status === "booked" ? formatDeadline(noShowDeadline(shift)) : null}
+      />
 
       <section className="flex flex-col gap-3" aria-labelledby="texted">
         <h2 id="texted" className="font-heading text-h3 leading-h3 font-semibold">

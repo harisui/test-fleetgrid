@@ -1,4 +1,5 @@
 import { DEFAULT_TIMEZONE, FILL_FEE_CENTS, TRIAL_INCLUDED_FILLS } from "@/lib/constants";
+import { AppError } from "@/server/errors/AppError";
 import type { IPaymentProvider } from "@/server/providers/PaymentProvider";
 import type { ICarrierRepository } from "@/server/repositories/CarrierRepository";
 import type { IFillRepository } from "@/server/repositories/FillRepository";
@@ -28,6 +29,9 @@ export interface FillRepositories {
 
 const dateOf = (iso: string): string =>
   new Intl.DateTimeFormat("en-US", { timeZone: DEFAULT_TIMEZONE, month: "short", day: "numeric", year: "numeric" }).format(new Date(iso));
+
+/** How a waive reached Stripe: the pending item removed, a credit on the balance, or nothing billed yet. */
+export type WaiveOutcome = "removed" | "credited" | "unbilled";
 
 /** The line on the carrier's invoice. Carrier-facing wording: goes to the client before a deploy. */
 export const fillChargeDescription = (fill: ShiftFill): string => `Completed fill, shift on ${dateOf(fill.shiftStartsAt)}`;
@@ -68,6 +72,33 @@ export class FillService {
     if (!carrier?.stripeCustomerId) return;
     await this.billCarrier(carrierId, carrier.stripeCustomerId, await this.repos.fills().listUnbilled(carrierId));
     await this.payments.invoicePendingNow(carrier.stripeCustomerId);
+  }
+
+  /**
+   * An admin waives a billable fill (a dispute within 30 days, pricing of 2026-11-11). A charge
+   * still pending is removed from the next invoice; one already invoiced is credited to the
+   * carrier's balance, which comes off their next invoice. The admin check and the audit entry
+   * are the caller's.
+   */
+  async waive(fillId: string, adminId: string, reason: string): Promise<{ fill: ShiftFill; outcome: WaiveOutcome }> {
+    const fills = this.repos.fills();
+    const fill = await fills.findById(fillId);
+    if (!fill) throw AppError.notFound("Fill not found");
+    if (fill.charge === "waived") throw AppError.conflict("This fill is already waived");
+    if (fill.charge === "included") throw AppError.conflict("This fill was included in the trial, so there is nothing to waive");
+    let outcome: WaiveOutcome = "unbilled";
+    if (fill.stripeInvoiceItemId) {
+      const carrier = fill.carrierId ? await this.repos.carriers().findById(fill.carrierId) : null;
+      if (!carrier?.stripeCustomerId) throw AppError.conflict("This carrier has no billing account any more; refund it in Stripe");
+      outcome = await this.payments.reverseFillCharge({
+        customerId: carrier.stripeCustomerId,
+        invoiceItemId: fill.stripeInvoiceItemId,
+        amountCents: fill.amountCents,
+        description: `Waived: ${fillChargeDescription(fill)}`,
+        idempotencyKey: `waive-${fill.id}`,
+      });
+    }
+    return { fill: await fills.markWaived(fill.id, adminId, reason, this.now().toISOString()), outcome };
   }
 
   private async billUnbilled(): Promise<Omit<FillRunOutcome, "recorded" | "included">> {

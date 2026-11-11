@@ -3,7 +3,16 @@ import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
 import { SMS_SAMPLE_CONFIRMATION, SMS_SAMPLE_FILLED, SMS_SAMPLE_OFFER } from "@/content/sms-samples";
 import { readInbound } from "@/lib/shifts/inbound";
-import { displayStatus, isBookable, isReminderWindow, quietHoursSendAt, sendAfterFor } from "@/lib/shifts/schedule";
+import {
+  bookedShiftPhase,
+  displayStatus,
+  formatDeadline,
+  isBookable,
+  isReminderWindow,
+  noShowDeadline,
+  quietHoursSendAt,
+  sendAfterFor,
+} from "@/lib/shifts/schedule";
 import { BROADCAST_CAP, shuffleAndCap } from "@/lib/shifts/shuffle";
 import {
   APPROVED_TEXT,
@@ -340,5 +349,23 @@ describe("the shift form", () => {
     expect(result.success).toBe(false);
     const fields = result.error?.issues.map((issue) => issue.path.join("."));
     expect(fields).toEqual(expect.arrayContaining(["onsiteContactPhone", "onsiteContactName", "workDescription"]));
+  });
+});
+
+describe("bookedShiftPhase (pricing of 2026-11-11)", () => {
+  const shift = { startsAt: "2026-11-05T12:00:00.000Z", endsAt: "2026-11-05T20:00:00.000Z" };
+  const at = (iso: string) => bookedShiftPhase(shift, new Date(iso));
+
+  it("before the start, during, the 2 hours after the end, then a completed fill", () => {
+    expect(at("2026-11-05T11:59:59.000Z")).toBe("before_start");
+    expect(at("2026-11-05T12:00:00.000Z")).toBe("in_progress");
+    expect(at("2026-11-05T20:00:00.000Z")).toBe("no_show_window");
+    expect(at("2026-11-05T21:59:59.000Z")).toBe("no_show_window");
+    expect(at("2026-11-05T22:00:00.000Z")).toBe("completed");
+  });
+
+  it("writes the no-show deadline in Houston time", () => {
+    expect(noShowDeadline(shift).toISOString()).toBe("2026-11-05T22:00:00.000Z");
+    expect(formatDeadline(noShowDeadline(shift))).toBe("Thu Nov 5, 4:00 PM");
   });
 });

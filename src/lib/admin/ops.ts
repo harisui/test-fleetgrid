@@ -20,6 +20,7 @@ const AUDIT_LABELS: Partial<Record<AdminAction, string>> = {
   service_area_activated: "Activated",
   service_area_deactivated: "Deactivated",
   shift_cancelled: "Cancelled",
+  fill_waived: "Fill waived",
 };
 
 export function auditLabel(action: AdminAction): string {

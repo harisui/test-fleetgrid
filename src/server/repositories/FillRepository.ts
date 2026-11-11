@@ -16,6 +16,8 @@ export interface IFillRepository {
   findById(fillId: string): Promise<ShiftFill | null>;
   /** The carrier's fills completed at or after `since` (RLS: their own, or an admin). */
   listForCarrier(carrierId: string, since: string | null): Promise<ShiftFill[]>;
+  /** Every fill completed at or after `since`, newest first (RLS: admins only). */
+  listSince(since: string): Promise<ShiftFill[]>;
 }
 
 export function mapFill(row: FillRow): ShiftFill {
@@ -80,6 +82,15 @@ export class FillRepository extends BaseRepository implements IFillRepository {
     const result = await this.supabase.from("shift_fills").select("*").eq("id", fillId).maybeSingle();
     const row = this.unwrapMaybe(result);
     return row ? mapFill(row) : null;
+  }
+
+  async listSince(since: string): Promise<ShiftFill[]> {
+    const result = await this.supabase
+      .from("shift_fills")
+      .select("*")
+      .gte("completed_at", since)
+      .order("completed_at", { ascending: false });
+    return (this.unwrapMaybe(result) ?? []).map(mapFill);
   }
 
   async listForCarrier(carrierId: string, since: string | null): Promise<ShiftFill[]> {

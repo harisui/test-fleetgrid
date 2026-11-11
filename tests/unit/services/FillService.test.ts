@@ -145,6 +145,46 @@ describe("FillService", () => {
     expect(fills.rows.get(stuck.id)?.billedAt).toBeNull();
   });
 
+  describe("waive (an admin, after a dispute)", () => {
+    const ADMIN = "a0000000-0000-4000-8000-000000000001";
+
+    it("takes a pending charge off the next invoice", async () => {
+      const billable = fill();
+      fills.completing = [billable];
+      await service.runDaily();
+      const { fill: waived, outcome } = await service.waive(billable.id, ADMIN, "Driver left at noon");
+      expect(outcome).toBe("removed");
+      expect(payments.pendingItems(customerId)).toHaveLength(0);
+      expect(waived).toMatchObject({ charge: "waived", amountCents: 0, waivedBy: ADMIN, waiveReason: "Driver left at noon" });
+    });
+
+    it("credits a charge already invoiced, once", async () => {
+      const billable = fill();
+      fills.completing = [billable];
+      await service.runDaily();
+      await payments.invoicePendingNow(customerId);
+      expect((await service.waive(billable.id, ADMIN, "Billed twice by mistake")).outcome).toBe("credited");
+      expect(payments.credits).toEqual([{ customerId, amountCents: 3500, description: "Waived: Completed fill, shift on Nov 14, 2026" }]);
+      await expect(service.waive(billable.id, ADMIN, "Again")).rejects.toMatchObject({ code: "CONFLICT" });
+      expect(payments.credits).toHaveLength(1);
+    });
+
+    it("waives a fill not billed yet without touching Stripe, and the job then skips it", async () => {
+      const billable = fill();
+      fills.rows.set(billable.id, billable);
+      expect((await service.waive(billable.id, ADMIN, "Disputed before billing")).outcome).toBe("unbilled");
+      await service.runDaily();
+      expect(payments.invoiceItems.size).toBe(0);
+    });
+
+    it("has nothing to waive on an included fill or an unknown one", async () => {
+      const included = fill({ charge: "included", amountCents: 0 });
+      fills.rows.set(included.id, included);
+      await expect(service.waive(included.id, ADMIN, "Why not")).rejects.toMatchObject({ code: "CONFLICT" });
+      await expect(service.waive("f0000000-0000-4000-8000-0000000009ff", ADMIN, "Why not")).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
   it("describes the charge with the shift's date in Houston time", () => {
     expect(fillChargeDescription(fill({ shiftStartsAt: "2026-11-15T03:00:00.000Z" }))).toBe("Completed fill, shift on Nov 14, 2026");
   });

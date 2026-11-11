@@ -22,6 +22,14 @@ export const adminShiftsQuerySchema = z.object({
   open: z.preprocess(first, z.uuid().optional().catch(undefined)),
 });
 
+export const WAIVE_REASON_MESSAGE = "Say why the fill is waived (3 to 300 characters)";
+
+/** An admin waives a completed fill (a dispute, pricing of 2026-11-11). */
+export const waiveFillSchema = z.object({
+  fillId: z.uuid({ error: "Fill not found" }),
+  reason: z.string({ error: WAIVE_REASON_MESSAGE }).trim().min(3, WAIVE_REASON_MESSAGE).max(300, WAIVE_REASON_MESSAGE),
+});
+
 export const AREA_NAME_MESSAGE = "Name the area, like Houston, TX";
 export const AREA_RADIUS_MESSAGE = "The radius is 5 to 250 miles";
 

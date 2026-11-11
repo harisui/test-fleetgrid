@@ -443,6 +443,7 @@ export const ADMIN_ACTIONS = [
   "qr_link_created",
   "qr_link_activated",
   "qr_link_deactivated",
+  "fill_waived",
 ] as const;
 export type AdminAction = (typeof ADMIN_ACTIONS)[number];
 export type AuditTargetType =

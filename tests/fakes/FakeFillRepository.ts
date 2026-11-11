@@ -50,6 +50,12 @@ export class FakeFillRepository implements IFillRepository {
       .sort((a, b) => b.completedAt.localeCompare(a.completedAt));
   }
 
+  async listSince(since: string): Promise<ShiftFill[]> {
+    return [...this.rows.values()]
+      .filter((fill) => fill.completedAt >= since)
+      .sort((a, b) => b.completedAt.localeCompare(a.completedAt));
+  }
+
   private require(fillId: string): ShiftFill {
     const fill = this.rows.get(fillId);
     if (!fill) throw AppError.notFound();

@@ -136,11 +136,21 @@ export class FakeShiftWorld {
     release: async (id) => {
       const shift = this.shifts.get(id);
       if (!shift || shift.status !== "booked" || !shift.bookedDriverId) return null;
+      // As release_shift() (0039): until 2 hours after the end; after the end it closes, unsent.
+      const end = new Date(shift.endsAt).getTime();
+      if (this.now().getTime() >= end + 2 * 3_600_000) return null;
+      const ended = this.now().getTime() >= end;
       const driverId = shift.bookedDriverId;
       const driver = this.drivers.get(driverId);
       if (driver) driver.noShowCount += 1;
       for (const r of this.recipients) if (r.shiftId === id && r.driverId === driverId && r.status === "booked") r.status = "no_show";
-      this.shifts.set(id, { ...shift, status: "open", bookedDriverId: null, bookedAt: null, releasedAt: this.now().toISOString(), shortCode: "7310" });
+      const releasedAt = this.now().toISOString();
+      this.shifts.set(
+        id,
+        ended
+          ? { ...shift, status: "expired", bookedDriverId: null, bookedAt: null, releasedAt }
+          : { ...shift, status: "open", bookedDriverId: null, bookedAt: null, releasedAt, shortCode: "7310" },
+      );
       return driverId;
     },
     expire: async () => 0,

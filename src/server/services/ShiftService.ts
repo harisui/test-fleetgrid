@@ -1,10 +1,12 @@
-import { displayStatus, sendAfterFor } from "@/lib/shifts/schedule";
+import { bookedShiftPhase, displayStatus, sendAfterFor } from "@/lib/shifts/schedule";
 import { cancelledText } from "@/lib/shifts/texts";
 import {
   cancelShiftSchema,
+  NO_SHOW_WINDOW_CLOSED_MESSAGE,
   SHIFT_NOT_EDITABLE_MESSAGE,
   SHIFT_OUTSIDE_AREA_MESSAGE,
   SHIFT_START_PAST_MESSAGE,
+  SHIFT_STARTED_CANCEL_MESSAGE,
   shiftDetailsSchema,
   shiftIdSchema,
   releaseShiftSchema,
@@ -138,6 +140,10 @@ export class ShiftService {
     if (shift.status !== "open" && shift.status !== "booked") {
       throw AppError.conflict("This shift is no longer open or booked");
     }
+    // Once started, a booked shift is either worked (a completed fill) or a no-show (0039).
+    if (shift.status === "booked" && bookedShiftPhase(shift, this.now()) !== "before_start") {
+      throw AppError.conflict(SHIFT_STARTED_CANCEL_MESSAGE);
+    }
     const cancelled = await this.admin.shifts().update(shift.id, {
       status: "cancelled",
       cancelledAt: this.now().toISOString(),
@@ -168,17 +174,23 @@ export class ShiftService {
 
   /**
    * The booked driver did not show (2026-10-25): their no-show count goes up, the shift
-   * reopens with a fresh code, and it goes out again without them.
+   * reopens with a fresh code, and it goes out again without them. After the scheduled end
+   * (until FILL_GRACE_HOURS later, pricing of 2026-11-11) the no-show is still recorded and
+   * the shift is not a completed fill, but nothing goes out: the shift is over.
    */
   async releaseShift(userId: string, input: unknown): Promise<PostedShift> {
     this.refuseWhileCarriersOff();
     const { shiftId, reason } = parseInput(releaseShiftSchema, input);
     const shift = await this.requireOwnShift(userId, { shiftId });
     if (shift.status !== "booked") throw AppError.conflict("Only a booked shift can be released");
+    const phase = bookedShiftPhase(shift, this.now());
+    if (phase === "completed") throw AppError.conflict(NO_SHOW_WINDOW_CLOSED_MESSAGE);
     const released = await this.admin.shifts().release(shift.id, reason);
     if (!released) throw AppError.conflict("This shift can no longer be released");
+    const after = (await this.admin.shifts().findById(shift.id)) ?? shift;
+    if (phase === "no_show_window") return { shift: after, broadcast: null };
     const broadcast = await this.broadcasts().broadcast(shift.id, this.now());
-    return { shift: (await this.admin.shifts().findById(shift.id)) ?? shift, broadcast };
+    return { shift: (await this.admin.shifts().findById(shift.id)) ?? after, broadcast };
   }
 
   /** The driver's booked shifts (RLS: only their own): those not yet over, soonest first, then the past ones, latest first. */

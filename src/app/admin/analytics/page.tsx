@@ -21,10 +21,11 @@ export const metadata: Metadata = { title: "Analytics" };
 export default async function AdminAnalyticsPage({ searchParams }: PageProps<"/admin/analytics">) {
   const { user } = await requireAdmin();
   const params = await searchParams;
-  const { analyticsService, qrService, adminOpsService } = await getContainer();
-  const [overview, ops] = await Promise.all([
+  const { analyticsService, qrService, adminOpsService, adminBillingService } = await getContainer();
+  const [overview, ops, fills] = await Promise.all([
     analyticsService.getOverview(user.id, params),
     adminOpsService.getOpsTiles(user.id),
+    adminBillingService.getFills(user.id),
   ]);
 
   let openRow: QrLinkRow | null = null;
@@ -46,7 +47,8 @@ export default async function AdminAnalyticsPage({ searchParams }: PageProps<"/a
       <SignupTiles tiles={overview.tiles} />
       <StatTileGrid label="Carriers, revenue and shifts" columns={4}>
         <StatTile label="Carriers" value={ops.carriers} caption={`${ops.subscribed} subscribed`} />
-        <StatTile label="MRR" value={`$${ops.mrr.toLocaleString("en-US")}`} caption="monthly recurring revenue" />
+        <StatTile label="MRR" value={`$${ops.mrr.toLocaleString("en-US")}`} caption="paying carriers, $99 each" />
+        <StatTile label="Fill revenue" value={`$${(fills.revenueCents / 100).toLocaleString("en-US")}`} caption={`this month, ${fills.billable} fills at $35`} />
         <StatTile label="Shifts, 30 days" value={ops.shifts30d} caption={`${ops.booked30d} booked`} />
         <StatTile label="Fill rate, 30 days" value={ops.fillRate30d === null ? "None yet" : `${ops.fillRate30d}%`} caption="booked of booked or expired" />
       </StatTileGrid>

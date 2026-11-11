@@ -222,8 +222,21 @@ describe("AdminOpsService", () => {
 
   it("counts active subscriptions and the monthly revenue", async () => {
     const page = await service.getSubscriptions(ADMIN_ID);
-    expect(page).toMatchObject({ active: 1, mrr: 399 });
+    expect(page).toMatchObject({ active: 1, trialing: 0, mrr: 99 });
     expect(page.rows.map((row) => row.companyName).sort()).toEqual(["Dallas Freight", "Paid Freight"]);
+  });
+
+  it("counts a carrier in the trial as active but not in MRR, which is the paying carriers only", async () => {
+    ops.carriers = [
+      ...ops.carriers,
+      {
+        carrier: buildCarrier({ id: "c0000000-0000-4000-8000-000000000003", profileId: "e0000000-0000-4000-8000-000000000003", companyName: "Trial Freight" }),
+        profile: buildProfile({ id: "e0000000-0000-4000-8000-000000000003", role: "carrier", phone: "+15555550133", status: "approved" }),
+        subscriptions: [buildSubscription({ id: "s3", carrierId: "c0000000-0000-4000-8000-000000000003", stripeSubscriptionId: "sub_trial", status: "trialing" })],
+      },
+    ];
+    expect(await service.getSubscriptions(ADMIN_ID)).toMatchObject({ active: 2, trialing: 1, mrr: 99 });
+    expect(await service.getOpsTiles(ADMIN_ID)).toMatchObject({ subscribed: 2, mrr: 99 });
   });
 
   it("lists shifts with expired shown as expired, the fill rate, and the filter", async () => {
@@ -283,7 +296,7 @@ describe("AdminOpsService", () => {
     expect(await service.getOpsTiles(ADMIN_ID)).toEqual({
       carriers: 2,
       subscribed: 1,
-      mrr: 399,
+      mrr: 99,
       shifts30d: 1,
       booked30d: 1,
       fillRate30d: 100,

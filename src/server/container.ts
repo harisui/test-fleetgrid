@@ -34,6 +34,7 @@ import { WaitlistRepository } from "@/server/repositories/WaitlistRepository";
 import { WebhookEventRepository } from "@/server/repositories/WebhookEventRepository";
 import { AccountService } from "@/server/services/AccountService";
 import { AdminAuthService } from "@/server/services/AdminAuthService";
+import { AdminBillingService } from "@/server/services/AdminBillingService";
 import { AdminOpsService } from "@/server/services/AdminOpsService";
 import { AdminService } from "@/server/services/AdminService";
 import { AnalyticsService } from "@/server/services/AnalyticsService";
@@ -245,9 +246,19 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     new TextService(getSmsProvider(), () => new SmsLogRepository(createAdminClient()), reportError, undefined, alertsOnlyTo),
   );
 
+  // Fills: read with the admin's own client (RLS); a waive goes through the service role.
+  const adminBillingService = new AdminBillingService(
+    profiles,
+    new FillRepository(supabase),
+    carriers,
+    adminRepository,
+    (fillId, adminId, reason) => buildFillService().waive(fillId, adminId, reason),
+  );
+
   return {
     shiftService,
     adminOpsService,
+    adminBillingService,
     messagingService,
     noticeService,
     docReminderService,

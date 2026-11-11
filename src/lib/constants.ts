@@ -24,7 +24,7 @@ export const FILL_PRICE_LABEL = "$35 per completed fill";
  */
 export const SMS_SEGMENT_COST_ESTIMATE_USD = 0.011;
 /** The same price in dollars, for the admin's monthly recurring revenue. */
-export const SUBSCRIPTION_PRICE_DOLLARS = 399;
+export const SUBSCRIPTION_PRICE_DOLLARS = 99;
 export const SUBSCRIPTION_PLAN_NAME = "FleetGrid Carrier";
 /**
  * Pricing of 2026-11-11 (Artifacts/pricing-plan.md): a completed fill costs this, flat. Fills

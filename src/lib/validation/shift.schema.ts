@@ -83,6 +83,11 @@ export const shiftPostSchema = z
     return { ...input, startsAt, endsAt };
   });
 
+/** Carrier-facing wording (pricing of 2026-11-11): goes to the client before a deploy. */
+export const SHIFT_STARTED_CANCEL_MESSAGE =
+  "This shift has started, so it can no longer be cancelled. If the driver did not show, report a no-show.";
+export const NO_SHOW_WINDOW_CLOSED_MESSAGE =
+  "A no-show can be reported until 2 hours after the shift ends. Contact support about this shift.";
 export const SHIFT_NOT_EDITABLE_MESSAGE = "This shift is over or cancelled, so its details can no longer change.";
 
 /** What a carrier may change on a live shift (T3.3). Strict: a time, place or requirement is refused. */
