@@ -84,6 +84,7 @@ describe("DriverRepository (local Supabase)", () => {
       noShowCount: 0,
       shiftsPaused: false,
       reminderSentAt: null,
+      lastDocReminderAt: null,
       approvalTextSentAt: null,
       shiftReadyOverrideReason: null,
       rereviewNeeded: false,

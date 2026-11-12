@@ -268,8 +268,10 @@ export interface Driver {
   shiftsPaused: boolean;
   /** "no_shows" when the system paused them; null otherwise. */
   shiftsPausedReason: string | null;
-  /** When the one profile reminder text went out; null until then (0025). */
+  /** When the one profile reminder text went out (an unfinished sign-up); null until then (0025). */
   reminderSentAt: string | null;
+  /** When the last missing-documents reminder went out (CR-5, 0030); null until then. */
+  lastDocReminderAt: string | null;
   /** When the one approval text went out; null until then (0025). */
   approvalTextSentAt: string | null;
   /** Why an admin made this driver Shift-Ready without a Texas CDL (CR-5, 0028). */

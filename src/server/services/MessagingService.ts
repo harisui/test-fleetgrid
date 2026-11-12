@@ -44,6 +44,8 @@ export const ACCOUNT_KIND_LABELS: Record<AccountKind, string> = {
 };
 
 const FAILED = new Set(["failed", "undelivered"]);
+/** The texts a notice batch sends: notices, security notices and the documents reminder (CR-5). */
+const NOTICE_BATCH_KINDS = ["notice", "security", "doc_reminder"];
 const DELIVERED_RECIPIENT = new Set(["delivered", "booked", "too_late", "no_show"]);
 const YES_OUTCOMES = new Set(["booked", "already_yours", "filled", "closed", "not_eligible"]);
 const UNMATCHED = ["unknown_sender", "no_code"];
@@ -218,7 +220,7 @@ export class MessagingService {
       if (query.type) page.messages = await this.rows(outbound.filter((m) => m.kind === query.type && byStatus(m)));
     } else if (query.tab === "notices") {
       const batches = await this.messaging.listBatches(range.from, range.to);
-      const texts = await this.messaging.listMessages({ from: range.from, to: new Date(this.now().getTime() + DAY).toISOString(), kinds: ["notice", "security"] });
+      const texts = await this.messaging.listMessages({ from: range.from, to: new Date(this.now().getTime() + DAY).toISOString(), kinds: NOTICE_BATCH_KINDS });
       page.notices = batches.map((batch) => {
         const of = texts.filter((m) => m.noticeBatchId === batch.id);
         return {

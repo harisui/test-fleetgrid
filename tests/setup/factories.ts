@@ -121,6 +121,7 @@ export function buildDriver(overrides: Partial<LocatedDriver> = {}): LocatedDriv
       twicIssueAt: null,
       twicIssuePriorAt: null,
       reminderSentAt: null,
+      lastDocReminderAt: null,
       approvalTextSentAt: null,
       shiftReadyOverrideReason: null,
       rereviewNeeded: false,

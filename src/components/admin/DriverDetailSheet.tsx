@@ -308,7 +308,11 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
             <Row label="CDL state" value={driver.cdlState ?? "Not answered"} />
             <Row label="Shift texts" value={smsLabel(detail)} />
             <Row
-              label="Reminder sent"
+              label="Documents reminder"
+              value={driver.lastDocReminderAt ? format(new Date(driver.lastDocReminderAt), "MMMM d, yyyy h:mm a") : "Not sent"}
+            />
+            <Row
+              label="Sign-up reminder"
               value={driver.reminderSentAt ? format(new Date(driver.reminderSentAt), "MMMM d, yyyy h:mm a") : "Not sent"}
             />
             <Row

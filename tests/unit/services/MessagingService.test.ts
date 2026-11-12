@@ -270,6 +270,36 @@ describe("MessagingService", () => {
     expect(delivered.messages.map((r) => r.message.id)).toEqual(["n1"]);
   });
 
+  it("counts a documents reminder batch's texts, which are kind doc_reminder (client report of 2026-11-12)", async () => {
+    repo.batches = [
+      {
+        id: "b1000000-0000-4000-8000-000000000001",
+        category: "doc_reminder",
+        variables: {},
+        body: "FleetGrid: To start getting shift offers, please upload your documents at fleetgridus.com/driver. Reply STOP to opt out.",
+        areaId: null,
+        createdBy: ADMIN_ID,
+        restoresBatchId: null,
+        recipientCount: 2,
+        excludedOptedOut: 0,
+        excludedRecent: 0,
+        excludedNoConsent: 0,
+        excludedBlocked: 0,
+        sendAfter: null,
+        status: "sent",
+        sentAt: DAY.toISOString(),
+        createdAt: DAY.toISOString(),
+      },
+    ];
+    repo.messages = [
+      text({ id: "d1", kind: "doc_reminder", noticeBatchId: "b1000000-0000-4000-8000-000000000001", status: "delivered", errorCode: null }),
+      text({ id: "d2", kind: "doc_reminder", noticeBatchId: "b1000000-0000-4000-8000-000000000001", status: "delivered", errorCode: null }),
+    ];
+    const page = await service.getActivity(ADMIN_ID, { tab: "notices", batch: "b1000000-0000-4000-8000-000000000001" });
+    expect(page.notices).toMatchObject([{ delivered: 2, failed: 0 }]);
+    expect(page.messages.map((r) => r.message.id).sort()).toEqual(["d1", "d2"]);
+  });
+
   it("reads the period or the typed Houston dates, and any status from the dropdown", async () => {
     repo.messages = [
       text({ id: "old", createdAt: "2026-10-20T12:00:00.000Z" }),

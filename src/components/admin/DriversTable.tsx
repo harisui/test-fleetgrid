@@ -45,8 +45,14 @@ const signedUp = (row: AdminDriverRow) => format(new Date(row.driver.createdAt),
 
 
 /** The one profile reminder (change request of 2026-11-01): its date, or "Not sent". */
+/** The automatic "your profile is almost done" text, for an unfinished sign-up. */
 export function reminderLabel(row: { driver: { reminderSentAt: string | null } }): string {
   return row.driver.reminderSentAt ? format(new Date(row.driver.reminderSentAt), "MMM d, yyyy") : "Not sent";
+}
+
+/** The last missing-documents reminder an admin sent. */
+export function docReminderLabel(row: { driver: { lastDocReminderAt: string | null } }): string {
+  return row.driver.lastDocReminderAt ? format(new Date(row.driver.lastDocReminderAt), "MMM d, yyyy") : "Not sent";
 }
 
 const COLUMNS: DataColumn<AdminDriverRow>[] = [
@@ -90,7 +96,8 @@ const COLUMNS: DataColumn<AdminDriverRow>[] = [
     sortable: true,
   },
   { key: "sms", header: "SMS", cell: smsLabel },
-  { key: "reminder", header: "Reminder sent", cell: reminderLabel },
+  { key: "docReminder", header: "Documents reminder", cell: docReminderLabel },
+  { key: "reminder", header: "Sign-up reminder", cell: reminderLabel },
   {
     key: "selfReport",
     header: "Clearinghouse and SAP",

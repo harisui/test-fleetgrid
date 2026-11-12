@@ -69,6 +69,7 @@ export class FakeDriverRepository implements IDriverRepository {
       twicIssueAt: null,
       twicIssuePriorAt: null,
       reminderSentAt: null,
+      lastDocReminderAt: null,
       approvalTextSentAt: null,
       shiftReadyOverrideReason: null,
       rereviewNeeded: false,
