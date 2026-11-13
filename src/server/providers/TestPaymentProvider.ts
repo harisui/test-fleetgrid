@@ -41,6 +41,12 @@ export class TestPaymentProvider implements IPaymentProvider {
   readonly invoiceItems = new Map<string, TestInvoiceItem>();
   /** The card each customer pays with, by fingerprint. Defaults to one card per customer. */
   readonly cardFingerprints = new Map<string, string>();
+  /**
+   * Customer ids restart at cus_test_0001 with every server process, but the database keeps the
+   * cards that had a trial. A token per process keeps one run's default card from looking like a
+   * card an earlier run already used.
+   */
+  readonly cardSeed = Math.random().toString(36).slice(2, 10);
   readonly invoices: { id: string; customerId: string; itemIds: string[] }[] = [];
   readonly credits: { customerId: string; amountCents: number; description: string }[] = [];
   private readonly idempotency = new Map<string, string>();
@@ -169,7 +175,7 @@ export class TestPaymentProvider implements IPaymentProvider {
   async trialCardFingerprint(subscriptionId: string): Promise<string | null> {
     const subscription = this.subscriptions.get(subscriptionId);
     if (!subscription) throw AppError.notFound("Unknown subscription");
-    return this.cardFingerprints.get(subscription.stripeCustomerId) ?? `fp_test_${subscription.stripeCustomerId}`;
+    return this.cardFingerprints.get(subscription.stripeCustomerId) ?? `fp_test_${this.cardSeed}_${subscription.stripeCustomerId}`;
   }
 
   async endTrialNow(subscriptionId: string): Promise<SubscriptionSnapshot> {

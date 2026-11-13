@@ -762,7 +762,7 @@ describe("SubscriptionService", () => {
 
       expect(subscription).toMatchObject({ status: "trialing", trialStart: NOW.toISOString(), trialEnd: "2026-10-20T12:00:00.000Z" });
       expect(carriers.rows.get(carrier.id)?.trialUsedAt).toBe(NOW.toISOString());
-      expect(trialCards.rows.get("fp_test_cus_test_0001")).toBe(carrier.id);
+      expect(trialCards.rows.get(`fp_test_${payments.cardSeed}_cus_test_0001`)).toBe(carrier.id);
 
       // Cancelled, then back: no second trial is offered, and the acknowledgment says so.
       await payments.cancelSubscription(subscription.stripeSubscriptionId);
