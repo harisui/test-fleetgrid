@@ -45,6 +45,7 @@ export const REREVIEW_OPTIONS = [
   { value: "", label: "Any review" },
   { value: "yes", label: "Re-review needed" },
   { value: "ready", label: "Ready to review" },
+  { value: "new", label: "New uploads since reminder" },
 ] as const;
 
 export const TWIC_FILTER_OPTIONS = [

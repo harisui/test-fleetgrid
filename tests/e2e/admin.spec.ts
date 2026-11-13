@@ -246,6 +246,25 @@ test.describe("admin drivers", () => {
     await expect(page.getByText("No drivers match these filters.")).toBeVisible();
   });
 
+  test("marking a driver Roster-Ready from the Ready to review list takes them off it (client report of 2026-11-12)", async ({ page }) => {
+    const { driverId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
+    await uploadRequiredDocuments(driverId!);
+    await login(page, PHONES.admin);
+    const list = adminList(page, "Drivers");
+
+    await page.goto("/admin/drivers?q=Pat+Driver&rereview=ready");
+    await list.getByRole("link", { name: /^Pat Driver/ }).click();
+    const sheet = page.getByRole("dialog", { name: "Pat Driver" });
+    await sheet.getByRole("button", { name: "Mark Roster-Ready" }).click();
+    await page.getByRole("dialog", { name: "Mark Pat Driver Roster-Ready?" }).getByRole("button", { name: "Mark Roster-Ready" }).click();
+    await expect(sheet.locator("[data-slot=detail-badges] [data-status=approved]")).toHaveText("Roster-Ready");
+
+    // Closing the sheet shows the list without them, with no reload.
+    await page.keyboard.press("Escape");
+    await expect(page).toHaveURL(/rereview=ready/);
+    await expect(page.getByText("No drivers match these filters.")).toBeVisible();
+  });
+
   test("Mark as reviewed clears the flag on a Roster-Ready driver in the grace period, with no text", async ({ page }) => {
     const { driverId, userId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
     await uploadRequiredDocuments(driverId!);

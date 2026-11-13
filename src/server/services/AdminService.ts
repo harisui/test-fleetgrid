@@ -50,6 +50,11 @@ export interface AdminDriverRow extends DriverReviewRow {
   needsUpdate: ShiftReadyItem[];
   /** Registered with everything on file: an admin can look and mark them Roster-Ready. */
   readyToReview: boolean;
+  /**
+   * A CDL or medical card uploaded after the last documents reminder this driver got (client
+   * request of 2026-11-12): who acted on the reminder, to look at next.
+   */
+  uploadedSinceReminder: boolean;
 }
 
 export interface DriverTiles {
@@ -165,7 +170,7 @@ export class AdminService {
     const [located] = await this.locate(
       [row],
       link ? [link] : [],
-      documents.map((document) => ({ driverId, type: document.type })),
+      documents.map((document) => ({ driverId, type: document.type, createdAt: document.createdAt })),
     );
     const photos = await Promise.all(
       REQUIRED_DOCUMENTS.map(async (type): Promise<ShiftReadyPhoto> => {
@@ -315,10 +320,14 @@ export class AdminService {
   private async locate(
     rows: DriverReviewRow[],
     links: QrLink[],
-    held: readonly { driverId: string; type: DocumentType }[],
+    held: readonly { driverId: string; type: DocumentType; createdAt: string }[],
   ): Promise<AdminDriverRow[]> {
     const heldBy = new Map<string, DocumentType[]>();
-    for (const { driverId, type } of held) heldBy.set(driverId, [...(heldBy.get(driverId) ?? []), type]);
+    const lastUpload = new Map<string, string>();
+    for (const { driverId, type, createdAt } of held) {
+      heldBy.set(driverId, [...(heldBy.get(driverId) ?? []), type]);
+      if (createdAt > (lastUpload.get(driverId) ?? "")) lastUpload.set(driverId, createdAt);
+    }
     const areas: ServiceArea[] = rows.some((row) => row.driver.lat !== null && row.driver.lng !== null)
       ? await this.serviceAreas.listActive()
       : [];
@@ -333,6 +342,9 @@ export class AdminService {
       missingDocuments: missingDocuments(heldBy.get(row.driver.id) ?? []),
       needsUpdate: inRosterGrace(row.driver, this.now()) ? shiftReadyMissing(row.driver, heldBy.get(row.driver.id) ?? []) : [],
       readyToReview: row.profile.status === "pending" && shiftReadyMissing(row.driver, heldBy.get(row.driver.id) ?? []).length === 0,
+      uploadedSinceReminder:
+        row.driver.lastDocReminderAt !== null &&
+        Date.parse(lastUpload.get(row.driver.id) ?? "") > Date.parse(row.driver.lastDocReminderAt),
       source: describeSource(row.profile.source, byId.get(row.profile.source.qrLinkId ?? "") ?? null),
     }));
   }
@@ -387,6 +399,7 @@ export function matches(row: AdminDriverRow, query: AdminDriversQuery): boolean 
   }
   if (query.rereview === "yes" && !row.driver.rereviewNeeded) return false;
   if (query.rereview === "ready" && !row.readyToReview) return false;
+  if (query.rereview === "new" && !row.uploadedSinceReminder) return false;
   if (query.twic) {
     const issue = twicIssue(row.driver);
     if (query.twic === "issue" && !issue) return false;

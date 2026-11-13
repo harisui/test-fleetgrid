@@ -32,6 +32,7 @@ const TAB_LABELS = {
   broadcasts: "Shift broadcasts",
   account: "Account texts",
   notices: "Notices",
+  replies: "Replies",
   unmatched: "Unmatched inbound",
 } as const;
 const STATUS_LABELS = { "": "Any status", sent: "Sent", delivered: "Delivered", failed: "Failed", held: "Held" } as const;
@@ -92,6 +93,17 @@ function MessageList({ rows, query, label }: { rows: MessageRow[]; query: Messag
                 {when(message.createdAt)}, {message.kind}
                 {message.errorCode ? `, error ${message.errorCode}` : ""}
               </span>
+              {message.direction === "inbound" && (
+                <span className="text-body leading-body break-words" data-slot="reply-text">
+                  &ldquo;{message.body.length > 160 ? `${message.body.slice(0, 160)}...` : message.body}&rdquo;
+                  {message.inboundOutcome && (
+                    <span className="text-helper leading-helper text-muted-foreground">
+                      {" "}
+                      ({message.inboundOutcome.replaceAll("_", " ")})
+                    </span>
+                  )}
+                </span>
+              )}
             </span>
             {message.direction === "outbound" ? (
               <Badge variant={stateVariant[state]}>{STATUS_LABELS[state]}</Badge>
@@ -281,6 +293,7 @@ export default async function MessagingActivityPage({ searchParams }: PageProps<
         </>
       )}
 
+      {query.tab === "replies" && <MessageList rows={page.messages} query={query} label="Replies" />}
       {query.tab === "unmatched" && <MessageList rows={page.messages} query={query} label="Unmatched inbound" />}
 
       {shiftSheet && (

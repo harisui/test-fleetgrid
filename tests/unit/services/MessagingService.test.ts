@@ -234,6 +234,11 @@ describe("MessagingService", () => {
     const unmatched = await service.getActivity(ADMIN_ID, { tab: "unmatched" });
     expect(unmatched.messages.map((r) => r.message.id)).toEqual(["i3"]);
 
+    // Every reply in one place, matched or not (client request of 2026-11-12).
+    const replies = await service.getActivity(ADMIN_ID, { tab: "replies" });
+    expect(replies.messages.map((r) => r.message.id).sort()).toEqual(["i1", "i2", "i3"]);
+    expect(replies.messages.every((r) => r.message.direction === "inbound")).toBe(true);
+
     const detail = await service.getShiftBroadcast(ADMIN_ID, { shiftId: shift.id });
     expect(detail.recipients.find((r) => r.recipient.id === "r1")?.reply?.id).toBe("i1");
   });

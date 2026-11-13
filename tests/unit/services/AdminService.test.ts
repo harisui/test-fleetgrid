@@ -288,6 +288,25 @@ describe("AdminService", () => {
         expect(await ready()).toEqual([]);
       });
 
+      it("New uploads since reminder: a required document newer than the driver's last documents reminder (client request of 2026-11-12)", async () => {
+        const fresh = async () => (await service.getDriversPage(ADMIN_ID, { rereview: "new" })).rows.map((row) => row.driver.id);
+        const [first, second, third] = admin.rows.map((row) => row.driver.id);
+        admin.rows[0]!.driver = { ...admin.rows[0]!.driver, lastDocReminderAt: "2026-11-12T00:53:00.000Z" };
+        admin.rows[1]!.driver = { ...admin.rows[1]!.driver, lastDocReminderAt: "2026-11-12T00:53:00.000Z" };
+        admin.requiredDocuments = [
+          // Uploaded after the reminder: listed.
+          { driverId: first!, type: "cdl_front", createdAt: "2026-11-01T00:00:00.000Z" },
+          { driverId: first!, type: "medical_card", createdAt: "2026-11-12T02:00:00.000Z" },
+          // Only before it: not listed.
+          { driverId: second!, type: "cdl_front", createdAt: "2026-11-11T23:00:00.000Z" },
+          // Never reminded: not listed, however new the upload.
+          { driverId: third!, type: "cdl_back", createdAt: "2026-11-12T03:00:00.000Z" },
+        ];
+        expect(await fresh()).toEqual([first]);
+        const page = await service.getDriversPage(ADMIN_ID, {});
+        expect(page.rows.find((row) => row.driver.id === first)?.uploadedSinceReminder).toBe(true);
+      });
+
       it("filters by re-review needed", async () => {
         admin.rows[0]!.driver = { ...admin.rows[0]!.driver, rereviewNeeded: true };
         const page = await service.getDriversPage(ADMIN_ID, { rereview: "yes" });

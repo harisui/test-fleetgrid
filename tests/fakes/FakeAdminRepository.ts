@@ -25,13 +25,13 @@ export class FakeAdminRepository implements IAdminRepository {
     return [...this.rows].sort((a, b) => b.driver.createdAt.localeCompare(a.driver.createdAt));
   }
 
-  /** Required documents on file, by driver. */
-  requiredDocuments: { driverId: string; type: DocumentType }[] = [];
+  /** Required documents on file, by driver; uploaded Oct 1 unless a test says when. */
+  requiredDocuments: { driverId: string; type: DocumentType; createdAt?: string }[] = [];
   /** The times reminders went out; countDocRemindersSince() counts from these. */
   reminderTimes: string[] = [];
 
   async listRequiredDocuments() {
-    return this.requiredDocuments;
+    return this.requiredDocuments.map((document) => ({ createdAt: "2026-10-01T00:00:00.000Z", ...document }));
   }
 
   async countDocRemindersSince(since: string) {

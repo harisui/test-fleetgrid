@@ -35,7 +35,8 @@ export interface IAdminRepository {
   listDrivers(): Promise<DriverReviewRow[]>;
   findDriver(driverId: string): Promise<DriverReviewRow | null>;
   /** Which driver holds which required document (CR-5), for the list's "Missing" badges. */
-  listRequiredDocuments(): Promise<{ driverId: string; type: DocumentType }[]>;
+  /** The CDL and medical card files on record, with when each was uploaded. */
+  listRequiredDocuments(): Promise<{ driverId: string; type: DocumentType; createdAt: string }[]>;
   /** How many missing-documents reminders were sent since this time (CR-5). */
   countDocRemindersSince(since: string): Promise<number>;
   /** Approves, blocks or reopens a profile. Only admins and the service role may (trigger). */
@@ -79,11 +80,11 @@ export class AdminRepository extends BaseRepository implements IAdminRepository 
     return rows.map((row) => ({ driver: mapDriver(row), profile: mapProfile(row.profiles) }));
   }
 
-  async listRequiredDocuments(): Promise<{ driverId: string; type: DocumentType }[]> {
+  async listRequiredDocuments(): Promise<{ driverId: string; type: DocumentType; createdAt: string }[]> {
     const rows = this.unwrap(
-      await this.supabase.from("driver_documents").select("driver_id, type").in("type", [...REQUIRED_DOCUMENTS]),
+      await this.supabase.from("driver_documents").select("driver_id, type, created_at").in("type", [...REQUIRED_DOCUMENTS]),
     );
-    return rows.map((row) => ({ driverId: row.driver_id, type: row.type }));
+    return rows.map((row) => ({ driverId: row.driver_id, type: row.type, createdAt: row.created_at }));
   }
 
   async countDocRemindersSince(since: string): Promise<number> {

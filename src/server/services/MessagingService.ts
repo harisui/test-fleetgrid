@@ -230,6 +230,11 @@ export class MessagingService {
         };
       });
       if (query.batch) page.messages = await this.rows(texts.filter((m) => m.noticeBatchId === query.batch && byStatus(m)));
+    } else if (query.tab === "replies") {
+      // Every text a driver sent in, newest first (client request of 2026-11-12).
+      page.messages = await this.rows(
+        all.filter((m) => m.direction === "inbound").sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
+      );
     } else {
       page.messages = await this.rows(
         all.filter((m) => m.direction === "inbound" && m.inboundOutcome !== null && UNMATCHED.includes(m.inboundOutcome)),

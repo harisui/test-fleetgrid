@@ -3,7 +3,7 @@ import { z } from "zod";
 /** The admin Messaging pages: Activity's tabs and filters, and the resend. All in the URL. */
 
 export const MESSAGING_PERIODS = ["today", "7d", "30d"] as const;
-export const MESSAGING_TABS = ["broadcasts", "account", "notices", "unmatched"] as const;
+export const MESSAGING_TABS = ["broadcasts", "account", "notices", "replies", "unmatched"] as const;
 export const MESSAGE_STATUS_FILTERS = ["", "sent", "delivered", "failed"] as const;
 export const ACCOUNT_KINDS = ["approved", "reminder", "welcome", "doc_reminder", "cdl_state_notice", "twic_date_notice", "cancelled", "security"] as const;
 export type AccountKind = (typeof ACCOUNT_KINDS)[number];
