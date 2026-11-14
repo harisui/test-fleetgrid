@@ -410,6 +410,35 @@ In `vercel.json`, all guarded by `CRON_SECRET`. Times are UTC. Vercel Hobby runs
 
 Set `SHIFT_ALERTS_ONLY_TO` in Vercel Production to the test numbers, comma separated (`+13085550100,+13605550100`), and redeploy, before the carrier side is turned on. While it is set, shift alerts go only to those numbers: real drivers are left out when a shift is matched (the carrier's "drivers match" count shows only the test numbers), and the one sending path refuses an alert to any other number. Set but with no valid number in it (`none`), no alert goes at all. Account texts are not affected. Remove it and redeploy after the test.
 
+### The admin subdomain
+
+The admin panel can live on its own host, `admin.fleetgridus.com`, behind Cloudflare Access,
+while the public site stays as it is (`src/lib/auth/admin-host.ts`, applied in `src/proxy.ts`).
+With `ADMIN_HOST` set: on the admin host, `/` and every public, driver or carrier page go to
+`/admin`, and robots.txt there disallows everything (plus an `x-robots-tag: noindex` header);
+on the public site, `/admin...` redirects to the same page on the admin host. Without it
+(local, tests, previews) nothing changes.
+
+Setup, in this order:
+
+1. Vercel, the project's Domains: add `admin.fleetgridus.com`.
+2. Cloudflare DNS: a CNAME `admin` to the target Vercel shows, **proxied** (orange cloud). The
+   apex and `www` stay DNS only. SSL/TLS mode for the zone: Full (strict).
+3. Cloudflare Zero Trust, Access, Applications: a self-hosted application for
+   `admin.fleetgridus.com` (all paths), with a policy that allows only the admins' emails
+   (one-time PIN by email is enough).
+4. Cloudflare Rules, Transform Rules, Modify request header: when the hostname equals
+   `admin.fleetgridus.com`, set the header `x-admin-gate` to a long random value.
+5. Vercel Production env: `ADMIN_HOST=admin.fleetgridus.com` and `ADMIN_HOST_SECRET=` the same
+   random value. Redeploy.
+6. Check: `https://admin.fleetgridus.com` asks for the Cloudflare login, then shows the admin
+   sign-in; `https://fleetgridus.com/admin` lands there too; `https://admin.fleetgridus.com/terms`
+   goes to `/admin`. A request straight to Vercel with that Host header and no `x-admin-gate`
+   gets 403.
+
+Sign-in cookies are per host, so admins sign in on the admin host. Without the secret set, the
+host rules still apply, but a request that skips Cloudflare is not refused.
+
 ### Turning the carrier side off and on
 
 `CARRIER_DISABLED=true` in Vercel, then redeploy: the carrier pages and sign-up show "coming soon", nobody can post or release a shift, and no shift alert goes by any path. Account texts (welcome, reminders, notices) still go. Set it to `false` and redeploy to turn the carrier side on. It reads exactly `true`, so anything else means on.
