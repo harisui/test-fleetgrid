@@ -135,7 +135,7 @@ select pg_temp.shift('10', '48', '44', 24, 32);
 select lives_ok($$ update public.shifts set status = 'cancelled', cancelled_at = now() where short_code = '4810' $$, 'a booked shift not yet started can be cancelled');
 
 -- Who reads fills.
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000048-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000048-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select is((select count(*)::int from public.shift_fills), 1, 'a carrier reads only its own fills');
 select throws_ok($$ insert into public.shift_fills (carrier_id, shift_starts_at, shift_ends_at, completed_at, charge, amount_cents) values (pg_temp.cid('48'), now(), now(), now(), 'included', 0) $$,
@@ -146,7 +146,7 @@ select throws_ok($$ select count(*) from public.trial_card_fingerprints $$, '425
 reset role;
 
 -- The acknowledgment.
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000047-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000047-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select lives_ok($$ select public.record_billing_acknowledgment('2026-11-v1', true, '203.0.113.7', 'test agent') $$, 'a carrier acknowledges the price');
 select results_eq(
@@ -158,16 +158,16 @@ select throws_ok($$ insert into public.billing_acknowledgments (version, with_tr
 reset role;
 select throws_ok($$ update public.billing_acknowledgments set version = 'changed' $$, '42501', null, 'the record is append-only');
 
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000041-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000041-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select throws_ok($$ select public.record_billing_acknowledgment('2026-11-v1', true) $$, '42501', null, 'a driver cannot acknowledge');
 select is((select count(*)::int from public.shift_fills), 0, 'or read fills');
 reset role;
 
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000049-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000049-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
-select is((select count(*)::int from public.shift_fills), 7, 'an admin reads every fill');
-select is((select count(*)::int from public.billing_acknowledgments), 1, 'and every acknowledgment');
+select is((select count(*)::int from public.shift_fills where carrier_id in (pg_temp.cid('47'), pg_temp.cid('48'))), 7, 'an admin reads every fill');
+select is((select count(*)::int from public.billing_acknowledgments where user_agent = 'test agent'), 1, 'and every acknowledgment');
 reset role;
 
 -- A card fingerprint is unique: a second trial on the same card is refused.
@@ -176,8 +176,8 @@ select throws_ok($$ insert into public.trial_card_fingerprints (fingerprint, car
 
 -- The billing record outlives the carrier.
 delete from public.carriers where id = pg_temp.cid('47');
-select is((select count(*)::int from public.shift_fills where carrier_id is null), 6, 'fills stay when the carrier is removed');
-select is((select count(*)::int from public.billing_acknowledgments where carrier_id is null), 1, 'and so does the acknowledgment');
+select is((select count(*)::int from public.shift_fills where carrier_id is null and driver_id in (select pg_temp.did(n) from unnest(array['41', '42', '43', '44', '45', '46']) as n)), 6, 'fills stay when the carrier is removed');
+select is((select count(*)::int from public.billing_acknowledgments where carrier_id is null and user_agent = 'test agent'), 1, 'and so does the acknowledgment');
 select is((select count(*)::int from public.trial_card_fingerprints where fingerprint = 'fp_47'), 1, 'and the card stays used');
 
 select * from finish();

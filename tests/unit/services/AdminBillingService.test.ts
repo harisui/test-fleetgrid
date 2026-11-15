@@ -59,7 +59,7 @@ describe("AdminBillingService", () => {
       {
         writeAudit: async (entry) => {
           audit.push(entry);
-          return { id: "audit-1", createdAt: NOW.toISOString(), ...entry, detail: entry.detail ?? {} };
+          return { id: "audit-1", createdAt: NOW.toISOString(), ...entry, adminEmail: null, detail: entry.detail ?? {} };
         },
       },
       async (fillId, adminId, reason) => {
