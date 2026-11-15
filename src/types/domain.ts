@@ -364,7 +364,7 @@ export interface Subscription {
 
 export type FillCharge = "included" | "billable" | "waived";
 
-/** A completed fill (0039): a booked shift 2 hours past its end, with no no-show or cancel. */
+/** A completed fill (0040): a booked shift 2 hours past its end, with no no-show or cancel. */
 export interface ShiftFill {
   id: string;
   shiftId: string | null;

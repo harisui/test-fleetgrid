@@ -1,5 +1,5 @@
 -- ---------------------------------------------------------------------------
--- 0039: carrier pricing, $99 a month plus $35 per completed fill, after a 7-day trial
+-- 0040: carrier pricing, $99 a month plus $35 per completed fill, after a 7-day trial
 -- (client decision of 2026-11-11, Artifacts/pricing-plan.md).
 --
 -- A booked shift is a completed fill 2 hours after its scheduled end, unless before then the

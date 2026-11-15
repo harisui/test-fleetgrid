@@ -5,7 +5,7 @@ import type { ShiftFill } from "@/types/domain";
 type FillRow = Database["public"]["Tables"]["shift_fills"]["Row"];
 
 export interface IFillRepository {
-  /** Service role: records every completed fill not yet recorded (0039) and returns the new ones. */
+  /** Service role: records every completed fill not yet recorded (0040) and returns the new ones. */
   recordCompleted(amountCents: number, included: number): Promise<ShiftFill[]>;
   /** Service role: billable fills with no invoice item yet, oldest first. */
   listUnbilled(carrierId?: string): Promise<ShiftFill[]>;
@@ -39,7 +39,7 @@ export function mapFill(row: FillRow): ShiftFill {
   };
 }
 
-/** Completed fills (0039). Carriers read their own, admins all; only the service role writes. */
+/** Completed fills (0040). Carriers read their own, admins all; only the service role writes. */
 export class FillRepository extends BaseRepository implements IFillRepository {
   async recordCompleted(amountCents: number, included: number): Promise<ShiftFill[]> {
     const result = await this.supabase.rpc("record_completed_fills", { p_amount_cents: amountCents, p_included: included });

@@ -8,7 +8,7 @@ export interface BillingAcknowledgmentInput {
 }
 
 export interface IBillingAcknowledgmentRepository {
-  /** The signed-in carrier read the price disclosure (0039). One record per checkout start. */
+  /** The signed-in carrier read the price disclosure (0040). One record per checkout start. */
   record(input: BillingAcknowledgmentInput): Promise<{ id: string; acceptedAt: string }>;
 }
 
@@ -34,7 +34,7 @@ export interface ITrialCardRepository {
   claim(fingerprint: string, carrierId: string): Promise<boolean>;
 }
 
-/** Service role only (0039): card fingerprints that had a trial. Never card data. */
+/** Service role only (0040): card fingerprints that had a trial. Never card data. */
 export class TrialCardRepository extends BaseRepository implements ITrialCardRepository {
   async claim(fingerprint: string, carrierId: string): Promise<boolean> {
     const inserted = await this.supabase

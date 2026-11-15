@@ -183,7 +183,7 @@ $99 a month plus $35 per completed fill, after a 7-day trial.
   `BILLING_DISCLOSURE_VERSION`, the IP and the browser. Change the wording in
   `src/lib/carrier/options.ts` (`priceDisclosure`) and bump the version together.
 - **Completed fill.** A booked shift 2 hours after its scheduled end, unless before then the
-  carrier reported a no-show, released or cancelled it (migration 0039). The daily shifts job
+  carrier reported a no-show, released or cancelled it (migration 0040). The daily shifts job
   records it once (`record_completed_fills`) and bills it: the first 3 fills of shifts that
   started inside the trial are included, every other one becomes a $35 Stripe invoice item on
   the customer (idempotency key `fill-<id>`), which the next monthly invoice picks up.

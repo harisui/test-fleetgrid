@@ -70,7 +70,7 @@ export function displayStatus(
  * Where a booked shift stands (pricing of 2026-11-11): before its start everything is open;
  * once started it can no longer be cancelled, only released as a no-show (it goes out again);
  * after its end a no-show can still be reported for FILL_GRACE_HOURS, without going out again;
- * after that it is a completed fill and nothing changes it (0039).
+ * after that it is a completed fill and nothing changes it (0040).
  */
 export type BookedShiftPhase = "before_start" | "in_progress" | "no_show_window" | "completed";
 

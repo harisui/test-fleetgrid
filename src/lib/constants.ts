@@ -38,7 +38,7 @@ export const TRIAL_INCLUDED_FILLS = 3;
 export const BILLING_DISCLOSURE_VERSION = "2026-11-v1";
 /** The footer on every Stripe invoice (user decision of 2026-11-11: Stripe Tax stays off). */
 export const INVOICE_TAX_FOOTER = "Prices exclude applicable taxes.";
-/** A booked shift becomes a completed fill this long after its end (0039 fill_grace()). */
+/** A booked shift becomes a completed fill this long after its end (0040 fill_grace()). */
 export const FILL_GRACE_HOURS = 2;
 /** Driver search (T2.7): results per page and the distance from the yard. */
 export const SEARCH_PAGE_SIZE = 20;
