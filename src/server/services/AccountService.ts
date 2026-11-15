@@ -49,6 +49,10 @@ export class AccountService {
       for (const document of documents) {
         await this.documents.removeFile(document.storagePath);
       }
+      // Papers a newer one replaced keep their files until now (0040).
+      for (const path of await this.accounts().listReplacedDocumentPaths(driver.id)) {
+        await this.documents.removeFile(path);
+      }
     }
     await this.accounts().deleteUser(user.id);
     // The user is gone, so the sign-out may already have nothing to end.

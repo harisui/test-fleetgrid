@@ -92,9 +92,8 @@ export function OnboardingDocuments({
       return fail(fields?.mimeType ?? fields?.sizeBytes ?? confirmed.error.message);
     }
 
-    // A one-file tile replaces its older file quietly; a multi-file tile keeps them all.
+    // A one-file tile shows only the new file: the database moved the older one aside (0040).
     const replaced = tile.max === 1 ? documentsOf(type)[0] : undefined;
-    if (replaced) await deleteDocumentAction({ documentId: replaced.id });
     onChange([confirmed.data, ...documents.filter((document) => document.id !== replaced?.id)]);
     setBusyFor(type, undefined);
     toast.success("Saved");

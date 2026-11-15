@@ -1,5 +1,5 @@
 -- 0030: the welcome text once per phone number ever (as an HMAC), and the missing-documents
--- reminder: who is a candidate and why one is left out, the 3-day claim, and who may touch it.
+-- reminder: who is a candidate and why one is left out, the 7-day claim (0040), and who may touch it.
 begin;
 select no_plan();
 
@@ -67,21 +67,23 @@ select results_eq(
   'candidates leave out the blocked and the complete, and say why the rest would be skipped'
 );
 
--- The claim: once per 3 days, only when it may go.
+-- The claim: once per 7 days (0040), only when it may go.
 select results_eq(
   $$ select phone, missing from public.claim_doc_reminder(pg_temp.did('77')) $$,
   $$ values ('+155555599' || '77', array['medical_card']) $$,
   'the claim returns the number and what is missing'
 );
 select ok((select last_doc_reminder_at is not null from public.drivers where id = pg_temp.did('77')), 'and stamps the driver');
-select is_empty($$ select * from public.claim_doc_reminder(pg_temp.did('77')) $$, 'a second claim within 3 days gets nothing');
+select is_empty($$ select * from public.claim_doc_reminder(pg_temp.did('77')) $$, 'a second claim within 7 days gets nothing');
 select is_empty($$ select * from public.claim_doc_reminder(pg_temp.did('72')) $$, 'no consent, no claim');
 select is_empty($$ select * from public.claim_doc_reminder(pg_temp.did('73')) $$, 'opted out, no claim');
 select is_empty($$ select * from public.claim_doc_reminder(pg_temp.did('74')) $$, 'reminded a day ago, no claim');
 select is_empty($$ select * from public.claim_doc_reminder(pg_temp.did('75')) $$, 'blocked, no claim');
 select is_empty($$ select * from public.claim_doc_reminder(pg_temp.did('76')) $$, 'nothing missing, no claim');
-update public.drivers set last_doc_reminder_at = now() - interval '3 days 1 minute' where id = pg_temp.did('74');
-select isnt_empty($$ select * from public.claim_doc_reminder(pg_temp.did('74')) $$, 'after 3 days it may go again');
+update public.drivers set last_doc_reminder_at = now() - interval '6 days' where id = pg_temp.did('74');
+select is_empty($$ select * from public.claim_doc_reminder(pg_temp.did('74')) $$, 'six days later, still nothing (0040)');
+update public.drivers set last_doc_reminder_at = now() - interval '7 days 1 minute' where id = pg_temp.did('74');
+select isnt_empty($$ select * from public.claim_doc_reminder(pg_temp.did('74')) $$, 'after 7 days it may go again');
 
 -- The welcome: once per hash ever, with consent, never more than a day late.
 select ok(public.queue_welcome_text(repeat('a', 64), pg_temp.did('71'), null), 'the first welcome for a number is queued');

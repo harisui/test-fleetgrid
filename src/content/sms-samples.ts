@@ -77,7 +77,7 @@ export const SMS_WELCOME_NO_NAME =
 export const DOC_REMINDER_ITEMS = ["CDL photos", "medical card", "CDL photos and medical card"] as const;
 export type DocReminderItems = (typeof DOC_REMINDER_ITEMS)[number];
 
-/** Missing documents: from an admin, at most once per 3 days. */
+/** Missing documents: from an admin; one reminder text of any kind per driver a week (0040). */
 export function docReminderText(items: DocReminderItems): string {
   return `FleetGrid: To start getting shift offers, please upload your ${items} at fleetgridus.com/driver. Reply STOP to opt out.`;
 }

@@ -161,10 +161,19 @@ describe("DocumentUploader", () => {
   });
 
   it("puts the newest upload first", async () => {
-    render(<DocumentUploader initialDocuments={[buildDocument()]} />);
+    render(<DocumentUploader initialDocuments={[buildDocument({ type: "other", fileName: "older.pdf" })]} />);
     await choose(fileOf("new.pdf", "application/pdf"));
     await waitFor(() => expect(within(list()).getAllByRole("listitem")).toHaveLength(2));
     expect(within(list()).getAllByRole("listitem")[0]).toHaveTextContent("new.pdf");
+  });
+
+  it("a new CDL front replaces the one the driver had, so the list never shows two (0040)", async () => {
+    render(<DocumentUploader initialDocuments={[buildDocument({ type: "cdl_front", fileName: "blurry.jpg" })]} />);
+    await choose(fileOf("sharp.pdf", "application/pdf"));
+    await waitFor(() => expect(within(list()).getAllByRole("listitem")[0]).toHaveTextContent("sharp.pdf"));
+    expect(within(list()).getAllByRole("listitem")).toHaveLength(1);
+    expect(within(list()).queryByText(/blurry\.jpg/)).not.toBeInTheDocument();
+    expect(actions.deleteDocumentAction).not.toHaveBeenCalled();
   });
 
   it.each([

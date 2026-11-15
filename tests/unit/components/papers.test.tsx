@@ -3,7 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { MultiUploadTile } from "@/components/driver/MultiUploadTile";
 import { OnboardingDocuments } from "@/components/driver/OnboardingDocuments";
-import { OTHER_PAPERS_TILE } from "@/lib/onboarding/options";
+import { ONBOARDING_DOCUMENT_TILES, OTHER_PAPERS_TILE } from "@/lib/onboarding/options";
 import type { Result } from "@/server/errors/AppError";
 import type { DriverDocument } from "@/types/domain";
 import { buildDocument, DRIVER_ID } from "../../setup/factories";
@@ -116,6 +116,20 @@ describe("OnboardingDocuments with the Other papers tile", () => {
     expect(actions.prepareDocumentUploadAction).toHaveBeenCalledWith(
       expect.objectContaining({ type: "certification", fileName: "forklift.pdf" }),
     );
+    expect(actions.deleteDocumentAction).not.toHaveBeenCalled();
+  });
+
+  it("a one-file tile shows only the new file, and the old one is not deleted: the database keeps it aside (0040)", async () => {
+    const existing = buildDocument({ id: "d0000000-0000-4000-8000-000000000001", type: "cdl_front", fileName: "blurry.jpg" });
+    const added = buildDocument({ id: "d0000000-0000-4000-8000-000000000002", type: "cdl_front", fileName: "sharp.pdf" });
+    actions.prepareDocumentUploadAction.mockResolvedValue(ok({ storagePath: added.storagePath, token: "tok" }));
+    actions.confirmDocumentUploadAction.mockResolvedValue(ok(added));
+    const onChange = vi.fn();
+    render(<OnboardingDocuments documents={[existing]} onChange={onChange} tiles={[ONBOARDING_DOCUMENT_TILES[0]!]} />);
+
+    await userEvent.upload(screen.getByLabelText(/Choose a file for front of your CDL/i), pdf("sharp.pdf"));
+
+    await waitFor(() => expect(onChange).toHaveBeenCalledWith([added]));
     expect(actions.deleteDocumentAction).not.toHaveBeenCalled();
   });
 

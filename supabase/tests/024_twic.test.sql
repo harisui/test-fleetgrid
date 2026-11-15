@@ -98,9 +98,7 @@ select results_eq(
 );
 select is_empty($$ select * from public.claim_twic_date_notices() $$, 'not again within 7 days');
 update public.drivers set twic_date_notice_at = now() - interval '8 days' where id = pg_temp.did('34');
-select is((select count(*)::int from public.claim_twic_date_notices()), 1, 'after 7 days, the second');
-update public.drivers set twic_date_notice_at = now() - interval '8 days' where id = pg_temp.did('34');
-select is_empty($$ select * from public.claim_twic_date_notices() $$, 'never a third');
+select is_empty($$ select * from public.claim_twic_date_notices() $$, 'once only: the driver page keeps asking (0040)');
 
 -- The photo: a carrier with a booking opens the CDL and medical card, never the TWIC card.
 alter table public.driver_documents disable trigger driver_documents_rereview;

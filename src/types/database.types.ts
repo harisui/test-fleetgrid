@@ -175,6 +175,25 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"driver_documents_replaced": {
+                  Row: {
+                    "driver_id": string,"file_name": string,"id": string,"mime_type": string,"replaced_at": string,"replaced_by": string | null,"size_bytes": number,"storage_path": string,"type": Database["public"]['Enums']["document_type"],"uploaded_at": string
+                  }
+                  Insert: {
+                    "driver_id": string,"file_name": string,"id": string,"mime_type": string,"replaced_at"?: string,"replaced_by"?: string | null,"size_bytes": number,"storage_path": string,"type": Database["public"]['Enums']["document_type"],"uploaded_at": string
+                  }
+                  Update: {
+                    "driver_id"?: string,"file_name"?: string,"id"?: string,"mime_type"?: string,"replaced_at"?: string,"replaced_by"?: string | null,"size_bytes"?: number,"storage_path"?: string,"type"?: Database["public"]['Enums']["document_type"],"uploaded_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "driver_documents_replaced_driver_id_fkey"
+      columns: ["driver_id"]
+isOneToOne: false
+      referencedRelation: "drivers"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"driver_terms_links": {
                   Row: {
                     "created_at": string,"created_by": string | null,"expires_at": string,"id": string,"profile_id": string,"token_hash": string,"used_at": string | null,"version": string
@@ -925,6 +944,9 @@ isOneToOne: true
       } },
 "release_shift":
 { Args: { "p_pause_threshold"?: number,"p_reason"?: string,"p_shift_id": string }; Returns: string
+                           },
+"reminded_recently":
+{ Args: { "p_driver_id": string }; Returns: boolean
                            },
 "required_terms_version":
 { Args: Record<PropertyKey, never>; Returns: string

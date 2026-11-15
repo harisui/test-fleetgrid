@@ -14,7 +14,8 @@ import { inBatches, SEND_CONCURRENCY } from "@/server/services/BroadcastService"
 import type { TextService } from "@/server/services/TextService";
 import type { NoticeBatch, Profile } from "@/types/domain";
 
-export const DOC_REMINDER_DAYS = 3;
+/** At most one reminder text of any kind per driver in this many days (Annie, 2026-11-15; 0040). */
+export const DOC_REMINDER_DAYS = 7;
 
 /** The batch row's text for a bulk send: each driver's own text names what they miss. */
 export const DOC_REMINDER_TEMPLATE = docReminderText("{items}" as DocReminderItems);
@@ -39,7 +40,7 @@ export interface DocReminderPreview {
 /**
  * The missing-documents reminder (change request CR-5): to one driver from the sheet, or to
  * every Registered driver missing a document from the Drivers page. Fixed words only; each
- * driver's text names what they miss. At most one per driver per 3 days, consent and STOP
+ * driver's text names what they miss. At most one reminder text of any kind per driver per 7 days (0040), consent and STOP
  * checked again as each text goes, held for quiet hours, recorded as a batch (Activity lists
  * it under Notices) and in the audit log. The bulk send needs the typed SEND {N}, recounted.
  */
@@ -102,7 +103,7 @@ export class DocReminderService {
   /**
    * Sends a batch. Each driver is claimed on its own: the database stamps the reminder only
    * if they are still Registered, consenting, not opted out, missing something and not
-   * reminded in 3 days, and returns what they miss now.
+   * sent any reminder text in 7 days, and returns what they miss now.
    */
   async dispatch(batchId: string): Promise<number> {
     const batch = await this.notices.claimBatch(batchId);
@@ -127,7 +128,7 @@ export class DocReminderService {
   /**
    * The daily job: moves drivers whose grace period is over and who are still incomplete to
    * Registered, then reminds those missing a document, under the usual guardrails (consent, STOP,
-   * one per 3 days, the daytime window). Returns how many moved.
+   * one reminder text a week, the daytime window). Returns how many moved.
    */
   async expireGrace(): Promise<number> {
     const moved = await this.notifications.expireRosterGrace();
@@ -156,7 +157,7 @@ export class DocReminderService {
     return due.length;
   }
 
-  /** The text asking for a TWIC date, by day: at most one per 7 days and two in all (0033). */
+  /** The text asking for a TWIC date: once per driver, and not within a week of another reminder (0040). The driver page keeps asking. */
   async sendTwicDateNotices(): Promise<number> {
     if (!isReminderWindow(this.now())) return 0;
     const due = await this.notifications.claimTwicDateNotices();
@@ -213,7 +214,7 @@ export class DocReminderService {
       case "no_consent":
         return "This driver has not agreed to texts.";
       default:
-        return `A documents reminder went to this driver in the last ${DOC_REMINDER_DAYS} days.`;
+        return `A reminder text went to this driver in the last ${DOC_REMINDER_DAYS} days.`;
     }
   }
 

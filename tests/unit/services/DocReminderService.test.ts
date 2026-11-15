@@ -16,7 +16,8 @@ const DAY = new Date("2026-11-05T17:00:00.000Z"); // 11 AM Houston
 const NIGHT = new Date("2026-11-06T04:00:00.000Z"); // 10 PM Houston
 const SEVEN = "2026-11-06T13:00:00.000Z";
 const id = (n: number) => `d0000000-0000-4000-8000-00000000000${n}`;
-const THREE_DAYS = 3 * 24 * 60 * 60 * 1000;
+/** One reminder text of any kind per driver a week (0040). */
+const WEEK = 7 * 24 * 60 * 60 * 1000;
 
 interface Row {
   driverId: string;
@@ -40,7 +41,7 @@ class FakeDocs implements IDriverNotificationRepository {
   ];
   clock = () => DAY;
   private recent(row: Row) {
-    return row.last !== null && this.clock().getTime() - new Date(row.last).getTime() < THREE_DAYS;
+    return row.last !== null && this.clock().getTime() - new Date(row.last).getTime() < WEEK;
   }
   async claimReminders() {
     return [];
@@ -193,13 +194,15 @@ describe("DocReminderService (CR-5)", () => {
     await expect(service.send(ADMIN_ID, { confirm: "SEND 1" })).resolves.toMatchObject({ recipientCount: 1 });
   });
 
-  it("sends at most one per driver per 3 days", async () => {
+  it("sends at most one per driver a week", async () => {
     await service.send(ADMIN_ID, { driverId: id(2) });
     expect(sms.sent).toHaveLength(1);
     const again = await service.preview(ADMIN_ID, { driverId: id(2) });
-    expect(again.blocked).toBe("A documents reminder went to this driver in the last 3 days.");
+    expect(again.blocked).toBe("A reminder text went to this driver in the last 7 days.");
     await expect(service.send(ADMIN_ID, { driverId: id(2) })).rejects.toMatchObject({ code: "CONFLICT" });
-    now = new Date(DAY.getTime() + THREE_DAYS);
+    now = new Date(DAY.getTime() + 3 * 24 * 60 * 60 * 1000);
+    await expect(service.send(ADMIN_ID, { driverId: id(2) })).rejects.toMatchObject({ code: "CONFLICT" });
+    now = new Date(DAY.getTime() + WEEK);
     await service.send(ADMIN_ID, { driverId: id(2) });
     expect(sms.sent).toHaveLength(2);
   });

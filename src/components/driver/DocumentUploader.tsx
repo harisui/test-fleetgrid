@@ -32,6 +32,7 @@ import {
 import {
   DOCUMENT_TYPE_LABELS,
   DOCUMENT_TYPES,
+  isSingleDocumentType,
   type DocumentType,
   type DriverDocument,
 } from "@/types/domain";
@@ -109,7 +110,11 @@ export function DocumentUploader({ initialDocuments, initialType = "cdl_front" }
       return fail(fields?.mimeType ?? fields?.sizeBytes ?? confirmed.error.message);
     }
 
-    setDocuments((current) => [confirmed.data, ...current]);
+    // A new CDL photo, medical card or TWIC replaces the earlier one (0040); other papers add up.
+    setDocuments((current) => [
+      confirmed.data,
+      ...current.filter((document) => !(isSingleDocumentType(type) && document.type === type)),
+    ]);
     setStatus(undefined);
     toast.success("Document uploaded");
   }
@@ -176,7 +181,7 @@ export function DocumentUploader({ initialDocuments, initialType = "cdl_front" }
           Choose photo or PDF
         </LoadingButton>
         <p className="text-helper leading-helper text-muted-foreground">
-          JPG, PNG, WebP or PDF. Up to 10 MB.
+          JPG, PNG, WebP or PDF. Up to 10 MB. A new CDL photo, medical card or TWIC replaces the one you have.
         </p>
 
         {error && (

@@ -330,17 +330,17 @@ for (const colorScheme of ["light", "dark"] as const) {
         await expect(dialog).toBeHidden();
         expect(await textsTo(PHONES.driver, "doc_reminder")).toEqual([expected]);
         await expect(button).toBeDisabled();
-        await expect(button).toHaveAccessibleDescription("A documents reminder went to this driver in the last 3 days.");
+        await expect(button).toHaveAccessibleDescription("A reminder text went to this driver in the last 7 days.");
       }
     });
 
-    test("the reminder waits out 3 days, and says why", async ({ page }) => {
+    test("the reminder waits out 7 days, and says why", async ({ page }) => {
       await adminClient().from("drivers").update({ last_doc_reminder_at: new Date().toISOString() }).eq("id", driverId);
       await loginAdmin(page);
       await page.goto(`/admin/drivers?open=${driverId}`);
       const button = page.getByRole("button", { name: "Send documents reminder" });
       await expect(button).toBeDisabled();
-      await expect(button).toHaveAccessibleDescription("A documents reminder went to this driver in the last 3 days.");
+      await expect(button).toHaveAccessibleDescription("A reminder text went to this driver in the last 7 days.");
     });
 
     test("in bulk: the count, who is left out, and SEND {N}", async ({ page }) => {

@@ -41,7 +41,7 @@ describe("DocReminderButton (CR-5)", () => {
     expect(within(dialog).getByText(DOC_REMINDER_TEMPLATE)).toBeInTheDocument();
     expect(within(dialog).getByText("2 drivers will receive this.")).toBeInTheDocument();
     expect(within(dialog).getByText("medical card: 1")).toBeInTheDocument();
-    expect(within(dialog).getByText("Left out: 1 opted out, 3 without consent, 4 reminded in the last 3 days.")).toBeInTheDocument();
+    expect(within(dialog).getByText("Left out: 1 opted out, 3 without consent, 4 sent a reminder text in the last 7 days.")).toBeInTheDocument();
     const send = within(dialog).getByRole("button", { name: "Send reminders" });
     expect(send).toBeDisabled();
     await userEvent.type(within(dialog).getByLabelText("Type SEND 2 to send"), "SEND 2");
@@ -74,16 +74,16 @@ describe("DocReminderButton (CR-5)", () => {
     expect(toast.success).toHaveBeenCalledWith("Queued for 7:00 AM");
   });
 
-  it("one driver reminded in the last 3 days: disabled with the reason", () => {
+  it("one driver reminded in the last 7 days: disabled with the reason", () => {
     render(
       <DocReminderButton
         driverId={DRIVER_ID}
         name="Pat Driver"
-        initial={preview({ count: 0, blocked: "A documents reminder went to this driver in the last 3 days." })}
+        initial={preview({ count: 0, blocked: "A reminder text went to this driver in the last 7 days." })}
       />,
     );
     expect(screen.getByRole("button", { name: "Send documents reminder" })).toHaveAccessibleDescription(
-      "A documents reminder went to this driver in the last 3 days.",
+      "A reminder text went to this driver in the last 7 days.",
     );
   });
 
@@ -95,11 +95,11 @@ describe("DocReminderButton (CR-5)", () => {
       <DocReminderButton
         driverId={DRIVER_ID}
         name="Pat Driver"
-        initial={preview({ count: 0, blocked: "A documents reminder went to this driver in the last 3 days." })}
+        initial={preview({ count: 0, blocked: "A reminder text went to this driver in the last 7 days." })}
       />,
     );
     expect(button).toBeDisabled();
-    expect(button).toHaveAccessibleDescription("A documents reminder went to this driver in the last 3 days.");
+    expect(button).toHaveAccessibleDescription("A reminder text went to this driver in the last 7 days.");
   });
 
   it("reports a refused send and reloads the counts", async () => {

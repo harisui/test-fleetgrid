@@ -54,6 +54,9 @@ describe("AccountService", () => {
         documents.rows.set(document.id, document);
         documents.files.set(path, { sizeBytes: 10, mimeType: "image/jpeg" });
       }
+      // A paper a newer one replaced (0040): its file stays until the account goes.
+      accounts.replacedPaths.set(DRIVER_ID, [`${DRIVER_ID}/replaced.jpg`]);
+      documents.files.set(`${DRIVER_ID}/replaced.jpg`, { sizeBytes: 10, mimeType: "image/jpeg" });
 
       await service.deleteOwnAccount(USER, { code: "123456" });
 

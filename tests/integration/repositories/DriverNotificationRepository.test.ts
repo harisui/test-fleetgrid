@@ -121,7 +121,7 @@ describe("the welcome and documents reminder texts (CR-5)", () => {
     expect(sms.sent.filter((m) => m.to === noConsent.phone)).toEqual([]);
   });
 
-  it("reminds a Registered driver of what is missing once, then not for 3 days", async () => {
+  it("reminds a Registered driver of what is missing once, then not for 7 days", async () => {
     await reminders.send(adminId, { driverId: registered.driverId });
     expect(sms.sent.filter((m) => m.to === registered.phone).at(-1)).toEqual({
       to: registered.phone,
@@ -135,7 +135,7 @@ describe("the welcome and documents reminder texts (CR-5)", () => {
     expect(log).toHaveLength(1);
     expect(log?.[0]?.notice_batch_id).not.toBeNull();
     const again = await reminders.preview(adminId, { driverId: registered.driverId });
-    expect(again.blocked).toBe("A documents reminder went to this driver in the last 3 days.");
+    expect(again.blocked).toBe("A reminder text went to this driver in the last 7 days.");
     expect((await reminders.preview(adminId, { driverId: noConsent.driverId })).blocked).toBe("This driver has not agreed to texts.");
   });
 });

@@ -101,8 +101,8 @@ export function DocReminderButton({
             <DialogTitle>{bulk ? "Remind all drivers missing documents?" : `Send the documents reminder to ${name}?`}</DialogTitle>
             <DialogDescription>
               {bulk
-                ? "Each driver's text names what they are missing. One reminder per driver every 3 days."
-                : "One reminder per driver every 3 days."}
+                ? "Each driver gets one text that names what they are missing. At most one reminder text per driver a week."
+                : "One text per driver. At most one reminder text per driver a week."}
             </DialogDescription>
           </DialogHeader>
           <p className="rounded-card border-2 border-border bg-card p-4 text-body leading-body" data-slot="doc-reminder-body">
@@ -119,7 +119,7 @@ export function DocReminderButton({
                 ))}
               </ul>
               <p className="text-helper leading-helper text-muted-foreground" data-slot="doc-reminder-excluded">
-                Left out: {excluded.optedOut} opted out, {excluded.noConsent} without consent, {excluded.recent} reminded in the last 3 days.
+                Left out: {excluded.optedOut} opted out, {excluded.noConsent} without consent, {excluded.recent} sent a reminder text in the last 7 days.
               </p>
             </div>
           )}

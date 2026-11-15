@@ -67,6 +67,13 @@ export const DOCUMENT_TYPES = [
   "other",
 ] as const satisfies readonly DocumentType[];
 
+/** One paper of each of these per driver: a new upload replaces the earlier one (0040). */
+export const SINGLE_DOCUMENT_TYPES = ["cdl_front", "cdl_back", "medical_card", "twic"] as const satisfies readonly DocumentType[];
+
+export function isSingleDocumentType(type: DocumentType): boolean {
+  return (SINGLE_DOCUMENT_TYPES as readonly DocumentType[]).includes(type);
+}
+
 /** W-2, 1099 contractor (never an owner-operator: drivers run the carrier's truck), or either. */
 export const EMPLOYMENT_TYPES = [
   "w2",
@@ -588,7 +595,7 @@ export interface NoticeBatch {
   excludedOptedOut: number;
   excludedNoConsent: number;
   excludedBlocked: number;
-  /** Documents reminders only: left out because one went in the last 3 days. */
+  /** Documents reminders only: left out because a reminder text of any kind went in the last 7 days (0040). */
   excludedRecent: number;
   sendAfter: string | null;
   status: NoticeStatus;

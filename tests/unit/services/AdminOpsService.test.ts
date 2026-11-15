@@ -25,6 +25,7 @@ import { FAKE_AREAS } from "../../fakes/FakeServiceAreaRepository";
 import { buildShift } from "../../fakes/FakeShiftRepositories";
 import { FakeZipProvider } from "../../fakes/FakeZipProvider";
 
+const REPLACED_PATH = "driver-1/replaced-cdl.jpg";
 const ADMIN_ID = "a0000000-0000-4000-8000-0000000000ad";
 const NOW = new Date("2026-11-10T18:00:00.000Z");
 const C1 = "c1000000-0000-4000-a000-000000000001";
@@ -133,7 +134,10 @@ describe("AdminOpsService", () => {
       profiles,
       documents,
       new FakeZipProvider([{ zip: "77002", city: "Houston", state: "TX", lat: 29.7594, lng: -95.3594 }]),
-      () => ({ deleteUser: async (id: string) => void deleted.push(id) }),
+      () => ({
+        deleteUser: async (id: string) => void deleted.push(id),
+        listReplacedDocumentPaths: async (id: string) => (id === DRIVER_ID ? [REPLACED_PATH] : []),
+      }),
       async (id) => void cancelled.push(id),
       () => NOW,
     );
@@ -198,8 +202,11 @@ describe("AdminOpsService", () => {
     const doc = buildDocument();
     documents.rows.set(doc.id, doc);
     documents.files.set(doc.storagePath, { size: 1, mimeType: "image/jpeg" } as never);
+    documents.files.set(REPLACED_PATH, { size: 1, mimeType: "image/jpeg" } as never);
     await service.removeAccount(ADMIN_ID, { profileId: USER_ID, confirm: "REMOVE" });
     expect(documents.files.has(doc.storagePath)).toBe(false);
+    // A paper a newer one replaced (0040) keeps its file until the account goes.
+    expect(documents.files.has(REPLACED_PATH)).toBe(false);
     expect(deleted).toEqual([P1, USER_ID]);
     expect(audit.at(-1)).toMatchObject({ action: "driver_removed", targetType: "driver", targetId: DRIVER_ID });
 

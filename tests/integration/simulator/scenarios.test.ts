@@ -243,7 +243,7 @@ describe("simulated phones", () => {
       await reminders.send(manager.id, { driverId: driver.driverId, confirm: "" });
       expect(phone(driver.phone)).toEqual([docReminderText("CDL photos and medical card")]);
 
-      await expect(reminders.send(manager.id, { driverId: driver.driverId, confirm: "" })).rejects.toThrow(/last 3 days/);
+      await expect(reminders.send(manager.id, { driverId: driver.driverId, confirm: "" })).rejects.toThrow(/last 7 days/);
       expect(phone(driver.phone)).toHaveLength(1);
       expect((await admin.from("drivers").select("last_doc_reminder_at").eq("id", driver.driverId).single()).data?.last_doc_reminder_at).not.toBeNull();
     });

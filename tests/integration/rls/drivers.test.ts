@@ -18,9 +18,9 @@ describe("RLS through real clients: drivers and driver_documents", () => {
   let docA: string;
   let docB: string;
 
-  const documentRow = (driverId: string, file: string) => ({
+  const documentRow = (driverId: string, file: string, type: "cdl_front" | "other" = "cdl_front") => ({
     driver_id: driverId,
-    type: "cdl_front" as const,
+    type,
     storage_path: `${driverId}/${file}`,
     file_name: file,
     mime_type: "image/jpeg",
@@ -152,10 +152,15 @@ describe("RLS through real clients: drivers and driver_documents", () => {
 
       const add = await driverA.client
         .from("driver_documents")
-        .insert(documentRow(driverA.driverId, "mine.jpg"))
+        // An extra paper: a second CDL front would replace docA (0040), checked in pgTAP 032.
+        .insert(documentRow(driverA.driverId, "mine.jpg", "other"))
         .select("id")
         .single();
       expect(add.error).toBeNull();
+
+      // Replaced papers are for admins only.
+      const replaced = await driverA.client.from("driver_documents_replaced").select("id");
+      expect(replaced.data).toEqual([]);
 
       const addForeign = await driverA.client
         .from("driver_documents")

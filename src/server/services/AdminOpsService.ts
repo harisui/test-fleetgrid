@@ -214,6 +214,10 @@ export class AdminOpsService {
         for (const document of await this.documents.listByDriverId(driver.id)) {
           await this.documents.removeFile(document.storagePath);
         }
+        // Papers a newer one replaced keep their files until now (0040).
+        for (const path of await this.accounts().listReplacedDocumentPaths(driver.id)) {
+          await this.documents.removeFile(path);
+        }
       }
     }
     await this.admin.writeAudit({
