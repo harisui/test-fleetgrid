@@ -257,7 +257,7 @@ for (const colorScheme of ["light", "dark"] as const) {
       await resetUser(PHONES.driver);
     });
 
-    test("the filter bar: every label on one line, boxes in line, and choosing Any clears a filter", async ({ page }) => {
+    test("the filter bar: every label on one line, boxes in line, and a choice applies without Apply", async ({ page }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
       await loginAdmin(page);
       await page.goto("/admin/drivers?status=blocked");
@@ -274,9 +274,15 @@ for (const colorScheme of ["light", "dark"] as const) {
 
       await bar.getByRole("combobox", { name: "Status" }).click();
       await page.getByRole("option", { name: "Any status" }).click();
-      await bar.getByRole("button", { name: "Apply" }).click();
+      // No Apply: choosing is enough (Annie, 2026-11-15, waited for a list she never applied).
       await expect(page.getByRole("link", { name: /^Status:/ })).toHaveCount(0);
       await expect(page).not.toHaveURL(/status=blocked/);
+
+      await bar.getByRole("combobox", { name: "Review" }).click();
+      await page.getByRole("option", { name: "Re-review needed" }).click();
+      await expect(page).toHaveURL(/rereview=yes/);
+      await expect(page.getByRole("link", { name: /^Review: Re-review needed/ })).toBeVisible();
+      await expect(bar.getByRole("combobox", { name: "Review" })).toHaveText(/Re-review needed/);
     });
 
     test("the badge, the filters and the tiles", async ({ page }) => {

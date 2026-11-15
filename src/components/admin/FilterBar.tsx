@@ -3,7 +3,7 @@
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import Form from "next/form";
 import Link from "next/link";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { FormField } from "@/components/shared/FormField";
 import { SelectInput } from "@/components/shared/SelectInput";
 import { Button } from "@/components/ui/button";
@@ -63,8 +63,17 @@ export function activeFilterChips({ action, search, filters, keep = {} }: Filter
 /** The dropdown's own value for "no filter": an item cannot be empty. Never reaches the address. */
 const NO_FILTER = "__any";
 
-function SelectFilter({ filter }: { filter: FilterDefinition }) {
+/**
+ * One dropdown. With `applyOnChange` a choice applies at once: a dropdown that read
+ * "Re-review needed" over a list that was never filtered looked like a wrong list (Annie,
+ * 2026-11-15). Apply stays for the search box only.
+ */
+function SelectFilter({ filter, applyOnChange = false }: { filter: FilterDefinition; applyOnChange?: boolean }) {
   const [value, setValue] = useState(filter.value);
+  const field = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (applyOnChange && value !== filter.value) field.current?.form?.requestSubmit();
+  }, [applyOnChange, value, filter.value]);
   return (
     <div>
       <FormField label={filter.label} errorIcon={false}>
@@ -75,7 +84,7 @@ function SelectFilter({ filter }: { filter: FilterDefinition }) {
           className="h-target w-full"
         />
       </FormField>
-      <input type="hidden" name={filter.name} value={value} />
+      <input ref={field} type="hidden" name={filter.name} value={value} />
     </div>
   );
 }
@@ -93,8 +102,9 @@ function KeepFields({ keep, filters }: { keep: Record<string, string>; filters: 
 
 /**
  * Search plus select filters, as a GET form so every view is a URL: a refresh keeps it and
- * a link shares it. Active filters show as chips with a remove link; "Clear filters" goes
- * back to the plain page. On a phone the selects fold into a "Filters" sheet.
+ * a link shares it. Each dropdown applies when it changes; Apply submits the search. Active
+ * filters show as chips with a remove link; "Clear filters" goes back to the plain page. On a
+ * phone the selects fold into a "Filters" sheet, applied the same way, closed with Done.
  */
 export function FilterBar(props: FilterBarProps) {
   const { action, search, filters, keep = {} } = props;
@@ -131,7 +141,8 @@ export function FilterBar(props: FilterBarProps) {
         {/* Desktop: the selects inline. */}
         <div className="hidden items-end gap-3 lg:col-span-2 lg:row-start-2 lg:grid lg:grid-cols-3 xl:grid-cols-5">
           {selects.map((filter) => (
-            <SelectFilter key={filter.name} filter={filter} />
+            // Keyed by the value too, so the dropdown follows the address after a chip or a link.
+            <SelectFilter key={`${filter.name}:${filter.value}`} filter={filter} applyOnChange />
           ))}
         </div>
         <div className="flex gap-2 lg:col-start-2 lg:row-start-1">
@@ -151,14 +162,14 @@ export function FilterBar(props: FilterBarProps) {
             <SheetContent>
               <SheetTitle>Filters</SheetTitle>
               <SheetDescription>Narrow the list. The view keeps its filters in the address.</SheetDescription>
-              <Form action={action} scroll={false} className="flex flex-col gap-4" onSubmit={() => setOpen(false)}>
+              <Form action={action} scroll={false} className="flex flex-col gap-4">
                 <KeepFields keep={keep} filters={filters} />
                 {search && <input type="hidden" name={search.name} value={search.value} />}
                 {selects.map((filter) => (
-                  <SelectFilter key={filter.name} filter={filter} />
+                  <SelectFilter key={`${filter.name}:${filter.value}`} filter={filter} applyOnChange />
                 ))}
-                <Button type="submit" size="md">
-                  Apply filters
+                <Button type="button" size="md" onClick={() => setOpen(false)}>
+                  Done
                 </Button>
               </Form>
             </SheetContent>

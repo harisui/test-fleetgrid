@@ -242,12 +242,40 @@ describe("FilterBar", () => {
     expect(activeFilterChips({ action: "/admin/drivers", filters: [] })).toEqual([]);
   });
 
+  it("applies an inline dropdown as soon as it is chosen, so the list never sits unfiltered under it", async () => {
+    const submit = vi.spyOn(HTMLFormElement.prototype, "requestSubmit").mockImplementation(() => {});
+    render(
+      <FilterBar
+        action="/admin/drivers"
+        filters={[{ name: "rereview", label: "Review", value: "", options: [{ value: "", label: "Any review" }, { value: "yes", label: "Re-review needed" }] }]}
+      />,
+    );
+    expect(submit).not.toHaveBeenCalled();
+    const bar = screen.getByRole("form", { name: "Filters" });
+    await userEvent.click(within(bar).getByRole("combobox", { name: "Review" }));
+    await userEvent.click(screen.getByRole("option", { name: "Re-review needed" }));
+    expect(submit).toHaveBeenCalledTimes(1);
+    expect(bar.querySelector<HTMLInputElement>('input[name="rereview"]')?.value).toBe("yes");
+    submit.mockRestore();
+  });
+
   it("opens the selects in a sheet on a phone", async () => {
     render(<FilterBar action="/admin/drivers" filters={filters} />);
     await userEvent.click(screen.getByRole("button", { name: "Filters, 1 on" }));
     const sheet = await screen.findByRole("dialog", { name: "Filters" });
     expect(within(sheet).getByRole("combobox", { name: "Area" })).toBeInTheDocument();
-    expect(within(sheet).getByRole("button", { name: "Apply filters" })).toBeInTheDocument();
+    expect(within(sheet).getByRole("button", { name: "Done" })).toBeInTheDocument();
+  });
+
+  it("applies a dropdown in the phone sheet as soon as it is chosen too", async () => {
+    const submit = vi.spyOn(HTMLFormElement.prototype, "requestSubmit").mockImplementation(() => {});
+    render(<FilterBar action="/admin/drivers" filters={filters} />);
+    await userEvent.click(screen.getByRole("button", { name: "Filters, 1 on" }));
+    const sheet = await screen.findByRole("dialog", { name: "Filters" });
+    await userEvent.click(within(sheet).getByRole("combobox", { name: "Area" }));
+    await userEvent.click(screen.getByRole("option", { name: "In area" }));
+    expect(submit).toHaveBeenCalledTimes(1);
+    submit.mockRestore();
   });
 });
 
