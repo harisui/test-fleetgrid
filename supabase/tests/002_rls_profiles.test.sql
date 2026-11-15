@@ -17,7 +17,7 @@ insert into public.profiles (id, role, phone, status) values
   ('33333333-3333-4333-8333-333333333333', 'admin', '+15555559003', 'approved'),
   ('44444444-4444-4444-8444-444444444444', 'carrier', '+15555559004', 'pending');
 
--- An acceptance names an archived version (0040).
+-- An acceptance names an archived version (0041).
 select * from public.publish_terms_version('2099-01-v1', 'Terms of Service', '2099-01-01', 'Test text.', false);
 select * from public.publish_terms_version('2099-01-v2', 'Terms of Service', '2099-01-02', 'Second test text.', false);
 insert into public.tos_acceptances (profile_id, version) values

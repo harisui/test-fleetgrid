@@ -74,7 +74,7 @@ select throws_ok($$ insert into public.admin_audit_log (admin_id, admin_phone, a
 reset role;
 select is((select admin_phone from public.admin_audit_log where action = 'driver_paused' and target_id = 'd0000011-0000-4000-8000-000000000000'), '+15555559212', 'in their own name');
 
--- Others cannot write it, and a carrier accepts Terms only as themselves (of an archived version, 0040).
+-- Others cannot write it, and a carrier accepts Terms only as themselves (of an archived version, 0041).
 select * from public.publish_terms_version('2099-01-v7', 'Terms of Service', '2099-01-01', 'Test text.', false);
 select set_config('request.jwt.claims', json_build_object('sub', 'e0000013-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;

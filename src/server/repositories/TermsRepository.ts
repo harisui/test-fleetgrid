@@ -25,7 +25,7 @@ export interface ITermsRepository {
 }
 
 /**
- * The service role's side (0040): publishing versions, the one-time links and who is still
+ * The service role's side (0041): publishing versions, the one-time links and who is still
  * waiting. Built on demand with the admin client; never handed a user's session.
  */
 export interface ITermsAdminRepository {

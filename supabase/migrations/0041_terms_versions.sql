@@ -1,4 +1,4 @@
--- 0040: Milestone 6, part 1. The Terms of Service archive and driver Terms acceptance.
+-- 0041: Milestone 6, part 1. The Terms of Service archive and driver Terms acceptance.
 --
 -- terms_versions keeps the full text of every published version with its SHA-256, so every
 -- acceptance points at the exact words accepted. Drivers accept at sign-up; when a version that

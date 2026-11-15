@@ -1,4 +1,4 @@
--- 0040: the Terms archive (exact text and hash, append-only, publish refuses changed text),
+-- 0041: the Terms archive (exact text and hash, append-only, publish refuses changed text),
 -- acceptances of archived versions only, the one-time links, and offers paused until a driver
 -- accepts a version that needs everyone again.
 begin;

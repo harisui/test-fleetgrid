@@ -195,7 +195,7 @@ describe("carrier-side repositories", () => {
 
   describe("TosRepository", () => {
     it("records an acceptance of the archived version with its context, once per version", async () => {
-      // An acceptance names an archived version (0040); the app archives it before anyone accepts.
+      // An acceptance names an archived version (0041); the app archives it before anyone accepts.
       await new TermsAdminRepository(serviceClient()).publish(CURRENT_TERMS);
       const repository = new TosRepository(subscribed.client);
       expect(await repository.findAcceptance(subscribed.id, CURRENT_TERMS.version)).toBeNull();
