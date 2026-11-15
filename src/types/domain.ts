@@ -364,7 +364,7 @@ export interface Subscription {
 
 export type FillCharge = "included" | "billable" | "waived";
 
-/** A completed fill (0040): a booked shift 2 hours past its end, with no no-show or cancel. */
+/** A completed fill (0041): a booked shift 2 hours past its end, with no no-show or cancel. */
 export interface ShiftFill {
   id: string;
   shiftId: string | null;
@@ -392,6 +392,9 @@ export interface WaitlistEntry {
   createdAt: string;
 }
 
+/** How a Terms acceptance was given (0040). Null on carrier rows from before the archive. */
+export type TosAcceptanceMethod = "signup" | "gate" | "link" | "carrier";
+
 export interface TosAcceptance {
   id: string;
   profileId: string;
@@ -399,6 +402,21 @@ export interface TosAcceptance {
   acceptedAt: string;
   ip: string | null;
   userAgent: string | null;
+  method: TosAcceptanceMethod | null;
+  /** The checkbox wording the person agreed to. */
+  statement: string | null;
+}
+
+/** A driver who still has to accept the Terms version that needs everyone again (0040). */
+export interface DriverAwaitingTerms {
+  profileId: string;
+  driverId: string;
+  fullName: string;
+  phone: string | null;
+  smsOptIn: boolean;
+  smsOptedOut: boolean;
+  /** When the last one-time link was made for them, if ever. */
+  lastLinkAt: string | null;
 }
 
 /** A launch area: a centre ZIP with its coordinates and a radius in miles. */
@@ -439,6 +457,7 @@ export const ADMIN_ACTIONS = [
   "notice_queued",
   "doc_reminder_sent",
   "doc_reminder_queued",
+  "terms_link_sent",
   "message_resent",
   "qr_link_created",
   "qr_link_activated",

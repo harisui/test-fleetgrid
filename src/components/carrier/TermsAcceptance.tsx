@@ -6,11 +6,12 @@ import { useState, type FormEvent } from "react";
 import { ConsentCard } from "@/components/shared/ConsentCard";
 import { InlineNote } from "@/components/shared/InlineNote";
 import { LoadingButton } from "@/components/shared/LoadingButton";
+import { CARRIER_TERMS_STATEMENT } from "@/lib/legal/terms-acceptance";
 import { TERMS_MESSAGE } from "@/lib/validation/carrier.schema";
 import { acceptTermsAction } from "@/server/actions/carrier.actions";
 
-export const TERMS_STATEMENT =
-  "I have read and agree to the FleetGrid Terms of Service and Privacy Policy on behalf of my company.";
+/** The carrier's checkbox, stored word for word with the acceptance (Milestone 6). */
+export const TERMS_STATEMENT = CARRIER_TERMS_STATEMENT;
 
 const linkClass = "font-semibold text-foreground underline underline-offset-4";
 

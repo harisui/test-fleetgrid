@@ -18,7 +18,7 @@ beforeEach(() => {
 });
 
 describe("admin navigation", () => {
-  it("lists the pages in order, Milestone 3's among them, and marks the page or anything below it", () => {
+  it("lists the pages in order, Milestone 3's and the Terms (Milestone 6) among them, and marks the page or anything below it", () => {
     expect(ADMIN_NAV.map((item) => item.label)).toEqual([
       "Drivers",
       "Carriers",
@@ -26,6 +26,7 @@ describe("admin navigation", () => {
       "Shifts",
       "Service areas",
       "Messaging",
+      "Terms",
       "Analytics",
     ]);
     expect(isAdminNavActive("/admin/drivers", "/admin/drivers")).toBe(true);

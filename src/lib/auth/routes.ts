@@ -10,6 +10,8 @@ export const ADMIN_SIGN_IN_PATH = "/admin-sign-in";
 export const ADMIN_VERIFY_PATH = "/admin-verify";
 /** "Which state issued your CDL?", asked once of cards saved before CR-5. */
 export const CDL_STATE_PATH = "/driver/cdl-state";
+/** The Terms a driver must accept before going on, when a version needs everyone again (Milestone 6). */
+export const DRIVER_TERMS_PATH = "/driver/terms";
 /** Where the carrier area goes while the carrier side is switched off (CARRIER_DISABLED). */
 export const CARRIER_COMING_SOON_PATH = "/carriers";
 const CARRIER_PREFIX = "/carrier";

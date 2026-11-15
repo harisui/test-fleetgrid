@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it } from "vitest";
+import { DRIVER_TERMS_MESSAGE } from "@/lib/legal/terms-acceptance";
 import { SMS_CONSENT_TEXT } from "@/lib/constants";
 import { SAVABLE_STEP_IDS, stepNumber, type SavableStepId } from "@/lib/onboarding/steps";
 import {
@@ -182,6 +183,7 @@ describe("DriverService", () => {
         zip: "75201-1234",
         cdlClass: "B",
         cdlState: "TX",
+        termsAccepted: true,
       });
       expect(driver).toMatchObject({
         profileId: USER_ID,
@@ -254,7 +256,33 @@ describe("DriverService", () => {
         zip: "Enter a 5-digit ZIP code, like 60601",
         cdlClass: CDL_CLASS_MESSAGE,
         cdlState: CDL_STATE_MESSAGE,
+        termsAccepted: DRIVER_TERMS_MESSAGE,
       });
+      expect(drivers.rows.size).toBe(0);
+    });
+
+    it("records the Terms with the address and browser before the card exists, and not without the tick (Milestone 6)", async () => {
+      const order: string[] = [];
+      const accepted: unknown[] = [];
+      const withTerms = new DriverService(drivers, profiles, zips, areas, () => consentLog, () => NOW, undefined, undefined, async (userId, context) => {
+        order.push(`terms, ${drivers.rows.size} cards`);
+        accepted.push({ userId, context });
+      });
+      const context = { ip: "203.0.113.5", userAgent: "Phone" };
+      const unticked = await expectAppError(withTerms.saveScreen(USER_ID, "lead", { ...SCREEN_INPUTS.lead, termsAccepted: false }, context));
+      expect(unticked.fieldErrors).toEqual({ termsAccepted: DRIVER_TERMS_MESSAGE });
+      expect(accepted).toEqual([]);
+      await withTerms.saveScreen(USER_ID, "lead", SCREEN_INPUTS.lead, context);
+      expect(accepted).toEqual([{ userId: USER_ID, context }]);
+      expect(order).toEqual(["terms, 0 cards"]);
+      expect(drivers.rows.size).toBe(1);
+    });
+
+    it("saves no card when the Terms cannot be recorded", async () => {
+      const failing = new DriverService(drivers, profiles, zips, areas, () => consentLog, () => NOW, undefined, undefined, async () => {
+        throw new Error("archive down");
+      });
+      await expect(failing.saveScreen(USER_ID, "lead", SCREEN_INPUTS.lead)).rejects.toThrow("archive down");
       expect(drivers.rows.size).toBe(0);
     });
 
@@ -280,6 +308,7 @@ describe("DriverService", () => {
         zip: "60601",
         cdlClass: "B",
         cdlState: "IL",
+        termsAccepted: true,
       });
       expect(driver).toMatchObject({ fullName: "Patricia Driver", city: "Chicago", cdlClass: "B", cdlState: "IL" });
       expect(driver.onboardingStep).toBe(stepNumber("record"));

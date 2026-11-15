@@ -29,9 +29,10 @@ const carrierService = vi.hoisted(() => ({ getAccess: vi.fn() }));
 const driverService = vi.hoisted(() => ({ needsCdlState: vi.fn() }));
 const subscriptionService = vi.hoisted(() => ({ needsRecheck: vi.fn(), refreshAccess: vi.fn() }));
 const adminAuthService = vi.hoisted(() => ({ sessionLevel: vi.fn() }));
+const termsService = vi.hoisted(() => ({ needsAcceptance: vi.fn() }));
 
 vi.mock("@/server/container", () => ({
-  getContainer: async () => ({ authService, carrierService, subscriptionService, driverService, adminAuthService }),
+  getContainer: async () => ({ authService, carrierService, subscriptionService, driverService, adminAuthService, termsService }),
 }));
 /** forbidden() throws too: Next.js renders the 403 page in place of the route. */
 class ForbiddenSignal extends Error {
@@ -73,6 +74,7 @@ beforeEach(() => {
   subscriptionService.needsRecheck.mockReset().mockReturnValue(false);
   subscriptionService.refreshAccess.mockReset();
   adminAuthService.sessionLevel.mockReset().mockResolvedValue("strong");
+  termsService.needsAcceptance.mockReset().mockResolvedValue(false);
 });
 
 describe("requireCarrierStage", () => {
@@ -292,5 +294,17 @@ describe("requireDriverWithCdlState (CR-5)", () => {
   it("lets a driver with a CDL state, or without a card yet, through", async () => {
     driverService.needsCdlState.mockResolvedValue(false);
     await expect(requireDriverWithCdlState()).resolves.toMatchObject({ user });
+  });
+
+  it("sends a driver who has not accepted the Terms that need everyone again to the Terms page (Milestone 6)", async () => {
+    driverService.needsCdlState.mockResolvedValue(false);
+    termsService.needsAcceptance.mockResolvedValue(true);
+    await expect(requireDriverWithCdlState()).rejects.toMatchObject({ to: "/driver/terms" });
+  });
+
+  it("asks the CDL state before the Terms", async () => {
+    driverService.needsCdlState.mockResolvedValue(true);
+    termsService.needsAcceptance.mockResolvedValue(true);
+    await expect(requireDriverWithCdlState()).rejects.toMatchObject({ to: "/driver/cdl-state" });
   });
 });

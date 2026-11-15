@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireRole } from "@/lib/auth/guards";
 import { getContainer } from "@/server/container";
 import { runAction, type Result } from "@/server/errors/AppError";
+import { requestContext } from "@/server/request-context";
 import type { PreparedUpload } from "@/server/services/DocumentService";
 import type { ZipLookup } from "@/server/services/ZipLookupService";
 import type { DriverDocument, LocatedDriver } from "@/types/domain";
@@ -16,7 +17,7 @@ export async function saveOnboardingScreenAction(
   return runAction(async () => {
     const { user } = await requireRole("driver");
     const { driverService } = await getContainer();
-    const driver = await driverService.saveScreen(user.id, stepId, input);
+    const driver = await driverService.saveScreen(user.id, stepId, input, await requestContext());
     revalidatePath("/driver", "layout");
     return driver;
   });

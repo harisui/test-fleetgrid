@@ -32,6 +32,8 @@ export interface OnboardingFormValues {
   heardFromOther?: string;
   clearinghouseConfirmed?: boolean;
   consent?: boolean;
+  /** The Terms box on the first screen (Milestone 6). */
+  termsAccepted?: boolean;
 }
 
 export type OnboardingField = keyof OnboardingFormValues;

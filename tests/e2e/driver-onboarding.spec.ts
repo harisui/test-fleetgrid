@@ -1,5 +1,6 @@
 ﻿import { expect, test, type Page } from "@playwright/test";
 import {
+  acceptLeadTerms,
   adminClient,
   CONSENT_TEXT,
   formAlert,
@@ -87,6 +88,7 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(leadConsent).not.toBeChecked();
     await leadConsent.click();
     const before = Date.now();
+    await acceptLeadTerms(page);
     await nextButton(page, SAVE_LEAD).click();
 
     // The lead exists at once, unfinished, with the consent on record.
@@ -270,8 +272,10 @@ test.describe("driver onboarding, a page per mile", () => {
     // The box stays unchecked unless tapped.
     await expect(page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) })).not.toBeChecked();
     for (const name of ["SMS Terms", "Terms of Service", "Privacy Policy"]) {
-      await expect(page.getByRole("main").getByRole("link", { name })).toBeVisible();
+      // The text box and the Terms box both link the Terms and the Privacy Policy.
+      await expect(page.getByRole("main").getByRole("link", { name }).first()).toBeVisible();
     }
+    await acceptLeadTerms(page);
     await nextButton(page, SAVE_LEAD).click();
     await expect(screenHeading(page)).toHaveText("Driving");
     expect(Date.now() - started).toBeLessThan(FORTY_FIVE_SECONDS_MS);
@@ -320,6 +324,7 @@ test.describe("driver onboarding, a page per mile", () => {
     await zip.fill(PLACES.dallas.zip);
     await expect(note).toBeVisible();
     await card(page, "radio", /Class A/).click();
+    await acceptLeadTerms(page);
     await nextButton(page, SAVE_LEAD).click();
     await expect(screenHeading(page)).toHaveText("Driving");
     expect(await driverRow()).toMatchObject({
@@ -405,6 +410,7 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(page.getByRole("button", { name: "Back" })).toHaveCount(0);
 
     await card(page, "radio", /Class B/).click();
+    await acceptLeadTerms(page);
     await nextButton(page, SAVE_LEAD).click();
     await expect(screenHeading(page)).toHaveText("Driving");
     await expect(page.getByText("Saved")).toBeVisible();
@@ -421,9 +427,10 @@ test.describe("driver onboarding, a page per mile", () => {
     await page.getByLabel("Full name").fill("P");
     await expect(formAlert(page)).toHaveCount(0);
 
-    // Every question of the page is checked together; the box is never one of them.
+    // Every question of the page is checked together, the Terms box with them (Milestone 6); the text box never.
     await nextButton(page, SAVE_LEAD).click();
-    await expect(formAlert(page)).toHaveCount(3);
+    await expect(formAlert(page)).toHaveCount(4);
+    await expect(page.getByText("Tick the box to accept the Terms of Service")).toBeVisible();
     const error = formAlert(page).first();
     await expect(error).toHaveText("Enter your name");
     await expect(error.locator("svg")).toBeVisible();

@@ -21,6 +21,8 @@ export class FakeTosRepository implements ITosRepository {
       acceptedAt: new Date(Date.UTC(2026, 9, 13, 12, 0, this.rows.length + 1)).toISOString(),
       ip: input.ip,
       userAgent: input.userAgent,
+      method: input.method ?? null,
+      statement: input.statement ?? null,
     };
     this.rows.push(acceptance);
     return acceptance;

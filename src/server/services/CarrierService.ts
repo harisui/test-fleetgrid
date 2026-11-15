@@ -1,4 +1,5 @@
 import { TOS_VERSION } from "@/lib/constants";
+import { CARRIER_TERMS_STATEMENT } from "@/lib/legal/terms-acceptance";
 import { acceptTermsSchema, carrierDetailsSchema } from "@/lib/validation/carrier.schema";
 import { ZIP_UNKNOWN_MESSAGE } from "@/lib/validation/onboarding.schema";
 import { AppError, parseInput } from "@/server/errors/AppError";
@@ -61,6 +62,8 @@ export class CarrierService {
     private readonly tos: ITosRepository,
     private readonly waitlist: IWaitlistRepository,
     private readonly subscriptions: ISubscriptionRepository,
+    /** Archives the published Terms versions before an acceptance names one (Milestone 6). */
+    private readonly ensureTermsPublished: () => Promise<void> = async () => undefined,
   ) {}
 
   async getCarrier(userId: string): Promise<LocatedCarrier | null> {
@@ -146,11 +149,14 @@ export class CarrierService {
   ): Promise<TosAcceptance> {
     await this.requireCarrier(userId);
     parseInput(acceptTermsSchema, input);
+    await this.ensureTermsPublished();
     return this.tos.record({
       profileId: userId,
       version: TOS_VERSION,
       ip: context.ip,
       userAgent: context.userAgent,
+      method: "carrier",
+      statement: CARRIER_TERMS_STATEMENT,
     });
   }
 

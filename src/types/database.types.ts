@@ -175,6 +175,37 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"driver_terms_links": {
+                  Row: {
+                    "created_at": string,"created_by": string | null,"expires_at": string,"id": string,"profile_id": string,"token_hash": string,"used_at": string | null,"version": string
+                  }
+                  Insert: {
+                    "created_at"?: string,"created_by"?: string | null,"expires_at": string,"id"?: string,"profile_id": string,"token_hash": string,"used_at"?: string | null,"version": string
+                  }
+                  Update: {
+                    "created_at"?: string,"created_by"?: string | null,"expires_at"?: string,"id"?: string,"profile_id"?: string,"token_hash"?: string,"used_at"?: string | null,"version"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "driver_terms_links_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "driver_terms_links_profile_id_fkey"
+      columns: ["profile_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "driver_terms_links_version_fkey"
+      columns: ["version"]
+isOneToOne: false
+      referencedRelation: "terms_versions"
+      referencedColumns: ["version"]
+    }
+                  ]
                 },"drivers": {
                   Row: {
                     "approval_text_due_at": string | null,"approval_text_sent_at": string | null,"availability": (Database["public"]['Enums']["availability_type"])[],"bio": string | null,"card_completed": boolean,"cdl_class": Database["public"]['Enums']["cdl_class"],"cdl_state": string | null,"cdl_state_notice_sent_at": string | null,"certifications": (string)[],"city": string | null,"clearinghouse_registered": boolean | null,"created_at": string,"driving_styles": (Database["public"]['Enums']["driving_style"])[],"employment_type": Database["public"]['Enums']["employment_type"] | null,"endorsements": (Database["public"]['Enums']["endorsement"])[],"equipment_types": (Database["public"]['Enums']["equipment_type"])[],"full_name": string,"heard_from": Database["public"]['Enums']["heard_from"] | null,"heard_from_other": string | null,"id": string,"last_doc_reminder_at": string | null,"lat": number | null,"lng": number | null,"medical_card_active": boolean | null,"mvr_status": Database["public"]['Enums']["mvr_status"] | null,"no_show_count": number,"onboarding_step": number,"operator_types": (Database["public"]['Enums']["operator_type"])[],"profile_id": string,"reminder_sent_at": string | null,"rereview_needed": boolean,"roster_grace_until": string | null,"service_radius_miles": number,"shift_ready_override_reason": string | null,"shifts_paused": boolean,"shifts_paused_reason": string | null,"sms_opt_in": boolean,"sms_opt_in_at": string | null,"sms_opt_in_text": string | null,"sms_opted_out": boolean,"sms_opted_out_at": string | null,"state": string | null,"transmission": Database["public"]['Enums']["transmission_type"] | null,"twic_active": boolean | null,"twic_date_notice_at": string | null,"twic_date_notice_count": number,"twic_expires_on": string | null,"twic_issue_at": string | null,"twic_issue_prior_at": string | null,"updated_at": string,"years_experience": number | null,"zip": string | null
@@ -483,15 +514,28 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"tos_acceptances": {
+                },"terms_versions": {
                   Row: {
-                    "accepted_at": string,"created_at": string,"id": string,"ip": string | null,"profile_id": string | null,"updated_at": string,"user_agent": string | null,"version": string
+                    "body": string,"body_sha256": string,"effective_date": string,"published_at": string,"requires_reacceptance": boolean,"title": string,"version": string
                   }
                   Insert: {
-                    "accepted_at"?: string,"created_at"?: string,"id"?: string,"ip"?: string | null,"profile_id"?: string | null,"updated_at"?: string,"user_agent"?: string | null,"version": string
+                    "body": string,"body_sha256": string,"effective_date": string,"published_at"?: string,"requires_reacceptance"?: boolean,"title": string,"version": string
                   }
                   Update: {
-                    "accepted_at"?: string,"created_at"?: string,"id"?: string,"ip"?: string | null,"profile_id"?: string | null,"updated_at"?: string,"user_agent"?: string | null,"version"?: string
+                    "body"?: string,"body_sha256"?: string,"effective_date"?: string,"published_at"?: string,"requires_reacceptance"?: boolean,"title"?: string,"version"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"tos_acceptances": {
+                  Row: {
+                    "accepted_at": string,"created_at": string,"id": string,"ip": string | null,"method": string | null,"profile_id": string | null,"statement": string | null,"terms_link_id": string | null,"updated_at": string,"user_agent": string | null,"version": string
+                  }
+                  Insert: {
+                    "accepted_at"?: string,"created_at"?: string,"id"?: string,"ip"?: string | null,"method"?: string | null,"profile_id"?: string | null,"statement"?: string | null,"terms_link_id"?: string | null,"updated_at"?: string,"user_agent"?: string | null,"version": string
+                  }
+                  Update: {
+                    "accepted_at"?: string,"created_at"?: string,"id"?: string,"ip"?: string | null,"method"?: string | null,"profile_id"?: string | null,"statement"?: string | null,"terms_link_id"?: string | null,"updated_at"?: string,"user_agent"?: string | null,"version"?: string
                   }
                   Relationships: [
                     {
@@ -500,6 +544,12 @@ isOneToOne: false
 isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
+    },{
+      foreignKeyName: "tos_acceptances_version_fkey"
+      columns: ["version"]
+isOneToOne: false
+      referencedRelation: "terms_versions"
+      referencedColumns: ["version"]
     }
                   ]
                 },"trial_card_fingerprints": {
@@ -584,7 +634,12 @@ isOneToOne: true
                 }
           }
           Functions: {
-            "admin_session_strong":
+            "accept_terms_by_link":
+{ Args: { "p_ip"?: string,"p_statement"?: string,"p_token_hash": string,"p_user_agent"?: string }; Returns: {
+              "outcome": string,"profile_id": string,"version": string
+            }[]
+                           },
+"admin_session_strong":
 { Args: Record<PropertyKey, never>; Returns: boolean
                            },
 "anonymize_driver_logs":
@@ -669,6 +724,11 @@ isOneToOne: true
                            },
 "drivers_at_alert_cap":
 { Args: { "p_cap": number,"p_driver_ids": (string)[] }; Returns: string[]
+                           },
+"drivers_awaiting_terms":
+{ Args: Record<PropertyKey, never>; Returns: {
+              "driver_id": string,"full_name": string,"last_link_at": string,"phone": string,"profile_id": string,"sms_opt_in": boolean,"sms_opted_out": boolean
+            }[]
                            },
 "edit_shift_details":
 { Args: { "p_actor": string,"p_onsite_contact_name": string,"p_onsite_contact_phone": string,"p_pay_text": string,"p_shift_id": string,"p_work_description": string }; Returns: {
@@ -757,6 +817,9 @@ isOneToOne: true
 "missing_documents":
 { Args: { "p_driver_id": string }; Returns: (string)[]
                            },
+"my_terms_ok":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
 "new_shift_code":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
@@ -768,6 +831,22 @@ isOneToOne: true
 "profile_status":
 { Args: { "p_profile_id": string }; Returns: Database["public"]['Enums']["account_status"]
                            },
+"publish_terms_version":
+{ Args: { "p_body": string,"p_effective_date": string,"p_requires_reacceptance": boolean,"p_title": string,"p_version": string }; Returns: {
+              "body": string,
+"body_sha256": string,
+"effective_date": string,
+"published_at": string,
+"requires_reacceptance": boolean,
+"title": string,
+"version": string
+            }[]
+                          SetofOptions: {
+        from: "*"
+        to: "terms_versions"
+        isOneToOne: false
+        isSetofReturn: true
+      } },
 "queue_approval_text":
 { Args: { "p_driver_id": string,"p_due_at": string }; Returns: boolean
                            },
@@ -825,12 +904,15 @@ isOneToOne: true
 { Args: Record<PropertyKey, never>; Returns: number
                            },
 "record_tos_acceptance":
-{ Args: { "p_ip"?: string,"p_user_agent"?: string,"p_version": string }; Returns: {
+{ Args: { "p_ip"?: string,"p_method"?: string,"p_statement"?: string,"p_user_agent"?: string,"p_version": string }; Returns: {
               "accepted_at": string,
 "created_at": string,
 "id": string,
 "ip": string | null,
+"method": string | null,
 "profile_id": string | null,
+"statement": string | null,
+"terms_link_id": string | null,
 "updated_at": string,
 "user_agent": string | null,
 "version": string
@@ -843,6 +925,9 @@ isOneToOne: true
       } },
 "release_shift":
 { Args: { "p_pause_threshold"?: number,"p_reason"?: string,"p_shift_id": string }; Returns: string
+                           },
+"required_terms_version":
+{ Args: Record<PropertyKey, never>; Returns: string
                            },
 "search_drivers":
 { Args: { "p_cdl_class"?: Database["public"]['Enums']["cdl_class"],"p_endorsements"?: (Database["public"]['Enums']["endorsement"])[],"p_equipment"?: (Database["public"]['Enums']["equipment_type"])[],"p_lat": number,"p_limit"?: number,"p_lng": number,"p_manual"?: boolean,"p_medical"?: boolean,"p_min_years"?: number,"p_mvr_max"?: Database["public"]['Enums']["mvr_status"],"p_offset"?: number,"p_radius_miles": number,"p_twic"?: boolean }; Returns: {
@@ -868,6 +953,9 @@ isOneToOne: true
 { Args: { "p_before": string }; Returns: {
               "driver_id": string,"phone": string,"recipient_id": string,"shift_id": string
             }[]
+                           },
+"terms_ok":
+{ Args: { "p_profile_id": string }; Returns: boolean
                            },
 "test_log_delete":
 { Args: { "p_column": string,"p_table": string,"p_values": (string)[] }; Returns: undefined

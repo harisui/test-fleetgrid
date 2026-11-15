@@ -74,13 +74,14 @@ select throws_ok($$ insert into public.admin_audit_log (admin_id, admin_phone, a
 reset role;
 select is((select admin_phone from public.admin_audit_log where action = 'driver_paused' and target_id = 'd0000011-0000-4000-8000-000000000000'), '+15555559212', 'in their own name');
 
--- Others cannot write it, and a carrier accepts Terms only as themselves.
+-- Others cannot write it, and a carrier accepts Terms only as themselves (of an archived version, 0040).
+select * from public.publish_terms_version('2099-01-v7', 'Terms of Service', '2099-01-01', 'Test text.', false);
 select set_config('request.jwt.claims', json_build_object('sub', 'e0000013-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select throws_ok($$ select public.write_admin_audit('driver_paused', 'driver', gen_random_uuid()) $$, '42501', null, 'a carrier cannot write the audit log');
-select is((select count(*)::int from public.record_tos_acceptance('v-test', '203.0.113.9', 'Agent')), 1, 'a carrier accepts the Terms');
-select is((select count(*)::int from public.record_tos_acceptance('v-test', '203.0.113.10', 'Other')), 1, 'twice keeps one row');
-select results_eq($$ select ip, user_agent from public.tos_acceptances where version = 'v-test' $$, $$ values ('203.0.113.9'::text, 'Agent'::text) $$, 'the first');
+select is((select count(*)::int from public.record_tos_acceptance('2099-01-v7', '203.0.113.9', 'Agent')), 1, 'a carrier accepts the Terms');
+select is((select count(*)::int from public.record_tos_acceptance('2099-01-v7', '203.0.113.10', 'Other')), 1, 'twice keeps one row');
+select results_eq($$ select ip, user_agent from public.tos_acceptances where version = '2099-01-v7' $$, $$ values ('203.0.113.9'::text, 'Agent'::text) $$, 'the first');
 reset role;
 
 -- Deleting an account: the records stay, the link goes.
@@ -92,7 +93,7 @@ select is((select body from public.sms_messages where id = (select id from t_msg
 select is((select count(*)::int from public.shift_events where driver_id is null and detail = '{"check": "025"}'), 1, 'shift events stay');
 select is((select count(*)::int from public.document_views where driver_id is null and viewer_id = 'e0000012-0000-4000-8000-000000000000'), 1, 'document views stay');
 delete from auth.users where id = 'e0000013-0000-4000-8000-000000000000';
-select results_eq($$ select profile_id, version, ip from public.tos_acceptances where version = 'v-test' $$, $$ values (null::uuid, 'v-test'::text, '203.0.113.9'::text) $$, 'proof of acceptance outlives the account, with the IP');
+select results_eq($$ select profile_id, version, ip from public.tos_acceptances where version = '2099-01-v7' $$, $$ values (null::uuid, '2099-01-v7'::text, '203.0.113.9'::text) $$, 'proof of acceptance outlives the account, with the IP');
 
 select * from finish();
 rollback;

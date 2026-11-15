@@ -4,6 +4,7 @@ import {
   CalendarClock,
   ChartNoAxesColumn,
   CreditCard,
+  FileCheck,
   MapPinned,
   MessageSquare,
   Send,
@@ -45,6 +46,7 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
       { href: "/admin/messaging/send", label: "Send notice", icon: Send },
     ],
   },
+  { href: "/admin/terms", label: "Terms", icon: FileCheck },
   { href: "/admin/analytics", label: "Analytics", icon: ChartNoAxesColumn },
 ];
 

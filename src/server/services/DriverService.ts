@@ -62,6 +62,12 @@ export function missingCardFields(driver: Driver): { field: string; stepId: Step
   return missing;
 }
 
+/** Where the sign-up's first screen was saved from, kept with the Terms acceptance. */
+export interface SignupContext {
+  ip: string | null;
+  userAgent: string | null;
+}
+
 export class DriverService {
   constructor(
     private readonly drivers: IDriverRepository,
@@ -79,6 +85,8 @@ export class DriverService {
      */
     private readonly onSignedUpWithTexts: (driver: { driverId: string; phone: string }) => Promise<void> = async () => undefined,
     private readonly report: (message: string, detail?: unknown) => void = () => undefined,
+    /** The Terms box on the first screen (Milestone 6): recorded with the version before the card exists. */
+    private readonly acceptSignupTerms: (userId: string, context: SignupContext) => Promise<unknown> = async () => undefined,
   ) {}
 
   /** Queues the welcome for a driver with texts on. A failed text never fails the sign-up. */
@@ -136,14 +144,19 @@ export class DriverService {
    * can leave after any page and resume there. Screens cannot be skipped ahead. Going back
    * and saving an earlier screen again is allowed and never moves progress backwards.
    */
-  async saveScreen(userId: string, stepId: unknown, input: unknown): Promise<LocatedDriver> {
+  async saveScreen(
+    userId: string,
+    stepId: unknown,
+    input: unknown,
+    context: SignupContext = { ip: null, userAgent: null },
+  ): Promise<LocatedDriver> {
     if (!isSavableStepId(stepId)) {
       throw AppError.validation("Unknown onboarding step");
     }
     await this.requireDriverProfile(userId);
     const existing = await this.drivers.findByProfileId(userId);
 
-    if (stepId === "lead") return this.locate(await this.welcome(userId, await this.saveLead(userId, existing, input)));
+    if (stepId === "lead") return this.locate(await this.welcome(userId, await this.saveLead(userId, existing, input, context)));
 
     if (!existing) throw AppError.validation("Start with the first step");
     if (stepNumber(stepId) > existing.onboardingStep) {
@@ -167,8 +180,11 @@ export class DriverService {
    * optional shift-text box. The card is created at once, unfinished; a ticked box records
    * the opt-in before the card exists, so proof of consent never trails the data.
    */
-  private async saveLead(userId: string, existing: Driver | null, input: unknown) {
-    const { consent, ...data } = parseInput(leadScreenSchema, input);
+  private async saveLead(userId: string, existing: Driver | null, input: unknown, context: SignupContext) {
+    const { consent, termsAccepted, ...data } = parseInput(leadScreenSchema, input);
+    // Proof of the Terms never trails the data, like the text consent below.
+    await this.acceptSignupTerms(userId, context);
+    void termsAccepted;
     const place = this.placeFor(data.zip);
     const next = stepNumber(nextStepId("lead"));
     const consentFields = await this.consentPatch(userId, existing ?? { smsOptIn: false }, consent, "onboarding");

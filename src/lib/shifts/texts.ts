@@ -99,6 +99,14 @@ export const NO_OFFER_TEXT =
 export const CLOSED_TEXT =
   "FleetGrid: This shift is no longer open. We'll text you about the next matching shift. Reply STOP to opt out.";
 
+/**
+ * The one-time Terms link (Milestone 6). AWAITING ANNIE'S APPROVAL: not sent to anyone until she
+ * approves the wording. One GSM-7 segment with the full link (a test checks).
+ */
+export function termsLinkText(link: string): string {
+  return `FleetGrid: Our Terms of Service changed. Review and accept them to keep getting shift offers: ${link} Reply STOP to opt out.`;
+}
+
 /** The kinds the text log records. */
 export type SmsKind =
   | "offer"
@@ -119,4 +127,5 @@ export type SmsKind =
   | "notice"
   | "security"
   | "format_help"
+  | "terms_link"
   | "inbound";

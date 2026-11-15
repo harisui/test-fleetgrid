@@ -73,6 +73,7 @@ const HISTORY_LABELS: Partial<Record<AdminAction, string>> = {
   driver_auto_paused: "Paused: no-shows",
   driver_twic_flagged: "Turned away at gate: TWIC",
   driver_unpaused: "Shift texts resumed",
+  terms_link_sent: "Terms link texted",
 };
 
 const labelOf = <T extends string>(options: readonly { value: T; label: string }[], value: T) =>

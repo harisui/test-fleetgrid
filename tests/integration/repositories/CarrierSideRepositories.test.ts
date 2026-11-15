@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CURRENT_TERMS } from "@/content/legal/terms";
 import { AppError } from "@/server/errors/AppError";
 import { CarrierRepository } from "@/server/repositories/CarrierRepository";
 import { DriverSearchRepository } from "@/server/repositories/DriverSearchRepository";
 import { SubscriptionRepository } from "@/server/repositories/SubscriptionRepository";
+import { TermsAdminRepository } from "@/server/repositories/TermsRepository";
 import { TosRepository } from "@/server/repositories/TosRepository";
 import { WaitlistRepository } from "@/server/repositories/WaitlistRepository";
 import { WebhookEventRepository } from "@/server/repositories/WebhookEventRepository";
@@ -192,30 +194,36 @@ describe("carrier-side repositories", () => {
   });
 
   describe("TosRepository", () => {
-    it("records an acceptance with its context, once per version", async () => {
+    it("records an acceptance of the archived version with its context, once per version", async () => {
+      // An acceptance names an archived version (0040); the app archives it before anyone accepts.
+      await new TermsAdminRepository(serviceClient()).publish(CURRENT_TERMS);
       const repository = new TosRepository(subscribed.client);
-      expect(await repository.findAcceptance(subscribed.id, "2026-10-v1")).toBeNull();
+      expect(await repository.findAcceptance(subscribed.id, CURRENT_TERMS.version)).toBeNull();
       const first = await repository.record({
         profileId: subscribed.id,
-        version: "2026-10-v1",
+        version: CURRENT_TERMS.version,
         ip: "203.0.113.7",
         userAgent: "Mozilla/5.0 (test)",
+        method: "carrier",
+        statement: "I agree on behalf of my company.",
       });
       expect(first).toMatchObject({
         profileId: subscribed.id,
-        version: "2026-10-v1",
+        version: CURRENT_TERMS.version,
         ip: "203.0.113.7",
         userAgent: "Mozilla/5.0 (test)",
+        method: "carrier",
+        statement: "I agree on behalf of my company.",
       });
       const again = await repository.record({
         profileId: subscribed.id,
-        version: "2026-10-v1",
+        version: CURRENT_TERMS.version,
         ip: null,
         userAgent: null,
       });
       expect(again.id).toBe(first.id);
       expect(again.ip).toBe("203.0.113.7");
-      expect((await repository.findAcceptance(subscribed.id, "2026-10-v1"))?.id).toBe(first.id);
+      expect((await repository.findAcceptance(subscribed.id, CURRENT_TERMS.version))?.id).toBe(first.id);
       expect(await repository.findAcceptance(subscribed.id, "2027-01-v2")).toBeNull();
     });
   });

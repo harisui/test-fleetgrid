@@ -176,7 +176,7 @@ export function buildPartialDriver(overrides: Partial<LocatedDriver> = {}): Loca
 
 /** Valid raw input for each onboarding screen, in flow order. */
 export const SCREEN_INPUTS = {
-  lead: { fullName: "Pat Driver", zip: "75201", cdlClass: "A", cdlState: "TX", consent: false },
+  lead: { fullName: "Pat Driver", zip: "75201", cdlClass: "A", cdlState: "TX", consent: false, termsAccepted: true },
   distance: { serviceRadiusMiles: 50 },
   experience: { yearsExperience: 8 },
   record: { mvrStatus: "clean" },

@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { headers } from "next/headers";
 import { requireRole } from "@/lib/auth/guards";
 import { getContainer } from "@/server/container";
+import { requestContext } from "@/server/request-context";
 import { runAction, type Result } from "@/server/errors/AppError";
 import type { ZipLookup } from "@/server/services/ZipLookupService";
 import type { LocatedCarrier, Subscription, TosAcceptance, WaitlistEntry } from "@/types/domain";
@@ -37,16 +37,6 @@ export async function lookupYardZipAction(zip: unknown): Promise<Result<ZipLooku
     const { zipLookupService } = await getContainer();
     return zipLookupService.lookup(zip);
   });
-}
-
-/** The caller's address and browser, kept with an acceptance or acknowledgment. */
-async function requestContext(): Promise<{ ip: string | null; userAgent: string | null }> {
-  const requestHeaders = await headers();
-  const forwarded = requestHeaders.get("x-forwarded-for");
-  return {
-    ip: forwarded ? forwarded.split(",")[0].trim() : (requestHeaders.get("x-real-ip") ?? null),
-    userAgent: requestHeaders.get("user-agent"),
-  };
 }
 
 /** Records the Terms acceptance with the caller's address and browser. */

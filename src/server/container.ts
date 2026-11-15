@@ -29,11 +29,13 @@ import { ShiftRepository } from "@/server/repositories/ShiftRepository";
 import { SmsLogRepository } from "@/server/repositories/SmsLogRepository";
 import { SubscriptionRepository } from "@/server/repositories/SubscriptionRepository";
 import { TextingDriverRepository } from "@/server/repositories/TextingDriverRepository";
+import { TermsAdminRepository, TermsRepository } from "@/server/repositories/TermsRepository";
 import { TosRepository } from "@/server/repositories/TosRepository";
 import { WaitlistRepository } from "@/server/repositories/WaitlistRepository";
 import { WebhookEventRepository } from "@/server/repositories/WebhookEventRepository";
 import { AccountService } from "@/server/services/AccountService";
 import { AdminAuthService } from "@/server/services/AdminAuthService";
+import { publishTermsVersions, TermsService } from "@/server/services/TermsService";
 import { AdminBillingService } from "@/server/services/AdminBillingService";
 import { AdminOpsService } from "@/server/services/AdminOpsService";
 import { AdminService } from "@/server/services/AdminService";
@@ -159,6 +161,7 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     tos,
     waitlist,
     subscriptions,
+    () => publishTermsVersions(new TermsAdminRepository(createAdminClient())),
   );
   // The webhook and the Stripe customer id write with the service role, built on demand.
   const subscriptionService = new SubscriptionService(
@@ -255,7 +258,19 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     (fillId, adminId, reason) => buildFillService().waive(fillId, adminId, reason),
   );
 
+  // Terms (Milestone 6): acceptances with the user's client; the archive, links and texts with the service role.
+  const termsService = new TermsService(
+    tos,
+    new TermsRepository(supabase),
+    () => new TermsAdminRepository(createAdminClient()),
+    profiles,
+    (entry) => adminRepository.writeAudit(entry),
+    () => buildTextingServices().textService,
+    getSiteEnv().NEXT_PUBLIC_SITE_URL,
+  );
+
   return {
+    termsService,
     shiftService,
     adminOpsService,
     adminBillingService,
@@ -286,6 +301,7 @@ export function buildContainer(supabase: TypedSupabaseClient) {
       // The welcome text (CR-5): once per number ever, only with consent, held for quiet hours.
       ({ driverId, phone }) => buildTextingServices().notificationService.onDriverSignedUp(driverId, phone),
       reportError,
+      (userId, context) => termsService.accept(userId, "signup", true, context),
     ),
     documentService: new DocumentService(documents, drivers, profiles),
     zipLookupService: new ZipLookupService(zipProvider, serviceAreas),

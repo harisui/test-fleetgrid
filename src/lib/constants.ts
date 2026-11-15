@@ -3,8 +3,10 @@ export const SMS_CONSENT_VERSION = "2026-10-v1";
 export const SMS_CONSENT_TEXT =
   "I agree to receive text messages from FleetGrid about available shifts at this number. Message frequency varies. Message and data rates may apply. Reply STOP to opt out, HELP for help.";
 /**
- * Bump when the Terms of Service change in a way carriers must accept again. v2 (2026-10-25):
- * contact details from a claimed shift are for that shift only, plus the no-show line.
+ * The current Terms of Service version: the newest entry in src/content/legal/terms.ts (a test
+ * keeps the two equal; the text stays out of browser bundles), accepted by carriers and drivers
+ * and archived in terms_versions (Milestone 6). v2 (2026-10-25): contact details from a claimed
+ * shift are for that shift only, plus the no-show line.
  */
 export const TOS_VERSION = "2026-10-v2";
 export const ALLOWED_SUB_STATUSES = ["active", "trialing"] as const;
@@ -38,7 +40,7 @@ export const TRIAL_INCLUDED_FILLS = 3;
 export const BILLING_DISCLOSURE_VERSION = "2026-11-v1";
 /** The footer on every Stripe invoice (user decision of 2026-11-11: Stripe Tax stays off). */
 export const INVOICE_TAX_FOOTER = "Prices exclude applicable taxes.";
-/** A booked shift becomes a completed fill this long after its end (0040 fill_grace()). */
+/** A booked shift becomes a completed fill this long after its end (0041 fill_grace()). */
 export const FILL_GRACE_HOURS = 2;
 /** Driver search (T2.7): results per page and the distance from the yard. */
 export const SEARCH_PAGE_SIZE = 20;

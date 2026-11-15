@@ -1,6 +1,6 @@
 import { BaseRepository } from "@/server/repositories/BaseRepository";
 import type { Database } from "@/types/database.types";
-import type { TosAcceptance } from "@/types/domain";
+import type { TosAcceptance, TosAcceptanceMethod } from "@/types/domain";
 
 type TosRow = Database["public"]["Tables"]["tos_acceptances"]["Row"];
 
@@ -9,6 +9,10 @@ export interface TosAcceptanceInput {
   version: string;
   ip: string | null;
   userAgent: string | null;
+  /** How it was given (0040): carriers on their Terms page, drivers at sign-up or on the Terms page. */
+  method?: Exclude<TosAcceptanceMethod, "link">;
+  /** The checkbox wording shown. */
+  statement?: string;
 }
 
 export interface ITosRepository {
@@ -25,6 +29,8 @@ export function mapTosAcceptance(row: TosRow): TosAcceptance {
     acceptedAt: row.accepted_at,
     ip: row.ip,
     userAgent: row.user_agent,
+    method: (row.method as TosAcceptanceMethod | null) ?? null,
+    statement: row.statement,
   };
 }
 
@@ -46,6 +52,8 @@ export class TosRepository extends BaseRepository implements ITosRepository {
         p_version: input.version,
         ...(input.ip ? { p_ip: input.ip } : {}),
         ...(input.userAgent ? { p_user_agent: input.userAgent } : {}),
+        ...(input.method ? { p_method: input.method } : {}),
+        ...(input.statement ? { p_statement: input.statement } : {}),
       })
       .single();
     return mapTosAcceptance(this.unwrap(result));

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { OnboardingFlow } from "@/components/driver/OnboardingFlow";
 import { NO_TEXTS_NEXT_STEP } from "@/components/driver/DoneScreen";
 import { SMS_CONSENT_TEXT } from "@/lib/constants";
+import { DRIVER_TERMS_MESSAGE } from "@/lib/legal/terms-acceptance";
 import { CARD_CHECKS, MVR_HELPER, MVR_QUESTION } from "@/lib/onboarding/options";
 import { MILES, STEPS, stepsOfMile, type StepId } from "@/lib/onboarding/steps";
 import {
@@ -158,6 +159,7 @@ describe("About page, the lead: name, ZIP, class and the optional box on one scr
       ),
     );
   const consentBox = () => screen.getByRole("checkbox", { name: new RegExp(SMS_CONSENT_TEXT.slice(0, 20)) });
+  const termsBox = () => screen.getByRole("checkbox", { name: /I have read and agree to the FleetGrid Terms/ });
 
   it("checks the three answers together after Save and continue, then saves the lead in one call and moves to the Driving page", async () => {
     dataset();
@@ -172,11 +174,12 @@ describe("About page, the lead: name, ZIP, class and the optional box on one scr
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
 
     await userEvent.click(saveLead());
-    await waitFor(() => expect(alerts()).toHaveLength(3));
+    await waitFor(() => expect(alerts()).toHaveLength(4));
     expect(alerts()).toEqual([
       "Enter your name",
       "Enter a 5-digit ZIP code, like 60601",
       CDL_CLASS_MESSAGE,
+      DRIVER_TERMS_MESSAGE,
     ]);
     expect(name).toHaveAttribute("aria-invalid", "true");
     expect(actions.saveOnboardingScreenAction).not.toHaveBeenCalled();
@@ -185,6 +188,7 @@ describe("About page, the lead: name, ZIP, class and the optional box on one scr
     await userEvent.type(screen.getByLabelText("ZIP code"), "77002");
     await waitFor(() => expect(place()).toHaveTextContent("Houston, TX"));
     await userEvent.click(screen.getByRole("radio", { name: /Class A/ }));
+    await userEvent.click(termsBox());
     await userEvent.click(saveLead());
     await waitFor(() => expect(heading()).toHaveTextContent("Driving"));
     expect(savedScreens()).toEqual(["lead"]);
@@ -195,6 +199,7 @@ describe("About page, the lead: name, ZIP, class and the optional box on one scr
       // Texas is the default CDL state on the lead (CR-5).
       cdlState: "TX",
       consent: false,
+      termsAccepted: true,
     });
     expect(heading()).toHaveFocus();
     expect(screen.getByText("How far will you travel for work?")).toBeInTheDocument();
@@ -232,13 +237,15 @@ describe("About page, the lead: name, ZIP, class and the optional box on one scr
       ["Terms of Service", "/terms"],
       ["Privacy Policy", "/privacy"],
     ]) {
-      expect(screen.getByRole("link", { name })).toHaveAttribute("href", href);
+      // The text box and the Terms box both link the Terms and the Privacy Policy.
+      for (const link of screen.getAllByRole("link", { name })) expect(link).toHaveAttribute("href", href);
     }
     await userEvent.type(screen.getByLabelText("Full name"), "Pat Driver");
     await userEvent.type(screen.getByLabelText("ZIP code"), "77002");
     await waitFor(() => expect(place()).toHaveTextContent("Houston, TX"));
     await userEvent.click(screen.getByRole("radio", { name: /Class B/ }));
     await userEvent.click(consentBox());
+    await userEvent.click(termsBox());
     await userEvent.click(saveLead());
     await waitFor(() => expect(heading()).toHaveTextContent("Driving"));
     expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("lead", {
@@ -247,6 +254,7 @@ describe("About page, the lead: name, ZIP, class and the optional box on one scr
       cdlClass: "B",
       cdlState: "TX",
       consent: true,
+      termsAccepted: true,
     });
   });
 
@@ -318,6 +326,7 @@ describe("About page, the lead: name, ZIP, class and the optional box on one scr
     await userEvent.type(screen.getByLabelText("ZIP code"), "77002");
     await waitFor(() => expect(place()).toHaveTextContent("Houston, TX"));
     await userEvent.click(screen.getByRole("radio", { name: /Class A/ }));
+    await userEvent.click(termsBox());
     await userEvent.click(saveLead());
     expect(await screen.findByRole("alert")).toHaveTextContent("We could not find that ZIP");
     expect(heading()).toHaveTextContent("About");
@@ -734,6 +743,7 @@ describe("Finish page: consent and done", () => {
       driverAt(2, { fullName: "Pat Driver", zip: "75201", city: "Dallas", state: "TX", cdlClass: "A" }),
     );
     await waitFor(() => expect(saveLead()).toBeEnabled());
+    await userEvent.click(screen.getByRole("checkbox", { name: /I have read and agree to the FleetGrid Terms/ }));
     await userEvent.click(saveLead());
     expect(await screen.findByText("Too short")).toBeInTheDocument();
   });
@@ -756,6 +766,7 @@ describe("the road", () => {
     await userEvent.type(screen.getByLabelText("ZIP code"), "77002");
     await waitFor(() => expect(place()).toHaveTextContent("Houston, TX"));
     await userEvent.click(screen.getByRole("radio", { name: /Class A/ }));
+    await userEvent.click(screen.getByRole("checkbox", { name: /I have read and agree to the FleetGrid Terms/ }));
     await userEvent.click(saveLead());
     await waitFor(() => expect(heading()).toHaveTextContent("Driving"));
 

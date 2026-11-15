@@ -174,6 +174,13 @@ export async function login(page: Page, phone: string, loginPath = "/login") {
   await page.waitForLoadState("networkidle");
 }
 
+/** The Terms box on the sign-up's first screen (Milestone 6): required and unchecked. */
+export async function acceptLeadTerms(page: Page) {
+  const box = page.getByRole("checkbox", { name: /I have read and agree to the FleetGrid Terms/ });
+  await box.click();
+  await expect(box).toBeChecked();
+}
+
 /** The seeded admin's email and the one test password (0039). Local Supabase only. */
 export const E2E_ADMIN_PASSWORD = "e2e-admin-password-0039";
 export const adminEmailFor = (phone: string) => `admin-${national(phone)}@fleetgrid.test`;

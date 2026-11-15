@@ -183,7 +183,7 @@ $99 a month plus $35 per completed fill, after a 7-day trial.
   `BILLING_DISCLOSURE_VERSION`, the IP and the browser. Change the wording in
   `src/lib/carrier/options.ts` (`priceDisclosure`) and bump the version together.
 - **Completed fill.** A booked shift 2 hours after its scheduled end, unless before then the
-  carrier reported a no-show, released or cancelled it (migration 0040). The daily shifts job
+  carrier reported a no-show, released or cancelled it (migration 0041). The daily shifts job
   records it once (`record_completed_fills`) and bills it: the first 3 fills of shifts that
   started inside the trial are included, every other one becomes a $35 Stripe invoice item on
   the customer (idempotency key `fill-<id>`), which the next monthly invoice picks up.
@@ -406,6 +406,20 @@ tests                 unit, integration, e2e, fakes, setup
 - A text's row is fixed once written. Later status is a row in `sms_status_events`, and `sms_messages_current` shows the latest. The Twilio SID is the one exception: it is set once, because a text is logged before it is sent.
 - Deleting a driver: `anonymize_driver_logs()` sets the driver link to null, and foreign keys do the same on delete. Nothing else on the row may change. The records stay; they stop pointing at a person. `tos_acceptances` keeps the version, time, IP and user agent with the profile link null.
 - Tests clear and fill the logs through `test_log_delete` and `test_log_insert`, which live only in `supabase/seed.sql`. `supabase db push` never runs the seed, so they do not exist in production.
+
+## Terms of Service versions (Milestone 6)
+
+The Terms text lives in `src/content/legal/terms.ts`, one entry per published version, in a small markdown (`src/lib/legal/markdown.ts`). `/terms`, the driver's Terms page and the link page all render it, and the server archives each version word for word in `terms_versions` with its SHA-256 (migration 0040) at start and before any acceptance. The archive is append-only, and publishing a version again with different text is refused, so a correction is always a new version.
+
+Every acceptance (`tos_acceptances`) names an archived version and keeps how it was given (`signup`, `gate`, `link`, `carrier`), the exact checkbox wording, the time, the IP and the browser. It outlives the account.
+
+Publishing the revised Terms:
+
+1. Add a new entry at the end of `TERMS_VERSIONS` (version `YYYY-MM-vN`, title, effective date and label, the attorney's text) with `requiresReacceptance: true`, and set `TOS_VERSION` in `src/lib/constants.ts` to it (a test keeps the two equal).
+2. Deploy. At start the server archives the new version. From then on, drivers who have not accepted it get no shift offers (`matching_drivers` and `claim_shift` check `terms_ok`) and see `/driver/terms` before any driver page; carriers are sent to their Terms page by `TOS_VERSION`. Profiles, documents and status do not change.
+3. Admin, Terms: "Text the Terms link" sends each waiting driver with shift texts on a one-time link (`/t/<token>`, 14 days, only its SHA-256 is stored, a new one ends the old). Opening it records nothing; ticking the box and accepting uses it up. Texts go out only between 7 AM and 9 PM Houston time. Drivers who replied STOP or turned texts off see the Terms when they sign in.
+
+The link text (`termsLinkText` in `src/lib/shifts/texts.ts`) waits for Annie's approval before the first send.
 
 ## Fake phones
 

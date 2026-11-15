@@ -53,6 +53,8 @@
   --site-max: 80rem;
   /* The legal pages' reading column. */
   --reading-max: 70ch;
+  /* The scrolling Terms panel a driver reads before accepting (Milestone 6). */
+  --terms-panel-max-h: 28rem;
   --lane-dash: 8px;
   --lane-gap: 6px;
 

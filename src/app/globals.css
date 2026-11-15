@@ -79,10 +79,11 @@
   --shadow-1: var(--shadow-1);
   --shadow-2: var(--shadow-2);
 
-  /* Sizes: h-target, h-target-lg, min-h-card-min, max-w-content, max-w-site, max-w-reading */
+  /* Sizes: h-target, h-target-lg, min-h-card-min, max-h-terms-panel, max-w-content, max-w-site, max-w-reading */
   --spacing-target: var(--target-min);
   --spacing-target-lg: var(--target-primary);
   --spacing-card-min: var(--card-min-h);
+  --spacing-terms-panel: var(--terms-panel-max-h);
   --container-content: var(--content-max);
   --container-site: var(--site-max);
   --container-reading: var(--reading-max);

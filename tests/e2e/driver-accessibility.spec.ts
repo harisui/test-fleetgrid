@@ -215,6 +215,11 @@ for (const colorScheme of ["light", "dark"] as const) {
       // The box is reachable but stays unticked unless chosen.
       await tabTo(page, page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) }));
       await expect(page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) })).not.toBeChecked();
+      // The Terms box (Milestone 6): ticked from the keyboard.
+      const terms = page.getByRole("checkbox", { name: /I have read and agree to the FleetGrid Terms/ });
+      await tabTo(page, terms);
+      await page.keyboard.press("Space");
+      await expect(terms).toBeChecked();
 
       await tabTo(page, nextButton(page, "Save and continue"));
       await page.keyboard.press("Enter");

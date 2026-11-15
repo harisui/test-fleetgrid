@@ -4,6 +4,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { docReminderText, welcomeText } from "../../src/content/sms-samples";
 import { phoneHash } from "../../src/lib/sms/driverTexts";
 import {
+  acceptLeadTerms,
   adminClient,
   adminList,
   clearLog,
@@ -185,6 +186,7 @@ test.describe("the welcome text", () => {
     await expect(page.locator("[data-slot=zip-place]")).toContainText("Houston, TX");
     await page.getByRole("radio", { name: /Class A/ }).click();
     if (consent) await page.getByRole("checkbox", { name: new RegExp(CONSENT_TEXT.slice(0, 30)) }).click();
+    await acceptLeadTerms(page);
     await nextButton(page, "Save and continue").click();
     await expect(screenHeading(page)).toHaveText("Driving");
   }

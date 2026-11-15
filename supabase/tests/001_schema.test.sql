@@ -50,7 +50,8 @@ select columns_are('public', 'driver_documents', array[
   'id', 'driver_id', 'type', 'storage_path', 'file_name', 'mime_type', 'size_bytes',
   'created_at', 'updated_at']);
 select columns_are('public', 'tos_acceptances', array[
-  'id', 'profile_id', 'version', 'accepted_at', 'ip', 'user_agent', 'created_at', 'updated_at']);
+  'id', 'profile_id', 'version', 'accepted_at', 'ip', 'user_agent', 'created_at', 'updated_at',
+  'method', 'statement', 'terms_link_id']);
 
 -- profiles
 select col_is_pk('profiles', 'id', 'profiles.id is the primary key');
@@ -390,6 +391,8 @@ select throws_ok(
 -- ---------------------------------------------------------------------------
 -- tos_acceptances
 -- ---------------------------------------------------------------------------
+-- An acceptance names an archived version (0040).
+select * from public.publish_terms_version('2026-10-v1', 'Terms of Service', '2026-10-01', 'Test text.', false);
 select lives_ok(
   $$insert into public.tos_acceptances (profile_id, version) values ('11111111-1111-4111-8111-111111111111', '2026-10-v1')$$,
   'terms acceptance can be recorded'

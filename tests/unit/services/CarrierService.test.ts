@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it } from "vitest";
+import { CARRIER_TERMS_STATEMENT } from "@/lib/legal/terms-acceptance";
 import { TOS_VERSION } from "@/lib/constants";
 import { TERMS_MESSAGE } from "@/lib/validation/carrier.schema";
 import { ZIP_UNKNOWN_MESSAGE } from "@/lib/validation/onboarding.schema";
@@ -173,6 +174,9 @@ describe("CarrierService", () => {
         version: TOS_VERSION,
         ip: CONTEXT.ip,
         userAgent: CONTEXT.userAgent,
+        // Milestone 6: how, and the exact words on the checkbox.
+        method: "carrier",
+        statement: CARRIER_TERMS_STATEMENT,
       });
       const again = await service.acceptTerms(CARRIER_USER_ID, { accepted: true }, CONTEXT);
       expect(again.id).toBe(first.id);

@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { CURRENT_TERMS } from "@/content/legal/terms";
+import { TermsAdminRepository } from "@/server/repositories/TermsRepository";
 import type { Database } from "@/types/database.types";
 import {
   anonClient,
@@ -23,11 +25,13 @@ describe("RLS through real clients: profiles and tos_acceptances", () => {
       createTestUser({ role: "admin", status: "approved" }),
       createTestUser(),
     ]);
+    // An acceptance names an archived version (0040).
+    await new TermsAdminRepository(serviceClient()).publish(CURRENT_TERMS);
     await serviceClient().rpc("test_log_insert", {
       p_table: "tos_acceptances",
       p_rows: [
-        { profile_id: driverB.id, version: "v1" },
-        { profile_id: carrier.id, version: "v1" },
+        { profile_id: driverB.id, version: CURRENT_TERMS.version },
+        { profile_id: carrier.id, version: CURRENT_TERMS.version },
       ],
     });
   });
@@ -105,12 +109,12 @@ describe("RLS through real clients: profiles and tos_acceptances", () => {
     });
 
     it("records and reads only their own terms acceptance", async () => {
-      const own = await driverA.client.rpc("record_tos_acceptance", { p_version: "v1" });
+      const own = await driverA.client.rpc("record_tos_acceptance", { p_version: CURRENT_TERMS.version });
       expect(own.error).toBeNull();
 
       const other = await driverA.client
         .from("tos_acceptances")
-        .insert({ profile_id: driverB.id, version: "v2" });
+        .insert({ profile_id: driverB.id, version: CURRENT_TERMS.version });
       expect(other.error).not.toBeNull();
 
       const { data } = await driverA.client.from("tos_acceptances").select("profile_id");

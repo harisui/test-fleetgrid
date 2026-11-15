@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { adminClient, COMPLETE_STEP, login, loginAdmin, nextButton, PHONES, PLACES, resetUser, seedDriverAtStep, seedUser, signUp } from "./helpers";
+import { acceptLeadTerms, adminClient, COMPLETE_STEP, login, loginAdmin, nextButton, PHONES, PLACES, resetUser, seedDriverAtStep, seedUser, signUp } from "./helpers";
 
 /**
  * The CDL state (CR-5, part 1): asked on the lead with Texas picked to start, asked once of a
@@ -46,6 +46,7 @@ test.describe("CDL state", () => {
     await expect(page.locator("[data-slot=zip-place]")).toContainText("Houston, TX");
     await page.getByRole("radio", { name: /Class A/ }).click();
     await pickState(page, "CDL state", "Oklahoma");
+    await acceptLeadTerms(page);
     await nextButton(page, "Save and continue").click();
     await expect(page.getByText("How far will you travel for work?")).toBeVisible();
     expect(await cdlStateOf(PHONES.driver)).toBe("OK");

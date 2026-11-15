@@ -17,9 +17,12 @@ insert into public.profiles (id, role, phone, status) values
   ('33333333-3333-4333-8333-333333333333', 'admin', '+15555559003', 'approved'),
   ('44444444-4444-4444-8444-444444444444', 'carrier', '+15555559004', 'pending');
 
+-- An acceptance names an archived version (0040).
+select * from public.publish_terms_version('2099-01-v1', 'Terms of Service', '2099-01-01', 'Test text.', false);
+select * from public.publish_terms_version('2099-01-v2', 'Terms of Service', '2099-01-02', 'Second test text.', false);
 insert into public.tos_acceptances (profile_id, version) values
-  ('11111111-1111-4111-8111-111111111111', 'v1'),
-  ('44444444-4444-4444-8444-444444444444', 'v1');
+  ('11111111-1111-4111-8111-111111111111', '2099-01-v1'),
+  ('44444444-4444-4444-8444-444444444444', '2099-01-v1');
 
 create function pg_temp.sign_in(p_user uuid, p_phone text) returns void language plpgsql as $$
 begin
@@ -69,7 +72,7 @@ select throws_ok(
 select throws_ok($$update public.profiles set status = 'approved'$$, '42501', null, 'anon cannot update profiles');
 select throws_ok('delete from public.profiles', '42501', null, 'anon cannot delete profiles');
 select throws_ok(
-  $$select public.record_tos_acceptance('v2')$$,
+  $$select public.record_tos_acceptance('2099-01-v2')$$,
   '42501', null, 'anon cannot insert tos_acceptances'
 );
 reset role;
@@ -124,11 +127,11 @@ select results_eq(
   'a driver sees only their own terms acceptances'
 );
 select lives_ok(
-  $$select public.record_tos_acceptance('v2')$$,
+  $$select public.record_tos_acceptance('2099-01-v2')$$,
   'a driver can accept terms for themselves'
 );
 select throws_ok(
-  $$insert into public.tos_acceptances (profile_id, version) values ('22222222-2222-4222-8222-222222222222', 'v2')$$,
+  $$insert into public.tos_acceptances (profile_id, version) values ('22222222-2222-4222-8222-222222222222', '2099-01-v2')$$,
   '42501', null, 'a driver cannot accept terms for someone else'
 );
 select throws_ok(
@@ -164,7 +167,7 @@ select results_eq(
   'a carrier sees only their own terms acceptances'
 );
 select lives_ok(
-  $$select public.record_tos_acceptance('v2')$$,
+  $$select public.record_tos_acceptance('2099-01-v2')$$,
   'a carrier can accept terms for themselves'
 );
 select pg_temp.sign_out();

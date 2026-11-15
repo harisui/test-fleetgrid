@@ -1,263 +1,28 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { LegalHeading, LegalPage } from "@/components/layout/LegalPage";
-import { LEGAL_EFFECTIVE_DATE } from "@/lib/constants";
-import { formatE164ForDisplay } from "@/lib/phone";
-import { BUSINESS_NAME, getSupportContact } from "@/lib/support";
+import { LegalBody } from "@/components/layout/LegalBody";
+import { LegalPage } from "@/components/layout/LegalPage";
+import { CURRENT_TERMS } from "@/content/legal/terms";
+import { legalHeadings } from "@/lib/legal/markdown";
 import { pageMetadata } from "@/lib/seo";
 
 export const metadata: Metadata = pageMetadata("/terms");
 
-const linkClass = "text-foreground underline underline-offset-4";
+/** The section headings, in order, for the table of contents. */
+export const TERMS_SECTIONS = legalHeadings(CURRENT_TERMS.body);
 
-/** The section headings, in order, for the table of contents. Each one is a LegalHeading below. */
-export const TERMS_SECTIONS = [
-  "1. What is FleetGrid?",
-  "2. Accounts",
-  "3. Drivers",
-  "4. Carriers",
-  "5. Text messages",
-  "6. Acceptable use",
-  "7. Review, suspension and removal",
-  "8. Deleting your account",
-  "9. Our content and your content",
-  "10. Disclaimers",
-  "11. Limitation of liability",
-  "12. Changes",
-  "13. Governing law and dispute resolution",
-  "14. Contact",
-] as const;
-
+/**
+ * The current Terms of Service, rendered from src/content/legal/terms.ts: the same text that is
+ * archived in terms_versions and that drivers and carriers accept (Milestone 6).
+ */
 export default function TermsPage() {
-  const contact = getSupportContact();
   return (
     <LegalPage
       path="/terms"
-      title="Terms of Service"
-      effective={LEGAL_EFFECTIVE_DATE}
+      title={CURRENT_TERMS.title}
+      effective={CURRENT_TERMS.effectiveLabel}
       sections={TERMS_SECTIONS}
     >
-      <p>
-        These terms are an agreement between you and {BUSINESS_NAME} (&quot;FleetGrid&quot;,
-        &quot;we&quot;, &quot;us&quot;) about your use of the FleetGrid website, service and text
-        messages. By creating an account or using the service you agree to them. If you do not
-        agree, do not use the service.
-      </p>
-
-      <LegalHeading>1. What is FleetGrid?</LegalHeading>
-      <p>
-        FleetGrid is a platform where local freight carriers post open shifts and
-        local CDL drivers book them. Drivers create a qualification card and can receive new
-        shifts by text. Carriers with an active subscription can search driver cards and post
-        shifts, and FleetGrid notifies qualified drivers on our platform.
-      </p>
-      <p>
-        FleetGrid is not an employer, a staffing agency, a freight broker or a party to any work
-        arrangement. Any shift, pay, hours or other terms are agreed directly between the carrier
-        and the driver. Carriers are responsible for verifying a driver&apos;s licence, medical
-        card and other qualifications before any work, and for complying with all laws that apply
-        to them, including FMCSA rules.
-      </p>
-
-      <LegalHeading>2. Accounts</LegalHeading>
-      <ul>
-        <li>You must be 18 years old or older and have a US mobile number to use the service.</li>
-        <li>
-          You sign in with a one-time code sent to your number. There is no password. Keep your
-          phone secure; anyone with access to your number and the code can use your account.
-        </li>
-        <li>One account per person or company. Do not create an account for someone else.</li>
-        <li>You must keep the information in your account true, accurate and up to date.</li>
-      </ul>
-
-      <LegalHeading>3. Drivers</LegalHeading>
-      <ul>
-        <li>
-          Your qualification card (CDL class, years of experience, driving record, TWIC and medical
-          card status, endorsements, transmission, equipment and any optional answers) must be true
-          and kept current. A false answer may lead to removal from the directory.
-        </li>
-        <li>
-          By completing your card you allow FleetGrid to show it to carriers with an active
-          subscription. Your phone number is shared only with the carrier whose shift you book,
-          when you reply YES.
-        </li>
-        <li>
-          Only you and FleetGrid staff can see your documents. A company you book a shift with can
-          view your CDL and medical card for that shift.
-        </li>
-        <li>
-          Receiving a shift offer is not an offer of employment and does not guarantee work.
-          Accepting a shift is between you and the carrier.
-        </li>
-        <li>
-          FleetGrid does not pay wages, withhold taxes, manage schedules, or issue tax forms
-          (W-2/1099) to drivers. All work, payment, and engagement terms are strictly between you
-          and the carrier.
-        </li>
-      </ul>
-
-      <LegalHeading>4. Carriers</LegalHeading>
-      <ul>
-        <li>
-          Access to driver cards requires an active subscription, billed monthly. Prices, billing
-          and cancellation are shown at checkout and in your billing page. Fees are not refunded
-          for partial months.
-        </li>
-        <li>
-          Driver information may be used only to fill your own shifts. You may not copy, scrape,
-          resell or share driver data, or contact drivers for any other purpose.
-        </li>
-        <li>
-          Driver contact details you receive from a booked shift may be used only to arrange that
-          shift. You may not store, share or resell them, or use them to engage drivers outside
-          FleetGrid.
-        </li>
-        <li>
-          If a driver does not show up for a booked shift, release the shift in FleetGrid so it
-          can be offered again. No-shows are recorded against the driver.
-        </li>
-        <li>
-          Carriers maintain sole responsibility for evaluating, qualifying and managing all
-          drivers. FleetGrid provides directory matching only. Before assigning any shift, you are
-          solely responsible for:
-          <ul>
-            <li>
-              verifying the driver&apos;s CDL, DOT medical card, TWIC, MVR record and FMCSA
-              Clearinghouse status;
-            </li>
-            <li>creating and maintaining all FMCSA-required Driver Qualification (DQ) files;</li>
-            <li>
-              supplying appropriate commercial insurance and maintaining compliance with all
-              federal, state and local transportation laws;
-            </li>
-            <li>
-              setting pay rates, managing tax classifications (W-2 or 1099) and paying drivers
-              directly.
-            </li>
-          </ul>
-        </li>
-        <li>
-          You are fully responsible for your shifts, equipment, operations and the personnel you
-          engage.
-        </li>
-      </ul>
-
-      <LegalHeading>5. Text messages</LegalHeading>
-      <p>
-        Drivers choose whether to receive shift offers by text by checking the consent box during
-        sign-up. Message frequency varies and message and data rates may apply. Reply STOP to stop
-        and HELP for help. Login codes are sent to everyone who signs in. The full program terms
-        are in the{" "}
-        <Link href="/sms-terms" className={linkClass}>
-          SMS Terms
-        </Link>
-        .
-      </p>
-
-      <LegalHeading>6. Acceptable use</LegalHeading>
-      <p>You agree not to:</p>
-      <ul>
-        <li>give false information about yourself, your qualifications or your company;</li>
-        <li>use another person&apos;s number or account, or let someone else use yours;</li>
-        <li>harass, threaten or discriminate against anyone you meet through the service;</li>
-        <li>interfere with the service, probe its security or access data that is not yours;</li>
-        <li>use the service for anything unlawful.</li>
-      </ul>
-
-      <LegalHeading>7. Review, suspension and removal</LegalHeading>
-      <p>
-        New driver profiles are reviewed by FleetGrid before carriers can see them. We may list,
-        hold, suspend or remove any account or profile at any time, for example for a false answer,
-        a complaint from a carrier or driver, or a breach of these terms. We will notify you when
-        we become aware.
-      </p>
-
-      <LegalHeading>8. Deleting your account</LegalHeading>
-      <p>
-        You can delete your account at any time from your profile page. Your card, documents and
-        sign-in are removed permanently. We keep a record of your text-message consent and opt-out, as
-        US texting rules require, and anything we must keep by law. See the{" "}
-        <Link href="/privacy" className={linkClass}>
-          Privacy Policy
-        </Link>
-        .
-      </p>
-
-      <LegalHeading>9. Our content and your content</LegalHeading>
-      <p>
-        The FleetGrid name, logo, design and software belong to {BUSINESS_NAME}. You keep ownership
-        of what you upload and give us permission to store it and show it as these terms describe.
-      </p>
-
-      <LegalHeading>10. Disclaimers</LegalHeading>
-      <p>
-        The service is provided as is. We do not promise that a driver will find work, that a
-        carrier will find a driver, that any driver or carrier is who they say they are, or that
-        the service will be free of errors or interruptions. We do not check the truth of what
-        drivers and carriers enter beyond the review described above.
-      </p>
-
-      <LegalHeading>11. Limitation of liability</LegalHeading>
-      <p>
-        To the extent the law allows, {BUSINESS_NAME} is not liable for indirect, incidental,
-        special or consequential damages, lost profits or lost work arising from the service or
-        from any shift arranged through it. Our total liability for any claim is limited to the
-        amount you paid us in the twelve months before the claim, or one hundred US dollars if you
-        paid nothing.
-      </p>
-
-      <LegalHeading>12. Changes</LegalHeading>
-      <p>
-        We may update these terms. The date at the top shows the current version. When a change
-        matters, we will ask you to accept the new terms the next time you sign in. Continued use
-        after that means you accept them.
-      </p>
-
-      <LegalHeading>13. Governing law and dispute resolution</LegalHeading>
-      <p>
-        These terms are governed by the laws of the Commonwealth of Virginia, United States,
-        without regard to its conflict of law rules. Any dispute, claim or controversy arising out
-        of or relating to these terms or the service shall be resolved by final and binding
-        individual arbitration administered by the American Arbitration Association (AAA) under
-        its Commercial Rules, rather than in court, except that either party may bring claims in
-        small claims court in Virginia if qualified.
-      </p>
-      <p>
-        You and FleetGrid agree that any dispute resolution proceedings will be conducted only on
-        an individual basis and not in a class, consolidated, or representative action. If any
-        legal action or arbitration arises under these terms, the prevailing party shall be
-        entitled to recover its reasonable attorneys&rsquo; fees and costs from the non-prevailing
-        party. If an arbitrable claim proceeds in court for any reason, all disputes will be
-        brought exclusively in the state or federal courts located in Virginia, and you agree to
-        their jurisdiction.
-      </p>
-
-      <LegalHeading>14. Contact</LegalHeading>
-      <address className="not-italic">
-        <p>
-          {BUSINESS_NAME}
-          {contact.address.map((line) => (
-            <span key={line} className="block">
-              {line}
-            </span>
-          ))}
-        </p>
-        <p>
-          <a href={`mailto:${contact.email}`} className={linkClass}>
-            {contact.email}
-          </a>
-          {contact.phone && (
-            <>
-              {" "}
-              or{" "}
-              <a href={`tel:${contact.phone}`} className={linkClass}>
-                {formatE164ForDisplay(contact.phone)}
-              </a>
-            </>
-          )}
-        </p>
-      </address>
+      <LegalBody body={CURRENT_TERMS.body} />
     </LegalPage>
   );
 }

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DRIVER_TERMS_MESSAGE } from "@/lib/legal/terms-acceptance";
 import {
   FULL_NAME_MAX_LENGTH,
   SERVICE_RADIUS_MAX_MILES,
@@ -194,6 +195,8 @@ export const leadScreenSchema = z.object({
   ...cdlClassScreenSchema.shape,
   ...cdlStateSchema.shape,
   ...consentScreenSchema.shape,
+  // The Terms (Milestone 6): required, recorded with the version before the card exists.
+  termsAccepted: z.literal(true, { error: DRIVER_TERMS_MESSAGE }),
 });
 
 /** The profile page's "Turn on shift texts" and "Turn off shift texts". */

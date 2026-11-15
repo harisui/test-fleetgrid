@@ -1,5 +1,6 @@
 // @vitest-environment node
 import { describe, expect, it } from "vitest";
+import { DRIVER_TERMS_MESSAGE } from "@/lib/legal/terms-acceptance";
 import type { z } from "zod";
 import { SAVABLE_STEP_IDS } from "@/lib/onboarding/steps";
 import {
@@ -48,16 +49,22 @@ describe("SCREEN_SCHEMAS", () => {
   });
 });
 
-describe("lead: name, ZIP, class and the optional consent on one screen", () => {
-  it("takes the four answers and an unchecked box as no consent", () => {
-    expect(leadScreenSchema.parse({ fullName: " Pat Driver ", zip: "60601-1234", cdlClass: "B", cdlState: "TX" })).toEqual({
+describe("lead: name, ZIP, class, the optional consent and the required Terms on one screen", () => {
+  it("takes the four answers, an unchecked text box as no consent, and the ticked Terms", () => {
+    expect(
+      leadScreenSchema.parse({ fullName: " Pat Driver ", zip: "60601-1234", cdlClass: "B", cdlState: "TX", termsAccepted: true }),
+    ).toEqual({
       fullName: "Pat Driver",
       zip: "60601",
       cdlClass: "B",
       cdlState: "TX",
       consent: false,
+      termsAccepted: true,
     });
-    expect(leadScreenSchema.parse({ fullName: "Pat Driver", zip: "60601", cdlClass: "A", cdlState: "IL", consent: true }).consent).toBe(true);
+    expect(
+      leadScreenSchema.parse({ fullName: "Pat Driver", zip: "60601", cdlClass: "A", cdlState: "IL", consent: true, termsAccepted: true })
+        .consent,
+    ).toBe(true);
   });
 
   it("reports every missing answer at once, in the screen's order", () => {
@@ -66,13 +73,20 @@ describe("lead: name, ZIP, class and the optional consent on one screen", () => 
       zip: "Enter a 5-digit ZIP code, like 60601",
       cdlClass: CDL_CLASS_MESSAGE,
       cdlState: CDL_STATE_MESSAGE,
+      termsAccepted: DRIVER_TERMS_MESSAGE,
     });
-    expect(errorsOf(leadScreenSchema, { fullName: "Pat Driver", zip: "60601", cdlClass: "A", cdlState: "ZZ" })).toEqual({
-      cdlState: CDL_STATE_MESSAGE,
-    });
-    expect(errorsOf(leadScreenSchema, { fullName: "Pat Driver", zip: "60601", cdlClass: "A", cdlState: "TX", consent: "yes" })).toEqual({
-      consent: CONSENT_MESSAGE,
-    });
+    const answered = { fullName: "Pat Driver", zip: "60601", cdlClass: "A", cdlState: "TX", termsAccepted: true };
+    expect(errorsOf(leadScreenSchema, { ...answered, cdlState: "ZZ" })).toEqual({ cdlState: CDL_STATE_MESSAGE });
+    expect(errorsOf(leadScreenSchema, { ...answered, consent: "yes" })).toEqual({ consent: CONSENT_MESSAGE });
+  });
+
+  it("needs the Terms box really ticked (Milestone 6)", () => {
+    const answered = { fullName: "Pat Driver", zip: "60601", cdlClass: "A", cdlState: "TX" };
+    for (const value of [false, "true", 1, null, undefined]) {
+      expect(errorsOf(leadScreenSchema, { ...answered, termsAccepted: value }), String(value)).toEqual({
+        termsAccepted: DRIVER_TERMS_MESSAGE,
+      });
+    }
   });
 });
 
