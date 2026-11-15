@@ -4,7 +4,7 @@ import { Menu } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
 import { AdminNav } from "@/components/admin/AdminNav";
-import { AdminSidebarFooter } from "@/components/admin/AdminSidebar";
+import { AdminSidebarFooter, type AdminIdentity } from "@/components/admin/AdminSidebar";
 import { Logo } from "@/components/shared/Logo";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -14,7 +14,7 @@ import { ADMIN_HOME } from "@/lib/admin/nav";
  * Under the lg breakpoint the sidebar becomes this bar: the wordmark and a menu button that
  * opens the same navigation in a sheet from the left edge.
  */
-export function AdminMobileBar({ adminLabel }: { adminLabel: string }) {
+export function AdminMobileBar({ admin }: { admin: AdminIdentity }) {
   const [open, setOpen] = useState(false);
   return (
     <header
@@ -44,7 +44,7 @@ export function AdminMobileBar({ adminLabel }: { adminLabel: string }) {
           <SheetTitle className="text-sign-panel-foreground">Menu</SheetTitle>
           <SheetDescription className="sr-only">The admin pages and your account.</SheetDescription>
           <AdminNav onNavigate={() => setOpen(false)} />
-          <AdminSidebarFooter adminLabel={adminLabel} />
+          <AdminSidebarFooter admin={admin} onNavigate={() => setOpen(false)} />
         </SheetContent>
       </Sheet>
     </header>

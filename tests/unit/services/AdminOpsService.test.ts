@@ -121,7 +121,7 @@ describe("AdminOpsService", () => {
       {
         writeAudit: async (entry) => {
           audit.push(entry);
-          return { ...entry, id: "x", detail: entry.detail ?? {}, createdAt: NOW.toISOString() };
+          return { ...entry, id: "x", adminEmail: null, detail: entry.detail ?? {}, createdAt: NOW.toISOString() };
         },
         listAudit: async () => [],
         setProfileStatus: async (profileId, status): Promise<Profile> => {

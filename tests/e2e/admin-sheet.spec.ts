@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { adminClient, COMPLETE_STEP, login, PHONES, resetUser, seedDriverAtStep, seedUser } from "./helpers";
+import { adminClient, COMPLETE_STEP, loginAdmin, PHONES, resetUser, seedDriverAtStep, seedUser } from "./helpers";
 
 /**
  * A long detail sheet has one scroll area, between its fixed header and footer. Hidden text for
@@ -34,7 +34,7 @@ test.describe("the admin detail sheet", () => {
     if (error) throw new Error(error.message);
 
     await page.setViewportSize({ width: 1400, height: 700 });
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.goto(`/admin/drivers?open=${driver!.id}`);
     const sheet = page.getByRole("dialog");
     await expect(sheet.getByText("CDL (front)").first()).toBeVisible();

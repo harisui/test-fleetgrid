@@ -6,6 +6,7 @@ import {
   chooseRole,
   enterCode,
   login,
+  loginAdmin,
   nextButton,
   OTP,
   PHONES,
@@ -113,7 +114,7 @@ test.describe("sign-up source", () => {
 
     // The admin: the list names the code, narrows to it from the Analytics sheet, and the detail shows what the driver said.
     await page.context().clearCookies();
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.goto(`/admin/analytics?open=${qrLinkId}`);
     await page.getByRole("dialog", { name: location }).getByRole("link", { name: "See the drivers who scanned it" }).click();
     await expect(page).toHaveURL(new RegExp(`/admin/drivers\\?qr=${qrLinkId}$`));
@@ -162,7 +163,7 @@ test.describe("sign-up source", () => {
     expect(card).toEqual({ heard_from: null, heard_from_other: null, card_completed: true });
 
     await page.context().clearCookies();
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.goto("/admin/drivers?source=direct");
     await expect(page.getByRole("link", { name: /^Source: Direct or unknown/ })).toBeVisible();
     await expect(adminList(page, "Drivers").getByRole("link", { name: /^Sam Second/ })).toHaveCount(1);

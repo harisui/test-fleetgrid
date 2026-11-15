@@ -42,7 +42,7 @@ export function AdminNav({ onNavigate }: AdminNavProps) {
               {item.label}
             </Link>
             {item.children && (
-              <ul className="flex flex-col gap-1 pl-8" aria-label={item.label}>
+              <ul className="flex flex-col gap-1 pl-5" aria-label={item.label}>
                 {item.children.map((child) => {
                   const childActive = child.href === activeChild;
                   return (
@@ -52,12 +52,13 @@ export function AdminNav({ onNavigate }: AdminNavProps) {
                         aria-current={childActive ? "page" : undefined}
                         onClick={onNavigate}
                         className={cn(
-                          "flex min-h-target items-center rounded-button border-l-3 px-3 text-label leading-label outline-none transition-colors duration-(--dur-press) focus-visible:ring-2 focus-visible:ring-ring",
+                          "flex min-h-target items-center gap-3 rounded-button border-l-3 px-3 text-label leading-label outline-none transition-colors duration-(--dur-press) focus-visible:ring-2 focus-visible:ring-ring",
                           childActive
                             ? "border-sign-panel-border bg-sign-panel-foreground/10 font-semibold text-sign-panel-foreground"
                             : "border-transparent text-sign-panel-muted hover:bg-sign-panel-foreground/10 hover:text-sign-panel-foreground",
                         )}
                       >
+                        <child.icon aria-hidden="true" className="size-4 shrink-0" />
                         {child.label}
                       </Link>
                     </li>

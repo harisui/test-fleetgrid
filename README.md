@@ -222,19 +222,42 @@ Dark mode is separate from the theme: the toggle in the header saves the choice 
 
 ## Creating an admin user
 
-Nobody can sign up as admin. Locally, the seed creates one: log in with (555) 555-0102 and code 123456.
+Nobody can sign up as admin. Admins sign in at `/admin-sign-in` with an email and a password,
+then a 6-digit code from an authenticator app (Google Authenticator, 1Password, Authy and the
+like); no phone is involved (migration 0039). The first sign-in shows a QR code to set the app
+up. A phone-code session never has admin access: the proxy signs it out, `requireAdmin` checks
+again, and in the database `auth_role()` is null for an admin whose session lacks the password
+and the authenticator step, so every admin rule closes.
 
-To make an existing account the admin (local or production), the person first logs in once at `/login` with their own phone and picks a role (the role picker is a formality; the SQL below overrides it). Then run this SQL as the database owner, in Supabase Studio's SQL editor on the hosted project:
+Accounts are made with `.github/scripts/admin-login.mjs`, which reads `.env.local` and prints
+the project it talks to. Against production, put the hosted URL and service role key in front
+of the command instead (never in a file in the repo):
 
-```sql
-update public.profiles
-   set role = 'admin', status = 'approved'
- where phone = '+15555550100';   -- the person's phone in E.164
+```bash
+# a new email-only admin (prints a generated password once)
+node .github/scripts/admin-login.mjs create --email annie@example.com --name "Annie"
+# a new temporary password for an existing admin (and an email, for an older phone-based one)
+node .github/scripts/admin-login.mjs set --email annie@example.com
+node .github/scripts/admin-login.mjs set --phone +15555550102 --email admin@example.com
+# a lost phone: remove the authenticator, so the next sign-in sets up a new one
+node .github/scripts/admin-login.mjs reset-2fa --email annie@example.com
+
+# production
+NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co SUPABASE_SERVICE_ROLE_KEY=<key> \
+  node .github/scripts/admin-login.mjs create --email annie@example.com --name "Annie"
 ```
 
-From their next page load they land in the admin at `/admin/drivers`. Every `/admin` route is guarded twice: the server guard (`requireAdmin` in `src/lib/auth/guards.ts`) answers 403 to a signed-in driver or carrier and sends signed-out visitors to `/login`, and Row Level Security lets only admins read and write the admin tables. A profile with `role = 'driver'` keeps its driver card; switching a real driver to admin is not reversible from the app, so use a separate number for the admin.
+The hosted project needs TOTP turned on first: Supabase dashboard, Authentication, Multi-Factor,
+"Authenticator app (TOTP)" enabled. Locally `supabase/config.toml` does it (`[auth.mfa.totp]`).
 
-The user must have logged in once and chosen a role first, so that a profile row exists. Users cannot change their own role or status: a database trigger blocks it.
+Signed in, an admin changes their name, password and authenticator at `/admin/account`
+("Account settings" under the name in the sidebar). A new authenticator replaces the old one
+only once a code from it works.
+
+Every `/admin` route is guarded twice: the server guard (`requireAdmin` in
+`src/lib/auth/guards.ts`) answers 403 to a signed-in driver or carrier and sends signed-out
+visitors to `/admin-sign-in`, and Row Level Security lets only admins read and write the admin
+tables. Users cannot change their own role, status or email: a database trigger blocks it.
 
 ## Deploying to Vercel
 

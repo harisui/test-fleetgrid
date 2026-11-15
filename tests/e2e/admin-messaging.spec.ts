@@ -1,7 +1,7 @@
 import AxeBuilder from "@axe-core/playwright";
 import { formatInTimeZone } from "date-fns-tz";
 import { expect, test, type Page } from "@playwright/test";
-import { clearLog, realtimeListening, fillLog, adminClient, COMPLETE_STEP, login, makeShiftReady, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
+import { adminClient, clearLog, COMPLETE_STEP, fillLog, login, loginAdmin, makeShiftReady, PHONES, realtimeListening, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
 
 /**
  * Admin Messaging: Activity (Milestone 3 part 6) and Send notice (CR-3). Activity lists what
@@ -83,7 +83,7 @@ test.describe("admin messaging: activity", () => {
 
   test("Activity updates live, without a reload, when a text is logged", async ({ page }) => {
     const body = "FleetGrid: A text logged while the page is open.";
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     const listening = realtimeListening(page, "admin-messaging");
     await page.goto(`/admin/messaging?tab=account&type=approved&driver=${driverId}`);
     const rows = page.getByRole("list", { name: "Account texts", exact: true }).locator("[data-slot=message-row]");
@@ -104,7 +104,7 @@ test.describe("admin messaging: activity", () => {
   });
 
   test("tiles, the four tabs, masked phones in lists and whole in the sheet, and a resend once", async ({ page }) => {
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.goto("/admin/messaging");
     await expect(page.getByRole("heading", { level: 1, name: "Messaging" })).toBeVisible();
     await expect(page.getByRole("list", { name: "Shift broadcasts" }).locator("[data-slot=broadcast-row]").filter({ hasText: "Bayou Freight LLC" }).first()).toContainText("1 YES replies");
@@ -147,7 +147,7 @@ test.describe("admin messaging: activity", () => {
     test(`Activity passes axe (${colorScheme})`, async ({ page }) => {
       await page.context().addCookies([{ name: "fleetgrid-theme", value: colorScheme, url: "http://localhost:3000" }]);
       await page.emulateMedia({ reducedMotion: "reduce" });
-      await login(page, PHONES.admin);
+      await loginAdmin(page);
       for (const tab of ["broadcasts", "account", "notices", "unmatched"]) {
         await page.goto(`/admin/messaging?tab=${tab}`);
         await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -175,7 +175,7 @@ test.describe("admin messaging: send notice", () => {
   });
 
   test("a bulk service notice: fixed words, the count and exclusions, the SEND {N} gate", async ({ page }) => {
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.goto("/admin/messaging/send");
     await expect(page.getByRole("heading", { level: 1, name: "Send notice" })).toBeVisible();
     await expect(page.locator("textarea")).toHaveCount(0);
@@ -211,7 +211,7 @@ test.describe("admin messaging: send notice", () => {
   });
 
   test("the security notice from the driver sheet goes to that one driver after a dialog", async ({ page }) => {
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.goto(`/admin/drivers?open=${driverId}`);
     await page.getByRole("dialog", { name: "Nia Notice" }).getByRole("link", { name: "Send security notice" }).click();
     await page.waitForURL(/\/admin\/messaging\/send\?driver=/);
@@ -243,7 +243,7 @@ test.describe("admin messaging: send notice", () => {
     test(`Send notice passes axe (${colorScheme})`, async ({ page }) => {
       await page.context().addCookies([{ name: "fleetgrid-theme", value: colorScheme, url: "http://localhost:3000" }]);
       await page.emulateMedia({ reducedMotion: "reduce" });
-      await login(page, PHONES.admin);
+      await loginAdmin(page);
       await page.goto("/admin/messaging/send");
       await page.getByRole("radio", { name: /Policy change/ }).check();
       await expect(page.locator("[data-slot=notice-body]")).toBeVisible();

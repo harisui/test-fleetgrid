@@ -67,7 +67,7 @@ values ('e0000012-0000-4000-8000-000000000000', 'admin', 'd0000011-0000-4000-800
 select throws_ok($$ update public.document_views set viewer_role = 'carrier' $$, '42501', null, 'document views hold');
 
 -- An admin writes in their own name; the number comes from the profile.
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000012-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000012-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select lives_ok($$ select public.write_admin_audit('driver_paused', 'driver', 'd0000011-0000-4000-8000-000000000000') $$, 'an admin writes through the function');
 select throws_ok($$ insert into public.admin_audit_log (admin_id, admin_phone, action, target_type, target_id) values (auth.uid(), '+15555559212', 'driver_paused', 'driver', gen_random_uuid()) $$, '42501', null, 'not directly');
@@ -75,7 +75,7 @@ reset role;
 select is((select admin_phone from public.admin_audit_log where action = 'driver_paused' and target_id = 'd0000011-0000-4000-8000-000000000000'), '+15555559212', 'in their own name');
 
 -- Others cannot write it, and a carrier accepts Terms only as themselves.
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000013-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000013-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select throws_ok($$ select public.write_admin_audit('driver_paused', 'driver', gen_random_uuid()) $$, '42501', null, 'a carrier cannot write the audit log');
 select is((select count(*)::int from public.record_tos_acceptance('v-test', '203.0.113.9', 'Agent')), 1, 'a carrier accepts the Terms');

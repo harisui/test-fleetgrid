@@ -298,6 +298,7 @@ describe("DriverDetailSheet", () => {
               id: "h1",
               adminId: "admin",
               adminPhone: "+15555550102",
+              adminEmail: null,
               action: "driver_approved",
               targetType: "driver",
               targetId: "d1",

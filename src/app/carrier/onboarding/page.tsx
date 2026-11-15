@@ -1,3 +1,4 @@
+import { phoneOf } from "@/lib/phone";
 import type { Metadata } from "next";
 import { DeleteAccountCard } from "@/components/account/DeleteAccountCard";
 import { LogoutButton } from "@/components/auth/LogoutButton";
@@ -21,7 +22,7 @@ export default async function CarrierOnboardingPage() {
         </p>
         <CarrierDetailsForm />
         {/* Picked the wrong role? Deleting the account frees the number for a fresh sign-up. */}
-        <DeleteAccountCard phone={user.phone} />
+        <DeleteAccountCard phone={phoneOf(user)} />
       </div>
     </AppShell>
   );

@@ -40,6 +40,7 @@ describe("ProfileRepository (local Supabase)", () => {
         id: existing.id,
         role: "carrier",
         phone: existing.phone,
+        email: null,
         status: "approved",
         // No sign-up source for a profile made straight in the database.
         source: {

@@ -1,3 +1,4 @@
+import { phoneOf } from "@/lib/phone";
 import { InlineNote } from "@/components/shared/InlineNote";
 import Link from "next/link";
 import type { Metadata } from "next";
@@ -40,7 +41,7 @@ export default async function DriverProfilePage() {
       <AccountStatusCard profile={profile} driver={state.driver} />
       <ClearinghouseSelfReportControl confirmedAt={state.driver.clearinghouseSelfReportedAt} />
       <ProfileEditor driver={state.driver} />
-      <DeleteAccountCard phone={user.phone} />
+      <DeleteAccountCard phone={phoneOf(user)} />
     </div>
   );
 }

@@ -54,7 +54,7 @@ values ('c0000065-0000-4000-a000-000000000000', 'e0000065-0000-4000-8000-0000000
 insert into public.subscriptions (carrier_id, stripe_subscription_id, stripe_customer_id, status)
 values ('c0000065-0000-4000-a000-000000000000', 'sub_search', 'cus_search', 'active');
 
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000065-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000065-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select set_eq(
   $$ select id from public.carrier_driver_cards(array(select pg_temp.did(n) from unnest(array['61', '62', '63', '64']) as n)) $$,

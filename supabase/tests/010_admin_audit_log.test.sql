@@ -8,7 +8,7 @@ select no_plan();
 -- ---------------------------------------------------------------------------
 select has_table('public', 'admin_audit_log', 'admin_audit_log exists');
 select columns_are('public', 'admin_audit_log', array[
-  'id', 'admin_id', 'admin_phone', 'action', 'target_type', 'target_id', 'detail', 'created_at']);
+  'id', 'admin_id', 'admin_phone', 'admin_email', 'action', 'target_type', 'target_id', 'detail', 'created_at']);
 select col_default_is('admin_audit_log', 'detail', '{}');
 select has_index('public', 'admin_audit_log', 'admin_audit_log_target_idx', array['target_type', 'target_id', 'created_at']);
 
@@ -30,7 +30,7 @@ insert into public.profiles (id, role, phone, status) values
 create function pg_temp.sign_in(p_user uuid, p_phone text) returns void language plpgsql as $$
 begin
   perform set_config('request.jwt.claims',
-    json_build_object('sub', p_user, 'role', 'authenticated', 'phone', p_phone)::text, true);
+    json_build_object('sub', p_user, 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')), 'phone', p_phone)::text, true);
   set local role authenticated;
 end;
 $$;

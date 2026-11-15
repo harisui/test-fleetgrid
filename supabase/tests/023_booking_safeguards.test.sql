@@ -158,7 +158,7 @@ select ok(
   'nobody signed in may run these'
 );
 
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000092-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000092-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select is_empty($$ select 1 from public.shift_events $$, 'a driver reads no shift events');
 reset role;

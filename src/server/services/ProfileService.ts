@@ -55,6 +55,8 @@ export class ProfileService {
     const existing = await this.profiles.findById(user.id);
     if (existing) return this.resolveExisting(existing, role);
 
+    // Drivers and carriers sign up by phone; an email account (an admin) never picks a role here.
+    if (!user.phone) throw AppError.forbidden("Sign up with your mobile number");
     const source = await this.sourceFrom(attribution);
     try {
       return await this.profiles.create({ id: user.id, phone: user.phone, role, source });

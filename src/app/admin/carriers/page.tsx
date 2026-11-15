@@ -135,7 +135,7 @@ export default async function AdminCarriersPage({ searchParams }: PageProps<"/ad
                 {detail.history.map((entry) => (
                   <li key={entry.id}>
                     {format(new Date(entry.createdAt), "MMM d, yyyy h:mm a")}: {auditLabel(entry.action)} by{" "}
-                    {formatE164ForDisplay(entry.adminPhone)}
+                    {entry.adminEmail ?? formatE164ForDisplay(entry.adminPhone)}
                   </li>
                 ))}
               </ul>

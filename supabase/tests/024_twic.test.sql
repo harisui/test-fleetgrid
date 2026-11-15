@@ -112,7 +112,7 @@ values ('driver-documents', pg_temp.did('32') || '/twic.png', 'e0000032-0000-400
 update public.shifts set status = 'booked', booked_driver_id = pg_temp.did('32'), booked_at = now(), starts_at = now() + interval '3 days', ends_at = now() + interval '3 days 8 hours' where id = ('60000003-0000-4000-8000-000000000000')::uuid;
 select is((select status::text from public.profiles where id = 'e0000032-0000-4000-8000-000000000000'), 'approved', 'a TWIC photo sends nobody back to Registered');
 
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000036-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000036-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select is((select count(*)::int from public.driver_documents where driver_id = pg_temp.did('32') and type = 'twic'), 0, 'a carrier with a booking never reads the TWIC document');
 select is((select count(*)::int from storage.objects where name = pg_temp.did('32') || '/twic.png'), 0, 'or the file');
@@ -125,7 +125,7 @@ select set_eq(
 );
 reset role;
 
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000033-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000033-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select throws_ok($$ update public.drivers set twic_issue_at = now() where id = pg_temp.did('33') $$, '42501', null, 'a driver cannot clear a flag');
 select lives_ok($$ update public.drivers set twic_expires_on = current_date + 30 where id = pg_temp.did('33') $$, 'a driver can update their date');

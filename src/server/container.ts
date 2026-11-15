@@ -6,6 +6,7 @@ import { getPaymentProvider } from "@/server/providers/createPaymentProvider";
 import { createSmsProvider, type ISmsProvider } from "@/server/providers/SmsProvider";
 import { FileZipProvider } from "@/server/providers/ZipProvider";
 import { AccountRepository } from "@/server/repositories/AccountRepository";
+import { AdminAuthRepository } from "@/server/repositories/AdminAuthRepository";
 import { AdminOpsRepository } from "@/server/repositories/AdminOpsRepository";
 import { AdminRepository } from "@/server/repositories/AdminRepository";
 import { AuthRepository } from "@/server/repositories/AuthRepository";
@@ -30,6 +31,7 @@ import { TosRepository } from "@/server/repositories/TosRepository";
 import { WaitlistRepository } from "@/server/repositories/WaitlistRepository";
 import { WebhookEventRepository } from "@/server/repositories/WebhookEventRepository";
 import { AccountService } from "@/server/services/AccountService";
+import { AdminAuthService } from "@/server/services/AdminAuthService";
 import { AdminOpsService } from "@/server/services/AdminOpsService";
 import { AdminService } from "@/server/services/AdminService";
 import { AnalyticsService } from "@/server/services/AnalyticsService";
@@ -228,6 +230,7 @@ export function buildContainer(supabase: TypedSupabaseClient) {
     noticeService,
     docReminderService,
     authService: new AuthService(auth, profiles),
+    adminAuthService: new AdminAuthService(auth, new AdminAuthRepository(supabase), profiles),
     accountService: new AccountService(
       auth,
       drivers,

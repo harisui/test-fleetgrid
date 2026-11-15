@@ -71,6 +71,7 @@ export function buildProfile(overrides: Partial<Profile> = {}): Profile {
       id: USER_ID,
       role: "driver",
       phone: TEST_PHONES.driver,
+      email: null,
       status: "pending",
       source: NO_SOURCE,
       createdAt: TIMESTAMP,

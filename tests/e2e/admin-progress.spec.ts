@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { login, PHONES, seedUser } from "./helpers";
+import { loginAdmin, PHONES, seedUser } from "./helpers";
 
 /** The admin's orange page-load bar (user request of 2026-11-02). */
 test.describe("admin page-load bar", () => {
@@ -9,7 +9,7 @@ test.describe("admin page-load bar", () => {
 
   test("creeps in the theme's orange while the next page loads, then goes away", async ({ page }) => {
     test.skip(test.info().project.name !== "desktop-chrome", "once, on a desktop");
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     // Hold the next page's requests (the prefetch too) so the bar can be seen.
     await page.route("**/admin/carriers**", async (route) => {
       await new Promise((resolve) => setTimeout(resolve, 2500));

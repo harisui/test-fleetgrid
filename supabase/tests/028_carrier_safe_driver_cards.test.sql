@@ -39,7 +39,7 @@ values ('c0000071-0000-4000-a000-000000000000', 'sub_71', 'cus_71', 'active'),
   ('c0000072-0000-4000-a000-000000000000', 'sub_72', 'cus_72', 'past_due');
 
 create function pg_temp.act_as(n text) returns void language sql as $$
-  select set_config('request.jwt.claims', json_build_object('sub', 'e00000' || n || '-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+  select set_config('request.jwt.claims', json_build_object('sub', 'e00000' || n || '-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 $$;
 
 -- What no carrier path may ever carry.

@@ -2,6 +2,7 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/types/database.types";
 import { buildPhone } from "./factories";
+import { totpCode } from "./totp";
 
 /**
  * Helpers for integration tests against the local Supabase stack.
@@ -73,10 +74,13 @@ export async function createTestUser(options: CreateUserOptions = {}): Promise<T
   const phone = buildPhone();
   const password = `pw-${randomUUID()}`;
 
+  // Admins have an email (0039): the authenticator's label is built from it.
+  const email = options.role === "admin" ? `admin-${randomUUID().slice(0, 8)}@fleetgrid.test` : undefined;
   const { data, error } = await admin.auth.admin.createUser({
     phone,
     password,
     phone_confirm: true,
+    ...(email ? { email, email_confirm: true } : {}),
   });
   if (error || !data.user) throw new Error(`createUser failed: ${error?.message}`);
   const id = data.user.id;
@@ -92,6 +96,15 @@ export async function createTestUser(options: CreateUserOptions = {}): Promise<T
   const client = createClient<Database>(url(), anonKey(), noSession);
   const { error: signInError } = await client.auth.signInWithPassword({ phone, password });
   if (signInError) throw new Error(`signIn failed: ${signInError.message}`);
+
+  // An admin acts as one only after the authenticator step (0039): set one up and pass it, as
+  // a real admin does at the first sign-in.
+  if (options.role === "admin") {
+    const { data: factor, error: enrollError } = await client.auth.mfa.enroll({ factorType: "totp", friendlyName: `test ${id}`, issuer: "FleetGrid" });
+    if (enrollError) throw new Error(`mfa enroll failed: ${enrollError.message}`);
+    const { error: verifyError } = await client.auth.mfa.challengeAndVerify({ factorId: factor.id, code: totpCode(factor.totp.secret) });
+    if (verifyError) throw new Error(`mfa verify failed: ${verifyError.message}`);
+  }
 
   return { id, phone, client };
 }

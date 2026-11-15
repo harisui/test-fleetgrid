@@ -1,10 +1,12 @@
 import {
+  Activity,
   Building2,
   CalendarClock,
   ChartNoAxesColumn,
   CreditCard,
   MapPinned,
   MessageSquare,
+  Send,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -15,6 +17,7 @@ import {
 export interface AdminNavChild {
   href: string;
   label: string;
+  icon: LucideIcon;
 }
 
 export interface AdminNavItem {
@@ -38,8 +41,8 @@ export const ADMIN_NAV: readonly AdminNavItem[] = [
     label: "Messaging",
     icon: MessageSquare,
     children: [
-      { href: "/admin/messaging", label: "Activity" },
-      { href: "/admin/messaging/send", label: "Send notice" },
+      { href: "/admin/messaging", label: "Activity", icon: Activity },
+      { href: "/admin/messaging/send", label: "Send notice", icon: Send },
     ],
   },
   { href: "/admin/analytics", label: "Analytics", icon: ChartNoAxesColumn },

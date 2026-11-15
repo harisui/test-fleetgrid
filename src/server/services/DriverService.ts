@@ -1,3 +1,4 @@
+import { phoneOf } from "@/lib/phone";
 import { SMS_CONSENT_TEXT, SMS_CONSENT_VERSION } from "@/lib/constants";
 import {
   DONE_STEP_NUMBER,
@@ -85,7 +86,7 @@ export class DriverService {
     if (!driver.smsOptIn || driver.smsOptedOut) return driver;
     try {
       const profile = await this.profiles.findById(userId);
-      if (profile) await this.onSignedUpWithTexts({ driverId: driver.id, phone: profile.phone });
+      if (profile) await this.onSignedUpWithTexts({ driverId: driver.id, phone: phoneOf(profile) });
     } catch (error) {
       this.report("The welcome text was not sent", error);
     }
@@ -331,7 +332,7 @@ export class DriverService {
     const profile = await this.profiles.findById(userId);
     if (!profile) throw AppError.forbidden("Only drivers can do this");
     await this.consentLog().record({
-      phone: profile.phone,
+      phone: phoneOf(profile),
       event: consent ? "opt_in" : "opt_out",
       consentText: SMS_CONSENT_TEXT,
       consentVersion: SMS_CONSENT_VERSION,

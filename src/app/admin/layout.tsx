@@ -8,10 +8,11 @@ import { formatE164ForDisplay } from "@/lib/phone";
  * page (src/app/forbidden.tsx). Toasts sit bottom right, out of the table's way.
  */
 export default async function AdminLayout({ children }: LayoutProps<"/admin">) {
-  const { profile } = await requireAdmin();
+  const { user, profile } = await requireAdmin();
+  const admin = { name: user.name ?? null, contact: profile.email ?? formatE164ForDisplay(profile.phone) };
   return (
     <ToastHost position="bottom-right">
-      <AdminFrame adminLabel={formatE164ForDisplay(profile.phone)}>{children}</AdminFrame>
+      <AdminFrame admin={admin}>{children}</AdminFrame>
     </ToastHost>
   );
 }

@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { adminClient, COMPLETE_STEP, login, nextButton, PHONES, PLACES, resetUser, seedDriverAtStep, seedUser, signUp } from "./helpers";
+import { adminClient, COMPLETE_STEP, login, loginAdmin, nextButton, PHONES, PLACES, resetUser, seedDriverAtStep, seedUser, signUp } from "./helpers";
 
 /**
  * The CDL state (CR-5, part 1): asked on the lead with Texas picked to start, asked once of a
@@ -91,7 +91,7 @@ test.describe("CDL state", () => {
   test("the admin sees the state, the Not Texas CDL badge and the filter", async ({ page }) => {
     const { driverId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP, { cdl_state: "LA", full_name: "Lou Isiana" });
     await seedUser(PHONES.admin, "admin", "approved");
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.goto("/admin/drivers?cdl=other");
     const list = page.getByRole("table", { name: "Drivers" }).or(page.getByRole("list", { name: "Drivers" })).filter({ visible: true });
     await expect(list).toContainText("Lou Isiana");

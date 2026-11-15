@@ -118,7 +118,7 @@ select throws_ok($$ insert into public.notice_batches (category, body, created_b
   '23514', null, 'the recent count is never negative');
 
 -- Nobody signed in reads the welcome table or moves the stamp.
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000077-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000077-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select throws_ok($$ select * from public.welcome_texts $$, '42501', null, 'a driver cannot read the welcome table');
 select throws_ok($$ update public.drivers set last_doc_reminder_at = null where id = 'd0000077-0000-4000-8000-000000000000' $$,

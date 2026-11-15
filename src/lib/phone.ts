@@ -56,9 +56,19 @@ export function formatUsPhoneInput(input: string): string {
 }
 
 /** "+15555550100" becomes "(555) 555-0100". Other values are returned unchanged. */
-export function formatE164ForDisplay(e164: string): string {
+export function formatE164ForDisplay(e164: string | null): string {
+  if (e164 === null) return "";
   if (!/^\+1\d{10}$/.test(e164)) return e164;
   return formatUsPhoneInput(e164.slice(2));
+}
+
+/**
+ * The phone of a driver or carrier account, which always has one. Only an admin may sign in by
+ * email with no phone (0039), so a missing phone here is a bug, not a state to handle.
+ */
+export function phoneOf(holder: { phone: string | null }): string {
+  if (!holder.phone) throw new Error("This account has no phone number");
+  return holder.phone;
 }
 
 /** "+15555550100" becomes "(***) ***-0100" for screens that should not show the full number. */

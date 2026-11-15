@@ -1,6 +1,6 @@
 ﻿import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { COMPLETE_STEP, login, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
+import { COMPLETE_STEP, login, loginAdmin, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
 
 /**
  * The admin shell: the sidebar on a desktop, the menu sheet on a phone, keyboard reach, axe
@@ -43,7 +43,7 @@ test.describe("admin shell", () => {
     page,
   }) => {
     test.skip(test.info().project.name !== "desktop-chrome", "viewports are set by hand here");
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await expect(page).toHaveURL(/\/admin\/drivers$/);
 
     await page.setViewportSize({ width: 1280, height: 900 });
@@ -72,7 +72,7 @@ test.describe("admin shell", () => {
     page,
   }) => {
     test.skip(test.info().project.name !== "desktop-chrome", "keyboard run once, on a desktop");
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.setViewportSize({ width: 1280, height: 900 });
     const reached: string[] = [];
     for (let stop = 0; stop < 20; stop += 1) {
@@ -95,7 +95,7 @@ test.describe("admin shell", () => {
         .context()
         .addCookies([{ name: "fleetgrid-theme", value: colorScheme, url: "http://localhost:3000" }]);
       await page.emulateMedia({ reducedMotion: "reduce" });
-      await login(page, PHONES.admin);
+      await loginAdmin(page);
       for (const path of ADMIN_PAGES) {
         await page.goto(path);
         await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
@@ -111,10 +111,10 @@ test.describe("admin shell", () => {
     });
   }
 
-  test("a driver and a carrier get a 403 on every admin page; a visitor is sent to /login", async ({ page }) => {
+  test("a driver and a carrier get a 403 on every admin page; a visitor is sent to the admin sign-in", async ({ page }) => {
     for (const path of ["/admin", ...ADMIN_PAGES]) {
       await page.goto(path);
-      await expect(page, path).toHaveURL(/\/login$/);
+      await expect(page, path).toHaveURL(/\/admin-sign-in$/);
     }
 
     await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);

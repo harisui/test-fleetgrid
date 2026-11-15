@@ -23,7 +23,8 @@ export interface DriverReviewRow {
 
 export interface AuditEntryInput {
   adminId: string;
-  adminPhone: string;
+  /** A label only: the database takes the admin's phone or email from the session (0035, 0039). */
+  adminPhone: string | null;
   action: AdminAction;
   targetType: AuditTargetType;
   targetId: string;
@@ -57,6 +58,7 @@ function mapAudit(row: AuditRow): AuditEntry {
     id: row.id,
     adminId: row.admin_id,
     adminPhone: row.admin_phone,
+    adminEmail: row.admin_email,
     action: row.action as AdminAction,
     targetType: row.target_type as AuditTargetType,
     targetId: row.target_id,

@@ -1,22 +1,23 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
 import {
-  clearLog,
   adminClient,
-  COMPLETE_STEP,
-  makeShiftReady,
-  seedDriverAtStep,
-  seedUser,
   adminList,
   CARRIER_DETAILS,
   chooseRole,
+  clearLog,
+  COMPLETE_STEP,
   expectNoDriverPhone,
   formAlert,
   login,
+  loginAdmin,
+  makeShiftReady,
   PHONES,
   PLACES,
   resetUser,
   seedCarrier,
+  seedDriverAtStep,
+  seedUser,
   signUp,
   TOS_VERSION,
 } from "./helpers";
@@ -556,7 +557,7 @@ test.describe("driver search and a driver's page", () => {
     expect(row?.twic_issue_at).not.toBeNull();
 
     await page.context().clearCookies();
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.goto("/admin/drivers?twic=issue");
     await expect(adminList(page, "Drivers")).toContainText("Gus Gate");
     await expect(adminList(page, "Drivers")).toContainText("TWIC issue");

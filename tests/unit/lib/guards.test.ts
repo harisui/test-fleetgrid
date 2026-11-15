@@ -28,9 +28,10 @@ const authService = vi.hoisted(() => ({
 const carrierService = vi.hoisted(() => ({ getAccess: vi.fn() }));
 const driverService = vi.hoisted(() => ({ needsCdlState: vi.fn() }));
 const subscriptionService = vi.hoisted(() => ({ needsRecheck: vi.fn(), refreshAccess: vi.fn() }));
+const adminAuthService = vi.hoisted(() => ({ sessionLevel: vi.fn() }));
 
 vi.mock("@/server/container", () => ({
-  getContainer: async () => ({ authService, carrierService, subscriptionService, driverService }),
+  getContainer: async () => ({ authService, carrierService, subscriptionService, driverService, adminAuthService }),
 }));
 /** forbidden() throws too: Next.js renders the 403 page in place of the route. */
 class ForbiddenSignal extends Error {
@@ -48,7 +49,7 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const user: SessionUser = { id: USER_ID, phone: TEST_PHONES.driver };
+const user: SessionUser = { id: USER_ID, phone: TEST_PHONES.driver, email: null };
 
 async function redirectOf(promise: Promise<unknown>): Promise<string> {
   const error = await promise.then(
@@ -71,6 +72,7 @@ beforeEach(() => {
   carrierService.getAccess.mockReset();
   subscriptionService.needsRecheck.mockReset().mockReturnValue(false);
   subscriptionService.refreshAccess.mockReset();
+  adminAuthService.sessionLevel.mockReset().mockResolvedValue("strong");
 });
 
 describe("requireCarrierStage", () => {
@@ -192,16 +194,30 @@ describe("requireSession", () => {
 });
 
 describe("requireAdmin", () => {
-  it("signed out goes to /login, no profile to /choose-role", async () => {
-    await expect(redirectOf(requireAdmin())).resolves.toBe("/login");
+  it("signed out goes to the admin sign-in, no profile to /choose-role", async () => {
+    await expect(redirectOf(requireAdmin())).resolves.toBe("/admin-sign-in");
     signedInAs(null);
     await expect(redirectOf(requireAdmin())).resolves.toBe("/choose-role");
   });
 
-  it("lets an admin through", async () => {
+  it("lets an admin through with a password and the authenticator", async () => {
     const profile = buildProfile({ role: "admin", status: "approved" });
     signedInAs(profile);
     await expect(requireAdmin()).resolves.toEqual({ user, profile });
+  });
+
+  it("signs a phone-code admin session out and sends it to the email sign-in (0039)", async () => {
+    signedInAs(buildProfile({ role: "admin", status: "approved" }));
+    adminAuthService.sessionLevel.mockResolvedValue("needs-password");
+    await expect(redirectOf(requireAdmin())).resolves.toBe("/admin-sign-in?reason=password");
+    expect(authService.signOut).toHaveBeenCalledOnce();
+  });
+
+  it("sends a password session without the authenticator step to /admin-verify", async () => {
+    signedInAs(buildProfile({ role: "admin", status: "approved" }));
+    adminAuthService.sessionLevel.mockResolvedValue("needs-code");
+    await expect(redirectOf(requireAdmin())).resolves.toBe("/admin-verify");
+    expect(authService.signOut).not.toHaveBeenCalled();
   });
 
   it.each(["driver", "carrier"] as const)("answers 403 to a %s instead of sending them home", async (role) => {

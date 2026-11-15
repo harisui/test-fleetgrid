@@ -139,7 +139,7 @@ insert into public.subscriptions (carrier_id, stripe_subscription_id, stripe_cus
 create function pg_temp.sign_in(p_user uuid, p_phone text) returns void language plpgsql as $$
 begin
   perform set_config('request.jwt.claims',
-    json_build_object('sub', p_user, 'role', 'authenticated', 'phone', p_phone)::text, true);
+    json_build_object('sub', p_user, 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')), 'phone', p_phone)::text, true);
   set local role authenticated;
 end;
 $$;

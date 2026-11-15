@@ -6,6 +6,7 @@ import {
   COMPLETE_STEP,
   displayPhone,
   login,
+  loginAdmin,
   PHONES,
   resetUser,
   seedCarrier,
@@ -83,7 +84,7 @@ test.describe("admin drivers", () => {
     browser,
   }) => {
     const { driverId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await expect(page).toHaveURL(/\/admin\/drivers$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Drivers");
     const tiles = page.getByRole("region", { name: "Driver counts" });
@@ -172,7 +173,7 @@ test.describe("admin drivers", () => {
   test("an unfinished card cannot be marked Roster-Ready, and the filters single it out", async ({ page }) => {
     await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
     const { driverId } = await seedDriverAtStep(PHONES.secondDriver, 3);
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
 
     await page.goto("/admin/drivers?complete=incomplete");
     await expect(page.getByRole("link", { name: /^Profile: Incomplete/ })).toBeVisible();
@@ -210,7 +211,7 @@ test.describe("admin drivers", () => {
   test("a CDL from outside Texas needs a typed reason, which the history keeps", async ({ page }) => {
     const { driverId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP, { cdl_state: "LA" });
     await uploadRequiredDocuments(driverId!);
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.goto(`/admin/drivers?open=${driverId}`);
     const sheet = page.getByRole("dialog", { name: "Pat Driver" });
     const mark = sheet.getByRole("button", { name: "Mark Roster-Ready" });
@@ -227,7 +228,7 @@ test.describe("admin drivers", () => {
 
   test("the Ready to review filter finds a Registered driver with everything on file", async ({ page }) => {
     const { driverId, userId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     const list = adminList(page, "Drivers");
 
     // No documents yet: not ready.
@@ -249,7 +250,7 @@ test.describe("admin drivers", () => {
   test("marking a driver Roster-Ready from the Ready to review list takes them off it (client report of 2026-11-12)", async ({ page }) => {
     const { driverId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
     await uploadRequiredDocuments(driverId!);
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     const list = adminList(page, "Drivers");
 
     await page.goto("/admin/drivers?q=Pat+Driver&rereview=ready");
@@ -275,7 +276,7 @@ test.describe("admin drivers", () => {
       .eq("id", driverId!);
     const textsBefore = (await adminClient().from("sms_messages").select("id").eq("driver_id", driverId!)).data?.length;
 
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.goto(`/admin/drivers?open=${driverId}`);
     const sheet = page.getByRole("dialog", { name: "Pat Driver" });
     await expect(sheet.locator("[data-slot=rereview]")).toBeVisible();
@@ -310,7 +311,7 @@ test.describe("admin drivers", () => {
     await adminClient().from("profiles").update({ status: "approved" }).eq("id", userId);
     // The driver replaces the CDL front from the Documents page.
     await uploadRequiredDocuments(driverId!);
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.goto("/admin/drivers?q=Pat+Driver");
     const list = adminList(page, "Drivers");
     await expect(list.getByText("Re-review needed").first()).toBeVisible();

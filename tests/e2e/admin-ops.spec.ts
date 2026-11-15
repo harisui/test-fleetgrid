@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
-import { fillLog, adminClient, adminList, COMPLETE_STEP, login, makeShiftReady, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
+import { adminClient, adminList, COMPLETE_STEP, fillLog, login, loginAdmin, makeShiftReady, PHONES, resetUser, seedCarrier, seedDriverAtStep, seedUser } from "./helpers";
 
 /**
  * The rest of the admin panel (T3.11): carriers with block and their sheet, subscriptions
@@ -60,7 +60,7 @@ test.describe("admin operations", () => {
     await carrierPage.goto("/carrier/search");
     await expect(carrierPage).toHaveURL(/\/carrier\/search/);
 
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.goto("/admin/carriers?status=subscribed");
     await expect(page.getByRole("heading", { level: 1, name: "Carriers" })).toBeVisible();
     await page.goto(`/admin/carriers?open=${carrierId}`);
@@ -97,7 +97,7 @@ test.describe("admin operations", () => {
   });
 
   test("service areas: the head count before saving, add, deactivate, all in the audit log", async ({ page }) => {
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.goto("/admin/service-areas");
     const form = page.locator("[data-slot=area-form]").first();
     await form.getByLabel(/^Name/).fill(AREA_NAME);
@@ -125,7 +125,7 @@ test.describe("admin operations", () => {
   });
 
   test("a driver's shift texts are paused from the sheet", async ({ page }) => {
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.goto(`/admin/drivers?open=${driverId}`);
     const sheet = page.getByRole("dialog", { name: "Pat Paused" });
     await expect(sheet.locator("[data-slot=no-shows]")).toContainText("0 no-shows.");
@@ -178,7 +178,7 @@ test.describe("admin operations", () => {
     });
     if (error) throw error;
 
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.goto("/admin/drivers?q=Pat+Paused");
     await expect(adminList(page, "Drivers")).toContainText("Paused: no-shows");
     await page.goto("/admin/shifts?status=booked");
@@ -219,7 +219,7 @@ test.describe("admin operations", () => {
       shift_id: shift.id,
       provider_sid: `SMadmin${shift.id.slice(0, 8)}`,
     }]);
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.goto("/admin/shifts");
     const listRow = page.locator("[data-slot=admin-shift-row]").filter({ hasText: "Bayou Freight LLC" }).first();
     await expect(listRow).toBeVisible();

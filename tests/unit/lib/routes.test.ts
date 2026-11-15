@@ -49,8 +49,13 @@ describe("decideRoute", () => {
   });
 
   describe("signed out", () => {
-    it.each(PROTECTED_PATHS)("%s redirects to /login", (path) => {
+    it.each([...DRIVER_PATHS, ...CARRIER_PATHS])("%s redirects to /login", (path) => {
       expect(decide(path, SIGNED_OUT)).toEqual(to("/login"));
+    });
+
+    // Admins sign in with email and password, not a phone code (0039).
+    it.each(ADMIN_PATHS)("%s redirects to /admin-sign-in", (path) => {
+      expect(decide(path, SIGNED_OUT)).toEqual(to("/admin-sign-in"));
     });
 
     it("/choose-role redirects to /login", () => {

@@ -412,7 +412,7 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
                   {entry.adminPhone === "system" ? (
                     <span>the system</span>
                   ) : (
-                    <span className="font-mono">{formatE164ForDisplay(entry.adminPhone)}</span>
+                    <span className="font-mono">{entry.adminEmail ?? formatE164ForDisplay(entry.adminPhone)}</span>
                   )}
                   ,{" "}
                   {format(new Date(entry.createdAt), "MMM d, yyyy h:mm a")}

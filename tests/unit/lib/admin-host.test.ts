@@ -13,14 +13,15 @@ describe("decideAdminHost", () => {
     expect(decideAdminHost({ host: "fleetgridus.com", pathname: "/admin/drivers", search: "", adminHost: "  " })).toEqual({ action: "pass", adminHost: false });
   });
 
-  it("serves the admin pages, the sign-in and what they need on the admin host", () => {
-    for (const path of ["/admin", "/admin/drivers", "/login", "/verify", "/api/documents/x/url", "/_next/data/x.json", "/forbidden"]) {
+  it("serves the admin pages, the admin sign-in and what they need on the admin host", () => {
+    for (const path of ["/admin", "/admin/drivers", "/admin-sign-in", "/admin-verify", "/api/documents/x/url", "/_next/data/x.json", "/forbidden"]) {
       expect(decide(ADMIN, path), path).toEqual({ action: "pass", adminHost: true });
     }
   });
 
   it("sends the home page and every public, driver or carrier page on the admin host to /admin", () => {
-    for (const path of ["/", "/carriers", "/terms", "/driver", "/carrier/billing", "/choose-role", "/q/flyer", "/administrator"]) {
+    // The phone sign-in too: admins sign in with email and password there (0039).
+    for (const path of ["/", "/carriers", "/terms", "/driver", "/carrier/billing", "/choose-role", "/q/flyer", "/administrator", "/login", "/verify"]) {
       expect(decide(ADMIN, path), path).toEqual({ action: "redirect", to: "https://admin.fleetgridus.com/admin" });
     }
   });
@@ -35,6 +36,8 @@ describe("decideAdminHost", () => {
       to: "https://admin.fleetgridus.com/admin/drivers?rereview=ready",
     });
     expect(decide("www.fleetgridus.com", "/admin")).toEqual({ action: "redirect", to: "https://admin.fleetgridus.com/admin" });
+    expect(decide("fleetgridus.com", "/admin-sign-in")).toEqual({ action: "redirect", to: "https://admin.fleetgridus.com/admin-sign-in" });
+    expect(decide("fleetgridus.com", "/admin-verify")).toEqual({ action: "redirect", to: "https://admin.fleetgridus.com/admin-verify" });
     // The rest of the public site is untouched, the login included.
     for (const path of ["/", "/login", "/driver", "/api/twilio/inbound", "/administrator"]) {
       expect(decide("fleetgridus.com", path), path).toEqual({ action: "pass", adminHost: false });

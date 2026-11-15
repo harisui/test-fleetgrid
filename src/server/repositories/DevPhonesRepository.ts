@@ -38,7 +38,7 @@ export class DevPhonesRepository extends BaseRepository {
         .limit(200),
     );
     return rows.map((row) => ({
-      phone: row.profiles.phone,
+      phone: row.profiles.phone ?? "",
       fullName: row.full_name,
       status: row.profiles.status,
       smsOptIn: row.sms_opt_in,

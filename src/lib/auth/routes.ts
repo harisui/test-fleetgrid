@@ -5,6 +5,9 @@ import type { Profile, UserRole } from "@/types/domain";
 export const LOGIN_PATH = "/login";
 export const VERIFY_PATH = "/verify";
 export const CHOOSE_ROLE_PATH = "/choose-role";
+/** Admins sign in with email and password here, then an authenticator code (0039). */
+export const ADMIN_SIGN_IN_PATH = "/admin-sign-in";
+export const ADMIN_VERIFY_PATH = "/admin-verify";
 /** "Which state issued your CDL?", asked once of cards saved before CR-5. */
 export const CDL_STATE_PATH = "/driver/cdl-state";
 /** Where the carrier area goes while the carrier side is switched off (CARRIER_DISABLED). */
@@ -77,7 +80,8 @@ const redirectTo = (to: string): RouteDecision => ({ action: "redirect", to });
 /**
  * The single place that decides who may open which page.
  *
- * - Signed out: protected areas and the role picker go to /login.
+ * - Signed out: the admin area goes to /admin-sign-in; the other protected areas and the
+ *   role picker go to /login.
  * - Signed in without a profile: everything protected goes to /choose-role.
  * - Signed in with a profile: only the own area is allowed. Other areas, the role picker and
  *   the login pages go to the role home, except the admin area, which answers 403.
@@ -104,6 +108,7 @@ export function decideRoute({
   if (carrierDisabled && role === "carrier" && onSignedOutOnly) return allow;
 
   if (!signedIn) {
+    if (requiredRole === "admin") return redirectTo(ADMIN_SIGN_IN_PATH);
     if (requiredRole || onChooseRole) return redirectTo(LOGIN_PATH);
     return allow;
   }

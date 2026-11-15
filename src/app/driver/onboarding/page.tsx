@@ -1,3 +1,4 @@
+import { phoneOf } from "@/lib/phone";
 import type { Metadata } from "next";
 import { OnboardingFlow } from "@/components/driver/OnboardingFlow";
 import { requireDriverWithCdlState } from "@/lib/auth/guards";
@@ -15,7 +16,7 @@ export default async function DriverOnboardingPage() {
     <OnboardingFlow
       initialStepId={state.stepId}
       initialDriver={state.driver}
-      phone={user.phone}
+      phone={phoneOf(user)}
       support={getSupportContact()}
     />
   );

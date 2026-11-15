@@ -17,7 +17,7 @@ select throws_ok($$ update public.drivers set cdl_state = 'ZZ' where id = 'd0000
 select throws_ok($$ update public.drivers set cdl_state = 'tx' where id = 'd0000041-0000-4000-8000-000000000000' $$,
   '23514', null, 'lower case is refused');
 
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000041-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000041-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select lives_ok($$ update public.drivers set cdl_state = 'TX' where id = 'd0000041-0000-4000-8000-000000000000' $$, 'the driver sets it');
 select lives_ok($$ update public.drivers set cdl_state = 'DC' where id = 'd0000041-0000-4000-8000-000000000000' $$, 'and changes it (DC counts)');

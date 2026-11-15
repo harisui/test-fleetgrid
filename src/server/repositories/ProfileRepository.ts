@@ -22,6 +22,7 @@ export function mapProfile(row: ProfileRow): Profile {
     id: row.id,
     role: row.role,
     phone: row.phone,
+    email: row.email,
     status: row.status,
     source: {
       utmSource: row.signup_utm_source,

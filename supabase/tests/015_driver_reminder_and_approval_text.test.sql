@@ -74,7 +74,7 @@ select ok(not public.queue_approval_text(pg_temp.did('22'), null), 'no consent, 
 select ok(not public.queue_approval_text(pg_temp.did('23'), null), 'opted out, nothing queued');
 
 -- A driver cannot set or clear the stamps.
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000021-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000021-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select throws_ok($$ update public.drivers set reminder_sent_at = null where id = 'd0000021-0000-4000-8000-000000000000' $$,
   '42501', null, 'a driver cannot clear the reminder stamp');

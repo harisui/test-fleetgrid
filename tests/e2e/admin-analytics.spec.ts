@@ -1,6 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test, type Page } from "@playwright/test";
-import { adminClient, adminList, login, PHONES, seedUser } from "./helpers";
+import { adminClient, adminList, loginAdmin, PHONES, seedUser } from "./helpers";
 
 /**
  * The Analytics page: the tiles and the sources, and a QR code's whole life: made from the
@@ -39,7 +39,7 @@ test.describe("admin analytics", () => {
     page,
     browser,
   }) => {
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
     await page.goto("/admin/analytics");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Analytics");
     await expect(page.getByRole("region", { name: "Sign-ups" })).toBeVisible();
@@ -126,6 +126,6 @@ test.describe("admin analytics", () => {
     const response = await page.request.get("/api/admin/qr/00000000-0000-4000-8000-000000000000/png");
     expect(response.status()).toBe(401);
     await page.goto("/admin/analytics");
-    await expect(page).toHaveURL(/\/login$/);
+    await expect(page).toHaveURL(/\/admin-sign-in$/);
   });
 });

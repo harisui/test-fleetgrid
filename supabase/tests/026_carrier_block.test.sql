@@ -36,7 +36,7 @@ select pg_temp.shift('02', 'booked', 'd0000042-0000-4000-8000-000000000000', 72)
 insert into public.broadcast_recipients (shift_id, driver_id, round, position, code, status)
 values ('70000001-0000-4000-8000-000000000000', 'd0000042-0000-4000-8000-000000000000', 1, 1, '4101', 'sent');
 
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000041-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000041-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select is((select count(*)::int from public.carrier_driver_cards(array['d0000042-0000-4000-8000-000000000000']::uuid[])), 1, 'a subscribed carrier reads a listed driver');
 reset role;

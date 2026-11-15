@@ -171,7 +171,10 @@ export const NO_SOURCE: SignupSource = {
 export interface Profile {
   id: string;
   role: UserRole;
-  phone: string;
+  /** Drivers and carriers sign in by phone. An admin may have no phone, only an email (0039). */
+  phone: string | null;
+  /** An admin's sign-in email (0039); null for drivers and carriers. */
+  email: string | null;
   status: AccountStatus;
   source: SignupSource;
   createdAt: string;
@@ -430,7 +433,9 @@ export type AuditTargetType =
 export interface AuditEntry {
   id: string;
   adminId: string;
-  adminPhone: string;
+  /** The admin's phone, "system" for automatic entries, or null for an email-only admin (0039). */
+  adminPhone: string | null;
+  adminEmail: string | null;
   action: AdminAction;
   targetType: AuditTargetType;
   targetId: string;
@@ -613,7 +618,11 @@ export interface DriverMatch {
 /** The signed-in auth user, before any profile lookup. */
 export interface SessionUser {
   id: string;
-  phone: string;
+  /** Null for an admin who signs in by email only (0039). */
+  phone: string | null;
+  email: string | null;
+  /** An admin's display name, kept on the sign-in account (0039). */
+  name?: string | null;
 }
 
 export interface NavItem {

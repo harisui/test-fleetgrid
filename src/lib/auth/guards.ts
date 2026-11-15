@@ -1,5 +1,5 @@
 import { forbidden, redirect } from "next/navigation";
-import { CDL_STATE_PATH, CHOOSE_ROLE_PATH, LOGIN_PATH, ROLE_HOME } from "@/lib/auth/routes";
+import { ADMIN_SIGN_IN_PATH, ADMIN_VERIFY_PATH, CDL_STATE_PATH, CHOOSE_ROLE_PATH, LOGIN_PATH, ROLE_HOME } from "@/lib/auth/routes";
 import { getContainer } from "@/server/container";
 import {
   CARRIER_STAGE_PATHS,
@@ -72,7 +72,8 @@ export async function requireDriverWithCdlState(): Promise<{ user: SessionUser; 
 export async function requireAdmin(): Promise<{ user: SessionUser; profile: Profile }> {
   const { authService } = await getContainer();
   const session = await authService.getSession();
-  if (!session) redirect(LOGIN_PATH);
+  // Admins sign in with email and password (0039), the same page the proxy sends them to.
+  if (!session) redirect(ADMIN_SIGN_IN_PATH);
 
   const { user, profile } = session;
   if (!profile) redirect(CHOOSE_ROLE_PATH);
@@ -81,6 +82,16 @@ export async function requireAdmin(): Promise<{ user: SessionUser; profile: Prof
     redirect(`${LOGIN_PATH}?blocked=1`);
   }
   if (profile.role !== "admin") forbidden();
+
+  // Admin access needs a password sign-in plus the authenticator step (0039); the database
+  // asks the same. A phone-code session is signed out and sent to the email sign-in.
+  const { adminAuthService } = await getContainer();
+  const level = await adminAuthService.sessionLevel();
+  if (level === "needs-password") {
+    await authService.signOut().catch(() => undefined);
+    redirect(`${ADMIN_SIGN_IN_PATH}?reason=password`);
+  }
+  if (level === "needs-code") redirect(ADMIN_VERIFY_PATH);
 
   return { user, profile };
 }

@@ -3,9 +3,10 @@
  * example "admin.fleetgridus.com"), the admin panel lives on that host alone: Cloudflare Access
  * guards it, and the public site does not show there.
  *
- * - On the admin host: "/" and every public, driver or carrier page go to /admin. The admin
- *   pages, the sign-in pages and what they need (the API, Next.js assets) are served.
- * - On any other host: /admin and everything under it go to the same path on the admin host.
+ * - On the admin host: "/" and every public, driver or carrier page (the phone sign-in too) go
+ *   to /admin. The admin pages, the admin sign-in (0039) and what they need (the API, Next.js
+ *   assets) are served.
+ * - On any other host: the admin pages go to the same path on the admin host.
  * - Without ADMIN_HOST (local, tests, previews): nothing changes.
  *
  * Cloudflare Access only guards requests that pass through Cloudflare, and anyone can send a
@@ -14,8 +15,10 @@
  * request without it is refused.
  */
 
+/** The admin pages: served only on the admin host. */
+const ADMIN_PATHS = ["/admin", "/admin-sign-in", "/admin-verify"];
 /** Paths the admin host serves; everything else there goes to /admin. */
-const ADMIN_HOST_PATHS = ["/admin", "/login", "/verify", "/api", "/_next", "/forbidden"];
+const ADMIN_HOST_PATHS = [...ADMIN_PATHS, "/api", "/_next", "/forbidden"];
 
 /** The header Cloudflare adds on the admin host, carrying ADMIN_HOST_SECRET. */
 export const ADMIN_GATE_HEADER = "x-admin-gate";
@@ -60,7 +63,9 @@ export function decideAdminHost(input: {
     return { action: "redirect", to: `https://${adminHost}/admin` };
   }
 
-  if (under(input.pathname, "/admin")) return { action: "redirect", to: `https://${adminHost}${input.pathname}${input.search}` };
+  if (ADMIN_PATHS.some((base) => under(input.pathname, base))) {
+    return { action: "redirect", to: `https://${adminHost}${input.pathname}${input.search}` };
+  }
   return { action: "pass", adminHost: false };
 }
 

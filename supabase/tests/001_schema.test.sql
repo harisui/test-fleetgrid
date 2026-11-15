@@ -34,7 +34,7 @@ select has_table('public', 'driver_documents', 'driver_documents exists');
 select has_table('public', 'tos_acceptances', 'tos_acceptances exists');
 
 select columns_are('public', 'profiles',
-  array['id', 'role', 'phone', 'status', 'created_at', 'updated_at',
+  array['id', 'role', 'phone', 'email', 'status', 'created_at', 'updated_at',
     'signup_utm_source', 'signup_utm_medium', 'signup_utm_campaign', 'signup_utm_content',
     'signup_referrer', 'signup_landing_path', 'qr_link_id']);
 select columns_are('public', 'drivers', array[
@@ -59,7 +59,8 @@ select fk_ok('public', 'profiles', 'id', 'auth', 'users', 'id');
 select col_type_is('profiles', 'role', 'user_role');
 select col_not_null('profiles', 'role');
 select col_type_is('profiles', 'phone', 'text');
-select col_not_null('profiles', 'phone');
+-- Nullable since 0039: an admin may sign in by email only (the profiles_contact rule, 030).
+select col_is_null('profiles', 'phone');
 select col_is_unique('profiles', 'phone');
 select col_type_is('profiles', 'status', 'account_status');
 select col_not_null('profiles', 'status');
@@ -421,7 +422,7 @@ select is((select min(updated_at) from public.driver_documents), now(), 'driver_
 -- ---------------------------------------------------------------------------
 create function pg_temp.sign_in(p_user uuid) returns void language plpgsql as $$
 begin
-  perform set_config('request.jwt.claims', json_build_object('sub', p_user, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', p_user, 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
   set local role authenticated;
 end;
 $$;

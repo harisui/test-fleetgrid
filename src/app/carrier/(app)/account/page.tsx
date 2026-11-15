@@ -1,3 +1,4 @@
+import { phoneOf } from "@/lib/phone";
 import type { Metadata } from "next";
 import { DeleteAccountCard } from "@/components/account/DeleteAccountCard";
 import { CarrierDetailsForm } from "@/components/carrier/CarrierDetailsForm";
@@ -21,7 +22,7 @@ export default async function CarrierAccountPage() {
         </h2>
         <CarrierDetailsForm carrier={carrier} />
       </section>
-      <DeleteAccountCard phone={user.phone} />
+      <DeleteAccountCard phone={phoneOf(user)} />
     </div>
   );
 }

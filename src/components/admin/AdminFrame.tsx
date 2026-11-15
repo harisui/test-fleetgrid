@@ -1,10 +1,10 @@
 import type { ReactNode } from "react";
 import { AdminMobileBar } from "@/components/admin/AdminMobileBar";
 import { AdminProgressBar } from "@/components/admin/AdminProgressBar";
-import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { AdminSidebar, type AdminIdentity } from "@/components/admin/AdminSidebar";
 
 interface AdminFrameProps {
-  adminLabel: string;
+  admin: AdminIdentity;
   children: ReactNode;
 }
 
@@ -13,7 +13,7 @@ interface AdminFrameProps {
  * and the content column beside the sidebar. Pages put their own top bar and content inside
  * with AdminPage.
  */
-export function AdminFrame({ adminLabel, children }: AdminFrameProps) {
+export function AdminFrame({ admin, children }: AdminFrameProps) {
   return (
     <div className="flex min-h-dvh bg-background text-foreground">
       <AdminProgressBar />
@@ -23,9 +23,9 @@ export function AdminFrame({ adminLabel, children }: AdminFrameProps) {
       >
         Skip to content
       </a>
-      <AdminSidebar adminLabel={adminLabel} className="hidden lg:flex" />
+      <AdminSidebar admin={admin} className="hidden lg:flex" />
       <div className="flex min-w-0 flex-1 flex-col lg:pl-60">
-        <AdminMobileBar adminLabel={adminLabel} />
+        <AdminMobileBar admin={admin} />
         {children}
       </div>
     </div>

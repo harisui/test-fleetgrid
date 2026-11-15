@@ -55,7 +55,7 @@ describe("Messaging in the admin navigation", () => {
     ] as const) {
       navigation.pathname = path;
       const { unmount } = render(
-        <AdminFrame adminLabel="(555) 555-0102">
+        <AdminFrame admin={{ name: null, contact: "(555) 555-0102" }}>
           <p>content</p>
         </AdminFrame>,
       );
@@ -72,7 +72,7 @@ describe("Messaging in the admin navigation", () => {
 describe("AdminFrame", () => {
   it("has the sidebar with the wordmark, the pages, the admin and Log out, and marks the active page", () => {
     render(
-      <AdminFrame adminLabel="(555) 555-0102">
+      <AdminFrame admin={{ name: null, contact: "(555) 555-0102" }}>
         <p>content</p>
       </AdminFrame>,
     );
@@ -96,7 +96,7 @@ describe("AdminFrame", () => {
   it("on a phone, the bar's menu button opens the same pages in a sheet from the left, which closes on a choice", async () => {
     navigation.pathname = "/admin/analytics";
     render(
-      <AdminFrame adminLabel="(555) 555-0102">
+      <AdminFrame admin={{ name: null, contact: "(555) 555-0102" }}>
         <p>content</p>
       </AdminFrame>,
     );

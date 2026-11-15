@@ -96,7 +96,7 @@ update public.drivers set full_name = 'Driver' where id = 'd0000051-0000-4000-80
 select is(pg_temp.status(), 'pending', 'a one-word name moves the driver back');
 
 -- A driver may not set the override or clear the flag.
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000051-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000051-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select throws_ok($$ update public.drivers set shift_ready_override_reason = 'I say so, trust me' where id = 'd0000051-0000-4000-8000-000000000000' $$,
   '42501', null, 'a driver cannot set the override');

@@ -1,3 +1,4 @@
+import { phoneOf } from "@/lib/phone";
 import { deleteAccountSchema } from "@/lib/validation/account.schema";
 import { parseInput } from "@/server/errors/AppError";
 import type { IAccountRepository } from "@/server/repositories/AccountRepository";
@@ -25,8 +26,9 @@ export class AccountService {
 
   /** Texts a code to the signed-in person's own number, never to one they typed. */
   async requestDeletionCode(user: SessionUser): Promise<{ phone: string }> {
-    await this.auth.sendOtp(user.phone);
-    return { phone: user.phone };
+    const phone = phoneOf(user);
+    await this.auth.sendOtp(phone);
+    return { phone };
   }
 
   /**
@@ -36,7 +38,7 @@ export class AccountService {
    */
   async deleteOwnAccount(user: SessionUser, input: unknown): Promise<void> {
     const { code } = parseInput(deleteAccountSchema, input);
-    await this.auth.verifyOtp(user.phone, code);
+    await this.auth.verifyOtp(phoneOf(user), code);
 
     // A carrier's Stripe subscription is cancelled first; a deleted account is never billed.
     await this.cancelSubscription(user.id);

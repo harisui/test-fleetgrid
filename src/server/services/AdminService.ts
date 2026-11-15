@@ -412,7 +412,7 @@ export function matches(row: AdminDriverRow, query: AdminDriversQuery): boolean 
     const text = query.q.toLowerCase();
     const digits = digitsOf(query.q);
     const nameHit = row.driver.fullName.toLowerCase().includes(text);
-    const phoneHit = digits.length >= 3 && digitsOf(row.profile.phone).includes(digits);
+    const phoneHit = digits.length >= 3 && digitsOf(row.profile.phone ?? "").includes(digits);
     const zipHit = /^\d{1,5}$/.test(query.q) && (row.driver.zip ?? "").startsWith(query.q);
     if (!nameHit && !phoneHit && !zipHit) return false;
   }

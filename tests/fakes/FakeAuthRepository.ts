@@ -33,8 +33,9 @@ export class FakeAuthRepository implements IAuthRepository {
       id = `a0000000-0000-4000-8000-${String(this.sequence).padStart(12, "0")}`;
       this.users.set(phone, id);
     }
-    this.currentUser = { id, phone };
-    return this.currentUser;
+    const user: SessionUser = { id, phone, email: null };
+    this.currentUser = user;
+    return user;
   }
 
   async getUser(): Promise<SessionUser | null> {

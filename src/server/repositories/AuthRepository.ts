@@ -34,7 +34,12 @@ export class AuthRepository extends BaseRepository implements IAuthRepository {
     const { data, error } = await this.supabase.auth.verifyOtp({ phone, token: code, type: "sms" });
     if (error) throw this.toAuthError(error, "code", "That code is incorrect or has expired");
     if (!data.user?.phone) throw AppError.internal(new Error("verifyOtp returned no user"));
-    return { id: data.user.id, phone: toE164(data.user.phone) };
+    return {
+      id: data.user.id,
+      phone: toE164(data.user.phone),
+      email: data.user.email ?? null,
+      name: typeof data.user.user_metadata?.full_name === "string" ? data.user.user_metadata.full_name : null,
+    };
   }
 
   /**
@@ -48,8 +53,14 @@ export class AuthRepository extends BaseRepository implements IAuthRepository {
       if (classifyAuthError(error) === "unavailable") throw AppError.internal(error);
       return null;
     }
-    if (!data.user?.phone) return null;
-    return { id: data.user.id, phone: toE164(data.user.phone) };
+    // A phone for drivers and carriers; an admin may have only an email (0039).
+    if (!data.user?.phone && !data.user?.email) return null;
+    return {
+      id: data.user.id,
+      phone: data.user.phone ? toE164(data.user.phone) : null,
+      email: data.user.email ?? null,
+      name: typeof data.user.user_metadata?.full_name === "string" ? data.user.user_metadata.full_name : null,
+    };
   }
 
   async signOut(): Promise<void> {

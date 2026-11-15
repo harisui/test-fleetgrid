@@ -72,6 +72,7 @@ export class FakeAdminRepository implements IAdminRepository {
       id: `a0000000-0000-4000-8000-${String(this.sequence).padStart(12, "0")}`,
       adminId: entry.adminId,
       adminPhone: entry.adminPhone,
+      adminEmail: null,
       action: entry.action,
       targetType: entry.targetType,
       targetId: entry.targetId,

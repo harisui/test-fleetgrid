@@ -4,7 +4,7 @@ import {
   adminClient,
   adminList,
   COMPLETE_STEP,
-  login,
+  loginAdmin,
   nextButton,
   openOnboarding,
   PHONES,
@@ -108,7 +108,7 @@ test.describe("Clearinghouse and SAP self-report", () => {
     const { driverId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP);
     await adminClient().from("driver_clearinghouse_self_reports").insert({ driver_id: driverId! });
     await seedUser(PHONES.admin, "admin", "approved");
-    await login(page, PHONES.admin);
+    await loginAdmin(page);
 
     await page.goto("/admin/drivers?selfReport=yes");
     await expect(page.getByRole("link", { name: /^Clearinghouse and SAP: Self-reported yes/ })).toBeVisible();

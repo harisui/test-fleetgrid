@@ -13,7 +13,7 @@ insert into public.profiles (id, role, phone, status) values
 
 create function pg_temp.sign_in(p_user uuid) returns void language plpgsql as $$
 begin
-  perform set_config('request.jwt.claims', json_build_object('sub', p_user, 'role', 'authenticated')::text, true);
+  perform set_config('request.jwt.claims', json_build_object('sub', p_user, 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
   set local role authenticated;
 end;
 $$;

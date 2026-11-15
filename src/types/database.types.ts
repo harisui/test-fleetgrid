@@ -25,13 +25,13 @@ export type Database = {
           Tables: {
             "admin_audit_log": {
                   Row: {
-                    "action": string,"admin_id": string,"admin_phone": string,"created_at": string,"detail": NonNullable<Json>,"id": string,"target_id": string,"target_type": string
+                    "action": string,"admin_email": string | null,"admin_id": string,"admin_phone": string | null,"created_at": string,"detail": NonNullable<Json>,"id": string,"target_id": string,"target_type": string
                   }
                   Insert: {
-                    "action": string,"admin_id": string,"admin_phone": string,"created_at"?: string,"detail"?: NonNullable<Json>,"id"?: string,"target_id": string,"target_type": string
+                    "action": string,"admin_email"?: string | null,"admin_id": string,"admin_phone"?: string | null,"created_at"?: string,"detail"?: NonNullable<Json>,"id"?: string,"target_id": string,"target_type": string
                   }
                   Update: {
-                    "action"?: string,"admin_id"?: string,"admin_phone"?: string,"created_at"?: string,"detail"?: NonNullable<Json>,"id"?: string,"target_id"?: string,"target_type"?: string
+                    "action"?: string,"admin_email"?: string | null,"admin_id"?: string,"admin_phone"?: string | null,"created_at"?: string,"detail"?: NonNullable<Json>,"id"?: string,"target_id"?: string,"target_type"?: string
                   }
                   Relationships: [
                     
@@ -196,13 +196,13 @@ isOneToOne: false
                   ]
                 },"profiles": {
                   Row: {
-                    "created_at": string,"id": string,"phone": string,"qr_link_id": string | null,"role": Database["public"]['Enums']["user_role"],"signup_landing_path": string | null,"signup_referrer": string | null,"signup_utm_campaign": string | null,"signup_utm_content": string | null,"signup_utm_medium": string | null,"signup_utm_source": string | null,"status": Database["public"]['Enums']["account_status"],"updated_at": string
+                    "created_at": string,"email": string | null,"id": string,"phone": string | null,"qr_link_id": string | null,"role": Database["public"]['Enums']["user_role"],"signup_landing_path": string | null,"signup_referrer": string | null,"signup_utm_campaign": string | null,"signup_utm_content": string | null,"signup_utm_medium": string | null,"signup_utm_source": string | null,"status": Database["public"]['Enums']["account_status"],"updated_at": string
                   }
                   Insert: {
-                    "created_at"?: string,"id": string,"phone": string,"qr_link_id"?: string | null,"role": Database["public"]['Enums']["user_role"],"signup_landing_path"?: string | null,"signup_referrer"?: string | null,"signup_utm_campaign"?: string | null,"signup_utm_content"?: string | null,"signup_utm_medium"?: string | null,"signup_utm_source"?: string | null,"status"?: Database["public"]['Enums']["account_status"],"updated_at"?: string
+                    "created_at"?: string,"email"?: string | null,"id": string,"phone"?: string | null,"qr_link_id"?: string | null,"role": Database["public"]['Enums']["user_role"],"signup_landing_path"?: string | null,"signup_referrer"?: string | null,"signup_utm_campaign"?: string | null,"signup_utm_content"?: string | null,"signup_utm_medium"?: string | null,"signup_utm_source"?: string | null,"status"?: Database["public"]['Enums']["account_status"],"updated_at"?: string
                   }
                   Update: {
-                    "created_at"?: string,"id"?: string,"phone"?: string,"qr_link_id"?: string | null,"role"?: Database["public"]['Enums']["user_role"],"signup_landing_path"?: string | null,"signup_referrer"?: string | null,"signup_utm_campaign"?: string | null,"signup_utm_content"?: string | null,"signup_utm_medium"?: string | null,"signup_utm_source"?: string | null,"status"?: Database["public"]['Enums']["account_status"],"updated_at"?: string
+                    "created_at"?: string,"email"?: string | null,"id"?: string,"phone"?: string | null,"qr_link_id"?: string | null,"role"?: Database["public"]['Enums']["user_role"],"signup_landing_path"?: string | null,"signup_referrer"?: string | null,"signup_utm_campaign"?: string | null,"signup_utm_content"?: string | null,"signup_utm_medium"?: string | null,"signup_utm_source"?: string | null,"status"?: Database["public"]['Enums']["account_status"],"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -515,7 +515,10 @@ isOneToOne: true
                 }
           }
           Functions: {
-            "anonymize_driver_logs":
+            "admin_session_strong":
+{ Args: Record<PropertyKey, never>; Returns: boolean
+                           },
+"anonymize_driver_logs":
 { Args: { "p_profile_id": string }; Returns: undefined
                            },
 "auth_role":
@@ -770,8 +773,9 @@ isOneToOne: true
 "write_admin_audit":
 { Args: { "p_action": string,"p_detail"?: Json,"p_target_id": string,"p_target_type": string }; Returns: {
               "action": string,
+"admin_email": string | null,
 "admin_id": string,
-"admin_phone": string,
+"admin_phone": string | null,
 "created_at": string,
 "detail": NonNullable<Json>,
 "id": string,

@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 import { TOS_VERSION } from "../../src/lib/constants";
 import { DONE_STEP_NUMBER } from "../../src/lib/onboarding/steps";
 import type { Database } from "../../src/types/database.types";
+import { totpCode } from "../setup/totp";
 
 export { TOS_VERSION };
 
@@ -95,11 +96,17 @@ export async function seedUser(
 ): Promise<string> {
   await resetUser(phone);
   const admin = adminClient();
-  const { data, error } = await admin.auth.admin.createUser({ phone, phone_confirm: true });
+  // An admin signs in with email and password, then an authenticator code (0039).
+  const email = role === "admin" ? adminEmailFor(phone) : undefined;
+  const { data, error } = await admin.auth.admin.createUser({
+    phone,
+    phone_confirm: true,
+    ...(email ? { email, email_confirm: true, password: E2E_ADMIN_PASSWORD } : {}),
+  });
   if (error || !data.user) throw new Error(`seedUser failed: ${error?.message}`);
   const { error: profileError } = await admin
     .from("profiles")
-    .insert({ id: data.user.id, phone, role, status });
+    .insert({ id: data.user.id, phone, role, status, email: email ?? null });
   if (profileError) throw new Error(`seedUser profile failed: ${profileError.message}`);
   return data.user.id;
 }
@@ -167,6 +174,46 @@ export async function login(page: Page, phone: string, loginPath = "/login") {
   await page.waitForLoadState("networkidle");
 }
 
+/** The seeded admin's email and the one test password (0039). Local Supabase only. */
+export const E2E_ADMIN_PASSWORD = "e2e-admin-password-0039";
+export const adminEmailFor = (phone: string) => `admin-${national(phone)}@fleetgrid.test`;
+
+/**
+ * Signs in as a seeded admin the way an admin does (0039): email and password, then a code
+ * from an authenticator app. The authenticator is set up through the API first, with its key
+ * kept here so the code can be worked out.
+ */
+export async function loginAdmin(page: Page, phone: string = PHONES.admin) {
+  const email = adminEmailFor(phone);
+  const userId = await findUserId(phone);
+  if (!userId) throw new Error(`loginAdmin: no user for ${phone}; seed it first`);
+  const admin = adminClient();
+  const { data: existing } = await admin.auth.admin.mfa.listFactors({ userId });
+  for (const factor of existing?.factors ?? []) await admin.auth.admin.mfa.deleteFactor({ userId, id: factor.id });
+
+  const client = createClient<Database>(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { error: signInError } = await client.auth.signInWithPassword({ email, password: E2E_ADMIN_PASSWORD });
+  if (signInError) throw new Error(`loginAdmin sign-in failed: ${signInError.message}`);
+  const { data: factor, error: enrollError } = await client.auth.mfa.enroll({ factorType: "totp", friendlyName: "e2e", issuer: "FleetGrid" });
+  if (enrollError) throw new Error(`loginAdmin enroll failed: ${enrollError.message}`);
+  const secret = factor.totp.secret;
+  // Confirmed with the previous 30-second code, so the browser's current code is a fresh one.
+  const { error: verifyError } = await client.auth.mfa.challengeAndVerify({ factorId: factor.id, code: totpCode(secret, Date.now() - 30_000) });
+  if (verifyError) throw new Error(`loginAdmin verify failed: ${verifyError.message}`);
+
+  await page.goto("/admin-sign-in");
+  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("Password").fill(E2E_ADMIN_PASSWORD);
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page).toHaveURL(/\/admin-verify/);
+  await page.getByLabel("6-digit code").fill(totpCode(secret));
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await expect(page).toHaveURL(/\/admin(\/|$)/);
+  await page.waitForLoadState("networkidle");
+}
+
 /** Validation and error messages inside the page. Excludes the Next.js route announcer. */
 export const formAlert = (page: Page) => page.getByRole("main").getByRole("alert");
 
@@ -203,6 +250,7 @@ export async function driverPhoneForms(): Promise<string[]> {
   const { data, error } = await adminClient().from("profiles").select("phone").eq("role", "driver");
   if (error) throw new Error(`driverPhoneForms failed: ${error.message}`);
   return (data ?? []).flatMap(({ phone }) => {
+    if (!phone) return [];
     const digits = phone.replace(/\D/g, "").slice(-10);
     return [
       phone,

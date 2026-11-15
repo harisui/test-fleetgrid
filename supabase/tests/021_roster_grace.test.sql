@@ -100,7 +100,7 @@ select results_eq(
 select is_empty($$ select * from public.expire_roster_grace() $$, 'running it again moves nobody');
 
 -- A driver cannot give themselves time.
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000075-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000075-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select throws_ok($$ update public.drivers set roster_grace_until = now() + interval '1 year' where id = 'd0000075-0000-4000-8000-000000000000' $$,
   '42501', null, 'a driver cannot set the grace');

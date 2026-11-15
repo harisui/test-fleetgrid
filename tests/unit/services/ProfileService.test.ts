@@ -14,7 +14,7 @@ async function expectAppError(promise: Promise<unknown>): Promise<AppError> {
   return error as AppError;
 }
 
-const user = { id: USER_ID, phone: TEST_PHONES.driver };
+const user = { id: USER_ID, phone: TEST_PHONES.driver, email: null };
 
 describe("ProfileService", () => {
   let profiles: FakeProfileRepository;
@@ -119,7 +119,7 @@ describe("ProfileService", () => {
       expect(profile.source).toMatchObject({ utmSource: "fb", utmCampaign: "oct", utmContent: "nothing", referrer: "https://facebook.com/", qrLinkId: null });
 
       profiles.rows.clear();
-      const direct = await service.createProfile({ id: OTHER_USER_ID, phone: "+15555550108" }, { role: "carrier" });
+      const direct = await service.createProfile({ id: OTHER_USER_ID, phone: "+15555550108", email: null }, { role: "carrier" });
       expect(direct.source).toEqual({
         utmSource: null,
         utmMedium: null,

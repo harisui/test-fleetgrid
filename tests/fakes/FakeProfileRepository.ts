@@ -34,6 +34,7 @@ export class FakeProfileRepository implements IProfileRepository {
     const profile: Profile = {
       id: input.id,
       phone: input.phone,
+      email: null,
       role: input.role,
       status: "pending",
       source: { ...NO_SOURCE, ...input.source },

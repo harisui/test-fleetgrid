@@ -9,7 +9,7 @@ import { FakeDocumentRepository } from "../../fakes/FakeDocumentRepository";
 import { FakeDriverRepository } from "../../fakes/FakeDriverRepository";
 import { buildDocument, buildDriver, DRIVER_ID, USER_ID } from "../../setup/factories";
 
-const USER: SessionUser = { id: USER_ID, phone: "+15555550100" };
+const USER = { id: USER_ID, phone: "+15555550100", email: null } satisfies SessionUser;
 
 describe("AccountService", () => {
   let auth: FakeAuthRepository;

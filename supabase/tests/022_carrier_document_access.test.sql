@@ -52,7 +52,7 @@ select pg_temp.make_shift('50000081-0000-4000-8000-000000000000', 'c0000082-0000
 select pg_temp.make_shift('50000084-0000-4000-8000-000000000000', 'c0000084-0000-4000-a000-000000000000', '8104', 'booked', 'd0000081-0000-4000-8000-000000000000', now() + interval '3 days');
 
 create function pg_temp.as_user(id text) returns void language sql as $$
-  select set_config('request.jwt.claims', json_build_object('sub', id, 'role', 'authenticated')::text, true);
+  select set_config('request.jwt.claims', json_build_object('sub', id, 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 $$;
 
 -- The booking carrier: the three required types, not a certification, and the files.
@@ -114,13 +114,13 @@ select is_empty($$ select 1 from public.driver_documents where driver_id = 'd000
 reset role;
 
 -- Admin views are logged too (0034), and only an admin's.
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000083-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000083-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select ok(not public.record_admin_document_view('a1000000-0000-4000-8000-000000000001'), 'a carrier cannot log as an admin');
 reset role;
 insert into auth.users (id, phone) values ('e0000085-0000-4000-8000-000000000000', '15555559685');
 insert into public.profiles (id, role, phone, status) values ('e0000085-0000-4000-8000-000000000000', 'admin', '+15555559685', 'approved');
-select set_config('request.jwt.claims', json_build_object('sub', 'e0000085-0000-4000-8000-000000000000', 'role', 'authenticated')::text, true);
+select set_config('request.jwt.claims', json_build_object('sub', 'e0000085-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select ok(public.record_admin_document_view('a1000000-0000-4000-8000-000000000001'), 'an admin view is logged');
 select is((select count(*)::int from public.document_views where viewer_role = 'admin' and viewer_id = 'e0000085-0000-4000-8000-000000000000'), 1, 'and an admin reads the log');

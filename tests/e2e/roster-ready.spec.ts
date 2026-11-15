@@ -4,12 +4,13 @@ import { expect, test, type Page } from "@playwright/test";
 import { docReminderText, welcomeText } from "../../src/content/sms-samples";
 import { phoneHash } from "../../src/lib/sms/driverTexts";
 import {
-  clearLog,
   adminClient,
   adminList,
+  clearLog,
   COMPLETE_STEP,
   CONSENT_TEXT,
   login,
+  loginAdmin,
   makeShiftReady,
   nextButton,
   PHONES,
@@ -127,7 +128,7 @@ for (const colorScheme of ["light", "dark"] as const) {
       await seedUser(PHONES.admin, "admin", "approved");
       await page.context().clearCookies();
       await page.context().addCookies([{ name: "fleetgrid-theme", value: colorScheme, url: "http://localhost:3000" }]);
-      await login(page, PHONES.admin);
+      await loginAdmin(page);
       await page.goto("/admin/drivers?docs=update&q=Gia+Grace");
       await expect(adminList(page, "Drivers")).toContainText(/Needs update by .+: Medical card/);
       await expectNoAccessibilityViolations(page, "needs update badge");
@@ -256,7 +257,7 @@ for (const colorScheme of ["light", "dark"] as const) {
 
     test("the filter bar: every label on one line, boxes in line, and choosing Any clears a filter", async ({ page }) => {
       await page.setViewportSize({ width: 1440, height: 900 });
-      await login(page, PHONES.admin);
+      await loginAdmin(page);
       await page.goto("/admin/drivers?status=blocked");
       const bar = page.getByRole("form", { name: "Filters" });
       const boxes = bar.getByRole("combobox");
@@ -277,7 +278,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     });
 
     test("the badge, the filters and the tiles", async ({ page }) => {
-      await login(page, PHONES.admin);
+      await loginAdmin(page);
       await page.goto("/admin/drivers?q=Rae+Reminder");
       const tiles = page.getByRole("region", { name: "Driver counts" });
       await expect(tiles.getByText("Missing documents", { exact: true })).toBeVisible();
@@ -300,7 +301,7 @@ for (const colorScheme of ["light", "dark"] as const) {
 
     test("one driver from the sheet: the exact text, then the 3-day limit", async ({ page }) => {
       const expected = docReminderText("CDL photos and medical card");
-      await login(page, PHONES.admin);
+      await loginAdmin(page);
       await page.goto(`/admin/drivers?open=${driverId}`);
       const button = page.getByRole("button", { name: "Send documents reminder" });
       await button.click();
@@ -327,7 +328,7 @@ for (const colorScheme of ["light", "dark"] as const) {
 
     test("the reminder waits out 3 days, and says why", async ({ page }) => {
       await adminClient().from("drivers").update({ last_doc_reminder_at: new Date().toISOString() }).eq("id", driverId);
-      await login(page, PHONES.admin);
+      await loginAdmin(page);
       await page.goto(`/admin/drivers?open=${driverId}`);
       const button = page.getByRole("button", { name: "Send documents reminder" });
       await expect(button).toBeDisabled();
@@ -335,7 +336,7 @@ for (const colorScheme of ["light", "dark"] as const) {
     });
 
     test("in bulk: the count, who is left out, and SEND {N}", async ({ page }) => {
-      await login(page, PHONES.admin);
+      await loginAdmin(page);
       await page.goto("/admin/drivers");
       await page.getByRole("button", { name: "Remind all drivers missing documents" }).click();
       const dialog = page.getByRole("dialog", { name: "Remind all drivers missing documents?" });
