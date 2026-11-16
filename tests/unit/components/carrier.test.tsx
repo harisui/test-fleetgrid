@@ -11,7 +11,7 @@ import { TermsAcceptance, TERMS_STATEMENT } from "@/components/carrier/TermsAcce
 import { TestCheckout } from "@/components/carrier/TestCheckout";
 import { WaitlistCard } from "@/components/carrier/WaitlistCard";
 import { GOOGLE_ADS_ID } from "@/lib/analytics";
-import { CARRIER_OUT_OF_AREA_NOTE, CARRIER_WAITLIST_JOINED } from "@/lib/carrier/options";
+import { CARRIER_OUT_OF_AREA_NOTE, CARRIER_WAITLIST_JOINED, priceAcknowledgment, trialStartedNotice } from "@/lib/carrier/options";
 import { driverSearchSchema } from "@/lib/validation/carrier.schema";
 import {
   BILLING_EMAIL_MESSAGE,
@@ -252,7 +252,7 @@ describe("BillingCard", () => {
     await userEvent.click(screen.getByRole("checkbox"));
     await userEvent.click(screen.getByRole("button", { name: "Subscribe" }));
     await waitFor(() => expect(assign).toHaveBeenCalledWith("https://checkout.test/s"));
-    expect(actions.startCheckoutAction).toHaveBeenCalledWith({ acknowledged: true });
+    expect(actions.startCheckoutAction).toHaveBeenCalledWith({ acknowledged: true, trialEndsOn: null });
   });
 
   it("offers a new carrier the 7-day trial with the date of the first charge", async () => {
@@ -274,8 +274,36 @@ describe("BillingCard", () => {
         "Unless you cancel, your card is charged $99 on November 18, 2026, when the trial ends, and then $99 on the same date every month.",
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: /My card is charged \$99 on November 18, 2026/ })).not.toBeChecked();
+    // The attorney's checkbox (2026-11-14), the trial end date filled in.
+    const box = screen.getByRole("checkbox", { name: /My 7-day free trial ends on November 18, 2026\. Unless I cancel before the trial ends/ });
+    expect(box).not.toBeChecked();
+    expect(screen.getByText(priceAcknowledgment({ firstCharge: "November 18, 2026" }))).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Start 7-day trial" })).toBeInTheDocument();
+
+    // Checkout carries the date the page showed, so the server archives the same text.
+    actions.startCheckoutAction.mockResolvedValue(ok({ url: "https://checkout.example/session" }));
+    await userEvent.click(box);
+    await userEvent.click(screen.getByRole("button", { name: "Start 7-day trial" }));
+    await waitFor(() => expect(actions.startCheckoutAction).toHaveBeenCalledWith({ acknowledged: true, trialEndsOn: "2026-11-18" }));
+  });
+
+  it("confirms a started trial in the attorney's words, with its end date", () => {
+    render(
+      <BillingCard
+        subscription={buildSubscription({ status: "trialing", trialStart: "2026-11-11T18:00:00.000Z", trialEnd: "2026-11-18T18:00:00.000Z" })}
+        subscribed
+        portalAvailable
+        testMode={false}
+        checkoutResult="success"
+        trialAvailable={false}
+        trialWouldEnd={null}
+        fills={null}
+      />,
+    );
+    expect(screen.getByText(trialStartedNotice("2026-11-18T18:00:00.000Z"))).toBeInTheDocument();
+    expect(trialStartedNotice("2026-11-18T18:00:00.000Z")).toBe(
+      "Your 7-day free trial is active and ends on November 18, 2026. Unless you cancel before that date, your card will be charged $99 on the trial end date and every month thereafter. Fees for additional Completed Fills remain payable even if you cancel during the trial.",
+    );
   });
 
   it("shows the trial end and the fills of the period once subscribed", () => {

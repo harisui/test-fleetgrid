@@ -1,3 +1,4 @@
+import { formatInTimeZone } from "date-fns-tz";
 import {
   FILL_GRACE_HOURS,
   FILL_PRICE_LABEL,
@@ -51,11 +52,42 @@ export function priceDisclosure(trial: { firstCharge: string } | null): string[]
   ];
 }
 
-/** The checkbox before the card. */
+/**
+ * The checkbox before the card, in the attorney's words (Upwork, 2026-11-14), the trial end date
+ * filled in for each carrier.
+ */
 export function priceAcknowledgment(trial: { firstCharge: string } | null): string {
   return trial
-    ? `I have read the pricing above. My card is charged $99 on ${trial.firstCharge} and every month after, plus $35 per completed fill, unless I cancel before then.`
-    : "I have read the pricing above. My card is charged $99 today and every month after, plus $35 per completed fill, until I cancel.";
+    ? `I have read and agree to the pricing terms above. My ${TRIAL_DAYS}-day free trial ends on ${trial.firstCharge}. Unless I cancel before the trial ends, my card will be charged $99 on that date and $99 on the same date each month thereafter. The first three qualifying Completed Fills for Shifts starting during the trial are included at no charge. Each additional Completed Fill costs $35. Fees for additional Completed Fills remain payable even if I cancel during the trial.`
+    : "I have read and agree to the pricing terms above. My card will be charged $99 today and $99 on the same date each month thereafter until I cancel. Each Completed Fill costs an additional $35. Fees for Completed Fills completed before cancellation remain payable after cancellation.";
+}
+
+/** After the trial starts: the attorney's notice for the confirmation screen (2026-11-14). */
+export function trialStartedNotice(trialEnd: string): string {
+  return `Your ${TRIAL_DAYS}-day free trial is active and ends on ${trialDateLabel(trialEnd)}. Unless you cancel before that date, your card will be charged $99 on the trial end date and every month thereafter. Fees for additional Completed Fills remain payable even if you cancel during the trial.`;
+}
+
+/** A trial date as the carrier reads it, in Houston time, so the page and the archive agree. */
+export function trialDateLabel(iso: string): string {
+  return formatInTimeZone(new Date(iso), PRICING_TIME_ZONE, "MMMM d, yyyy");
+}
+
+/** The same day as YYYY-MM-DD, sent back with the checkout so the server can match it. */
+export function trialDateKey(iso: string): string {
+  return formatInTimeZone(new Date(iso), PRICING_TIME_ZONE, "yyyy-MM-dd");
+}
+
+const PRICING_TIME_ZONE = "America/Chicago";
+
+/**
+ * The whole disclosure as the carrier saw it, archived with each acknowledgment (attorney,
+ * 2026-11-14): the heading, every line, and the checkbox statement.
+ */
+export function priceDisclosureDocument(trial: { firstCharge: string } | null): { body: string; statement: string } {
+  const statement = priceAcknowledgment(trial);
+  const heading = trial ? "How the trial and billing work" : "How billing works";
+  const lines = priceDisclosure(trial).map((line) => `- ${line}`);
+  return { body: [heading, "", ...lines, "", `[ ] ${statement}`].join("\n"), statement };
 }
 
 /** How each Stripe status reads, and whether it grants access. */

@@ -1,5 +1,6 @@
 import { BILLING_DISCLOSURE_VERSION, SUBSCRIPTION_RECHECK_HOURS, TRIAL_DAYS } from "@/lib/constants";
-import { startCheckoutSchema } from "@/lib/validation/carrier.schema";
+import { priceDisclosureDocument, trialDateKey, trialDateLabel } from "@/lib/carrier/options";
+import { PRICING_CHANGED_MESSAGE, startCheckoutSchema } from "@/lib/validation/carrier.schema";
 import { AppError, parseInput } from "@/server/errors/AppError";
 import {
   isSubscriptionEventType,
@@ -259,7 +260,7 @@ export class SubscriptionService {
    * never had a trial gets the 7-day one; the card is taken either way.
    */
   async startCheckout(userId: string, input: unknown, context: CheckoutContext): Promise<{ url: string }> {
-    parseInput(startCheckoutSchema, input);
+    const { trialEndsOn } = parseInput(startCheckoutSchema, input);
     const access = await this.carrierService.getAccess(userId);
     if (!access.carrier) throw AppError.notFound("Save your company details first");
     if (!access.termsAccepted) throw AppError.forbidden("Accept the Terms of Service first");
@@ -286,9 +287,18 @@ export class SubscriptionService {
     }
 
     const trialDays = trialOffered(access) ? TRIAL_DAYS : null;
+    // The archive must hold the text the carrier read: the server builds it again from the trial
+    // date the page showed, and refuses when that date is no longer today's (attorney, 2026-11-14).
+    const trialEnd = trialDays !== null ? new Date(this.now().getTime() + trialDays * 86_400_000).toISOString() : null;
+    if ((trialEnd === null) !== (trialEndsOn === null) || (trialEnd !== null && trialDateKey(trialEnd) !== trialEndsOn)) {
+      throw AppError.conflict(PRICING_CHANGED_MESSAGE);
+    }
+    const disclosure = priceDisclosureDocument(trialEnd ? { firstCharge: trialDateLabel(trialEnd) } : null);
     await this.billing.acknowledgments().record({
       version: BILLING_DISCLOSURE_VERSION,
       withTrial: trialDays !== null,
+      disclosure: disclosure.body,
+      statement: disclosure.statement,
       ip: context.ip,
       userAgent: context.userAgent,
     });

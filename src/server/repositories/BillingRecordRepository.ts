@@ -3,6 +3,9 @@ import { BaseRepository } from "@/server/repositories/BaseRepository";
 export interface BillingAcknowledgmentInput {
   version: string;
   withTrial: boolean;
+  /** The whole disclosure shown, archived by its hash, and the checkbox statement in it. */
+  disclosure: string;
+  statement: string;
   ip: string | null;
   userAgent: string | null;
 }
@@ -18,6 +21,8 @@ export class BillingAcknowledgmentRepository extends BaseRepository implements I
     const result = await this.supabase.rpc("record_billing_acknowledgment", {
       p_version: input.version,
       p_with_trial: input.withTrial,
+      p_disclosure: input.disclosure,
+      p_statement: input.statement,
       ...(input.ip ? { p_ip: input.ip } : {}),
       ...(input.userAgent ? { p_user_agent: input.userAgent } : {}),
     });

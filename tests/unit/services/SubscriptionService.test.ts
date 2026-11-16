@@ -1,4 +1,6 @@
 // @vitest-environment node
+import { priceAcknowledgment, priceDisclosure, priceDisclosureDocument, trialDateKey } from "@/lib/carrier/options";
+import { PRICING_CHANGED_MESSAGE } from "@/lib/validation/carrier.schema";
 import { beforeEach, describe, expect, it } from "vitest";
 import { AppError } from "@/server/errors/AppError";
 import type {
@@ -30,7 +32,8 @@ import {
 const APP_URL = "https://fleetgridus.com";
 const NOW = new Date("2026-10-13T12:00:00.000Z");
 const CONTEXT = { ip: null, userAgent: null };
-const ACK = { acknowledged: true };
+/** The page showed the trial ending 7 days after NOW, in Houston (attorney, 2026-11-14). */
+const ACK = { acknowledged: true, trialEndsOn: "2026-10-20" };
 
 async function expectAppError(promise: Promise<unknown>): Promise<AppError> {
   const error = await promise.then(
@@ -70,6 +73,17 @@ describe("SubscriptionService", () => {
   let closedOut: string[];
   /** The service's clock. Tests move it to make the stored subscription stale. */
   let clock: Date;
+
+  /**
+   * Starts checkout the way the billing page does: ticked, with the trial end date the page shows
+   * when the carrier still has a trial (the same rule as the service), and none otherwise.
+   */
+  async function checkout(context: { ip: string | null; userAgent: string | null }) {
+    const access = await carrierService.getAccess(CARRIER_USER_ID);
+    const trial = access.carrier !== null && access.carrier.trialUsedAt === null && access.subscription === null;
+    const trialEndsOn = trial ? trialDateKey(new Date(clock.getTime() + 7 * 86_400_000).toISOString()) : null;
+    return service.startCheckout(CARRIER_USER_ID, { acknowledged: true, trialEndsOn }, context);
+  }
 
   beforeEach(() => {
     carriers = new FakeCarrierRepository();
@@ -133,7 +147,7 @@ describe("SubscriptionService", () => {
   describe("startCheckout", () => {
     it("creates the Stripe customer once, stores its id with the service role, and returns the checkout URL", async () => {
       const carrier = await readyToPay(PLACES.houston.zip, { hadTrial: false });
-      const { url } = await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      const { url } = await checkout(CONTEXT);
 
       expect(url).toBe(`${APP_URL}/carrier/billing/test-checkout?customer=cus_test_0001`);
       expect(payments.customers.get("cus_test_0001")).toEqual({
@@ -154,21 +168,21 @@ describe("SubscriptionService", () => {
       ]);
 
       // A second checkout reuses the customer.
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       expect(payments.customers.size).toBe(1);
       expect(privilegedBuilds).toBe(1);
     });
 
     it("brings the Stripe customer's email and name up to date before every later checkout", async () => {
       const carrier = await readyToPay();
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       // The carrier fixes the billing email after the first visit (the user's report: Stripe
       // kept pre-filling the old, rejected address).
       await carrierService.updateCarrier(
         CARRIER_USER_ID,
         validCarrierDetails({ billingEmail: "accounts@bayoufreight.com", companyName: "Bayou Freight Co" }),
       );
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       expect(payments.customers.get("cus_test_0001")).toEqual({
         email: "accounts@bayoufreight.com",
         name: "Bayou Freight Co",
@@ -179,22 +193,22 @@ describe("SubscriptionService", () => {
 
     it("does not open checkout when the customer cannot be updated", async () => {
       await readyToPay();
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       payments.customers.clear();
-      expect((await expectAppError(service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT))).code).toBe("NOT_FOUND");
+      expect((await expectAppError(checkout(CONTEXT))).code).toBe("NOT_FOUND");
       expect(payments.checkouts).toHaveLength(1);
     });
 
     it("needs the company saved, the Terms accepted and a yard in the launch area", async () => {
-      expect((await expectAppError(service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT))).code).toBe("NOT_FOUND");
+      expect((await expectAppError(checkout(CONTEXT))).code).toBe("NOT_FOUND");
 
       await carrierService.createCarrier(CARRIER_USER_ID, validCarrierDetails());
-      const terms = await expectAppError(service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT));
+      const terms = await expectAppError(checkout(CONTEXT));
       expect(terms.message).toMatch(/Terms/);
 
       await carrierService.acceptTerms(CARRIER_USER_ID, { accepted: true }, CONTEXT);
       await carrierService.updateCarrier(CARRIER_USER_ID, validCarrierDetails({ zip: PLACES.dallas.zip }));
-      const area = await expectAppError(service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT));
+      const area = await expectAppError(checkout(CONTEXT));
       expect(area.message).toMatch(/isn't available in your area/);
       expect(payments.checkouts).toHaveLength(0);
     });
@@ -202,21 +216,21 @@ describe("SubscriptionService", () => {
     it("refuses when a subscription already grants access", async () => {
       const carrier = await readyToPay();
       await subscriptions.upsert({ carrierId: carrier.id, ...snapshot() });
-      const error = await expectAppError(service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT));
+      const error = await expectAppError(checkout(CONTEXT));
       expect(error.code).toBe("CONFLICT");
     });
 
     it("lets a lapsed carrier pay again", async () => {
       const carrier = await readyToPay();
       await subscriptions.upsert({ carrierId: carrier.id, ...snapshot({ status: "canceled" }) });
-      await expect(service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT)).resolves.toHaveProperty("url");
+      await expect(checkout(CONTEXT)).resolves.toHaveProperty("url");
     });
   });
 
   describe("openBillingPortal", () => {
     it("opens the portal for the stored customer, returning to the billing page", async () => {
       await readyToPay();
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       const { url } = await service.openBillingPortal(CARRIER_USER_ID);
       expect(url).toBe(`${APP_URL}/carrier/billing`);
       expect(payments.portals).toEqual([
@@ -226,7 +240,7 @@ describe("SubscriptionService", () => {
 
     it("sends the current billing email to Stripe before opening the portal", async () => {
       await readyToPay();
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       await carrierService.updateCarrier(
         CARRIER_USER_ID,
         validCarrierDetails({ billingEmail: "accounts@bayoufreight.com" }),
@@ -255,7 +269,7 @@ describe("SubscriptionService", () => {
         trialWouldEnd: null,
         fills: null,
       });
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       await service.completeTestCheckout(CARRIER_USER_ID, "cus_test_0001");
       const billing = await service.getBilling(CARRIER_USER_ID);
       expect(billing.subscribed).toBe(true);
@@ -271,7 +285,7 @@ describe("SubscriptionService", () => {
         fills: null,
       });
 
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       await service.completeTestCheckout(CARRIER_USER_ID, "cus_test_0001");
       const fill = (id: string, charge: "included" | "billable" | "waived", completedAt: string) => ({
         id,
@@ -312,7 +326,7 @@ describe("SubscriptionService", () => {
     /** Paid at the provider, but no webhook ever reached the app. */
     async function paidWithoutWebhook() {
       const carrier = await readyToPay();
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       await payments.simulateCheckoutPaid("cus_test_0001");
       return carrier;
     }
@@ -373,7 +387,7 @@ describe("SubscriptionService", () => {
 
     it("a subscription written less than the recheck window ago is trusted", async () => {
       const carrier = await readyToPay();
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       await subscriptions.upsert({ carrierId: carrier.id, ...snapshot() });
       clock = later(SUBSCRIPTION_RECHECK_HOURS - 1);
       expect(service.needsRecheck(await carrierService.getAccess(CARRIER_USER_ID))).toBe(false);
@@ -381,7 +395,7 @@ describe("SubscriptionService", () => {
 
     it("one older than the window is read again, whatever its status", async () => {
       const carrier = await readyToPay();
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       await subscriptions.upsert({ carrierId: carrier.id, ...snapshot() });
       clock = later(SUBSCRIPTION_RECHECK_HOURS + 1);
       expect(service.needsRecheck(await carrierService.getAccess(CARRIER_USER_ID))).toBe(true);
@@ -394,7 +408,7 @@ describe("SubscriptionService", () => {
 
     it("an active subscription whose paid period has ended is read again at once", async () => {
       const carrier = await readyToPay();
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       await subscriptions.upsert({
         carrierId: carrier.id,
         ...snapshot({ currentPeriodEnd: later(1).toISOString() }),
@@ -412,7 +426,7 @@ describe("SubscriptionService", () => {
 
     it("refreshAccess is what the guard uses: a missed cancellation closes the search on the next visit", async () => {
       const carrier = await readyToPay();
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       const live = await payments.simulateCheckoutPaid("cus_test_0001");
       await subscriptions.upsert({ carrierId: carrier.id, ...live });
       expect((await carrierService.getAccess(CARRIER_USER_ID)).subscribed).toBe(true);
@@ -433,7 +447,7 @@ describe("SubscriptionService", () => {
     /** Paid, then set to end at the period end, as the portal or the Dashboard would. */
     async function endingAtPeriodEnd() {
       const carrier = await readyToPay();
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       const live = await payments.simulateCheckoutPaid("cus_test_0001");
       const ending = { ...live, cancelAtPeriodEnd: true, canceledAt: NOW.toISOString() };
       payments.subscriptions.set(live.stripeSubscriptionId, ending);
@@ -467,7 +481,7 @@ describe("SubscriptionService", () => {
       expect(none.code).toBe("VALIDATION");
       expect(none.message).toMatch(/no subscription to keep/);
 
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       await service.completeTestCheckout(CARRIER_USER_ID, "cus_test_0001");
       const notEnding = await expectAppError(service.keepSubscription(CARRIER_USER_ID));
       expect(notEnding.message).toMatch(/not set to end/);
@@ -487,7 +501,7 @@ describe("SubscriptionService", () => {
     it("re-reads only the stale subscriptions and the carriers with no row yet, and counts what changed", async () => {
       // Carrier A: paid, webhook lost, no row at all.
       const a = await readyToPay();
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       await payments.simulateCheckoutPaid("cus_test_0001");
       // Carrier B: fresh row, left alone.
       const b = await carriers.create("profile-b", { ...validCarrierDetails(), ...PLACES.houston, usdot: null, mc: null });
@@ -523,7 +537,7 @@ describe("SubscriptionService", () => {
 
     it("logs a carrier the provider fails on and carries on with the rest", async () => {
       const a = await readyToPay();
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       await payments.simulateCheckoutPaid("cus_test_0001");
       const b = await carriers.create("profile-b", { ...validCarrierDetails(), ...PLACES.houston, usdot: null, mc: null });
       await carriers.update(b.id, { stripeCustomerId: "cus_broken" });
@@ -542,7 +556,7 @@ describe("SubscriptionService", () => {
   describe("completeTestCheckout", () => {
     it("writes an active subscription for the carrier's own customer only", async () => {
       const carrier = await readyToPay();
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       const subscription = await service.completeTestCheckout(CARRIER_USER_ID, "cus_test_0001");
       expect(subscription).toMatchObject({
         carrierId: carrier.id,
@@ -599,7 +613,7 @@ describe("SubscriptionService", () => {
 
     async function customerExists() {
       const carrier = await readyToPay();
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       return carrier;
     }
 
@@ -730,7 +744,7 @@ describe("SubscriptionService", () => {
       expect(payments.cancelled).toEqual([]);
 
       await readyToPay();
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       await service.completeTestCheckout(CARRIER_USER_ID, "cus_test_0001");
       await service.cancelForAccountDeletion(CARRIER_USER_ID);
       expect(payments.cancelled).toEqual(["sub_test_0002"]);
@@ -751,13 +765,53 @@ describe("SubscriptionService", () => {
       expect(refused.fieldErrors).toEqual({ acknowledged: "Check the box to confirm you have read the pricing" });
       expect(payments.checkouts).toEqual([]);
 
-      await service.startCheckout(CARRIER_USER_ID, ACK, { ip: "203.0.113.7", userAgent: "agent" });
-      expect(acknowledgments.records).toEqual([{ version: "2026-11-v1", withTrial: true, ip: "203.0.113.7", userAgent: "agent" }]);
+      await checkout({ ip: "203.0.113.7", userAgent: "agent" });
+      const statement = priceAcknowledgment({ firstCharge: "October 20, 2026" });
+      expect(acknowledgments.records).toEqual([
+        {
+          version: "2026-11-v2",
+          withTrial: true,
+          disclosure: priceDisclosureDocument({ firstCharge: "October 20, 2026" }).body,
+          statement,
+          ip: "203.0.113.7",
+          userAgent: "agent",
+        },
+      ]);
+      // The archived text is the whole disclosure the page showed, with the date and the box.
+      const body = acknowledgments.records[0]!.disclosure;
+      for (const line of priceDisclosure({ firstCharge: "October 20, 2026" })) expect(body).toContain(line);
+      expect(body).toContain(`[ ] ${statement}`);
+      expect(statement).toContain("My 7-day free trial ends on October 20, 2026.");
+    });
+
+    it("refuses a checkout whose trial date is not the one the server would archive (attorney, 2026-11-14)", async () => {
+      await readyToPay(PLACES.houston.zip, { hadTrial: false });
+      for (const input of [
+        { acknowledged: true, trialEndsOn: "2026-10-19" },
+        { acknowledged: true },
+      ]) {
+        const refused = await expectAppError(service.startCheckout(CARRIER_USER_ID, input, CONTEXT));
+        expect(refused.code).toBe("CONFLICT");
+        expect(refused.message).toBe(PRICING_CHANGED_MESSAGE);
+      }
+      expect(acknowledgments.records).toEqual([]);
+      expect(payments.checkouts).toEqual([]);
+      await expect(service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT)).resolves.toHaveProperty("url");
+    });
+
+    it("a carrier with no trial left is refused a trial date, and archives the no-trial wording", async () => {
+      await readyToPay(PLACES.houston.zip, { hadTrial: true });
+      const refused = await expectAppError(service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT));
+      expect(refused.code).toBe("CONFLICT");
+      await service.startCheckout(CARRIER_USER_ID, { acknowledged: true }, CONTEXT);
+      expect(acknowledgments.records).toEqual([
+        expect.objectContaining({ withTrial: false, statement: priceAcknowledgment(null), disclosure: priceDisclosureDocument(null).body }),
+      ]);
     });
 
     it("offers the 7-day trial once: paying starts it and records it on the carrier", async () => {
       const carrier = await readyToPay(PLACES.houston.zip, { hadTrial: false });
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       const subscription = await service.completeTestCheckout(CARRIER_USER_ID, "cus_test_0001");
 
       expect(subscription).toMatchObject({ status: "trialing", trialStart: NOW.toISOString(), trialEnd: "2026-10-20T12:00:00.000Z" });
@@ -767,7 +821,7 @@ describe("SubscriptionService", () => {
       // Cancelled, then back: no second trial is offered, and the acknowledgment says so.
       await payments.cancelSubscription(subscription.stripeSubscriptionId);
       await service.syncFromProvider(CARRIER_USER_ID);
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       expect(payments.checkouts.at(-1)?.trialDays).toBeNull();
       expect(acknowledgments.records.at(-1)?.withTrial).toBe(false);
       expect((await service.completeTestCheckout(CARRIER_USER_ID, "cus_test_0001")).status).toBe("active");
@@ -779,7 +833,7 @@ describe("SubscriptionService", () => {
       await subscriptions.upsert({ ...snapshot({ status: "past_due" }), carrierId: carrier.id });
 
       expect(await service.getBilling(CARRIER_USER_ID)).toMatchObject({ trialAvailable: false, trialWouldEnd: null });
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       expect(payments.checkouts.at(-1)?.trialDays).toBeNull();
       expect(acknowledgments.records.at(-1)?.withTrial).toBe(false);
     });
@@ -787,7 +841,7 @@ describe("SubscriptionService", () => {
     it("ends a trial at once when the card already had one with another carrier", async () => {
       trialCards.rows.set("fp_shared_card", "c0000000-0000-4000-8000-0000000000ff");
       const carrier = await readyToPay(PLACES.houston.zip, { hadTrial: false });
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       payments.cardFingerprints.set("cus_test_0001", "fp_shared_card");
 
       const subscription = await service.completeTestCheckout(CARRIER_USER_ID, "cus_test_0001");
@@ -801,7 +855,7 @@ describe("SubscriptionService", () => {
       const carrier = await readyToPay();
       payments.subscriptions.set("sub_2", snapshot({ stripeSubscriptionId: "sub_2", status: "trialing", trialStart: NOW.toISOString(), trialEnd: "2026-10-20T12:00:00.000Z" }));
       payments.events.set("sig_t", { id: "evt_t", type: "customer.subscription.created", subscriptionId: "sub_2", subscription: null });
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
 
       await service.handleWebhook("{}", "sig_t");
 
@@ -811,7 +865,7 @@ describe("SubscriptionService", () => {
 
     it("invoices the pending fills once when a subscription ends, during the trial or after", async () => {
       const carrier = await readyToPay(PLACES.houston.zip, { hadTrial: false });
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       const subscription = await service.completeTestCheckout(CARRIER_USER_ID, "cus_test_0001");
       expect(closedOut).toEqual([]);
 
@@ -827,7 +881,7 @@ describe("SubscriptionService", () => {
 
     it("leaves the subscription unstored when invoicing the fills fails, so the retry does it", async () => {
       await readyToPay();
-      await service.startCheckout(CARRIER_USER_ID, ACK, CONTEXT);
+      await checkout(CONTEXT);
       const subscription = await service.completeTestCheckout(CARRIER_USER_ID, "cus_test_0001");
       const failing = new SubscriptionService(
         carrierService,

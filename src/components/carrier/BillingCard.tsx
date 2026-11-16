@@ -18,6 +18,9 @@ import {
   SUBSCRIPTION_ENDING_LABEL,
   SUBSCRIPTION_STATUS_HELP,
   SUBSCRIPTION_STATUS_LABELS,
+  trialDateKey,
+  trialDateLabel,
+  trialStartedNotice,
 } from "@/lib/carrier/options";
 import { PRICE_ACKNOWLEDGMENT_MESSAGE } from "@/lib/validation/carrier.schema";
 import type { FillSummary } from "@/server/services/SubscriptionService";
@@ -67,7 +70,8 @@ export function BillingCard({
   // The price disclosure must be acknowledged before the card (recorded with the checkout).
   const [acknowledged, setAcknowledged] = useState(false);
   const [ackError, setAckError] = useState<string>();
-  const trial = trialAvailable && trialWouldEnd ? { firstCharge: longDate(trialWouldEnd) } : null;
+  // The trial end date in Houston time, the same text the server archives with the checkbox.
+  const trial = trialAvailable && trialWouldEnd ? { firstCharge: trialDateLabel(trialWouldEnd) } : null;
   // The carrier cleared a cancellation on this visit: said once, kept through the reload.
   const [kept, setKept] = useState(false);
   const ending = isEnding(subscription, subscribed);
@@ -112,7 +116,9 @@ export function BillingCard({
     setPending(kind);
     setError(undefined);
     const result =
-      kind === "checkout" ? await startCheckoutAction({ acknowledged }) : await openBillingPortalAction();
+      kind === "checkout"
+        ? await startCheckoutAction({ acknowledged, trialEndsOn: trial && trialWouldEnd ? trialDateKey(trialWouldEnd) : null })
+        : await openBillingPortalAction();
     if (!result.ok) {
       setPending(undefined);
       if (result.error.fieldErrors?.acknowledged) setAckError(result.error.fieldErrors.acknowledged);
@@ -150,7 +156,9 @@ export function BillingCard({
       {checkoutResult === "success" && subscribed && (
         <InlineNote variant="success" data-slot="checkout-result">
           {subscription?.status === "trialing"
-            ? "Card saved. Thank you. Your 7-day trial has started."
+            ? subscription.trialEnd
+              ? trialStartedNotice(subscription.trialEnd)
+              : "Card saved. Thank you. Your 7-day trial has started."
             : "Payment received. Thank you. Your subscription is active."}
         </InlineNote>
       )}
@@ -233,7 +241,7 @@ export function BillingCard({
           </p>
           {subscribed && subscription.status === "trialing" && subscription.trialEnd && !ending ? (
             <p className="text-helper leading-helper" data-slot="trial-end">
-              Your trial ends on <span className="font-semibold">{longDate(subscription.trialEnd)}</span>. Your
+              Your trial ends on <span className="font-semibold">{trialDateLabel(subscription.trialEnd)}</span>. Your
               card is charged $99 then, unless you cancel before.
             </p>
           ) : (

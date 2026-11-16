@@ -11,7 +11,10 @@
 -- The trial is once per carrier (carriers.trial_used_at) and once per card
 -- (trial_card_fingerprints: the card's fingerprint from Stripe only, never card data).
 -- billing_acknowledgments records that the carrier read the price disclosure before checkout;
--- like tos_acceptances it outlives the account and is append-only.
+-- like tos_acceptances it outlives the account and is append-only. billing_disclosures keeps
+-- the full text each carrier saw (every pricing line, the trial end date, taxes and the
+-- checkbox wording, the attorney's of 2026-11-14) once, by its SHA-256, and each acknowledgment
+-- names it with the checkbox statement it ticked.
 --
 -- release_shift: a no-show can be reported until 2 hours after the end. Before the end the
 -- shift reopens and goes out again, as before; after the end it is recorded and the shift
@@ -78,12 +81,37 @@ grant select, insert on public.trial_card_fingerprints to service_role;
 -- ---------------------------------------------------------------------------
 -- The price disclosure acknowledgment
 -- ---------------------------------------------------------------------------
+-- Every distinct disclosure text a carrier was shown, exactly, by its hash. Written only by
+-- record_billing_acknowledgment(); readable by any signed-in user (it is the public pricing).
+create table public.billing_disclosures (
+  body_sha256 text primary key check (body_sha256 ~ '^[0-9a-f]{64}$'),
+  version text not null check (length(btrim(version)) > 0),
+  body text not null check (length(body) > 0),
+  created_at timestamptz not null default clock_timestamp()
+);
+
+comment on table public.billing_disclosures is 'The full price disclosure each carrier saw, once per exact text (attorney, 2026-11-14).';
+
+create trigger billing_disclosures_append_only
+  before update or delete on public.billing_disclosures
+  for each row execute function public.append_only_guard();
+
+alter table public.billing_disclosures enable row level security;
+revoke all on public.billing_disclosures from anon, authenticated, service_role;
+grant select on public.billing_disclosures to authenticated, service_role;
+
+create policy billing_disclosures_select_signed_in on public.billing_disclosures
+  for select to authenticated
+  using (true);
+
 create table public.billing_acknowledgments (
   id uuid primary key default gen_random_uuid(),
   carrier_id uuid references public.carriers (id) on delete set null,
   profile_id uuid references public.profiles (id) on delete set null,
   version text not null,
   with_trial boolean not null,
+  disclosure_sha256 text not null references public.billing_disclosures (body_sha256),
+  statement text not null check (length(btrim(statement)) > 0),
   accepted_at timestamptz not null default now(),
   ip text,
   user_agent text,
@@ -106,8 +134,17 @@ create policy billing_acknowledgments_select_own_or_admin on public.billing_ackn
   for select to authenticated
   using (profile_id = (select auth.uid()) or (select public.is_admin()));
 
--- The signed-in carrier acknowledges the disclosure. Each checkout start writes its own record.
-create function public.record_billing_acknowledgment(p_version text, p_with_trial boolean, p_ip text default null, p_user_agent text default null)
+-- The signed-in carrier acknowledges the disclosure. Each checkout start writes its own record,
+-- naming the exact text shown (archived once by its hash) and the checkbox statement, which
+-- must be part of that text.
+create function public.record_billing_acknowledgment(
+  p_version text,
+  p_with_trial boolean,
+  p_disclosure text,
+  p_statement text,
+  p_ip text default null,
+  p_user_agent text default null
+)
 returns public.billing_acknowledgments
 language plpgsql
 volatile
@@ -116,21 +153,30 @@ set search_path = public
 as $$
 declare
   v_carrier uuid;
+  v_hash text;
   v_row public.billing_acknowledgments;
 begin
   select id into v_carrier from public.carriers where profile_id = (select auth.uid());
   if v_carrier is null or (select public.auth_role()) <> 'carrier' then
     raise exception 'Only a carrier acknowledges the price' using errcode = '42501';
   end if;
-  insert into public.billing_acknowledgments (carrier_id, profile_id, version, with_trial, ip, user_agent)
-  values (v_carrier, (select auth.uid()), p_version, p_with_trial, p_ip, p_user_agent)
+  if coalesce(length(btrim(p_disclosure)), 0) = 0 or coalesce(length(btrim(p_statement)), 0) = 0
+     or strpos(p_disclosure, p_statement) = 0 then
+    raise exception 'The statement must be part of the disclosure shown' using errcode = '22023';
+  end if;
+  v_hash := encode(sha256(convert_to(p_disclosure, 'UTF8')), 'hex');
+  insert into public.billing_disclosures (body_sha256, version, body)
+  values (v_hash, p_version, p_disclosure)
+  on conflict (body_sha256) do nothing;
+  insert into public.billing_acknowledgments (carrier_id, profile_id, version, with_trial, disclosure_sha256, statement, ip, user_agent)
+  values (v_carrier, (select auth.uid()), p_version, p_with_trial, v_hash, p_statement, p_ip, p_user_agent)
   returning * into v_row;
   return v_row;
 end;
 $$;
 
-revoke execute on function public.record_billing_acknowledgment(text, boolean, text, text) from public, anon;
-grant execute on function public.record_billing_acknowledgment(text, boolean, text, text) to authenticated;
+revoke execute on function public.record_billing_acknowledgment(text, boolean, text, text, text, text) from public, anon;
+grant execute on function public.record_billing_acknowledgment(text, boolean, text, text, text, text) to authenticated;
 
 -- ---------------------------------------------------------------------------
 -- Completed fills

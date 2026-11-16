@@ -38,13 +38,13 @@ export type Database = {
                   ]
                 },"billing_acknowledgments": {
                   Row: {
-                    "accepted_at": string,"carrier_id": string | null,"id": string,"ip": string | null,"profile_id": string | null,"user_agent": string | null,"version": string,"with_trial": boolean
+                    "accepted_at": string,"carrier_id": string | null,"disclosure_sha256": string,"id": string,"ip": string | null,"profile_id": string | null,"statement": string,"user_agent": string | null,"version": string,"with_trial": boolean
                   }
                   Insert: {
-                    "accepted_at"?: string,"carrier_id"?: string | null,"id"?: string,"ip"?: string | null,"profile_id"?: string | null,"user_agent"?: string | null,"version": string,"with_trial": boolean
+                    "accepted_at"?: string,"carrier_id"?: string | null,"disclosure_sha256": string,"id"?: string,"ip"?: string | null,"profile_id"?: string | null,"statement": string,"user_agent"?: string | null,"version": string,"with_trial": boolean
                   }
                   Update: {
-                    "accepted_at"?: string,"carrier_id"?: string | null,"id"?: string,"ip"?: string | null,"profile_id"?: string | null,"user_agent"?: string | null,"version"?: string,"with_trial"?: boolean
+                    "accepted_at"?: string,"carrier_id"?: string | null,"disclosure_sha256"?: string,"id"?: string,"ip"?: string | null,"profile_id"?: string | null,"statement"?: string,"user_agent"?: string | null,"version"?: string,"with_trial"?: boolean
                   }
                   Relationships: [
                     {
@@ -54,12 +54,31 @@ isOneToOne: false
       referencedRelation: "carriers"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "billing_acknowledgments_disclosure_sha256_fkey"
+      columns: ["disclosure_sha256"]
+isOneToOne: false
+      referencedRelation: "billing_disclosures"
+      referencedColumns: ["body_sha256"]
+    },{
       foreignKeyName: "billing_acknowledgments_profile_id_fkey"
       columns: ["profile_id"]
 isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
+                  ]
+                },"billing_disclosures": {
+                  Row: {
+                    "body": string,"body_sha256": string,"created_at": string,"version": string
+                  }
+                  Insert: {
+                    "body": string,"body_sha256": string,"created_at"?: string,"version": string
+                  }
+                  Update: {
+                    "body"?: string,"body_sha256"?: string,"created_at"?: string,"version"?: string
+                  }
+                  Relationships: [
+                    
                   ]
                 },"broadcast_recipients": {
                   Row: {
@@ -900,12 +919,14 @@ isOneToOne: true
 { Args: { "p_document_id": string }; Returns: boolean
                            },
 "record_billing_acknowledgment":
-{ Args: { "p_ip"?: string,"p_user_agent"?: string,"p_version": string,"p_with_trial": boolean }; Returns: {
+{ Args: { "p_disclosure": string,"p_ip"?: string,"p_statement": string,"p_user_agent"?: string,"p_version": string,"p_with_trial": boolean }; Returns: {
               "accepted_at": string,
 "carrier_id": string | null,
+"disclosure_sha256": string,
 "id": string,
 "ip": string | null,
 "profile_id": string | null,
+"statement": string,
 "user_agent": string | null,
 "version": string,
 "with_trial": boolean

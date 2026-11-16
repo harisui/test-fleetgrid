@@ -148,26 +148,54 @@ reset role;
 -- The acknowledgment.
 select set_config('request.jwt.claims', json_build_object('sub', 'e0000047-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
-select lives_ok($$ select public.record_billing_acknowledgment('2026-11-v1', true, '203.0.113.7', 'test agent') $$, 'a carrier acknowledges the price');
+select lives_ok($$ select public.record_billing_acknowledgment('2026-11-v2', true,
+  E'How the trial and billing work
+
+- 7-day free trial.
+
+[ ] I have read and agree to the pricing terms above.',
+  'I have read and agree to the pricing terms above.', '203.0.113.7', 'test agent') $$, 'a carrier acknowledges the price');
 select results_eq(
-  $$ select carrier_id, version, with_trial, ip from public.billing_acknowledgments $$,
-  $$ values (pg_temp.cid('47'), '2026-11-v1'::text, true, '203.0.113.7'::text) $$,
-  'recorded against the carrier, with the version and where from'
+  $$ select carrier_id, version, with_trial, ip, statement from public.billing_acknowledgments $$,
+  $$ values (pg_temp.cid('47'), '2026-11-v2'::text, true, '203.0.113.7'::text, 'I have read and agree to the pricing terms above.'::text) $$,
+  'recorded against the carrier, with the version, the statement and where from'
 );
+-- The archive (attorney, 2026-11-14): the whole text shown, once, by its SHA-256.
+select results_eq(
+  $$ select d.body_sha256 = encode(sha256(convert_to(d.body, 'UTF8')), 'hex'), d.version, d.body like '%[ ] I have read and agree%'
+     from public.billing_acknowledgments a join public.billing_disclosures d on d.body_sha256 = a.disclosure_sha256 $$,
+  $$ values (true, '2026-11-v2'::text, true) $$,
+  'each acknowledgment names the exact text shown, kept by its hash'
+);
+select lives_ok($$ select public.record_billing_acknowledgment('2026-11-v2', true,
+  E'How the trial and billing work
+
+- 7-day free trial.
+
+[ ] I have read and agree to the pricing terms above.',
+  'I have read and agree to the pricing terms above.', '203.0.113.7', 'test agent') $$, 'the same text again');
+select is(
+  (select count(distinct a.disclosure_sha256)::int || '/' || count(*)::int from public.billing_acknowledgments a),
+  '1/2', 'two acknowledgments, one archived text'
+);
+select throws_ok($$ select public.record_billing_acknowledgment('2026-11-v2', false, 'How billing works', 'I agree to something else.') $$,
+  '22023', null, 'the statement must be part of the text shown');
+select throws_ok($$ insert into public.billing_disclosures (body_sha256, version, body) values (repeat('a', 64), 'x', 'y') $$,
+  '42501', null, 'the archive is written only through the function');
 select throws_ok($$ insert into public.billing_acknowledgments (version, with_trial) values ('x', false) $$, '42501', null, 'only through the function');
 reset role;
 select throws_ok($$ update public.billing_acknowledgments set version = 'changed' $$, '42501', null, 'the record is append-only');
 
 select set_config('request.jwt.claims', json_build_object('sub', 'e0000041-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
-select throws_ok($$ select public.record_billing_acknowledgment('2026-11-v1', true) $$, '42501', null, 'a driver cannot acknowledge');
+select throws_ok($$ select public.record_billing_acknowledgment('2026-11-v2', true, 'x', 'x') $$, '42501', null, 'a driver cannot acknowledge');
 select is((select count(*)::int from public.shift_fills), 0, 'or read fills');
 reset role;
 
 select set_config('request.jwt.claims', json_build_object('sub', 'e0000049-0000-4000-8000-000000000000', 'role', 'authenticated', 'aal', 'aal2', 'amr', json_build_array(json_build_object('method', 'password')))::text, true);
 set local role authenticated;
 select is((select count(*)::int from public.shift_fills where carrier_id in (pg_temp.cid('47'), pg_temp.cid('48'))), 7, 'an admin reads every fill');
-select is((select count(*)::int from public.billing_acknowledgments where user_agent = 'test agent'), 1, 'and every acknowledgment');
+select is((select count(*)::int from public.billing_acknowledgments where user_agent = 'test agent'), 2, 'and every acknowledgment');
 reset role;
 
 -- A card fingerprint is unique: a second trial on the same card is refused.
@@ -177,7 +205,9 @@ select throws_ok($$ insert into public.trial_card_fingerprints (fingerprint, car
 -- The billing record outlives the carrier.
 delete from public.carriers where id = pg_temp.cid('47');
 select is((select count(*)::int from public.shift_fills where carrier_id is null and driver_id in (select pg_temp.did(n) from unnest(array['41', '42', '43', '44', '45', '46']) as n)), 6, 'fills stay when the carrier is removed');
-select is((select count(*)::int from public.billing_acknowledgments where carrier_id is null and user_agent = 'test agent'), 1, 'and so does the acknowledgment');
+select is((select count(*)::int from public.billing_acknowledgments where carrier_id is null and user_agent = 'test agent'), 2, 'and so does the acknowledgment');
+reset role;
+select throws_ok($$ update public.billing_disclosures set body = 'changed' $$, '42501', null, 'the archived text never changes');
 select is((select count(*)::int from public.trial_card_fingerprints where fingerprint = 'fp_47'), 1, 'and the card stays used');
 
 select * from finish();

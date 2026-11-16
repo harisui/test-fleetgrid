@@ -37,7 +37,7 @@ export const FILL_FEE_CENTS = 3500;
 export const TRIAL_DAYS = 7;
 export const TRIAL_INCLUDED_FILLS = 3;
 /** Bump when the price disclosure on the billing page changes; stored with each acknowledgment. */
-export const BILLING_DISCLOSURE_VERSION = "2026-11-v1";
+export const BILLING_DISCLOSURE_VERSION = "2026-11-v2";
 /** The footer on every Stripe invoice (user decision of 2026-11-11: Stripe Tax stays off). */
 export const INVOICE_TAX_FOOTER = "Prices exclude applicable taxes.";
 /** A booked shift becomes a completed fill this long after its end (0043 fill_grace()). */

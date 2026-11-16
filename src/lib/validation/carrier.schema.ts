@@ -66,9 +66,18 @@ export const acceptTermsSchema = z.object({
 /** Carrier-facing wording: goes to the client before a deploy. */
 export const PRICE_ACKNOWLEDGMENT_MESSAGE = "Check the box to confirm you have read the pricing";
 
+/** The trial date on the page is no longer today's: the carrier reads the pricing again. */
+export const PRICING_CHANGED_MESSAGE = "The trial dates have changed since this page opened. Read the updated pricing and tick the box again.";
+
 /** Before the card: the carrier read the price disclosure (pricing of 2026-11-11). */
 export const startCheckoutSchema = z.object({
   acknowledged: z.literal(true, { error: PRICE_ACKNOWLEDGMENT_MESSAGE }),
+  /** The trial end date the page showed (YYYY-MM-DD, Houston), or none without a trial. */
+  trialEndsOn: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .nullish()
+    .transform((value) => value ?? null),
 });
 
 /** "true" and "false" from a URL or a form become booleans; anything else is "no filter". */

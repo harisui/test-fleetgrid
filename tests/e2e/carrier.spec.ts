@@ -123,6 +123,10 @@ test.describe("carrier sign-up, Terms and payment", () => {
     await page.getByRole("button", { name: "Start 7-day trial" }).click();
     await expect(page.getByText("Check the box to confirm you have read the pricing")).toBeVisible();
     await expect(page).toHaveURL(/\/carrier\/billing$/);
+    // The attorney's checkbox (2026-11-14): the trial end date filled in. What the page shows is
+    // what the database archives.
+    const shownLines = await page.locator("[data-slot=disclosure] li").allInnerTexts();
+    await expect(page.getByText(/^I have read and agree to the pricing terms above\. My 7-day free trial ends on [A-Z][a-z]+ \d{1,2}, \d{4}\./)).toBeVisible();
     await page.getByRole("checkbox").click();
     await page.getByRole("button", { name: "Start 7-day trial" }).click();
     await expect(page).toHaveURL(/\/carrier\/billing\/test-checkout\?customer=cus_test_/);
@@ -130,7 +134,7 @@ test.describe("carrier sign-up, Terms and payment", () => {
     await page.getByRole("button", { name: "Pay $99 a month" }).click();
 
     await expect(page).toHaveURL(/\/carrier\/billing\?checkout=success$/);
-    await expect(page.locator("[data-slot=checkout-result]")).toContainText("Your 7-day trial has started");
+    await expect(page.locator("[data-slot=checkout-result]")).toContainText(/^Your 7-day free trial is active and ends on [A-Z][a-z]+ \d{1,2}, \d{4}\. Unless you cancel before that date/);
     await expect(page.locator("[data-subscription=trialing]")).toHaveText("Trial");
     await expect(page.locator("[data-slot=trial-end]")).toBeVisible();
     await expect(page.getByRole("button", { name: "Manage billing" })).toBeVisible();
@@ -169,11 +173,21 @@ test.describe("carrier sign-up, Terms and payment", () => {
     expect(acceptance?.user_agent).toContain("Mozilla");
     const { data: acknowledgment } = await admin
       .from("billing_acknowledgments")
-      .select("version, with_trial, user_agent")
+      .select("version, with_trial, user_agent, statement, disclosure_sha256")
       .eq("carrier_id", carrier!.id)
       .single();
     expect(acknowledgment).toMatchObject({ version: BILLING_DISCLOSURE_VERSION, with_trial: true });
     expect(acknowledgment?.user_agent).toContain("Mozilla");
+    // The archive holds the text the page showed: every line and the box's own words.
+    const { data: disclosure } = await admin
+      .from("billing_disclosures")
+      .select("body")
+      .eq("body_sha256", acknowledgment!.disclosure_sha256)
+      .single();
+    expect(acknowledgment!.statement).toMatch(/^I have read and agree to the pricing terms above\. My 7-day free trial ends on /);
+    expect(disclosure!.body).toContain(`[ ] ${acknowledgment!.statement}`);
+    expect(shownLines.length).toBeGreaterThan(3);
+    for (const line of shownLines) expect(disclosure!.body).toContain(`- ${line.trim()}`);
     const { data: subscription } = await admin
       .from("subscriptions")
       .select("status, stripe_customer_id, current_period_end, trial_end")
