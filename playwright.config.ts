@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = 3000;
+/** E2E_PORT runs the specs beside another app on 3000; cookies ignore the port, so the specs need nothing else. */
+const PORT = Number(process.env.E2E_PORT ?? 3000);
 const baseURL = `http://localhost:${PORT}`;
 const isCI = !!process.env.CI;
 
@@ -40,7 +41,7 @@ export default defineConfig({
       : []),
   ],
   webServer: {
-    command: isCI ? "pnpm build && pnpm start" : "pnpm dev",
+    command: isCI ? "pnpm build && pnpm start" : `pnpm dev --port ${PORT}`,
     url: `${baseURL}/api/health`,
     reuseExistingServer: !isCI,
     timeout: 180_000,
