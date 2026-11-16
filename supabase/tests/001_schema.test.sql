@@ -391,7 +391,7 @@ select throws_ok(
 -- ---------------------------------------------------------------------------
 -- tos_acceptances
 -- ---------------------------------------------------------------------------
--- An acceptance names an archived version (0041).
+-- An acceptance names an archived version (0042).
 select * from public.publish_terms_version('2026-10-v1', 'Terms of Service', '2026-10-01', 'Test text.', false);
 select lives_ok(
   $$insert into public.tos_acceptances (profile_id, version) values ('11111111-1111-4111-8111-111111111111', '2026-10-v1')$$,

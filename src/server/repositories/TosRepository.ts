@@ -9,7 +9,7 @@ export interface TosAcceptanceInput {
   version: string;
   ip: string | null;
   userAgent: string | null;
-  /** How it was given (0041): carriers on their Terms page, drivers at sign-up or on the Terms page. */
+  /** How it was given (0042): carriers on their Terms page, drivers at sign-up or on the Terms page. */
   method?: Exclude<TosAcceptanceMethod, "link">;
   /** The checkbox wording shown. */
   statement?: string;

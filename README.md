@@ -183,7 +183,7 @@ $99 a month plus $35 per completed fill, after a 7-day trial.
   `BILLING_DISCLOSURE_VERSION`, the IP and the browser. Change the wording in
   `src/lib/carrier/options.ts` (`priceDisclosure`) and bump the version together.
 - **Completed fill.** A booked shift 2 hours after its scheduled end, unless before then the
-  carrier reported a no-show, released or cancelled it (migration 0042). The daily shifts job
+  carrier reported a no-show, released or cancelled it (migration 0043). The daily shifts job
   records it once (`record_completed_fills`) and bills it: the first 3 fills of shifts that
   started inside the trial are included, every other one becomes a $35 Stripe invoice item on
   the customer (idempotency key `fill-<id>`), which the next monthly invoice picks up.
@@ -409,7 +409,7 @@ tests                 unit, integration, e2e, fakes, setup
 
 ## Terms of Service versions (Milestone 6)
 
-The Terms text lives in `src/content/legal/terms.ts`, one entry per published version, in a small markdown (`src/lib/legal/markdown.ts`). `/terms`, the driver's Terms page and the link page all render it, and the server archives each version word for word in `terms_versions` with its SHA-256 (migration 0041) at start and before any acceptance. The archive is append-only, and publishing a version again with different text is refused, so a correction is always a new version.
+The Terms text lives in `src/content/legal/terms.ts`, one entry per published version, in a small markdown (`src/lib/legal/markdown.ts`). `/terms`, the driver's Terms page and the link page all render it, and the server archives each version word for word in `terms_versions` with its SHA-256 (migration 0042) at start and before any acceptance. The archive is append-only, and publishing a version again with different text is refused, so a correction is always a new version.
 
 Every acceptance (`tos_acceptances`) names an archived version and keeps how it was given (`signup`, `gate`, `link`, `carrier`), the exact checkbox wording, the time, the IP and the browser. It outlives the account.
 

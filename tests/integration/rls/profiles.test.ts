@@ -25,7 +25,7 @@ describe("RLS through real clients: profiles and tos_acceptances", () => {
       createTestUser({ role: "admin", status: "approved" }),
       createTestUser(),
     ]);
-    // An acceptance names an archived version (0041).
+    // An acceptance names an archived version (0042).
     await new TermsAdminRepository(serviceClient()).publish(CURRENT_TERMS);
     await serviceClient().rpc("test_log_insert", {
       p_table: "tos_acceptances",

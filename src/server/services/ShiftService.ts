@@ -140,7 +140,7 @@ export class ShiftService {
     if (shift.status !== "open" && shift.status !== "booked") {
       throw AppError.conflict("This shift is no longer open or booked");
     }
-    // Once started, a booked shift is either worked (a completed fill) or a no-show (0042).
+    // Once started, a booked shift is either worked (a completed fill) or a no-show (0043).
     if (shift.status === "booked" && bookedShiftPhase(shift, this.now()) !== "before_start") {
       throw AppError.conflict(SHIFT_STARTED_CANCEL_MESSAGE);
     }

@@ -371,7 +371,7 @@ export interface Subscription {
 
 export type FillCharge = "included" | "billable" | "waived";
 
-/** A completed fill (0042): a booked shift 2 hours past its end, with no no-show or cancel. */
+/** A completed fill (0043): a booked shift 2 hours past its end, with no no-show or cancel. */
 export interface ShiftFill {
   id: string;
   shiftId: string | null;
@@ -399,7 +399,7 @@ export interface WaitlistEntry {
   createdAt: string;
 }
 
-/** How a Terms acceptance was given (0041). Null on carrier rows from before the archive. */
+/** How a Terms acceptance was given (0042). Null on carrier rows from before the archive. */
 export type TosAcceptanceMethod = "signup" | "gate" | "link" | "carrier";
 
 export interface TosAcceptance {
@@ -414,7 +414,7 @@ export interface TosAcceptance {
   statement: string | null;
 }
 
-/** A driver who still has to accept the Terms version that needs everyone again (0041). */
+/** A driver who still has to accept the Terms version that needs everyone again (0042). */
 export interface DriverAwaitingTerms {
   profileId: string;
   driverId: string;

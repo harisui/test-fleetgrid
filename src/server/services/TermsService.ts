@@ -75,7 +75,7 @@ export function termsVersion(version: string): TermsVersion | null {
  * The Terms of Service archive and the driver's acceptance (Milestone 6, part 1).
  *
  * Every version in src/content/legal/terms.ts is archived word for word with its SHA-256
- * (terms_versions, 0041) before anyone can accept it. A driver accepts at sign-up; when a
+ * (terms_versions, 0042) before anyone can accept it. A driver accepts at sign-up; when a
  * version that needs everyone again is published, existing drivers accept on their next visit
  * (the Terms page) or through a one-time link texted by an admin. Opening a link records
  * nothing; accepting uses it up. Profiles, documents and status never change here.

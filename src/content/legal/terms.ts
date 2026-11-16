@@ -1,7 +1,7 @@
 /**
  * The Terms of Service, one entry per published version (Milestone 6, part 1). The `body` is the
  * exact text a person reads on /terms, on the driver's acceptance page and in the archive
- * (`terms_versions`, migration 0041): the page renders it, and the database stores it with its
+ * (`terms_versions`, migration 0042): the page renders it, and the database stores it with its
  * SHA-256. A published version's text never changes: a correction is a new version.
  *
  * This is the client's and the attorney's wording, so it lives outside the marketing copy
