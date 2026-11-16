@@ -61,10 +61,12 @@ export const AVAILABILITY_TYPES = [
   "weekends",
 ] as const satisfies readonly AvailabilityType[];
 
+/** What a driver can upload. TWIC since 2026-11-17 (Annie): a driver with one put it in the CDL front spot. */
 export const DOCUMENT_TYPES = [
   "cdl_front",
   "cdl_back",
   "medical_card",
+  "twic",
   "certification",
   "other",
 ] as const satisfies readonly DocumentType[];

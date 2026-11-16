@@ -101,10 +101,21 @@ describe("DocumentUploader", () => {
       "CDL (front)",
       "CDL (back)",
       "Medical card",
+      // TWIC has its own spot (Annie, 2026-11-17).
+      "TWIC card",
       "Other",
     ]);
     await userEvent.keyboard("{Escape}");
     expect(chooser()).toHaveAttribute("accept", "image/jpeg,image/png,image/webp,application/pdf");
+  });
+
+  it("opens on the TWIC card when a link asks for it, and a new TWIC replaces the old one", async () => {
+    render(<DocumentUploader initialDocuments={[buildDocument({ type: "twic", fileName: "old-twic.jpg" })]} initialType="twic" />);
+    expect(screen.getByRole("combobox", { name: "Document type" })).toHaveTextContent("TWIC card");
+    await choose(fileOf("new-twic.pdf", "application/pdf"));
+    await waitFor(() => expect(within(list()).getAllByRole("listitem")[0]).toHaveTextContent("new-twic.pdf"));
+    expect(within(list()).getAllByRole("listitem")).toHaveLength(1);
+    expect(actions.prepareDocumentUploadAction).toHaveBeenCalledWith(expect.objectContaining({ type: "twic" }));
   });
 
   it("shows the Other papers tile with the certificates already uploaded", () => {

@@ -10,7 +10,7 @@ export const metadata: Metadata = { title: "My documents" };
 export default async function DriverDocumentsPage({ searchParams }: PageProps<"/driver/documents">) {
   const { user } = await requireDriverWithCdlState();
   const { type } = await searchParams;
-  const initialType = REQUIRED_DOCUMENTS.find((required) => required === type);
+  const initialType = [...REQUIRED_DOCUMENTS, "twic" as const].find((kind) => kind === type);
   const { documentService } = await getContainer();
   const documents = await documentService.list(user.id);
 
