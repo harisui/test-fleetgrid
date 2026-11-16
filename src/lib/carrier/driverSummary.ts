@@ -1,5 +1,12 @@
-import { checkSummary, experienceSummary, mvrSummary } from "@/components/driver/SummaryCard";
-import { CDL_CLASS_OPTIONS, EQUIPMENT_CHIPS, TRANSMISSION_OPTIONS } from "@/lib/onboarding/options";
+import { experienceSummary, mvrSummary } from "@/components/driver/SummaryCard";
+import { medicalSummary } from "@/lib/drivers/medical";
+import {
+  CDL_CLASS_OPTIONS,
+  CONTAINER_SKILL_CHIPS,
+  EQUIPMENT_CHIPS,
+  TERMINAL_CHIPS,
+  TRANSMISSION_OPTIONS,
+} from "@/lib/onboarding/options";
 import { twicSummary } from "@/lib/drivers/twic";
 import type { CarrierDriverCard, Driver } from "@/types/domain";
 
@@ -14,6 +21,8 @@ export interface DriverSummary {
   endorsements: string;
   transmission: string;
   equipment: string;
+  /** Terminals and container work, optional (0041); null when the driver gave neither. */
+  terminals: string | null;
 }
 
 const labelOf = <T extends string>(options: readonly { value: T; label: string }[], value: T) =>
@@ -22,7 +31,7 @@ const labelOf = <T extends string>(options: readonly { value: T; label: string }
 export function summarizeDriver(driver: CarrierDriverCard): DriverSummary {
   const cardLines: [string, string] = [
     twicSummary(driver),
-    checkSummary("medicalCardActive", driver.medicalCardActive),
+    medicalSummary(driver),
   ];
   return {
     cdlClass: driver.cdlClass === "none" ? "Not answered" : labelOf(CDL_CLASS_OPTIONS, driver.cdlClass),
@@ -37,6 +46,11 @@ export function summarizeDriver(driver: CarrierDriverCard): DriverSummary {
     equipment:
       driver.equipmentTypes.map((kind) => labelOf(EQUIPMENT_CHIPS, kind)).join(", ") ||
       "Not answered",
+    terminals:
+      [
+        ...driver.terminals.map((terminal) => labelOf(TERMINAL_CHIPS, terminal)),
+        ...driver.containerSkills.map((skill) => labelOf(CONTAINER_SKILL_CHIPS, skill)),
+      ].join(", ") || null,
   };
 }
 

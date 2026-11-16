@@ -58,6 +58,11 @@ export function DriverCardView({ driver, distanceMiles }: DriverCardViewProps) {
       label: "Availability",
       value: driver.availability.map((slot) => AVAILABILITY_LABELS[slot]).join(", "),
     },
+    summary.terminals && {
+      label: "Terminals",
+      value: summary.terminals,
+      selfReported: true,
+    },
     driver.certifications.length > 0 && {
       label: "Certifications",
       value: driver.certifications.join(", "),

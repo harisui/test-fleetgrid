@@ -44,6 +44,23 @@ export const SMS_REMINDER =
 export const SMS_APPROVED =
   `FleetGrid: Your profile is ${ROSTER_READY}. You'll get texts when matching shifts open. Reply STOP to opt out.`;
 
+/**
+ * About 30 days before a medical card or TWIC expires (0041): once per card and date, never in
+ * the same week as another reminder. AWAITING ANNIE'S APPROVAL: nothing sends these until
+ * EXPIRY_TEXTS_APPROVED is true. One segment with the longest date ("Dec 14").
+ */
+export const EXPIRY_TEXTS_APPROVED = false;
+
+export function expiryNoticeText(medicalDate: string | null, twicDate: string | null): string {
+  if (medicalDate && twicDate) {
+    return `FleetGrid: Your medical card expires ${medicalDate} and your TWIC ${twicDate}. Update them at fleetgridus.com/driver to keep getting shift offers. Reply STOP to opt out.`;
+  }
+  if (medicalDate) {
+    return `FleetGrid: Your medical card expires ${medicalDate}. Add your new card and its date at fleetgridus.com/driver to keep getting shift offers. Reply STOP to opt out.`;
+  }
+  return `FleetGrid: Your TWIC expires ${twicDate ?? ""}. Add the new expiry date at fleetgridus.com/driver to keep getting port shifts. Reply STOP to opt out.`;
+}
+
 /** To a driver who said yes to TWIC with no date (agreed 2026-11-05): at most one per 7 days, two in all. */
 export const SMS_TWIC_DATE =
   "FleetGrid: To get port shifts, please add your TWIC expiry date at fleetgridus.com/driver. Reply STOP to opt out.";

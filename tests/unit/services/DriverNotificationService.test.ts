@@ -70,6 +70,9 @@ class FakeNotifications implements IDriverNotificationRepository {
   async claimTwicDateNotices() {
     return [];
   }
+  async claimExpiryNotices() {
+    return [];
+  }
 }
 
 describe("DriverNotificationService", () => {

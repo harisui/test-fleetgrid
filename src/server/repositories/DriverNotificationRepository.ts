@@ -39,8 +39,15 @@ export interface IDriverNotificationRepository {
   claimCdlStateNotices(): Promise<{ driverId: string; phone: string; missing: string[]; graceUntil: string }[]>;
   /** Stamps and returns the drivers due the text asking for their TWIC date (0033). */
   claimTwicDateNotices(): Promise<ClaimedText[]>;
+  /** Stamps and returns the drivers due a text before their medical card or TWIC expires (0041). */
+  claimExpiryNotices(): Promise<ClaimedExpiryNotice[]>;
   /** Ends the grace periods that are over; returns the drivers moved to Registered (0028). */
   expireRosterGrace(): Promise<string[]>;
+}
+
+export interface ClaimedExpiryNotice extends ClaimedText {
+  medicalExpiresOn: string | null;
+  twicExpiresOn: string | null;
 }
 
 const EXCLUSIONS = new Set(["opted_out", "no_consent", "recent"]);
@@ -98,6 +105,16 @@ export class DriverNotificationRepository extends BaseRepository implements IDri
   async claimTwicDateNotices(): Promise<ClaimedText[]> {
     const rows = this.unwrap(await this.supabase.rpc("claim_twic_date_notices"));
     return rows.map((row) => ({ driverId: row.driver_id, phone: row.phone }));
+  }
+
+  async claimExpiryNotices(): Promise<ClaimedExpiryNotice[]> {
+    const rows = this.unwrap(await this.supabase.rpc("claim_expiry_notices"));
+    return rows.map((row) => ({
+      driverId: row.driver_id,
+      phone: row.phone,
+      medicalExpiresOn: row.medical_expires_on,
+      twicExpiresOn: row.twic_expires_on,
+    }));
   }
 
   async expireRosterGrace(): Promise<string[]> {

@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
-import { RosterStatusBanner } from "@/components/driver/RosterStatusBanner";
+import { MEDICAL_EXPIRED_NOTE, RosterStatusBanner } from "@/components/driver/RosterStatusBanner";
 import { FAQ_GROUPS } from "@/content/faq";
 
 const banner = () => document.querySelector("[data-slot=roster-status]") as HTMLElement;
@@ -60,6 +60,17 @@ describe("RosterStatusBanner (CR-5 part 5)", () => {
   it("shows nothing to a blocked driver", () => {
     render(<RosterStatusBanner status="blocked" missing={["cdl_front"]} textsOn />);
     expect(banner()).toBeNull();
+  });
+});
+
+describe("RosterStatusBanner, an expired medical card (0041)", () => {
+  it("a Roster-Ready driver past their medical card date is told offers are paused, with both fixes linked", () => {
+    render(<RosterStatusBanner status="approved" missing={["medical_card_expired"]} textsOn />);
+    const banner = screen.getByText(MEDICAL_EXPIRED_NOTE).closest("[data-slot=roster-status]") as HTMLElement;
+    expect(banner).toHaveAttribute("data-status", "medical-expired");
+    expect(within(banner).getByRole("link", { name: "Upload your new medical card" })).toHaveAttribute("href", "/driver/documents?type=medical_card");
+    expect(within(banner).getByRole("link", { name: "Add its expiry date" })).toHaveAttribute("href", "/driver/profile");
+    expect(screen.queryByText(/We'll text you when matching shifts open/)).not.toBeInTheDocument();
   });
 });
 

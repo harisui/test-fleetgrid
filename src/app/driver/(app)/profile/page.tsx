@@ -10,6 +10,7 @@ import { ProfileEditor } from "@/components/driver/ProfileEditor";
 import { RosterStatusBanner } from "@/components/driver/RosterStatusBanner";
 import { requireDriverWithCdlState } from "@/lib/auth/guards";
 import { shiftReadyMissing } from "@/lib/drivers/tiers";
+import { MEDICAL_DATE_PROMPT, needsMedicalDate } from "@/lib/drivers/medical";
 import { needsTwicDate, TWIC_DATE_PROMPT } from "@/lib/drivers/twic";
 import { getContainer } from "@/server/container";
 
@@ -31,6 +32,13 @@ export default async function DriverProfilePage() {
         textsOn={state.driver.smsOptIn && !state.driver.smsOptedOut}
         graceUntil={state.driver.rosterGraceUntil}
       />
+      {needsMedicalDate(state.driver) && (
+        <InlineNote variant="warning" data-slot="medical-date-prompt">
+          <Link href="/driver/profile" className="font-semibold underline underline-offset-4">
+            {MEDICAL_DATE_PROMPT}
+          </Link>
+        </InlineNote>
+      )}
       {needsTwicDate(state.driver) && (
         <InlineNote variant="warning" data-slot="twic-date-prompt">
           <Link href="/driver/profile" className="font-semibold underline underline-offset-4">

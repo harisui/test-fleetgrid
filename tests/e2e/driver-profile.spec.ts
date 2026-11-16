@@ -17,6 +17,8 @@ async function startWithCompletedCard(
     optedOut?: boolean;
     place?: keyof typeof PLACES;
     signUpOnly?: boolean;
+    /** The medical card date; null is a driver from before the date was asked (0041). */
+    medicalDate?: string | null;
   } = {},
 ): Promise<string> {
   const userId = await seedUser(PHONES.driver, "driver", options.status ?? "pending");
@@ -53,6 +55,7 @@ async function startWithCompletedCard(
       twic_active: true,
       twic_expires_on: "2099-12-31",
       medical_card_active: true,
+      medical_card_expires_on: options.medicalDate === undefined ? "2099-12-31" : options.medicalDate,
       mvr_status: "clean",
       ...profileOnly,
       sms_opt_in: true,
@@ -169,6 +172,10 @@ test.describe("driver profile", () => {
       .click();
     await page.getByText("Weekends", { exact: true }).click();
     await page.getByLabel("About you").fill("Fifteen years. Tanker and flatbed.");
+    // The medical card date and the optional terminal experience (0041).
+    await page.getByLabel(/Medical card expiry date/).fill("2030-05-31");
+    await page.getByRole("group", { name: /Which terminals have you worked/ }).getByText("Bayport", { exact: true }).click();
+    await page.getByRole("group", { name: /What container work have you done/ }).getByText("40 ft containers", { exact: true }).click();
     await page.getByRole("button", { name: "Save changes" }).click();
 
     await expect(page.getByText("Profile saved")).toBeVisible();
@@ -193,6 +200,9 @@ test.describe("driver profile", () => {
       equipment_types: ["dry_van", "reefer"],
       twic_active: false,
       medical_card_active: true,
+      medical_card_expires_on: "2030-05-31",
+      terminals: ["bayport"],
+      container_skills: ["container_40"],
       clearinghouse_registered: true,
       mvr_status: "minor_1_2",
       availability: ["full_time", "weekends"],
@@ -211,6 +221,22 @@ test.describe("driver profile", () => {
     await expect(page.getByRole("radio", { name: "10 or more" })).toBeChecked();
     await expect(page.getByRole("radio", { name: "Automatic only" })).toBeChecked();
     await expect(page.getByText("Forklift", { exact: true })).toBeVisible();
+  });
+
+  test("a driver from before the medical card date is asked for it, and the profile will not save without it", async ({ page }) => {
+    const driverId = await startWithCompletedCard(page, { medicalDate: null });
+    await expect(page.locator("[data-slot=medical-date-prompt]")).toHaveText("Add your medical card expiry date to your profile.");
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect(page.getByText("Enter the date your medical card expires")).toBeVisible();
+    await expect(page.getByText("Profile saved")).toHaveCount(0);
+
+    await page.getByLabel(/Medical card expiry date/).fill("2031-01-15");
+    await page.getByRole("button", { name: "Save changes" }).click();
+    await expect(page.getByText("Profile saved")).toBeVisible();
+    const { data } = await adminClient().from("drivers").select("medical_card_expires_on").eq("id", driverId).single();
+    expect(data).toEqual({ medical_card_expires_on: "2031-01-15" });
+    await page.reload();
+    await expect(page.locator("[data-slot=medical-date-prompt]")).toHaveCount(0);
   });
 
   test("a card straight out of sign-up saves with the optional answers left empty", async ({

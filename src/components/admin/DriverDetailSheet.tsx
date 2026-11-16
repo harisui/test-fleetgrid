@@ -332,6 +332,7 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
             <Row label="Endorsements" value={summary.endorsements} />
             <Row label="Transmission" value={summary.transmission} />
             <Row label="Equipment" value={summary.equipment} />
+            {summary.terminals && <Row label="Terminals" value={summary.terminals} selfReported />}
             <Row label="Travels" value={`Up to ${driver.serviceRadiusMiles} miles`} />
             {optional.map((row) => (
               <Row key={row.label} label={row.label} value={row.value} selfReported={row.selfReported} />

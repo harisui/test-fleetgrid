@@ -3,6 +3,7 @@ import type { Database } from "@/types/database.types";
 import type {
   AvailabilityType,
   CdlClass,
+  ContainerSkill,
   Driver,
   DrivingStyle,
   EmploymentType,
@@ -11,6 +12,7 @@ import type {
   HeardFrom,
   MvrStatus,
   OperatorType,
+  Terminal,
   TransmissionType,
 } from "@/types/domain";
 
@@ -62,6 +64,9 @@ export interface DriverPatch {
   twicActive?: boolean | null;
   twicExpiresOn?: string | null;
   medicalCardActive?: boolean | null;
+  medicalCardExpiresOn?: string | null;
+  terminals?: Terminal[];
+  containerSkills?: ContainerSkill[];
   clearinghouseRegistered?: boolean | null;
   mvrStatus?: MvrStatus | null;
   smsOptIn?: boolean;
@@ -124,6 +129,9 @@ export function mapDriver(row: DriverRow & { driver_clearinghouse_self_reports?:
     twicIssueAt: row.twic_issue_at,
     twicIssuePriorAt: row.twic_issue_prior_at,
     medicalCardActive: row.medical_card_active,
+    medicalCardExpiresOn: row.medical_card_expires_on,
+    terminals: row.terminals,
+    containerSkills: row.container_skills,
     clearinghouseRegistered: row.clearinghouse_registered,
     mvrStatus: row.mvr_status,
     smsOptIn: row.sms_opt_in,
@@ -175,6 +183,9 @@ export function toDriverUpdate(patch: DriverPatch): DriverUpdate {
     twicActive: "twic_active",
     twicExpiresOn: "twic_expires_on",
     medicalCardActive: "medical_card_active",
+    medicalCardExpiresOn: "medical_card_expires_on",
+    terminals: "terminals",
+    containerSkills: "container_skills",
     clearinghouseRegistered: "clearinghouse_registered",
     mvrStatus: "mvr_status",
     smsOptIn: "sms_opt_in",

@@ -120,6 +120,7 @@ export type SmsKind =
   | "doc_reminder"
   | "cdl_state_notice"
   | "twic_date_notice"
+  | "expiry_notice"
   | "overlap"
   | "paused"
   | "not_eligible"

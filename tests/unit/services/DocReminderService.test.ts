@@ -1,8 +1,8 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it } from "vitest";
-import { docReminderText } from "@/content/sms-samples";
+import { docReminderText, expiryNoticeText } from "@/content/sms-samples";
 import type { AuditEntryInput } from "@/server/repositories/AdminRepository";
-import type { DocReminderCandidate, IDriverNotificationRepository } from "@/server/repositories/DriverNotificationRepository";
+import type { ClaimedExpiryNotice, DocReminderCandidate, IDriverNotificationRepository } from "@/server/repositories/DriverNotificationRepository";
 import type { INoticeRepository, NewNoticeBatch } from "@/server/repositories/NoticeRepository";
 import { DOC_REMINDER_TEMPLATE, DocReminderService } from "@/server/services/DocReminderService";
 import { TextService } from "@/server/services/TextService";
@@ -71,6 +71,12 @@ class FakeDocs implements IDriverNotificationRepository {
   }
   graceOver: string[] = [];
   twicDue: { driverId: string; phone: string }[] = [];
+  expiryDue: ClaimedExpiryNotice[] = [];
+  async claimExpiryNotices() {
+    const due = this.expiryDue;
+    this.expiryDue = [];
+    return due;
+  }
   async claimTwicDateNotices() {
     const due = this.twicDue;
     this.twicDue = [];
@@ -257,6 +263,37 @@ describe("DocReminderService (CR-5)", () => {
     expect(log.outbound().map((entry) => entry.kind)).toEqual(["cdl_state_notice", "cdl_state_notice"]);
     expect(await service.sendCdlStateNotices()).toBe(0);
     expect(sms.sent).toHaveLength(2);
+  });
+
+  it("the expiry text: off until Annie approves the wording, then once per claimed driver, naming the card and date (0041)", async () => {
+    docs.expiryDue = [{ driverId: id(1), phone: "+15555553001", medicalExpiresOn: "2026-12-14", twicExpiresOn: null }];
+    expect(await service.sendExpiryNotices()).toBe(0);
+    expect(sms.sent).toEqual([]);
+    expect(docs.expiryDue).toHaveLength(1);
+
+    docs.expiryDue = [
+      { driverId: id(1), phone: "+15555553001", medicalExpiresOn: "2026-12-14", twicExpiresOn: null },
+      { driverId: id(2), phone: "+15555553002", medicalExpiresOn: null, twicExpiresOn: "2026-12-02" },
+      { driverId: id(3), phone: "+15555553003", medicalExpiresOn: "2026-12-14", twicExpiresOn: "2026-12-20" },
+    ];
+    expect(await service.sendExpiryNotices(true)).toBe(3);
+    expect(sms.sent.map((message) => message.body)).toEqual([
+      expiryNoticeText("Dec 14", null),
+      expiryNoticeText(null, "Dec 2"),
+      expiryNoticeText("Dec 14", "Dec 20"),
+    ]);
+    expect(sms.sent[0]!.body).toBe(
+      "FleetGrid: Your medical card expires Dec 14. Add your new card and its date at fleetgridus.com/driver to keep getting shift offers. Reply STOP to opt out.",
+    );
+    expect(log.outbound().map((entry) => entry.kind)).toEqual(["expiry_notice", "expiry_notice", "expiry_notice"]);
+  });
+
+  it("the expiry text waits for daytime and claims nothing at night", async () => {
+    now = NIGHT;
+    docs.expiryDue = [{ driverId: id(1), phone: "+15555553001", medicalExpiresOn: "2026-12-14", twicExpiresOn: null }];
+    expect(await service.sendExpiryNotices(true)).toBe(0);
+    expect(docs.expiryDue).toHaveLength(1);
+    expect(sms.sent).toEqual([]);
   });
 
   it("the CDL-state text waits for daytime and uses nothing up at night", async () => {

@@ -25,6 +25,7 @@ export interface OnboardingFormValues {
   mvrStatus?: MvrStatus;
   twicActive?: boolean;
   medicalCardActive?: boolean;
+  medicalCardExpiresOn?: string | null;
   endorsements?: Endorsement[];
   transmission?: TransmissionType;
   equipmentTypes?: EquipmentType[];

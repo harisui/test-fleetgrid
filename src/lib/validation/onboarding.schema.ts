@@ -123,14 +123,46 @@ export function checkTwicDate(
 
 export const twicExpiresOnField = z.string().nullish().transform((value) => value || null);
 
+/** The date a medical card runs to (0041): required with a yes, not already passed, dropped with a no. */
+export const MEDICAL_DATE_MESSAGE = "Enter the date your medical card expires";
+export const MEDICAL_PAST_MESSAGE = "This date has passed. If your medical card has expired, tap No";
+
+export function checkMedicalDate(
+  data: { medicalCardActive?: boolean | null; medicalCardExpiresOn?: string | null },
+  context: z.RefinementCtx,
+  today: string = new Date().toISOString().slice(0, 10),
+): void {
+  if (!data.medicalCardActive) return;
+  if (!data.medicalCardExpiresOn || !twicDateFormat.test(data.medicalCardExpiresOn)) {
+    context.addIssue({ code: "custom", path: ["medicalCardExpiresOn"], message: MEDICAL_DATE_MESSAGE });
+  } else if (data.medicalCardExpiresOn < today) {
+    context.addIssue({ code: "custom", path: ["medicalCardExpiresOn"], message: MEDICAL_PAST_MESSAGE });
+  }
+}
+
+export const medicalCardExpiresOnField = twicExpiresOnField;
+
+/** Both card dates go with a no. */
+export function dropCardDates<T extends { twicActive: boolean; twicExpiresOn: string | null; medicalCardActive: boolean; medicalCardExpiresOn: string | null }>(data: T): T {
+  return {
+    ...data,
+    twicExpiresOn: data.twicActive ? data.twicExpiresOn : null,
+    medicalCardExpiresOn: data.medicalCardActive ? data.medicalCardExpiresOn : null,
+  };
+}
+
 export const credentialsScreenSchema = z
   .object({
     twicActive: yesNo(TWIC_MESSAGE),
     twicExpiresOn: twicExpiresOnField,
     medicalCardActive: yesNo(MEDICAL_CARD_MESSAGE),
+    medicalCardExpiresOn: medicalCardExpiresOnField,
   })
-  .superRefine((data, context) => checkTwicDate(data, context))
-  .transform((data) => ({ ...data, twicExpiresOn: data.twicActive ? data.twicExpiresOn : null }));
+  .superRefine((data, context) => {
+    checkTwicDate(data, context);
+    checkMedicalDate(data, context);
+  })
+  .transform(dropCardDates);
 
 export const endorsementsScreenSchema = z.object({
   endorsements: z

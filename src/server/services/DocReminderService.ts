@@ -1,5 +1,14 @@
+import { format, parseISO } from "date-fns";
 import { formatInTimeZone } from "date-fns-tz";
-import { cdlStateNoticeText, docReminderText, DOC_REMINDER_ITEMS, SMS_TWIC_DATE, type DocReminderItems } from "@/content/sms-samples";
+import {
+  cdlStateNoticeText,
+  docReminderText,
+  DOC_REMINDER_ITEMS,
+  EXPIRY_TEXTS_APPROVED,
+  expiryNoticeText,
+  SMS_TWIC_DATE,
+  type DocReminderItems,
+} from "@/content/sms-samples";
 import { isReminderWindow, quietHoursSendAt } from "@/lib/shifts/schedule";
 import { SHIFT_TIME_ZONE } from "@/lib/shifts/texts";
 import { docReminderItems } from "@/lib/sms/driverTexts";
@@ -163,6 +172,25 @@ export class DocReminderService {
     const due = await this.notifications.claimTwicDateNotices();
     await inBatches(due, SEND_CONCURRENCY, async ({ driverId, phone }) => {
       await this.texts.send({ driverId, phone, smsOptedOut: false }, "twic_date_notice", SMS_TWIC_DATE);
+    });
+    return due.length;
+  }
+
+  /**
+   * One text about 30 days before a medical card or TWIC expires (0041), daytime only, once per
+   * card and date, never in the same week as another reminder. Off until Annie approves the
+   * wording (EXPIRY_TEXTS_APPROVED).
+   */
+  async sendExpiryNotices(approved: boolean = EXPIRY_TEXTS_APPROVED): Promise<number> {
+    if (!approved || !isReminderWindow(this.now())) return 0;
+    const due = await this.notifications.claimExpiryNotices();
+    const day = (date: string | null) => (date ? format(parseISO(date), "MMM d") : null);
+    await inBatches(due, SEND_CONCURRENCY, async ({ driverId, phone, medicalExpiresOn, twicExpiresOn }) => {
+      await this.texts.send(
+        { driverId, phone, smsOptedOut: false },
+        "expiry_notice",
+        expiryNoticeText(day(medicalExpiresOn), day(twicExpiresOn)),
+      );
     });
     return due.length;
   }

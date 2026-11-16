@@ -213,13 +213,14 @@ describe("cards", () => {
       twicActive: true,
       twicExpiresOn: "2099-12-31",
       medicalCardActive: false,
+      medicalCardExpiresOn: null,
     });
     expect(errorsOf(credentialsScreenSchema, {})).toEqual({
       twicActive: TWIC_MESSAGE,
       medicalCardActive: MEDICAL_CARD_MESSAGE,
     });
     for (const twicActive of ["true", 1, null, "yes"]) {
-      expect(errorsOf(credentialsScreenSchema, { twicActive, medicalCardActive: true })).toEqual({
+      expect(errorsOf(credentialsScreenSchema, { twicActive, medicalCardActive: true, medicalCardExpiresOn: "2099-12-31" })).toEqual({
         twicActive: TWIC_MESSAGE,
       });
     }

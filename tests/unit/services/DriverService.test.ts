@@ -577,9 +577,11 @@ describe("DriverService", () => {
       const driver = await service.saveScreen(USER_ID, "credentials", {
         twicActive: false,
         medicalCardActive: true,
+        medicalCardExpiresOn: "2099-06-30",
       });
       expect(driver.twicActive).toBe(false);
       expect(driver.medicalCardActive).toBe(true);
+      expect(driver.medicalCardExpiresOn).toBe("2099-06-30");
       expect(driver.onboardingStep).toBe(stepNumber("endorsements"));
     });
 

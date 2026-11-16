@@ -1,3 +1,4 @@
+import { medicalSummary } from "@/lib/drivers/medical";
 import { twicSummary } from "@/lib/drivers/twic";
 import type { StepId } from "@/lib/onboarding/steps";
 import {
@@ -63,7 +64,7 @@ export function SummaryCard({ driver, onEdit }: SummaryCardProps) {
     { label: "Record", value: mvrSummary(driver.mvrStatus), stepId: "record" },
     {
       label: "Cards",
-      value: `${twicSummary(driver)}, ${checkSummary("medicalCardActive", driver.medicalCardActive)}`,
+      value: `${twicSummary(driver)}, ${medicalSummary(driver)}`,
       stepId: "credentials",
     },
     {

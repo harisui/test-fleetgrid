@@ -21,6 +21,9 @@ interface RosterStatusBannerProps {
 
 const LINK = "font-semibold underline underline-offset-4";
 
+/** A Roster-Ready driver whose medical card date has passed (0041). */
+export const MEDICAL_EXPIRED_NOTE = "Your medical card has expired, so shift offers are paused until you update it.";
+
 /**
  * Where the driver stands (CR-5), at the top of My shifts and the profile. Registered: exactly
  * what is missing, each item linked to where it is added. Roster-Ready: that matching shifts
@@ -43,6 +46,26 @@ export function RosterStatusBanner({ status, missing, textsOn, graceUntil = null
               </Link>
             </li>
           ))}
+        </ul>
+      </InlineNote>
+    );
+  }
+
+  if (status === "approved" && missing.includes("medical_card_expired")) {
+    return (
+      <InlineNote variant="warning" data-slot="roster-status" data-status="medical-expired">
+        <p>{MEDICAL_EXPIRED_NOTE}</p>
+        <ul className="mt-2 flex flex-col gap-1" aria-label="What to update" data-slot="roster-missing">
+          <li>
+            <Link href={DRIVER_MISSING_ITEMS.medical_card.href} className={LINK}>
+              Upload your new medical card
+            </Link>
+          </li>
+          <li>
+            <Link href={DRIVER_MISSING_ITEMS.medical_card_expired.href} className={LINK}>
+              Add its expiry date
+            </Link>
+          </li>
         </ul>
       </InlineNote>
     );

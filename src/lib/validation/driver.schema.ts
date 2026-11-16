@@ -20,6 +20,9 @@ import {
   TWIC_MESSAGE,
   checkTwicDate,
   twicExpiresOnField,
+  checkMedicalDate,
+  dropCardDates,
+  medicalCardExpiresOnField,
 } from "@/lib/validation/onboarding.schema";
 import {
   AVAILABILITY_TYPES,
@@ -27,7 +30,9 @@ import {
   DRIVING_STYLES,
   EMPLOYMENT_TYPES,
   ENDORSEMENTS,
+  CONTAINER_SKILLS,
   EQUIPMENT_TYPES,
+  TERMINALS,
   MVR_STATUSES,
   TRANSMISSION_TYPES,
 } from "@/types/domain";
@@ -151,6 +156,9 @@ export const driverChecksSchema = z.object({
   twicActive: z.boolean({ error: TWIC_MESSAGE }),
   twicExpiresOn: twicExpiresOnField,
   medicalCardActive: z.boolean({ error: MEDICAL_CARD_MESSAGE }),
+  medicalCardExpiresOn: medicalCardExpiresOnField,
+  terminals: z.array(z.enum(TERMINALS)).default([]).transform(unique),
+  containerSkills: z.array(z.enum(CONTAINER_SKILLS)).default([]).transform(unique),
   clearinghouseRegistered: optionalYesNo(CLEARINGHOUSE_MESSAGE),
   mvrStatus: z.enum(MVR_STATUSES, { error: MVR_MESSAGE }),
 });
@@ -179,8 +187,11 @@ export const driverCardSchema = z.object({
   ...driverChecksSchema.shape,
   ...driverAvailabilitySchema.shape,
 })
-  .superRefine((data, context) => checkTwicDate(data, context))
-  .transform((data) => ({ ...data, twicExpiresOn: data.twicActive ? data.twicExpiresOn : null }));
+  .superRefine((data, context) => {
+    checkTwicDate(data, context);
+    checkMedicalDate(data, context);
+  })
+  .transform(dropCardDates);
 
 export type DriverBasicsInput = z.infer<typeof driverBasicsSchema>;
 export type DriverLicensesInput = z.infer<typeof driverLicensesSchema>;

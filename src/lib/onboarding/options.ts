@@ -23,6 +23,7 @@ import { HEARD_FROM, HEARD_FROM_LABELS } from "@/types/domain";
 import type {
   AvailabilityType,
   CdlClass,
+  ContainerSkill,
   DocumentType,
   DrivingStyle,
   EmploymentType,
@@ -30,6 +31,7 @@ import type {
   EquipmentType,
   HeardFrom,
   MvrStatus,
+  Terminal,
   TransmissionType,
 } from "@/types/domain";
 
@@ -186,6 +188,24 @@ export const EQUIPMENT_CHIPS: readonly ChipOption<EquipmentType>[] = [
   { value: "flatbed", label: "Flatbed" },
   { value: "reefer", label: "Reefer" },
 ];
+
+/** Terminal experience, optional on the profile (Annie, 2026-11-16; 0041). */
+export const TERMINALS_QUESTION = "Which terminals have you worked?";
+export const TERMINAL_CHIPS: readonly ChipOption<Terminal>[] = [
+  { value: "barbours_cut", label: "Barbours Cut" },
+  { value: "bayport", label: "Bayport" },
+  { value: "rail_ramp", label: "Rail ramps" },
+];
+export const CONTAINER_SKILLS_QUESTION = "What container work have you done?";
+export const CONTAINER_SKILL_CHIPS: readonly ChipOption<ContainerSkill>[] = [
+  { value: "chassis", label: "Chassis" },
+  { value: "container_20", label: "20 ft containers" },
+  { value: "container_40", label: "40 ft containers" },
+];
+export const TERMINALS_HELPER = "Optional. Carriers see it on your profile.";
+
+/** Under the medical card date, on sign-up and the profile (0041). */
+export const MEDICAL_DATE_DESCRIPTION = "Self-reported. After this date you get no shift offers until you add your new card.";
 
 /**
  * Experience ranges. The stored number is the lower bound of the chip. A card saved under the

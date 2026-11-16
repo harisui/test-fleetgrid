@@ -439,7 +439,7 @@ describe("Cards page", () => {
     await waitFor(() => expect(heading()).toHaveTextContent("Letters"));
     expect(actions.saveOnboardingScreenAction).toHaveBeenCalledWith("credentials", {
       twicActive: true, twicExpiresOn: "2099-12-31",
-      medicalCardActive: false,
+      medicalCardActive: false, medicalCardExpiresOn: null,
     });
   });
 
@@ -696,7 +696,7 @@ describe("Finish page: consent and done", () => {
     expect(summary.getByText("Class A")).toBeInTheDocument();
     expect(summary.getByText("6 to 10 years")).toBeInTheDocument();
     expect(summary.getByText("No violations in 3 years")).toBeInTheDocument();
-    expect(summary.getByText("TWIC to Dec 31, 2099, medical card current")).toBeInTheDocument();
+    expect(summary.getByText("TWIC to Dec 31, 2099, medical card to Dec 31, 2099")).toBeInTheDocument();
     expect(summary.getByText("H, T")).toBeInTheDocument();
     expect(summary.getByText("Automatic and manual")).toBeInTheDocument();
     expect(summary.getByText("Dry van, Flatbed")).toBeInTheDocument();

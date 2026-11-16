@@ -10,7 +10,7 @@ import type {
 import { FormField } from "@/components/shared/FormField";
 import { YesNoChips } from "@/components/shared/YesNoChips";
 import { Input } from "@/components/ui/input";
-import { CARD_CHECKS, CREDENTIALS_HELPER } from "@/lib/onboarding/options";
+import { CARD_CHECKS, CREDENTIALS_HELPER, MEDICAL_DATE_DESCRIPTION } from "@/lib/onboarding/options";
 import { credentialsScreenSchema } from "@/lib/validation/onboarding.schema";
 
 /** An active TWIC card and a current DOT medical card. */
@@ -21,6 +21,7 @@ function CredentialsFields({ question }: ScreenFieldsProps) {
     formState: { errors },
   } = useFormContext<OnboardingFormValues>();
   const twicActive = useWatch({ control, name: "twicActive" });
+  const medicalCardActive = useWatch({ control, name: "medicalCardActive" });
   return (
     <>
       <ScreenQuestion>{question}</ScreenQuestion>
@@ -54,18 +55,24 @@ function CredentialsFields({ question }: ScreenFieldsProps) {
           />
         )}
       />
+      {medicalCardActive === true && (
+        <FormField label="Medical card expiry date" required error={errors.medicalCardExpiresOn?.message} description={MEDICAL_DATE_DESCRIPTION}>
+          <Input type="date" {...register("medicalCardExpiresOn")} />
+        </FormField>
+      )}
     </>
   );
 }
 
 export const credentialsScreen: ScreenDefinition = {
   id: "credentials",
-  fields: ["twicActive", "twicExpiresOn", "medicalCardActive"],
+  fields: ["twicActive", "twicExpiresOn", "medicalCardActive", "medicalCardExpiresOn"],
   schema: () => credentialsScreenSchema,
   defaults: (driver) => ({
     twicActive: driver?.twicActive ?? undefined,
     twicExpiresOn: driver?.twicExpiresOn ?? "",
     medicalCardActive: driver?.medicalCardActive ?? undefined,
+    medicalCardExpiresOn: driver?.medicalCardExpiresOn ?? "",
   }),
   Fields: CredentialsFields,
 };

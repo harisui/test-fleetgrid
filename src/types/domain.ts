@@ -18,6 +18,8 @@ export type EmploymentType = Enums["employment_type"];
 export type DrivingStyle = Enums["driving_style"];
 export type TransmissionType = Enums["transmission_type"];
 export type EquipmentType = Enums["equipment_type"];
+export type Terminal = Enums["terminal"];
+export type ContainerSkill = Enums["container_skill"];
 export type MvrStatus = Enums["mvr_status"];
 export type SubscriptionStatus = Enums["subscription_status"];
 export type ShiftStatus = Enums["shift_status"];
@@ -98,6 +100,12 @@ export const EQUIPMENT_TYPES = [
   "flatbed",
   "reefer",
 ] as const satisfies readonly EquipmentType[];
+
+/** Terminals a driver has worked, optional on the profile (0041). */
+export const TERMINALS = ["barbours_cut", "bayport", "rail_ramp"] as const satisfies readonly Terminal[];
+
+/** Chassis and container sizes a driver has handled, optional on the profile (0041). */
+export const CONTAINER_SKILLS = ["chassis", "container_20", "container_40"] as const satisfies readonly ContainerSkill[];
 
 /** Moving violations in the last 3 years: none, 1 to 2 minor, or 3 or more or a major one. */
 export const MVR_STATUSES = [
@@ -263,6 +271,11 @@ export interface Driver {
   twicIssueAt: string | null;
   twicIssuePriorAt: string | null;
   medicalCardActive: boolean | null;
+  /** Self-reported (0041). A passed date stops shift offers; null is unknown, not expired. */
+  medicalCardExpiresOn: string | null;
+  /** Optional, self-reported terminal experience (0041). */
+  terminals: Terminal[];
+  containerSkills: ContainerSkill[];
   /** CDL drivers only. Null for everyone else. */
   clearinghouseRegistered: boolean | null;
   /** Moving violations in the last 3 years, in three levels. */
@@ -654,6 +667,9 @@ export type CarrierDriverCard = Pick<
   | "twicActive"
   | "twicExpiresOn"
   | "medicalCardActive"
+  | "medicalCardExpiresOn"
+  | "terminals"
+  | "containerSkills"
   | "clearinghouseRegistered"
   | "mvrStatus"
   | "smsOptIn"

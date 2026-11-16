@@ -36,7 +36,7 @@ describe("TWIC", () => {
   });
 
   it("a yes needs a date that has not passed; a no drops it", () => {
-    const parse = (input: object) => credentialsScreenSchema.safeParse({ medicalCardActive: true, ...input });
+    const parse = (input: object) => credentialsScreenSchema.safeParse({ medicalCardActive: true, medicalCardExpiresOn: "2099-12-31", ...input });
     expect(parse({ twicActive: true }).error?.issues[0]?.message).toBe(TWIC_DATE_MESSAGE);
     expect(parse({ twicActive: true, twicExpiresOn: "" }).error?.issues[0]?.message).toBe(TWIC_DATE_MESSAGE);
     expect(parse({ twicActive: true, twicExpiresOn: "2020-01-01" }).error?.issues[0]?.message).toBe(TWIC_PAST_MESSAGE);

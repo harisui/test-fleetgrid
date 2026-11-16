@@ -15,6 +15,8 @@ export async function GET(request: Request): Promise<Response> {
   const graceExpired = await docReminderService.expireGrace();
   const cdlStateNotices = await docReminderService.sendCdlStateNotices();
   const twicDateNotices = await docReminderService.sendTwicDateNotices();
+  // Before a medical card or TWIC expires (0041); off until the wording is approved.
+  const expiryNotices = await docReminderService.sendExpiryNotices();
   const held = await textService.drainHeld(drivers);
-  return Response.json({ ok: true, reminders, graceExpired, cdlStateNotices, twicDateNotices, held });
+  return Response.json({ ok: true, reminders, graceExpired, cdlStateNotices, twicDateNotices, expiryNotices, held });
 }

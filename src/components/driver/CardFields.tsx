@@ -26,6 +26,8 @@ import {
 import {
   CARD_CHECKS,
   CDL_CLASS_OPTIONS,
+  CONTAINER_SKILL_CHIPS,
+  CONTAINER_SKILLS_QUESTION,
   DRIVING_STYLE_OPTIONS,
   EMPLOYMENT_HELPER,
   EMPLOYMENT_TYPE_OPTIONS,
@@ -34,7 +36,11 @@ import {
   experienceChipFor,
   MVR_CHIPS,
   MVR_HELPER,
+  MEDICAL_DATE_DESCRIPTION,
   MVR_QUESTION,
+  TERMINAL_CHIPS,
+  TERMINALS_HELPER,
+  TERMINALS_QUESTION,
   TRANSMISSION_OPTIONS,
   TRANSMISSION_QUESTION,
   type CardCheck,
@@ -74,6 +80,8 @@ const ENDORSEMENT_OPTIONS = options(ENDORSEMENTS, ENDORSEMENT_LABELS);
 const DRIVING_OPTIONS = choices(DRIVING_STYLE_OPTIONS);
 const TRANSMISSION_CHOICES = choices(TRANSMISSION_OPTIONS);
 const EQUIPMENT_OPTIONS = choices(EQUIPMENT_CHIPS);
+const TERMINAL_OPTIONS = choices(TERMINAL_CHIPS);
+const CONTAINER_SKILL_OPTIONS = choices(CONTAINER_SKILL_CHIPS);
 const MVR_OPTIONS = choices(MVR_CHIPS);
 const AVAILABILITY_OPTIONS = options(AVAILABILITY_TYPES, AVAILABILITY_LABELS);
 /** Choice values are strings; the years chips store numbers. */
@@ -274,6 +282,7 @@ export function ChecksFields<T extends FieldValues>({
   disabled,
 }: GroupProps<T>) {
   const twicActive = useWatch({ control, name: field<T>("twicActive") });
+  const medicalCardActive = useWatch({ control, name: field<T>("medicalCardActive") });
   return (
     <>
       <Controller
@@ -305,6 +314,11 @@ export function ChecksFields<T extends FieldValues>({
         errorOf={errorOf}
         disabled={disabled}
       />
+      {medicalCardActive === true && (
+        <FormField label="Medical card expiry date" required error={errorOf("medicalCardExpiresOn")} description={MEDICAL_DATE_DESCRIPTION}>
+          <Input type="date" {...register(field<T>("medicalCardExpiresOn"))} disabled={disabled} />
+        </FormField>
+      )}
 
       <Controller
         control={control}
@@ -337,6 +351,42 @@ export function ChecksFields<T extends FieldValues>({
             disabled={disabled}
             columns={2}
             required
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name={field<T>("terminals")}
+        render={({ field: input }) => (
+          <ChoiceGroup
+            multiple
+            label={TERMINALS_QUESTION}
+            description={TERMINALS_HELPER}
+            options={TERMINAL_OPTIONS}
+            value={input.value ?? []}
+            onChange={input.onChange}
+            error={errorOf("terminals")}
+            disabled={disabled}
+            columns={2}
+          />
+        )}
+      />
+
+      <Controller
+        control={control}
+        name={field<T>("containerSkills")}
+        render={({ field: input }) => (
+          <ChoiceGroup
+            multiple
+            label={CONTAINER_SKILLS_QUESTION}
+            description={TERMINALS_HELPER}
+            options={CONTAINER_SKILL_OPTIONS}
+            value={input.value ?? []}
+            onChange={input.onChange}
+            error={errorOf("containerSkills")}
+            disabled={disabled}
+            columns={2}
           />
         )}
       />

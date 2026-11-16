@@ -1,3 +1,5 @@
+import { houstonDate } from "@/lib/drivers/twic";
+import { medicalCardExpired } from "@/lib/drivers/medical";
 import type { AccountStatus, DocumentType, Driver } from "@/types/domain";
 
 /**
@@ -23,7 +25,7 @@ export const DRIVER_STATUS_LABELS: Record<AccountStatus, string> = {
 };
 
 /** What Shift-Ready needs, in the order the checklist shows it (shift_ready_missing in 0028). */
-export const SHIFT_READY_ITEMS = ["cdl_front", "cdl_back", "medical_card", "cdl_state", "last_name", "profile"] as const;
+export const SHIFT_READY_ITEMS = ["cdl_front", "cdl_back", "medical_card", "medical_card_expired", "cdl_state", "last_name", "profile"] as const;
 export type ShiftReadyItem = (typeof SHIFT_READY_ITEMS)[number];
 
 /** The documents Shift-Ready needs. */
@@ -33,6 +35,7 @@ export const SHIFT_READY_ITEM_LABELS: Record<ShiftReadyItem, string> = {
   cdl_front: "CDL front photo",
   cdl_back: "CDL back photo",
   medical_card: "Medical card",
+  medical_card_expired: "Medical card expired",
   cdl_state: "Texas CDL",
   last_name: "Last name missing",
   profile: "Profile not complete",
@@ -60,6 +63,7 @@ export const DRIVER_MISSING_ITEMS: Record<ShiftReadyItem, { label: string; href:
   cdl_front: { label: "CDL front photo", href: "/driver/documents?type=cdl_front" },
   cdl_back: { label: "CDL back photo", href: "/driver/documents?type=cdl_back" },
   medical_card: { label: "Medical card", href: "/driver/documents?type=medical_card" },
+  medical_card_expired: { label: "Your new medical card and its expiry date", href: "/driver/profile" },
   cdl_state: { label: "A Texas CDL", href: "/driver/profile" },
   last_name: { label: "Your last name", href: "/driver/profile" },
   profile: { label: "The rest of your profile", href: "/driver/onboarding" },
@@ -78,12 +82,14 @@ export function hasTwoWordName(fullName: string): boolean {
  * the three documents, a Texas CDL (or an admin's override), two words of name, a full card.
  */
 export function shiftReadyMissing(
-  driver: Pick<Driver, "fullName" | "cdlState" | "shiftReadyOverrideReason" | "cardCompleted">,
+  driver: Pick<Driver, "fullName" | "cdlState" | "shiftReadyOverrideReason" | "cardCompleted" | "medicalCardExpiresOn">,
   documentTypes: readonly DocumentType[],
+  today: string = houstonDate(),
 ): ShiftReadyItem[] {
   const has = new Set(documentTypes);
   const missing: ShiftReadyItem[] = [];
   for (const type of REQUIRED_DOCUMENTS) if (!has.has(type)) missing.push(type);
+  if (medicalCardExpired(driver, today)) missing.push("medical_card_expired");
   if (driver.cdlState !== "TX" && !driver.shiftReadyOverrideReason) missing.push("cdl_state");
   if (!hasTwoWordName(driver.fullName)) missing.push("last_name");
   if (!driver.cardCompleted) missing.push("profile");

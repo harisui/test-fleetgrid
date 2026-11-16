@@ -133,6 +133,9 @@ test.describe("driver onboarding, a page per mile", () => {
     await nextButton(page).click();
     await expect(page.getByText("Enter the date your TWIC expires")).toBeVisible();
     await page.getByLabel(/TWIC expiry date/).fill("2099-12-31");
+    // The medical card asks for its date too (0041).
+    await expect(page.getByText("Enter the date your medical card expires")).toBeVisible();
+    await page.getByLabel(/Medical card expiry date/).fill("2099-06-30");
     await nextButton(page).click();
 
     // Mile 5: Letters (endorsements and transmission)
@@ -186,6 +189,7 @@ test.describe("driver onboarding, a page per mile", () => {
       twic_active: true,
       twic_expires_on: "2099-12-31",
       medical_card_active: true,
+      medical_card_expires_on: "2099-06-30",
       endorsements: ["H", "T"],
       transmission: "manual_ok",
       equipment_types: ["dry_van", "flatbed"],
@@ -238,7 +242,7 @@ test.describe("driver onboarding, a page per mile", () => {
       "Class A",
       "6 to 10 years",
       "No violations in 3 years",
-      "TWIC to Dec 31, 2099, medical card current",
+      "TWIC to Dec 31, 2099, medical card to Jun 30, 2099",
       "H, T",
       "Automatic and manual",
       "Dry van, Flatbed",
@@ -362,6 +366,7 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(screenHeading(page)).toHaveText("Cards");
     await checkChip(page, TWIC_QUESTION, "No").click();
     await checkChip(page, MEDICAL_QUESTION, "Yes").click();
+    await page.getByLabel(/Medical card expiry date/).fill("2099-06-30");
     await nextButton(page).click();
     await expect(screenHeading(page)).toHaveText("Letters");
 
