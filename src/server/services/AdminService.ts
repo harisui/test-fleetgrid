@@ -35,6 +35,7 @@ import type {
   QrLink,
   ServiceArea,
   DocumentType,
+  TosAcceptance,
 } from "@/types/domain";
 import { ROSTER_READY } from "@/lib/drivers/tiers";
 
@@ -100,6 +101,8 @@ export interface AdminDriverDetail extends AdminDriverRow {
   missing: ShiftReadyItem[];
   /** The CDL front, the CDL back and the medical card, the latest of each, for the review. */
   photos: ShiftReadyPhoto[];
+  /** Every Terms version the driver accepted, newest first (Milestone 6). */
+  termsAcceptances: TosAcceptance[];
 }
 
 const STATUS_ORDER: Record<AccountStatus, number> = { pending: 0, approved: 1, blocked: 2 };
@@ -130,6 +133,8 @@ export class AdminService {
     /** Part 3b: texts a driver with shift texts on when they are approved. Never throws. */
     private readonly onDriverApproved: (driver: { driverId: string; smsOptIn: boolean }) => Promise<void> = async () =>
       undefined,
+    /** Milestone 6: the driver's Terms acceptances, newest first, read with the admin's RLS. */
+    private readonly termsAcceptances: (profileId: string) => Promise<TosAcceptance[]> = async () => [],
   ) {}
 
   async getDriversPage(adminId: string, input: unknown): Promise<AdminDriversPage> {
@@ -163,9 +168,10 @@ export class AdminService {
     const row = await this.admin.findDriver(driverId);
     if (!row) throw AppError.notFound("Driver not found");
     const link = row.profile.source.qrLinkId ? await this.qrLinks.findById(row.profile.source.qrLinkId) : null;
-    const [documents, history] = await Promise.all([
+    const [documents, history, termsAcceptances] = await Promise.all([
       this.documents.listByDriverId(driverId),
       this.admin.listAudit("driver", driverId),
+      this.termsAcceptances(row.profile.id),
     ]);
     const [located] = await this.locate(
       [row],
@@ -181,7 +187,7 @@ export class AdminService {
       }),
     );
     const missing = shiftReadyMissing(row.driver, documents.map((document) => document.type));
-    return { ...located, documents, history, missing, photos };
+    return { ...located, documents, history, missing, photos, termsAcceptances };
   }
 
   /**

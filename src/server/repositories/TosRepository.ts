@@ -19,6 +19,8 @@ export interface ITosRepository {
   findAcceptance(profileId: string, version: string): Promise<TosAcceptance | null>;
   /** Records the acceptance. Accepting the same version twice keeps the first record. */
   record(input: TosAcceptanceInput): Promise<TosAcceptance>;
+  /** Every acceptance of one person, newest first: their own, or any for an admin (RLS). */
+  listByProfile(profileId: string): Promise<TosAcceptance[]>;
 }
 
 export function mapTosAcceptance(row: TosRow): TosAcceptance {
@@ -44,6 +46,13 @@ export class TosRepository extends BaseRepository implements ITosRepository {
       .maybeSingle();
     const row = this.unwrapMaybe(result);
     return row ? mapTosAcceptance(row) : null;
+  }
+
+  async listByProfile(profileId: string): Promise<TosAcceptance[]> {
+    const rows = this.unwrap(
+      await this.supabase.from("tos_acceptances").select("*").eq("profile_id", profileId).order("accepted_at", { ascending: false }),
+    );
+    return rows.map(mapTosAcceptance);
   }
 
   async record(input: TosAcceptanceInput): Promise<TosAcceptance> {

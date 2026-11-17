@@ -317,6 +317,7 @@ export function buildContainer(supabase: TypedSupabaseClient) {
       undefined,
       // The approval text: once, only with consent and not opted out, held for quiet hours.
       ({ driverId }) => buildTextingServices().notificationService.onDriverApproved(driverId),
+      (profileId) => tos.listByProfile(profileId),
     ),
     qrService,
     analyticsService: new AnalyticsService(

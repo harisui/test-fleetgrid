@@ -45,6 +45,7 @@ import {
   DOCUMENT_TYPE_LABELS,
   type AccountStatus,
   type AdminAction,
+  type TosAcceptanceMethod,
 } from "@/types/domain";
 
 interface DriverDetailSheetProps {
@@ -60,6 +61,15 @@ const ACTIONS: Record<AccountStatus, typeof approveDriverAction> = {
   approved: approveDriverAction,
   blocked: blockDriverAction,
   pending: reopenDriverAction,
+};
+
+/** How a driver accepted the Terms (Milestone 6); "unknown" is a row from before the method was kept. */
+const TERMS_METHOD_LABELS: Record<TosAcceptanceMethod | "unknown", string> = {
+  signup: "at sign-up",
+  gate: "on the Terms page after signing in",
+  link: "from the texted link",
+  carrier: "on the carrier Terms page",
+  unknown: "how not recorded",
 };
 
 const HISTORY_LABELS: Partial<Record<AdminAction, string>> = {
@@ -389,6 +399,24 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
                 </li>
               ))}
             </ul>
+          )}
+        </Section>
+
+        <Section title="Terms of Service">
+          {detail.termsAcceptances.length === 0 ? (
+            <p className="text-helper leading-helper text-muted-foreground" data-slot="no-terms">
+              No Terms acceptance on record.
+            </p>
+          ) : (
+            <ol className="flex flex-col gap-2" aria-label="Terms accepted" data-slot="terms-acceptances">
+              {detail.termsAcceptances.map((acceptance) => (
+                <li key={acceptance.id} className="text-helper leading-helper">
+                  <span className="font-semibold">Version {acceptance.version}</span>,{" "}
+                  {TERMS_METHOD_LABELS[acceptance.method ?? "unknown"]},{" "}
+                  {format(new Date(acceptance.acceptedAt), "MMM d, yyyy h:mm a")}
+                </li>
+              ))}
+            </ol>
           )}
         </Section>
 

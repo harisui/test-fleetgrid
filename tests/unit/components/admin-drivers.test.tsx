@@ -1,3 +1,4 @@
+import { format } from "date-fns";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -78,6 +79,7 @@ const detail = (overrides: Partial<AdminDriverDetail> = {}): AdminDriverDetail =
   ...row(),
   documents: [],
   history: [],
+  termsAcceptances: [],
   missing: [],
   photos: [],
   ...overrides,
@@ -285,6 +287,31 @@ describe("DriverDetailSheet", () => {
   it("stays closed without a driver", () => {
     render(<DriverDetailSheet detail={null} closeHref="/admin/drivers" />);
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("lists the Terms the driver accepted, newest first, with how and when (Milestone 6)", () => {
+    const at = (iso: string) => format(new Date(iso), "MMM d, yyyy h:mm a");
+    render(
+      <DriverDetailSheet
+        detail={detail({
+          termsAcceptances: [
+            { id: "t2", profileId: "p", version: "2026-11-v3", acceptedAt: "2026-11-20T15:04:00.000Z", ip: null, userAgent: null, method: "link", statement: "I agree" },
+            { id: "t1", profileId: "p", version: "2026-10-v2", acceptedAt: "2026-11-02T13:00:00.000Z", ip: null, userAgent: null, method: "signup", statement: "I agree" },
+          ],
+        })}
+        closeHref="/admin/drivers"
+      />,
+    );
+    const list = screen.getByRole("list", { name: "Terms accepted" });
+    expect(within(list).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
+      `Version 2026-11-v3, from the texted link, ${at("2026-11-20T15:04:00.000Z")}`,
+      `Version 2026-10-v2, at sign-up, ${at("2026-11-02T13:00:00.000Z")}`,
+    ]);
+  });
+
+  it("says when no Terms acceptance is on record", () => {
+    render(<DriverDetailSheet detail={detail()} closeHref="/admin/drivers" />);
+    expect(screen.getByText("No Terms acceptance on record.")).toBeInTheDocument();
   });
 
   it("shows the full phone, the card, the papers through the admin link, the source and the history", () => {

@@ -27,4 +27,8 @@ export class FakeTosRepository implements ITosRepository {
     this.rows.push(acceptance);
     return acceptance;
   }
+
+  async listByProfile(profileId: string): Promise<TosAcceptance[]> {
+    return this.rows.filter((row) => row.profileId === profileId).sort((a, b) => b.acceptedAt.localeCompare(a.acceptedAt));
+  }
 }

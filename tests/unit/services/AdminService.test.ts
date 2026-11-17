@@ -437,6 +437,28 @@ describe("AdminService", () => {
   });
 
   describe("getDriver", () => {
+    it("reads the driver's Terms acceptances by their account, for the panel (Milestone 6)", async () => {
+      const asked: string[] = [];
+      const acceptance = { id: "t1", profileId: "", version: "2026-10-v2", acceptedAt: NOW.toISOString(), ip: null, userAgent: null, method: "signup" as const, statement: "I agree" };
+      const withTerms = new AdminService(
+        admin,
+        profiles,
+        new FakeServiceAreaRepository(),
+        documents,
+        new FakeQrLinkRepository([QR_LINK]),
+        () => NOW,
+        undefined,
+        async (profileId) => {
+          asked.push(profileId);
+          return [{ ...acceptance, profileId }];
+        },
+      );
+      const detail = await withTerms.getDriver(ADMIN_ID, { driverId: D1 });
+      expect(asked).toEqual([detail.profile.id]);
+      expect(detail.termsAcceptances).toEqual([{ ...acceptance, profileId: detail.profile.id }]);
+      expect((await service.getDriver(ADMIN_ID, { driverId: D1 })).termsAcceptances).toEqual([]);
+    });
+
     it("returns the driver with the area, the papers, the Roster-Ready review and the history", async () => {
       giveDocuments(documents, D1);
       await service.approveDriver(ADMIN_ID, { driverId: D1 });
