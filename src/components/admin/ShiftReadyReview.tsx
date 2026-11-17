@@ -25,12 +25,14 @@ export function RereviewBadge({ className }: { className?: string }) {
 
 /**
  * The admin's Shift-Ready review in the driver sheet (CR-5): the checklist, the three photos
- * side by side with the note, and, for a CDL from another state, the reason box.
+ * side by side with the note, and, for a driver flagged for a CDL transfer review (0044), the
+ * reason box. A CDL from another state on its own needs no reason.
  */
 export function ShiftReadyReview({
   missing,
   photos,
   cdlState,
+  transferReview,
   rereviewNeeded,
   approved,
   override,
@@ -40,13 +42,15 @@ export function ShiftReadyReview({
   missing: ShiftReadyItem[];
   photos: ShiftReadyPhoto[];
   cdlState: string | null;
+  /** Flagged by the attorney's rule: the typed reason clears it. */
+  transferReview: boolean;
   rereviewNeeded: boolean;
   approved: boolean;
   override: string;
   onOverrideChange: (value: string) => void;
   overrideError?: string;
 }) {
-  const needsOverride = cdlState !== "TX";
+  const needsOverride = transferReview;
   return (
     <section className="flex flex-col gap-3" aria-labelledby="shift-ready-review" data-slot="shift-ready-review">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -57,11 +61,13 @@ export function ShiftReadyReview({
       </div>
       <ul className="grid gap-1 sm:grid-cols-2" aria-label={`${ROSTER_READY} checklist`} id="shift-ready-checklist">
         {SHIFT_READY_ITEMS.map((item) => {
-          // The CDL state can be met by the reason typed below.
-          const open = missing.includes(item) && !(item === "cdl_state" && override.trim().length >= 5);
+          // The transfer review can be met by the reason typed below.
+          const open = missing.includes(item) && !(item === "cdl_transfer_review" && override.trim().length >= 5);
           const label =
-            item === "cdl_state" && cdlState !== "TX" && !open && !approved
+            item === "cdl_transfer_review" && transferReview && !open && !approved
               ? `${SHIFT_READY_ITEM_LABELS[item]} (override)`
+              : item === "cdl_transfer_review" && !open
+                ? "No CDL transfer review open"
               : item === "last_name" && !open
                 ? "First and last name"
                 : item === "profile" && !open
@@ -114,8 +120,8 @@ export function ShiftReadyReview({
       </p>
       {needsOverride && !approved && (
         <FormField
-          label={`Why may this driver be ${ROSTER_READY} with a ${cdlState ?? "missing"} CDL state?`}
-          description="Needed for a CDL from outside Texas. Kept with the card and in the history."
+          label={`Why may this driver be ${ROSTER_READY} with a ${cdlState ?? "missing"} CDL and a Texas domicile older than 30 days?`}
+          description="Needed when no transfer to Texas was applied for. Kept with the card and in the history."
           error={overrideError}
           errorIcon={false}
         >

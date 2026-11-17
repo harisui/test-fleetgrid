@@ -1,5 +1,6 @@
 import { forbidden, redirect } from "next/navigation";
 import { ADMIN_SIGN_IN_PATH, ADMIN_VERIFY_PATH, CDL_STATE_PATH, CHOOSE_ROLE_PATH, DRIVER_TERMS_PATH, LOGIN_PATH, ROLE_HOME } from "@/lib/auth/routes";
+import { DOMICILE_PATH } from "@/lib/drivers/domicile";
 import { getContainer } from "@/server/container";
 import {
   CARRIER_STAGE_PATHS,
@@ -59,10 +60,15 @@ export async function requireRole(
  * everyone's acceptance again and they have not given it (Milestone 6). Every driver page but
  * those two calls this.
  */
-export async function requireDriverWithCdlState(): Promise<{ user: SessionUser; profile: Profile }> {
+export async function requireDriverWithCdlState(
+  /** The sign-up itself (its done screen and edits) is never interrupted by the domicile questions. */
+  options: { askDomicile?: boolean } = {},
+): Promise<{ user: SessionUser; profile: Profile }> {
   const session = await requireRole("driver");
   const { driverService, termsService } = await getContainer();
   if (await driverService.needsCdlState(session.user.id)) redirect(CDL_STATE_PATH);
+  // The attorney's domicile questions (0044), once, before the other driver pages.
+  if ((options.askDomicile ?? true) && (await driverService.needsDomicile(session.user.id))) redirect(DOMICILE_PATH);
   if (await termsService.needsAcceptance()) redirect(DRIVER_TERMS_PATH);
   return session;
 }

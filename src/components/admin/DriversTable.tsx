@@ -6,7 +6,8 @@ import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
 import { DataTable, type DataColumn } from "@/components/admin/DataTable";
 import { FilterBar } from "@/components/admin/FilterBar";
 import { MissingDocumentsBadge, NeedsUpdateBadge, PausedNoShowsBadge, TwicIssueBadge } from "@/components/admin/MissingDocumentsBadge";
-import { NotTexasBadge } from "@/components/admin/NotTexasBadge";
+import { TransferReviewBadge } from "@/components/admin/TransferReviewBadge";
+import { needsCdlTransferReview } from "@/lib/drivers/domicile";
 import { RereviewBadge } from "@/components/admin/ShiftReadyReview";
 import { SelfReportBadge } from "@/components/admin/SelfReportBadge";
 import { Badge } from "@/components/ui/badge";
@@ -107,14 +108,14 @@ const COLUMNS: DataColumn<AdminDriverRow>[] = [
   { key: "created", header: "Signed up", cell: signedUp, sortable: true },
 ];
 
-/** The state that issued the CDL, with the "Not Texas CDL" badge for any other (CR-5). */
+/** The state that issued the CDL; any state counts (0044), a flagged transfer shows its badge. */
 function cdlStateCell(row: AdminDriverRow) {
   if (row.driver.cdlState === null) return "Not answered";
-  if (row.driver.cdlState === "TX") return "TX";
+  if (!needsCdlTransferReview(row.driver)) return row.driver.cdlState;
   return (
     <span className="flex items-center gap-2">
       {row.driver.cdlState}
-      <NotTexasBadge />
+      <TransferReviewBadge />
     </span>
   );
 }
@@ -141,7 +142,7 @@ function DriverCard({ row }: { row: AdminDriverRow }) {
       </span>
       <span className="text-helper leading-helper text-muted-foreground">{row.source.label}</span>
       {row.driver.clearinghouseSelfReportedAt && <SelfReportBadge className="self-start" />}
-      {row.driver.cdlState !== null && row.driver.cdlState !== "TX" && <NotTexasBadge className="self-start" />}
+      {needsCdlTransferReview(row.driver) && <TransferReviewBadge className="self-start" />}
       <MissingDocumentsBadge status={row.profile.status} missing={row.missingDocuments} className="self-start" />
       <NeedsUpdateBadge until={row.driver.rosterGraceUntil} missing={row.needsUpdate} className="self-start" />
       {row.driver.shiftsPausedReason === "no_shows" && <PausedNoShowsBadge className="self-start" />}

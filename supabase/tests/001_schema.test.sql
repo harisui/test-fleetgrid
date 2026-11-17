@@ -46,7 +46,8 @@ select columns_are('public', 'drivers', array[
   'medical_card_active', 'clearinghouse_registered', 'mvr_status', 'heard_from', 'heard_from_other',
   'no_show_count', 'shifts_paused', 'reminder_sent_at', 'approval_text_due_at', 'approval_text_sent_at', 'cdl_state',
   'shift_ready_override_reason', 'rereview_needed', 'roster_grace_until', 'last_doc_reminder_at', 'cdl_state_notice_sent_at', 'shifts_paused_reason', 'twic_expires_on', 'twic_issue_at', 'twic_issue_prior_at', 'twic_date_notice_at', 'twic_date_notice_count',
-  'medical_card_expires_on', 'terminals', 'container_skills']);
+  'medical_card_expires_on', 'terminals', 'container_skills',
+  'domicile_state', 'cdl_address_current', 'tx_domicile_within_30_days', 'cdl_transfer_applied', 'domicile_confirmed_at', 'domicile_statement']);
 select columns_are('public', 'driver_documents', array[
   'id', 'driver_id', 'type', 'storage_path', 'file_name', 'mime_type', 'size_bytes',
   'created_at', 'updated_at']);

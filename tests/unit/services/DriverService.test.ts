@@ -481,6 +481,37 @@ describe("DriverService", () => {
       expect(await service.needsCdlState(USER_ID)).toBe(true);
     });
 
+    it("the domicile questions (0044): asked once, judged against the CDL state on record, confirmed with the box", async () => {
+      await service.saveScreen(USER_ID, "lead", SCREEN_INPUTS.lead);
+      // Never in the middle of the sign-up: only a finished card is asked.
+      drivers.rows.set(USER_ID, { ...card(), cdlState: "LA", cardCompleted: false });
+      expect(await service.needsDomicile(USER_ID)).toBe(false);
+      drivers.rows.set(USER_ID, { ...card(), cdlState: "LA", cardCompleted: true });
+      expect(await service.needsDomicile(USER_ID)).toBe(true);
+      // The page claims a Texas CDL to skip the Texas questions; the stored LA one decides.
+      const skipped = await expectAppError(
+        service.saveDomicile(USER_ID, { cdlState: "TX", domicileState: "TX", cdlAddressCurrent: true, confirmed: true }),
+      );
+      expect(skipped.fieldErrors).toEqual({ txDomicileWithin30Days: expect.any(String) });
+      const saved = await service.saveDomicile(USER_ID, {
+        domicileState: "TX",
+        cdlAddressCurrent: true,
+        txDomicileWithin30Days: false,
+        cdlTransferApplied: false,
+        confirmed: true,
+      });
+      expect(saved).toMatchObject({
+        domicileState: "TX",
+        cdlAddressCurrent: true,
+        txDomicileWithin30Days: false,
+        cdlTransferApplied: false,
+        domicileConfirmedAt: NOW.toISOString(),
+      });
+      expect(await service.needsDomicile(USER_ID)).toBe(false);
+      const unconfirmed = await expectAppError(service.saveDomicile(USER_ID, { domicileState: "LA", cdlAddressCurrent: true }));
+      expect(unconfirmed.fieldErrors).toEqual({ confirmed: expect.any(String) });
+    });
+
     it("the one-time question saves a known state only", async () => {
       await service.saveScreen(USER_ID, "lead", SCREEN_INPUTS.lead);
       drivers.rows.set(USER_ID, { ...card(), cdlState: null });

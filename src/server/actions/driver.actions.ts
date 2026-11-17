@@ -69,6 +69,17 @@ export async function setCdlStateAction(input: unknown): Promise<Result<LocatedD
   });
 }
 
+/** The domicile questions (0044): asked once, editable from the profile. */
+export async function saveDomicileAction(input: unknown): Promise<Result<LocatedDriver>> {
+  return runAction(async () => {
+    const { user } = await requireRole("driver");
+    const { driverService } = await getContainer();
+    const driver = await driverService.saveDomicile(user.id, input);
+    revalidatePath("/driver", "layout");
+    return driver;
+  });
+}
+
 export async function updateClearinghouseSelfReportAction(input: unknown): Promise<Result<LocatedDriver>> {
   return runAction(async () => {
     const { user } = await requireRole("driver");

@@ -11,7 +11,8 @@ import { DetailSheet } from "@/components/admin/DetailSheet";
 import { DocReminderButton } from "@/components/admin/DocReminderButton";
 import { DriverOpsActions } from "@/components/admin/DriverOpsActions";
 import { MissingDocumentsBadge, NeedsUpdateBadge, TwicIssueBadge } from "@/components/admin/MissingDocumentsBadge";
-import { NotTexasBadge } from "@/components/admin/NotTexasBadge";
+import { TransferReviewBadge } from "@/components/admin/TransferReviewBadge";
+import { asksTexas30Days, needsCdlTransferReview } from "@/lib/drivers/domicile";
 import { ShiftReadyReview } from "@/components/admin/ShiftReadyReview";
 import { SelfReportBadge } from "@/components/admin/SelfReportBadge";
 import { areaLabel, smsLabel } from "@/components/admin/DriversTable";
@@ -64,6 +65,9 @@ const ACTIONS: Record<AccountStatus, typeof approveDriverAction> = {
 };
 
 /** How a driver accepted the Terms (Milestone 6); "unknown" is a row from before the method was kept. */
+/** A domicile answer (0044), self-reported. */
+const yesNo = (value: boolean | null) => (value === null ? "Not answered" : value ? "Yes" : "No");
+
 const TERMS_METHOD_LABELS: Record<TosAcceptanceMethod | "unknown", string> = {
   signup: "at sign-up",
   gate: "on the Terms page after signing in",
@@ -188,14 +192,14 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
   const canApprove = profile.status !== "approved";
   const canMarkReviewed = profile.status === "approved" && driver.rereviewNeeded;
   const canMarkForRereview = profile.status === "approved" && !driver.rereviewNeeded;
-  // Everything but the CDL state must be in; that one an admin may meet with a typed reason.
-  const blocking = detail.missing.filter((item) => item !== "cdl_state");
-  const needsReason = detail.missing.includes("cdl_state");
+  // Everything but a flagged CDL transfer must be in; that one an admin may meet with a typed reason (0044).
+  const blocking = detail.missing.filter((item) => item !== "cdl_transfer_review");
+  const needsReason = detail.missing.includes("cdl_transfer_review");
   const ready = blocking.length === 0 && (!needsReason || override.trim().length >= 5);
   const notReadyReason =
     blocking.length > 0
       ? `Missing: ${blocking.map((item) => SHIFT_READY_ITEM_LABELS[item]).join(", ")}.`
-      : "Type why a CDL from outside Texas is accepted.";
+      : "Type why the CDL transfer question is accepted.";
   const canBlock = profile.status !== "blocked";
   const canReopen = profile.status !== "pending";
   const confirmation = confirming ? CONFIRMATIONS[confirming] : null;
@@ -270,7 +274,7 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
           ) : (
             <AdminStatusBadge status="incomplete" />
           )}
-          {driver.cdlState !== null && driver.cdlState !== "TX" && <NotTexasBadge />}
+          {needsCdlTransferReview(driver) && <TransferReviewBadge />}
           <MissingDocumentsBadge status={profile.status} missing={detail.missingDocuments} />
           <NeedsUpdateBadge until={driver.rosterGraceUntil} missing={detail.needsUpdate} />
           <TwicIssueBadge issue={twicIssue(driver)} />
@@ -283,6 +287,7 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
           missing={detail.missing}
           photos={detail.photos}
           cdlState={driver.cdlState}
+          transferReview={needsCdlTransferReview(driver)}
           rereviewNeeded={driver.rereviewNeeded}
           approved={profile.status === "approved"}
           override={override}
@@ -317,6 +322,17 @@ export function DriverDetailSheet({ detail, closeHref, docReminder = null }: Dri
             </div>
             <Row label="Location" value={driver.zip ? `${driver.city ?? ""}, ${driver.state ?? ""} ${driver.zip}`.replace(/^, /, "") : "Not yet"} />
             <Row label="CDL state" value={driver.cdlState ?? "Not answered"} />
+            <Row label="State of domicile" value={driver.domicileConfirmedAt ? (driver.domicileState ?? "Not answered") : "Not answered yet"} />
+            {driver.domicileConfirmedAt && (
+              <>
+                <Row label="Address on the CDL current" value={yesNo(driver.cdlAddressCurrent)} />
+                {asksTexas30Days(driver) && <Row label="Texas domicile within 30 days" value={yesNo(driver.txDomicileWithin30Days)} />}
+                {asksTexas30Days(driver) && driver.txDomicileWithin30Days === false && (
+                  <Row label="Transfer to Texas applied for" value={yesNo(driver.cdlTransferApplied)} />
+                )}
+                <Row label="Domicile confirmed" value={format(new Date(driver.domicileConfirmedAt), "MMM d, yyyy h:mm a")} />
+              </>
+            )}
             <Row label="Shift texts" value={smsLabel(detail)} />
             <Row
               label="Documents reminder"

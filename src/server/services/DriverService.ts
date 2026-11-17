@@ -27,6 +27,8 @@ import {
   transmissionScreenSchema,
   ZIP_UNKNOWN_MESSAGE,
 } from "@/lib/validation/onboarding.schema";
+import { DOMICILE_STATEMENT, needsDomicileAnswers } from "@/lib/drivers/domicile";
+import { domicileSchema } from "@/lib/validation/domicile.schema";
 import { AppError, parseInput } from "@/server/errors/AppError";
 import type { IZipProvider } from "@/server/providers/ZipProvider";
 import type { IConsentLogRepository } from "@/server/repositories/ConsentLogRepository";
@@ -298,6 +300,34 @@ export class DriverService {
     const existing = await this.drivers.findByProfileId(userId);
     if (!existing) throw AppError.validation("Start with the first step");
     return this.locate(await this.drivers.update(userId, { cdlState }));
+  }
+
+  /**
+   * The attorney's domicile questions (0044), with the confirmation, recorded with its words and
+   * the time. Validated against the CDL state on record, not the one the page sent.
+   */
+  async saveDomicile(userId: string, input: unknown): Promise<LocatedDriver> {
+    await this.requireDriverProfile(userId);
+    const existing = await this.drivers.findByProfileId(userId);
+    if (!existing) throw AppError.validation("Start with the first step");
+    const raw = typeof input === "object" && input !== null ? input : {};
+    const answers = parseInput(domicileSchema, { ...raw, cdlState: existing.cdlState });
+    return this.locate(
+      await this.drivers.update(userId, {
+        ...answers,
+        domicileConfirmedAt: this.now().toISOString(),
+        domicileStatement: DOMICILE_STATEMENT,
+      }),
+    );
+  }
+
+  /**
+   * True when the driver finished the sign-up but has not answered the domicile questions (0044).
+   * Asked after the sign-up, never in the middle of it.
+   */
+  async needsDomicile(userId: string): Promise<boolean> {
+    const existing = await this.drivers.findByProfileId(userId);
+    return existing !== null && existing.cardCompleted && needsDomicileAnswers(existing);
   }
 
   /** True when the driver has a card but has not said which state issued the CDL (CR-5). */

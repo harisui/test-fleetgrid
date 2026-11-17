@@ -278,6 +278,15 @@ export interface Driver {
   /** Optional, self-reported terminal experience (0041). */
   terminals: Terminal[];
   containerSkills: ContainerSkill[];
+  /** The attorney's domicile questions (0044); null until answered. */
+  domicileState: string | null;
+  cdlAddressCurrent: boolean | null;
+  /** Asked only with a Texas domicile and a CDL from another state. */
+  txDomicileWithin30Days: boolean | null;
+  /** Asked only when that Texas domicile is older than 30 days. */
+  cdlTransferApplied: boolean | null;
+  /** When the driver confirmed the answers are accurate. */
+  domicileConfirmedAt: string | null;
   /** CDL drivers only. Null for everyone else. */
   clearinghouseRegistered: boolean | null;
   /** Moving violations in the last 3 years, in three levels. */

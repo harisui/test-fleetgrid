@@ -48,9 +48,17 @@ select pg_temp.doc('medical_card');
 select is(pg_temp.missing(), '{}'::text[], 'nothing missing');
 
 -- Each other requirement alone.
+-- A CDL from any state counts (0044, the attorney); a flagged transfer is what blocks.
 update public.drivers set cdl_state = 'LA' where id = 'd0000051-0000-4000-8000-000000000000';
-select throws_ok($$ select pg_temp.approve() $$, '23514', 'Not Shift-Ready: cdl_state', 'a CDL from another state alone blocks it');
-update public.drivers set cdl_state = null where id = 'd0000051-0000-4000-8000-000000000000';
+select is(pg_temp.missing(), '{}'::text[], 'a CDL from another state alone no longer blocks it (0044)');
+update public.drivers set domicile_state = 'TX', tx_domicile_within_30_days = false, cdl_transfer_applied = false where id = 'd0000051-0000-4000-8000-000000000000';
+select throws_ok($$ select pg_temp.approve() $$, '23514', 'Not Shift-Ready: cdl_transfer_review',
+  'a Texas home over 30 days, a CDL from another state and no transfer applied for blocks it');
+update public.drivers set cdl_transfer_applied = true where id = 'd0000051-0000-4000-8000-000000000000';
+select is(pg_temp.missing(), '{}'::text[], 'a transfer applied for clears it');
+update public.drivers set tx_domicile_within_30_days = true, cdl_transfer_applied = null where id = 'd0000051-0000-4000-8000-000000000000';
+select is(pg_temp.missing(), '{}'::text[], 'so does a Texas home of under 30 days');
+update public.drivers set cdl_state = null, domicile_state = null, tx_domicile_within_30_days = null where id = 'd0000051-0000-4000-8000-000000000000';
 select throws_ok($$ select pg_temp.approve() $$, '23514', 'Not Shift-Ready: cdl_state', 'no CDL state blocks it too');
 update public.drivers set cdl_state = 'TX', full_name = 'Ready' where id = 'd0000051-0000-4000-8000-000000000000';
 select throws_ok($$ select pg_temp.approve() $$, '23514', 'Not Shift-Ready: last_name', 'a one-word name alone blocks it');
@@ -58,11 +66,12 @@ update public.drivers set full_name = 'Ready Driver', card_completed = false whe
 select throws_ok($$ select pg_temp.approve() $$, '23514', 'Not Shift-Ready: profile', 'an unfinished card alone blocks it');
 update public.drivers set card_completed = true where id = 'd0000051-0000-4000-8000-000000000000';
 
--- The override: a reason of at least five characters lets another state through.
+-- The override: a reason of at least five characters lets a flagged transfer through.
 select throws_ok($$ update public.drivers set shift_ready_override_reason = 'ok' where id = 'd0000051-0000-4000-8000-000000000000' $$,
   '23514', null, 'the override needs a real reason');
-update public.drivers set cdl_state = 'LA', shift_ready_override_reason = 'Moving to Houston, Texas CDL in progress' where id = 'd0000051-0000-4000-8000-000000000000';
-select lives_ok($$ select pg_temp.approve() $$, 'with the reason, a Louisiana CDL can be Shift-Ready');
+update public.drivers set cdl_state = 'LA', domicile_state = 'TX', tx_domicile_within_30_days = false, cdl_transfer_applied = false,
+  shift_ready_override_reason = 'Moving to Houston, Texas CDL in progress' where id = 'd0000051-0000-4000-8000-000000000000';
+select lives_ok($$ select pg_temp.approve() $$, 'with the reason, a flagged Louisiana CDL can be Shift-Ready');
 select ok(public.is_shift_ready('d0000051-0000-4000-8000-000000000000'), 'is_shift_ready agrees');
 
 -- A new required upload sends the driver back to Registered with re-review, audited as the system.
@@ -85,12 +94,20 @@ delete from public.driver_documents where driver_id = 'd0000051-0000-4000-8000-0
 select is(pg_temp.status(), 'pending', 'deleting the medical card moves the driver back');
 select pg_temp.doc('medical_card');
 
--- The CDL state and the name.
-update public.drivers set shift_ready_override_reason = null, cdl_state = 'TX' where id = 'd0000051-0000-4000-8000-000000000000';
+-- The CDL state, the domicile answers and the name.
+update public.drivers set shift_ready_override_reason = null, cdl_state = 'TX', domicile_state = 'TX',
+  tx_domicile_within_30_days = null, cdl_transfer_applied = null where id = 'd0000051-0000-4000-8000-000000000000';
 select pg_temp.approve();
 update public.drivers set cdl_state = 'OK' where id = 'd0000051-0000-4000-8000-000000000000';
-select is(pg_temp.status(), 'pending', 'moving the CDL state away from Texas without an override moves the driver back');
-update public.drivers set cdl_state = 'TX' where id = 'd0000051-0000-4000-8000-000000000000';
+select is(pg_temp.status(), 'approved', 'a CDL from another state on its own keeps the driver (0044)');
+update public.drivers set tx_domicile_within_30_days = false, cdl_transfer_applied = false where id = 'd0000051-0000-4000-8000-000000000000';
+select is(pg_temp.status(), 'pending', 'answers that call for the transfer review move the driver back');
+select ok(
+  exists (select 1 from public.admin_audit_log where target_id = 'd0000051-0000-4000-8000-000000000000'
+          and action = 'driver_rereview_needed' and detail->>'reason' = 'cdl_transfer_review'),
+  'audited with the reason'
+);
+update public.drivers set cdl_state = 'TX', tx_domicile_within_30_days = null, cdl_transfer_applied = null where id = 'd0000051-0000-4000-8000-000000000000';
 select pg_temp.approve();
 update public.drivers set full_name = 'Driver' where id = 'd0000051-0000-4000-8000-000000000000';
 select is(pg_temp.status(), 'pending', 'a one-word name moves the driver back');

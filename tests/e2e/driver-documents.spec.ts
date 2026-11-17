@@ -24,7 +24,17 @@ async function startWithCard(page: Page): Promise<string> {
   const userId = await seedUser(PHONES.driver, "driver");
   const { data, error } = await adminClient()
     .from("drivers")
-    .insert({ profile_id: userId, full_name: "Pat Driver", state: "TX", zip: "75201", cdl_state: "TX" })
+    .insert({
+      profile_id: userId,
+      full_name: "Pat Driver",
+      state: "TX",
+      zip: "75201",
+      cdl_state: "TX",
+      // The domicile questions (0044), answered, so the pages open straight away.
+      domicile_state: "TX",
+      cdl_address_current: true,
+      domicile_confirmed_at: new Date().toISOString(),
+    })
     .select("id")
     .single();
   if (error) throw error;

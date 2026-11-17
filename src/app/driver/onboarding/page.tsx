@@ -8,7 +8,8 @@ import { getContainer } from "@/server/container";
 export const metadata: Metadata = { title: "Set up your profile" };
 
 export default async function DriverOnboardingPage() {
-  const { user } = await requireDriverWithCdlState();
+  // The sign-up and its done screen are never interrupted; the driver pages ask the domicile questions.
+  const { user } = await requireDriverWithCdlState({ askDomicile: false });
   const { driverService } = await getContainer();
   const state = await driverService.getOnboardingState(user.id);
 

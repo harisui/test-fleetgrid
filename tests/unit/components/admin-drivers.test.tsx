@@ -127,7 +127,7 @@ describe("MissingDocumentsBadge (CR-5)", () => {
 
   it("a driver in the grace period reads Needs update by the date, with what is missing", () => {
     const { container } = render(<NeedsUpdateBadge until="2026-11-19T18:00:00.000Z" missing={["medical_card", "cdl_state"]} />);
-    expect(container.querySelector("[data-slot=needs-update]")).toHaveTextContent("Needs update by Nov 19: Medical card, Texas CDL");
+    expect(container.querySelector("[data-slot=needs-update]")).toHaveTextContent("Needs update by Nov 19: Medical card, CDL state");
     expect(container.querySelector("svg")).not.toBeNull();
   });
 
@@ -145,22 +145,36 @@ describe("MissingDocumentsBadge (CR-5)", () => {
 });
 
 describe("DriversTable", () => {
-  it("shows the CDL state, with the Not Texas CDL badge for any other state (CR-5)", () => {
+  it("shows the CDL state; any state is fine, and a flagged CDL transfer carries its badge (0044)", () => {
     const louisiana = row({
-      driver: buildDriver({ id: "d3", profileId: OTHER_USER_ID, fullName: "Lou Isiana", cdlState: "LA" }),
+      driver: buildDriver({ id: "d3", profileId: OTHER_USER_ID, fullName: "Lou Isiana", cdlState: "LA", domicileState: "LA" }),
       profile: buildProfile({ id: OTHER_USER_ID, phone: "+15555550108", status: "pending" }),
+    });
+    const flagged = row({
+      driver: buildDriver({
+        id: "d5",
+        profileId: "d5",
+        fullName: "Tex Moved",
+        cdlState: "OK",
+        domicileState: "TX",
+        txDomicileWithin30Days: false,
+        cdlTransferApplied: false,
+      }),
+      profile: buildProfile({ id: "d5", phone: "+15555550107", status: "pending" }),
     });
     const unanswered = row({
       driver: buildDriver({ id: "d4", profileId: "d4", fullName: "No State", cdlState: null }),
       profile: buildProfile({ id: "d4", phone: "+15555550109", status: "pending" }),
     });
-    render(<DriversTable page={page({ rows: [row(), louisiana, unanswered], total: 3 })} />);
+    render(<DriversTable page={page({ rows: [row(), louisiana, flagged, unanswered], total: 4 })} />);
     const table = screen.getByRole("table", { name: "Drivers" });
     const rowOf = (name: string) => within(table).getByText(name).closest("tr") as HTMLElement;
-    expect(rowOf("Lou Isiana")).toHaveTextContent("LANot Texas CDL");
-    expect(within(rowOf("Lou Isiana")).getByText("Not Texas CDL").closest("[data-slot=not-texas]")).toHaveAttribute("data-variant", "warning");
+    expect(rowOf("Lou Isiana")).toHaveTextContent("LA");
+    expect(rowOf("Lou Isiana")).not.toHaveTextContent("CDL transfer review");
+    expect(rowOf("Tex Moved")).toHaveTextContent("OKCDL transfer review");
+    expect(within(rowOf("Tex Moved")).getByText("CDL transfer review").closest("[data-slot=transfer-review]")).toHaveAttribute("data-variant", "warning");
     expect(rowOf("No State")).toHaveTextContent("Not answered");
-    expect(rowOf("Pat Driver")).not.toHaveTextContent("Not Texas CDL");
+    expect(rowOf("Pat Driver")).not.toHaveTextContent("CDL transfer review");
     expect(screen.getByRole("combobox", { name: "CDL state" })).toBeInTheDocument();
   });
 
@@ -462,18 +476,22 @@ describe("DriverDetailSheet", () => {
     expect(screen.getByText("Check the name, state and expiry match the profile.")).toBeInTheDocument();
   });
 
-  it("a CDL from another state needs the typed reason before Mark Roster-Ready, which carries it", async () => {
+  it("a flagged CDL transfer needs the typed reason before Mark Roster-Ready, which carries it (0044)", async () => {
     actions.approveDriverAction.mockResolvedValue(ok(buildProfile({ status: "approved" })));
     render(
       <DriverDetailSheet
-        detail={detail({ missing: ["cdl_state"], driver: buildDriver({ cdlState: "LA" }) })}
+        detail={detail({
+          missing: ["cdl_transfer_review"],
+          driver: buildDriver({ cdlState: "LA", domicileState: "TX", txDomicileWithin30Days: false, cdlTransferApplied: false }),
+        })}
         closeHref="/admin/drivers"
       />,
     );
+    expect(screen.getAllByText("CDL transfer review").length).toBeGreaterThan(0);
     const mark = screen.getByRole("button", { name: "Mark Roster-Ready" });
     expect(mark).toBeDisabled();
-    expect(mark).toHaveAccessibleDescription("Type why a CDL from outside Texas is accepted.");
-    await userEvent.type(screen.getByLabelText(/Roster-Ready with a LA CDL state/), "Moving to Houston soon");
+    expect(mark).toHaveAccessibleDescription("Type why the CDL transfer question is accepted.");
+    await userEvent.type(screen.getByLabelText(/Roster-Ready with a LA CDL and a Texas domicile older than 30 days/), "Moving to Houston soon");
     expect(mark).toBeEnabled();
     await userEvent.click(mark);
     await userEvent.click(within(await screen.findByRole("dialog")).getByRole("button", { name: "Mark Roster-Ready" }));
@@ -483,6 +501,12 @@ describe("DriverDetailSheet", () => {
         overrideReason: "Moving to Houston soon",
       }),
     );
+  });
+
+  it("a CDL from another state with no flag is marked without a reason (0044)", () => {
+    render(<DriverDetailSheet detail={detail({ driver: buildDriver({ cdlState: "LA", domicileState: "LA" }) })} closeHref="/admin/drivers" />);
+    expect(screen.queryByText("CDL transfer review")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Why may this driver be Roster-Ready/)).not.toBeInTheDocument();
   });
 
   it("shows Re-review needed when a Roster-Ready driver changed a document", () => {

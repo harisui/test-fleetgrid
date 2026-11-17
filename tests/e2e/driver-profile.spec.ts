@@ -40,6 +40,10 @@ async function startWithCompletedCard(
       full_name: "Pat Driver",
       // Asked on the lead since CR-5; without it every driver page asks it first.
       cdl_state: "TX",
+      // The domicile questions (0044), answered, so the pages open straight away.
+      domicile_state: "TX",
+      cdl_address_current: true,
+      domicile_confirmed_at: new Date().toISOString(),
       city: place.city,
       state: place.state,
       zip: place.zip,

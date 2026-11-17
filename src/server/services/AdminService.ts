@@ -20,6 +20,7 @@ import {
   type AdminDriversQuery,
 } from "@/lib/validation/admin.schema";
 import { documentIdSchema } from "@/lib/validation/document.schema";
+import { needsCdlTransferReview } from "@/lib/drivers/domicile";
 import { AppError, parseInput } from "@/server/errors/AppError";
 import type { DriverReviewRow, IAdminRepository } from "@/server/repositories/AdminRepository";
 import type { IDocumentRepository } from "@/server/repositories/DocumentRepository";
@@ -192,8 +193,10 @@ export class AdminService {
 
   /**
    * Mark Shift-Ready (CR-5): only when the CDL front, the CDL back and the medical card are in,
-   * the name has two words and the card is complete. A CDL from another state needs a typed
-   * reason, kept on the card and in the audit log. The database checks the same rule again.
+   * the name has two words and the card is complete. A driver flagged for a CDL transfer review
+   * (0044: Texas domicile older than 30 days, CDL from another state, no transfer applied for)
+   * needs a typed reason, kept on the card and in the audit log; a CDL from another state on its
+   * own no longer does. The database checks the same rule again.
    */
   async approveDriver(adminId: string, input: unknown): Promise<Profile> {
     const admin = await this.requireAdmin(adminId);
@@ -204,7 +207,7 @@ export class AdminService {
     const previous = row.profile.status;
 
     const documents = await this.documents.listByDriverId(driverId);
-    const needsOverride = row.driver.cdlState !== "TX";
+    const needsOverride = needsCdlTransferReview(row.driver);
     const missing = shiftReadyMissing(
       { ...row.driver, shiftReadyOverrideReason: needsOverride ? (overrideReason ?? null) : null },
       documents.map((document) => document.type),
@@ -238,7 +241,7 @@ export class AdminService {
         from: previous,
         to: "approved",
         name: row.driver.fullName,
-        ...(needsOverride ? { cdlState: row.driver.cdlState, overrideReason } : {}),
+        ...(needsOverride ? { cdlState: row.driver.cdlState, domicileState: row.driver.domicileState, overrideReason } : {}),
       },
     });
     await this.onDriverApproved({ driverId, smsOptIn: row.driver.smsOptIn }).catch(() => undefined);

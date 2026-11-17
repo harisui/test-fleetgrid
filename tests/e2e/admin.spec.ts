@@ -208,22 +208,31 @@ test.describe("admin drivers", () => {
     await expect(page.getByRole("heading", { level: 1, name: "403" })).toBeVisible();
   });
 
-  test("a CDL from outside Texas needs a typed reason, which the history keeps", async ({ page }) => {
-    const { driverId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP, { cdl_state: "LA" });
+  test("a flagged CDL transfer needs a typed reason, which the history keeps (0044)", async ({ page }) => {
+    const { driverId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP, {
+      cdl_state: "LA",
+      domicile_state: "TX",
+      tx_domicile_within_30_days: false,
+      cdl_transfer_applied: false,
+    });
     await uploadRequiredDocuments(driverId!);
     await loginAdmin(page);
     await page.goto(`/admin/drivers?open=${driverId}`);
     const sheet = page.getByRole("dialog", { name: "Pat Driver" });
     const mark = sheet.getByRole("button", { name: "Mark Roster-Ready" });
     await expect(mark).toBeDisabled();
-    await expect(sheet.locator("[data-slot=approve-reason]")).toHaveText("Type why a CDL from outside Texas is accepted.");
-    await sheet.getByLabel(/Roster-Ready with a LA CDL state/).fill("Moving to Houston, Texas CDL booked for next week");
+    await expect(sheet.locator("[data-slot=transfer-review]").first()).toHaveText("CDL transfer review");
+    await expect(sheet.locator("[data-slot=approve-reason]")).toHaveText("Type why the CDL transfer question is accepted.");
+    await sheet.getByLabel(/Roster-Ready with a LA CDL and a Texas domicile older than 30 days/).fill("Moving to Houston, Texas CDL booked for next week");
     await mark.click();
     await page.getByRole("dialog", { name: "Mark Pat Driver Roster-Ready?" }).getByRole("button", { name: "Mark Roster-Ready" }).click();
     await expect(page.getByText(/^Roster-Ready\./)).toBeVisible();
     await expect(sheet.getByRole("list", { name: "History" })).toContainText("override: Moving to Houston");
     const [entry] = (await auditFor(driverId!)).slice(-1);
-    expect(entry).toMatchObject({ action: "driver_approved", detail: { cdlState: "LA", overrideReason: "Moving to Houston, Texas CDL booked for next week" } });
+    expect(entry).toMatchObject({
+      action: "driver_approved",
+      detail: { cdlState: "LA", domicileState: "TX", overrideReason: "Moving to Houston, Texas CDL booked for next week" },
+    });
   });
 
   test("the Ready to review filter finds a Registered driver with everything on file", async ({ page }) => {

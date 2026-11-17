@@ -23,7 +23,7 @@ export default async function CdlStatePage() {
         <div className="flex flex-col gap-2">
           <h1 className="text-2xl font-semibold tracking-tight">Which state issued your CDL?</h1>
           <p className="text-helper leading-helper text-muted-foreground">
-            One quick question before you go on. FleetGrid starts with Texas CDL holders, so we need the state on your card.
+            One quick question before you go on. A valid CDL from any state is accepted; we need the state on your card.
           </p>
         </div>
         <CdlStateQuestion />

@@ -12,6 +12,7 @@ import {
   screenHeading,
   seedDriverAtStep,
   seedUser,
+  answerDomicile,
 } from "./helpers";
 
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
@@ -255,7 +256,9 @@ test.describe("driver onboarding, a page per mile", () => {
     await expect(chip(page, "100 miles")).toHaveAttribute("aria-pressed", "true");
     await page.goto("/driver/onboarding");
     await expect(screenHeading(page)).toHaveText("You're in!");
-    await page.getByRole("link", { name: "Go to my profile" }).click();
+    // Then the domicile questions, once (0044), before the driver pages; the sign-up never asks them.
+    await answerDomicile(page);
+    await page.goto("/driver/profile");
     await expect(page).toHaveURL(/\/driver\/profile$/);
   });
 
@@ -353,6 +356,8 @@ test.describe("driver onboarding, a page per mile", () => {
     expect(await driverRow()).toMatchObject({ card_completed: true, onboarding_step: 12 });
 
     await page.getByRole("link", { name: "Go to my profile" }).click();
+    await answerDomicile(page);
+    await page.goto("/driver/profile");
     await expect(page).toHaveURL(/\/driver\/profile$/);
     const status = page.getByRole("region", { name: "Account status" });
     await expect(status.getByText("Outside launch area")).toBeVisible();
@@ -612,6 +617,8 @@ test.describe("driver onboarding, a page per mile", () => {
     expect(noLog).toEqual([]);
 
     // The profile opens, prompts, and turns texts on with the same consent box.
+    await page.goto("/driver/profile");
+    await answerDomicile(page);
     await page.goto("/driver/profile");
     await expect(page).toHaveURL(/\/driver\/profile$/);
     await expect(page.getByText("Not subscribed")).toBeVisible();

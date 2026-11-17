@@ -10,6 +10,7 @@ import { ProfileEditor } from "@/components/driver/ProfileEditor";
 import { RosterStatusBanner } from "@/components/driver/RosterStatusBanner";
 import { requireDriverWithCdlState } from "@/lib/auth/guards";
 import { shiftReadyMissing } from "@/lib/drivers/tiers";
+import { DOMICILE_PATH } from "@/lib/drivers/domicile";
 import { MEDICAL_DATE_PROMPT, needsMedicalDate } from "@/lib/drivers/medical";
 import { needsTwicDate, TWIC_DATE_PROMPT } from "@/lib/drivers/twic";
 import { getContainer } from "@/server/container";
@@ -47,6 +48,15 @@ export default async function DriverProfilePage() {
         </InlineNote>
       )}
       <AccountStatusCard profile={profile} driver={state.driver} />
+      <section className="flex flex-col gap-1 rounded-card border border-border bg-card p-4" data-slot="domicile-summary">
+        <h2 className="font-semibold">Where you live</h2>
+        <p className="text-helper leading-helper text-muted-foreground">
+          State of domicile: {state.driver.domicileState ?? "not answered"}.{" "}
+          <Link href={DOMICILE_PATH} className="font-semibold text-foreground underline underline-offset-4">
+            Update your answers
+          </Link>
+        </p>
+      </section>
       <ClearinghouseSelfReportControl confirmedAt={state.driver.clearinghouseSelfReportedAt} />
       <ProfileEditor driver={state.driver} />
       <DeleteAccountCard phone={phoneOf(user)} />

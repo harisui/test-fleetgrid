@@ -67,6 +67,12 @@ export interface DriverPatch {
   medicalCardExpiresOn?: string | null;
   terminals?: Terminal[];
   containerSkills?: ContainerSkill[];
+  domicileState?: string | null;
+  cdlAddressCurrent?: boolean | null;
+  txDomicileWithin30Days?: boolean | null;
+  cdlTransferApplied?: boolean | null;
+  domicileConfirmedAt?: string | null;
+  domicileStatement?: string | null;
   clearinghouseRegistered?: boolean | null;
   mvrStatus?: MvrStatus | null;
   smsOptIn?: boolean;
@@ -132,6 +138,11 @@ export function mapDriver(row: DriverRow & { driver_clearinghouse_self_reports?:
     medicalCardExpiresOn: row.medical_card_expires_on,
     terminals: row.terminals,
     containerSkills: row.container_skills,
+    domicileState: row.domicile_state,
+    cdlAddressCurrent: row.cdl_address_current,
+    txDomicileWithin30Days: row.tx_domicile_within_30_days,
+    cdlTransferApplied: row.cdl_transfer_applied,
+    domicileConfirmedAt: row.domicile_confirmed_at,
     clearinghouseRegistered: row.clearinghouse_registered,
     mvrStatus: row.mvr_status,
     smsOptIn: row.sms_opt_in,
@@ -186,6 +197,12 @@ export function toDriverUpdate(patch: DriverPatch): DriverUpdate {
     medicalCardExpiresOn: "medical_card_expires_on",
     terminals: "terminals",
     containerSkills: "container_skills",
+    domicileState: "domicile_state",
+    cdlAddressCurrent: "cdl_address_current",
+    txDomicileWithin30Days: "tx_domicile_within_30_days",
+    cdlTransferApplied: "cdl_transfer_applied",
+    domicileConfirmedAt: "domicile_confirmed_at",
+    domicileStatement: "domicile_statement",
     clearinghouseRegistered: "clearinghouse_registered",
     mvrStatus: "mvr_status",
     smsOptIn: "sms_opt_in",

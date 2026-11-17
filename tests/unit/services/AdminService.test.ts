@@ -622,9 +622,23 @@ describe("AdminService", () => {
       expect(admin.statusChanges).toEqual([]);
     });
 
-    it("a CDL from another state needs a typed reason, kept on the card and in the audit log", async () => {
+    it("a CDL from another state on its own needs no reason (0044, the attorney)", async () => {
       giveDocuments(documents, D1);
-      admin.rows[0].driver = { ...admin.rows[0].driver, cdlState: "LA" };
+      admin.rows[0].driver = { ...admin.rows[0].driver, cdlState: "LA", domicileState: "LA", cdlAddressCurrent: true };
+      await service.approveDriver(ADMIN_ID, { driverId: D1 });
+      expect(admin.overrides).toEqual([{ driverId: D1, reason: null }]);
+      expect(admin.audit.at(-1)?.detail).not.toHaveProperty("overrideReason");
+    });
+
+    it("a flagged CDL transfer (Texas home over 30 days, CDL from another state, no transfer) needs a typed reason, kept on the card and in the audit log", async () => {
+      giveDocuments(documents, D1);
+      admin.rows[0].driver = {
+        ...admin.rows[0].driver,
+        cdlState: "LA",
+        domicileState: "TX",
+        txDomicileWithin30Days: false,
+        cdlTransferApplied: false,
+      };
       const missing = await expectAppError(service.approveDriver(ADMIN_ID, { driverId: D1 }));
       expect(missing.fieldErrors).toEqual({ overrideReason: expect.stringMatching(/at least 5 characters/) });
       const short = await expectAppError(service.approveDriver(ADMIN_ID, { driverId: D1, overrideReason: "ok" }));
@@ -635,7 +649,7 @@ describe("AdminService", () => {
       expect(admin.overrides).toEqual([{ driverId: D1, reason: "Moving to Houston, Texas CDL in progress" }]);
       expect(admin.audit.at(-1)).toMatchObject({
         action: "driver_approved",
-        detail: { cdlState: "LA", overrideReason: "Moving to Houston, Texas CDL in progress" },
+        detail: { cdlState: "LA", domicileState: "TX", overrideReason: "Moving to Houston, Texas CDL in progress" },
       });
     });
 

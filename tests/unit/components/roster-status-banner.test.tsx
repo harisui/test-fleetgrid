@@ -35,7 +35,7 @@ describe("RosterStatusBanner (CR-5 part 5)", () => {
     render(<RosterStatusBanner status="pending" missing={["cdl_state", "last_name"]} textsOn />);
     expect(banner()).toHaveTextContent("To start getting shift offers, we still need:");
     expect(banner()).not.toHaveTextContent("Upload your CDL");
-    expect(within(banner()).getByRole("link", { name: "A Texas CDL" })).toHaveAttribute("href", "/driver/profile");
+    expect(within(banner()).getByRole("link", { name: "The state that issued your CDL" })).toHaveAttribute("href", "/driver/profile");
     expect(within(banner()).getByRole("link", { name: "Your last name" })).toHaveAttribute("href", "/driver/profile");
   });
 

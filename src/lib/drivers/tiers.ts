@@ -1,4 +1,5 @@
 import { houstonDate } from "@/lib/drivers/twic";
+import { DOMICILE_PATH, needsCdlTransferReview } from "@/lib/drivers/domicile";
 import { medicalCardExpired } from "@/lib/drivers/medical";
 import type { AccountStatus, DocumentType, Driver } from "@/types/domain";
 
@@ -25,7 +26,16 @@ export const DRIVER_STATUS_LABELS: Record<AccountStatus, string> = {
 };
 
 /** What Shift-Ready needs, in the order the checklist shows it (shift_ready_missing in 0028). */
-export const SHIFT_READY_ITEMS = ["cdl_front", "cdl_back", "medical_card", "medical_card_expired", "cdl_state", "last_name", "profile"] as const;
+export const SHIFT_READY_ITEMS = [
+  "cdl_front",
+  "cdl_back",
+  "medical_card",
+  "medical_card_expired",
+  "cdl_state",
+  "cdl_transfer_review",
+  "last_name",
+  "profile",
+] as const;
 export type ShiftReadyItem = (typeof SHIFT_READY_ITEMS)[number];
 
 /** The documents Shift-Ready needs. */
@@ -36,7 +46,8 @@ export const SHIFT_READY_ITEM_LABELS: Record<ShiftReadyItem, string> = {
   cdl_back: "CDL back photo",
   medical_card: "Medical card",
   medical_card_expired: "Medical card expired",
-  cdl_state: "Texas CDL",
+  cdl_state: "CDL state",
+  cdl_transfer_review: "CDL transfer review",
   last_name: "Last name missing",
   profile: "Profile not complete",
 };
@@ -64,7 +75,8 @@ export const DRIVER_MISSING_ITEMS: Record<ShiftReadyItem, { label: string; href:
   cdl_back: { label: "CDL back photo", href: "/driver/documents?type=cdl_back" },
   medical_card: { label: "Medical card", href: "/driver/documents?type=medical_card" },
   medical_card_expired: { label: "Your new medical card and its expiry date", href: "/driver/profile" },
-  cdl_state: { label: "A Texas CDL", href: "/driver/profile" },
+  cdl_state: { label: "The state that issued your CDL", href: "/driver/profile" },
+  cdl_transfer_review: { label: "Your CDL transfer answers, which FleetGrid staff are reviewing", href: DOMICILE_PATH },
   last_name: { label: "Your last name", href: "/driver/profile" },
   profile: { label: "The rest of your profile", href: "/driver/onboarding" },
 };
@@ -79,10 +91,20 @@ export function hasTwoWordName(fullName: string): boolean {
 
 /**
  * What keeps a driver from Shift-Ready, the same rule as the database's shift_ready_missing():
- * the three documents, a Texas CDL (or an admin's override), two words of name, a full card.
+ * the three documents, a CDL state, no open CDL transfer review (0044), two words of name, a full card.
  */
 export function shiftReadyMissing(
-  driver: Pick<Driver, "fullName" | "cdlState" | "shiftReadyOverrideReason" | "cardCompleted" | "medicalCardExpiresOn">,
+  driver: Pick<
+    Driver,
+    | "fullName"
+    | "cdlState"
+    | "shiftReadyOverrideReason"
+    | "cardCompleted"
+    | "medicalCardExpiresOn"
+    | "domicileState"
+    | "txDomicileWithin30Days"
+    | "cdlTransferApplied"
+  >,
   documentTypes: readonly DocumentType[],
   today: string = houstonDate(),
 ): ShiftReadyItem[] {
@@ -90,7 +112,9 @@ export function shiftReadyMissing(
   const missing: ShiftReadyItem[] = [];
   for (const type of REQUIRED_DOCUMENTS) if (!has.has(type)) missing.push(type);
   if (medicalCardExpired(driver, today)) missing.push("medical_card_expired");
-  if (driver.cdlState !== "TX" && !driver.shiftReadyOverrideReason) missing.push("cdl_state");
+  // Any state's CDL counts (0044); a flagged transfer waits for an admin's review.
+  if (driver.cdlState === null) missing.push("cdl_state");
+  if (needsCdlTransferReview(driver) && !driver.shiftReadyOverrideReason) missing.push("cdl_transfer_review");
   if (!hasTwoWordName(driver.fullName)) missing.push("last_name");
   if (!driver.cardCompleted) missing.push("profile");
   return missing;

@@ -406,6 +406,10 @@ function driverRowAtStep(stepNumber: number) {
     cdl_class: CARD_ANSWERS.cdl_class,
     // Asked on the lead since CR-5; a card without it is sent to the one-time question.
     cdl_state: "TX",
+    // The domicile questions (0044); a card without them is sent to /driver/domicile first.
+    domicile_state: "TX",
+    cdl_address_current: true,
+    domicile_confirmed_at: new Date().toISOString(),
     ...(answered(2) && { service_radius_miles: CARD_ANSWERS.service_radius_miles }),
     years_experience: or(answered(3), CARD_ANSWERS.years_experience),
     mvr_status: or(answered(4), CARD_ANSWERS.mvr_status),
@@ -508,4 +512,22 @@ export async function openOnboarding(page: Page, phone: string) {
   await login(page, phone);
   if (!/\/driver\/onboarding$/.test(page.url())) await page.goto("/driver/onboarding");
   await expect(page).toHaveURL(/\/driver\/onboarding$/);
+}
+
+/**
+ * The domicile questions (0044), asked once after the sign-up: a Texas home, the address on the
+ * CDL current, confirmed. With a Texas CDL no Texas questions follow. Lands on My shifts.
+ */
+export async function answerDomicile(page: Page, state = "Texas") {
+  // A full page load: a link may have loaded the next page before the questions were due. A
+  // card seeded past the sign-up has answered already, so nothing is asked.
+  await page.goto("/driver");
+  await page.waitForURL(/\/driver(\/domicile)?$/);
+  if (!page.url().endsWith("/driver/domicile")) return;
+  await page.getByRole("combobox", { name: /state of domicile/ }).click();
+  await page.getByRole("option", { name: state, exact: true }).click();
+  await page.getByRole("group", { name: /residential address on your CDL/ }).getByText("Yes", { exact: true }).click();
+  await page.getByRole("checkbox", { name: /I confirm this information is accurate/ }).click();
+  await page.getByRole("button", { name: "Save and continue" }).click();
+  await expect(page).toHaveURL(/\/driver$/);
 }

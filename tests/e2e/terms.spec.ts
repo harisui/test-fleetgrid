@@ -140,7 +140,10 @@ test.describe("admin Terms page", () => {
   test("shows the current version, and that no version needs drivers to accept it again", async ({ page }) => {
     await seedUser(PHONES.admin, "admin", "approved");
     await loginAdmin(page);
-    await page.getByRole("link", { name: "Terms" }).first().click();
+    // On a phone the navigation sits behind the Menu button.
+    const menu = page.getByRole("button", { name: "Menu" });
+    if (await menu.isVisible()) await menu.click();
+    await page.getByRole("link", { name: "Terms" }).filter({ visible: true }).first().click();
     await expect(page).toHaveURL(/\/admin\/terms$/);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Terms");
     await expect(page.locator("[data-slot=stat-tile]").first()).toContainText(TOS_VERSION);

@@ -89,19 +89,20 @@ test.describe("CDL state", () => {
     expect(await cdlStateOf(PHONES.driver)).toBe("LA");
   });
 
-  test("the admin sees the state, the Not Texas CDL badge and the filter", async ({ page }) => {
-    const { driverId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP, { cdl_state: "LA", full_name: "Lou Isiana" });
+  test("the admin sees the state and the filter; a CDL from another state on its own carries no badge (0044)", async ({ page }) => {
+    const { driverId } = await seedDriverAtStep(PHONES.driver, COMPLETE_STEP, { cdl_state: "LA", domicile_state: "LA", full_name: "Lou Isiana" });
     await seedUser(PHONES.admin, "admin", "approved");
     await loginAdmin(page);
     await page.goto("/admin/drivers?cdl=other");
     const list = page.getByRole("table", { name: "Drivers" }).or(page.getByRole("list", { name: "Drivers" })).filter({ visible: true });
     await expect(list).toContainText("Lou Isiana");
-    await expect(list).toContainText("Not Texas CDL");
+    await expect(list.locator("[data-slot=transfer-review]")).toHaveCount(0);
     await page.goto("/admin/drivers?cdl=tx");
     await expect(page.getByText("Lou Isiana")).toHaveCount(0);
     await page.goto(`/admin/drivers?open=${driverId}`);
     const sheet = page.getByRole("dialog", { name: "Lou Isiana" });
-    await expect(sheet).toContainText("Not Texas CDL");
+    await expect(sheet.locator("[data-slot=transfer-review]")).toHaveCount(0);
     await expect(sheet).toContainText("CDL state");
+    await expect(sheet).toContainText("State of domicile");
   });
 });
