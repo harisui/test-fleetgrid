@@ -21,13 +21,23 @@ describe("Logo", () => {
     expect(svg).toHaveAttribute("width", String(Math.round((LOGO.width * 40) / LOGO.height)));
   });
 
-  it("paints with the sign-panel tokens only: orange trailer, white cab and wheels, graphite name", () => {
+  it("on the navy panel paints the navy parts white and keeps the orange, from tokens only", () => {
     const { container } = render(<Logo />);
-    expect(container.querySelector("rect")).toHaveClass("fill-sign-panel-border");
-    expect(container.querySelectorAll("path")[0]).toHaveClass("fill-sign-panel-foreground");
-    expect(container.querySelectorAll("path")[1]).toHaveClass("fill-sign-panel");
-    expect(container.querySelectorAll("circle")).toHaveLength(LOGO.wheels.cx.length * 2);
+    const paths = [...container.querySelectorAll("path")];
+    expect(paths).toHaveLength(4);
+    expect(paths.map((path) => path.getAttribute("class"))).toEqual([
+      "fill-sign-panel-foreground",
+      "fill-sign-panel-border",
+      "fill-sign-panel-foreground",
+      "fill-sign-panel-border",
+    ]);
     expect(container.innerHTML).not.toMatch(/fill="#|style=/);
+  });
+
+  it("on the page paints navy and orange with the logo tokens", () => {
+    const { container } = render(<Logo surface="page" />);
+    const classes = [...container.querySelectorAll("path")].map((path) => path.getAttribute("class"));
+    expect(classes).toEqual(["fill-logo-ink", "fill-logo-accent", "fill-logo-ink", "fill-logo-accent"]);
   });
 
   it("is the link home in the app header", () => {

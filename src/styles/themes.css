@@ -134,42 +134,48 @@
 /* ==== THEME 1 START ==== */
 /* ---------------------------------------------------------
    THEME 1: WORKSHOP (ACTIVE)
-   Graphite chassis, black-on-white labels, safety orange as a
-   paint stripe. Orange is used only for the primary button fill,
-   the progress fill, the sign-panel stripe and the check badge.
+   The FleetGrid brand (designer's identity guide, 2026-11): FleetGrid
+   navy #091b35 for the sign panels, industrial orange #f47b20 for the
+   logo and the sign stripe, charcoal slate text on a white lilac page.
+   The button orange is a darker #bb5208 in light mode so white text
+   passes AA (the brand orange carries navy text in dark mode).
+   Orange is used only for the primary button fill, the progress fill,
+   the sign-panel stripe, the check badge and the logo.
    Selection is graphite ink. Never orange text, borders or selection.
    --------------------------------------------------------- */
 :root {
-  --background: #f4f4f4;
-  --foreground: #16191d;
+  --background: #f6f8fc;
+  --foreground: #202a36;
   --card: #ffffff;
-  --card-foreground: #16191d;
+  --card-foreground: #202a36;
   --popover: #ffffff;
-  --popover-foreground: #16191d;
+  --popover-foreground: #202a36;
   --surface-raised: #ffffff;
-  --muted: #ebedef;
-  --muted-foreground: #4d5359;
-  --accent: #ebedef;
-  --accent-foreground: #16191d;
-  --secondary: #ebedef;
-  --secondary-foreground: #16191d;
-  --primary: #b84a00;
-  --primary-hover: #9a3d00;
+  --muted: #edf0f5;
+  --muted-foreground: #4a5565;
+  --accent: #edf0f5;
+  --accent-foreground: #202a36;
+  --secondary: #edf0f5;
+  --secondary-foreground: #202a36;
+  --primary: #bb5208;
+  --primary-hover: #a84604;
   --primary-foreground: #ffffff;
   --selection: #2b3036;
   --selection-foreground: #ffffff;
-  --selection-tint: #e4e7ea;
-  --border: #d4d6d8;
-  --border-strong: #6e747a;
-  --input: #6e747a;
-  --ring: #1a4480;
-  --sign-panel: #1f2328;
+  --selection-tint: #e6e9ee;
+  --border: #d6dce5;
+  --border-strong: #687385;
+  --input: #687385;
+  --ring: #0b2d5b;
+  --sign-panel: #091b35;
   --sign-panel-foreground: #ffffff;
-  --sign-panel-muted: #b8bec4;
-  --sign-panel-border: #f08a3c;
-  --progress-track: #d4d6d8;
-  --progress-fill: #b84a00;
+  --sign-panel-muted: #b4bfcf;
+  --sign-panel-border: #f47b20;
+  --progress-track: #d6dce5;
+  --progress-fill: #bb5208;
   --lane-line: #ffffff;
+  --logo-ink: #091b35;
+  --logo-accent: #f47b20;
   --print-ink: #000000;
   --print-paper: #ffffff;
   --success: #1e6b3a;
@@ -181,56 +187,58 @@
   --destructive: #b42318;
   --destructive-foreground: #ffffff;
   --destructive-subtle: #fbeae8;
-  --info: #1a4480;
+  --info: #0b2d5b;
   --info-foreground: #ffffff;
-  --info-subtle: #eceff3;
+  --info-subtle: #e8edf5;
 }
 
 .dark {
-  --background: #121416;
-  --foreground: #e8e9ea;
-  --card: #1a1d21;
-  --card-foreground: #e8e9ea;
-  --popover: #23272c;
-  --popover-foreground: #e8e9ea;
-  --surface-raised: #23272c;
-  --muted: #23272c;
-  --muted-foreground: #a9aeb4;
-  --accent: #23272c;
-  --accent-foreground: #e8e9ea;
-  --secondary: #23272c;
-  --secondary-foreground: #e8e9ea;
-  --primary: #f08a3c;
-  --primary-hover: #f5a262;
-  --primary-foreground: #121416;
-  --selection: #d0d4d8;
-  --selection-foreground: #121416;
-  --selection-tint: #2a2f35;
-  --border: #2c3136;
-  --border-strong: #6e747a;
-  --input: #6e747a;
+  --background: #081424;
+  --foreground: #e8ecf2;
+  --card: #0e1d33;
+  --card-foreground: #e8ecf2;
+  --popover: #14263f;
+  --popover-foreground: #e8ecf2;
+  --surface-raised: #14263f;
+  --muted: #14263f;
+  --muted-foreground: #a3afc0;
+  --accent: #14263f;
+  --accent-foreground: #e8ecf2;
+  --secondary: #14263f;
+  --secondary-foreground: #e8ecf2;
+  --primary: #f47b20;
+  --primary-hover: #f78f45;
+  --primary-foreground: #091b35;
+  --selection: #d4d8de;
+  --selection-foreground: #081424;
+  --selection-tint: #262b33;
+  --border: #1f3350;
+  --border-strong: #6b7a90;
+  --input: #6b7a90;
   --ring: #8ab4e8;
-  --sign-panel: #0e1012;
-  --sign-panel-foreground: #e8e9ea;
-  --sign-panel-muted: #a9aeb4;
-  --sign-panel-border: #f08a3c;
-  --progress-track: #2c3136;
-  --progress-fill: #f08a3c;
-  --lane-line: #6e747a;
+  --sign-panel: #050d19;
+  --sign-panel-foreground: #e8ecf2;
+  --sign-panel-muted: #a3afc0;
+  --sign-panel-border: #f47b20;
+  --progress-track: #1f3350;
+  --progress-fill: #f47b20;
+  --lane-line: #6b7a90;
+  --logo-ink: #e8ecf2;
+  --logo-accent: #f47b20;
   --print-ink: #000000;
   --print-paper: #ffffff;
   --success: #6cc08a;
-  --success-foreground: #121416;
+  --success-foreground: #081424;
   --success-subtle: #15291d;
   --warning: #e6c04a;
-  --warning-foreground: #121416;
+  --warning-foreground: #081424;
   --warning-subtle: #2e2412;
   --destructive: #f47c7c;
-  --destructive-foreground: #121416;
+  --destructive-foreground: #081424;
   --destructive-subtle: #331a18;
   --info: #8ab4e8;
-  --info-foreground: #121416;
-  --info-subtle: #1c2430;
+  --info-foreground: #081424;
+  --info-subtle: #12223a;
 }
 /* ==== THEME 1 END ==== */
 
@@ -271,6 +279,8 @@
   --progress-track: #d0d0d8;
   --progress-fill: #1a4480;
   --lane-line: #ffffff;
+  --logo-ink: #10141a;
+  --logo-accent: #1a4480;
   --print-ink: #000000;
   --print-paper: #ffffff;
   --success: #1e6b3a;
@@ -318,6 +328,8 @@
   --progress-track: #2a313c;
   --progress-fill: #8ab4e8;
   --lane-line: #6b7484;
+  --logo-ink: #e8eaed;
+  --logo-accent: #8ab4e8;
   --print-ink: #000000;
   --print-paper: #ffffff;
   --success: #6cc08a;
@@ -374,6 +386,8 @@
   --progress-track: #d4d8d2;
   --progress-fill: #005f47;
   --lane-line: #ffffff;
+  --logo-ink: #121a16;
+  --logo-accent: #005f47;
   --print-ink: #000000;
   --print-paper: #ffffff;
   --success: #1e6b3a;
@@ -421,6 +435,8 @@
   --progress-track: #29322e;
   --progress-fill: #5fc29b;
   --lane-line: #6e7a74;
+  --logo-ink: #e6eae7;
+  --logo-accent: #5fc29b;
   --print-ink: #000000;
   --print-paper: #ffffff;
   --success: #7bc98a;

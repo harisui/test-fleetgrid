@@ -32,7 +32,7 @@ function ColumnTitle({ children }: { children: string }) {
 }
 
 /**
- * The graphite footer under every page, with the 4px orange stripe on top. The company
+ * The navy footer under every page, with the 4px orange stripe on top. The company
  * and how to reach it, the carrier, driver and company columns, then the legal line and
  * the texting line. The phone number for calls and the texting sender are shown only when
  * their switches are on. Reads the contact details on the server.

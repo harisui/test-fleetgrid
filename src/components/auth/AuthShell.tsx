@@ -33,7 +33,7 @@ export function AuthShell({
       <header className="bg-sign-panel text-sign-panel-foreground">
         <div className="mx-auto flex h-14 w-full max-w-content items-center justify-between px-4">
           <Link href="/" className="flex items-center rounded-badge">
-            <Logo height={34} />
+            <Logo height={32} className="h-7 w-auto sm:h-8" />
           </Link>
           <HelpSheet support={support} />
         </div>

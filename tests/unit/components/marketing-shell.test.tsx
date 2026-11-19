@@ -361,10 +361,10 @@ describe("Reveal and Stagger", () => {
 });
 
 describe("Logo surfaces", () => {
-  it("paints the page variant with the primary and foreground tokens", () => {
+  it("paints the page variant with the logo tokens: navy ink, orange accent", () => {
     render(<Logo surface="page" />);
     const svg = screen.getByRole("img", { name: "FleetGrid" });
-    expect(svg.querySelector("rect")).toHaveClass("fill-progress-fill");
-    expect(svg.querySelectorAll("path")[0]).toHaveClass("fill-foreground");
+    expect(svg.querySelectorAll("path")[0]).toHaveClass("fill-logo-ink");
+    expect(svg.querySelectorAll("path")[1]).toHaveClass("fill-logo-accent");
   });
 });

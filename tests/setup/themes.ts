@@ -130,6 +130,9 @@ export const REQUIRED_COLOR_TOKENS = [
   "--progress-track",
   "--progress-fill",
   "--lane-line",
+  // The logo on the page background: the navy parts and the orange parts (brand, 2026-11).
+  "--logo-ink",
+  "--logo-accent",
   // Printed QR codes: true black on paper white, the same in every theme (0018, part 3).
   "--print-ink",
   "--print-paper",

@@ -41,6 +41,8 @@
   --color-print-ink: var(--print-ink);
   --color-print-paper: var(--print-paper);
   --color-lane-line: var(--lane-line);
+  --color-logo-ink: var(--logo-ink);
+  --color-logo-accent: var(--logo-accent);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
   --color-success-subtle: var(--success-subtle);

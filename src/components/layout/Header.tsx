@@ -12,7 +12,7 @@ import type { NavItem } from "@/types/domain";
 export type HeaderVariant = "app" | "marketing";
 
 interface HeaderProps {
-  /** app: the graphite bar of the signed-in pages. marketing: the public site's header. */
+  /** app: the navy bar of the signed-in pages. marketing: the public site's header. */
   variant?: HeaderVariant;
   /** Links shown inline on desktop. On mobile the same links live in MobileNav. */
   navItems?: NavItem[];
@@ -34,7 +34,7 @@ export function Header({
     <header className="bg-sign-panel text-sign-panel-foreground sticky top-0 z-40">
       <div className={cn("mx-auto flex h-14 w-full items-center gap-4 px-4", widthClass)}>
         <Link href="/" className="flex items-center rounded-badge">
-          <Logo height={32} />
+          <Logo height={32} className="h-6 w-auto sm:h-8" />
         </Link>
 
         {navItems.length > 0 && (
@@ -74,7 +74,7 @@ function MarketingHeader() {
     >
       <Container className="flex h-16 items-center gap-4">
         <Link href="/" className="flex items-center rounded-badge">
-          <Logo height={32} surface="page" />
+          <Logo height={32} surface="page" className="h-6 w-auto sm:h-8" />
         </Link>
 
         <nav aria-label="Main" className="hidden items-center gap-1 md:flex">

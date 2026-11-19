@@ -6,7 +6,7 @@ import { OG_FOOTER, seoPage, type SeoPath } from "@/content/seo";
 import { ogTokens } from "@/lib/og/tokens";
 
 /**
- * The share image for one public page, 1200 by 630, in the Workshop style: a graphite sign
+ * The share image for one public page, 1200 by 630, in the Workshop style: a navy sign
  * panel with the orange stripe on top, the logo, an uppercase eyebrow and the headline in
  * Barlow Condensed, and at the foot a lane line with a truck and "fleetgridus.com · Houston
  * area". Fonts and the logo are read from the repo, never the network. Colours come from
@@ -56,7 +56,7 @@ export function renderOgImage(path: SeoPath): ImageResponse {
         <div style={{ display: "flex", flexDirection: "column", flex: 1, padding: "56px 72px 0" }}>
           {/* The logo, drawn from the brand file for dark surfaces. */}
           {/* eslint-disable-next-line @next/next/no-img-element -- next/og renders plain img only */}
-          <img src={assets.logo} width={204} height={60} alt="" />
+          <img src={assets.logo} width={312} height={48} alt="" />
           <div
             style={{
               display: "flex",
